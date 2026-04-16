@@ -59,6 +59,17 @@ nav.main-nav a{
 nav.main-nav a:hover{text-decoration:none;border-bottom-color:var(--teal)}
 nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
 nav.main-nav a.btn{color:#ffffff;border-bottom:none;padding:.85rem 1.8rem}
+.kofi-btn{
+  display:inline-flex;align-items:center;gap:.6rem;
+  margin-top:1.5rem;padding:.75rem 1.6rem;
+  background:var(--teal);color:#fff;
+  font-size:.85rem;font-weight:600;
+  border-radius:4px;text-decoration:none;
+  transition:background .2s;
+
+}
+.kofi-btn:hover{background:var(--teal-l);text-decoration:none}
+.kofi-btn img{display:inline}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;
   padding:.85rem 1.8rem;
@@ -72,7 +83,7 @@ nav.main-nav a.btn{color:#ffffff;border-bottom:none;padding:.85rem 1.8rem}
   nav.main-nav a:not(.btn){display:none}
 }
 @media(max-width:640px){
-  .logo-area .name{display:none}
+  nav.main-nav .btn{display:none}
 }
 @media(max-width:480px){
   .topbar{padding:.8rem 1.2rem}
@@ -226,7 +237,14 @@ footer p{margin:.2rem 0}
   max-width:1200px;margin:0 auto;
   padding-top:2rem;margin-top:2rem;border-top:1px solid var(--line);
   font-size:.8rem;color:var(--muted);text-align:center;
-  font-style:italic
+}
+.footer-bottom .punch{
+  display:block;
+  margin-top:1.5rem;
+  color:var(--teal);
+  font-weight:600;
+  font-style:normal;
+  font-size:.85rem;
 }
 @media(max-width:640px){.footer-inner{grid-template-columns:1fr;gap:1.5rem}}
 
@@ -252,6 +270,7 @@ footer p{margin:.2rem 0}
     <a href="#tools">Outils</a>
     <a href="#mission">Légalité</a>
     <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
+    <a href="https://ko-fi.com/justicelibre" target="_blank" rel="noopener" style="color:var(--teal)">Soutenir</a>
     <a href="#connect" class="btn">Accéder à l'outil MCP</a>
   </nav>
 </header>
@@ -337,6 +356,12 @@ footer p{margin:.2rem 0}
     <strong>Transparence</strong> : serveur Open Source maintenu bénévolement.<br>
     <strong>Sources</strong> : opendata.justice-administrative.fr &amp; ArianeWeb (conseil-etat.fr).</p>
   </div>
+  <div style="text-align:right;margin-top:2rem;padding-bottom:1rem">
+    <a href="https://ko-fi.com/justicelibre" class="kofi-btn" target="_blank" rel="noopener">
+      <img src="/kofi.svg" alt="Ko-fi" width="20" height="20" style="filter:brightness(0) invert(1)">
+      Soutenir le projet sur Ko-fi
+    </a>
+  </div>
 </section>
 
 <!-- FOOTER -->
@@ -362,8 +387,8 @@ footer p{margin:.2rem 0}
   <p class="footer-bottom">
     © 2026 justicelibre.org · Licence MIT<br>
     Hébergement : Hetzner Online GmbH<br>
-    Éditeur : personne physique (coordonnées communiquées à l'hébergeur conformément à l'article 6 III-2 de la LCEN)<br>
-    Propulsé par la loi, pas par vos frais de licence.
+    Éditeur : personne physique (coordonnées communiquées à l'hébergeur conformément à l'article 6 III-2 de la LCEN)
+    <span class="punch">Propulsé par la loi, pas par vos frais de licence.</span>
   </p>
 </footer>
 

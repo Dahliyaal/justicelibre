@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Dahliyaal/justicelibre",
+  "description": "Free access to ~1M French administrative court decisions via MCP",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://justicelibre.org/mcp"
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/Dahliyaal/justicelibre",
+    "source": "github"
+  },
+  "tools": [
+    {"name": "list_juridictions", "description": "Liste les 51 juridictions couvertes avec leur code et nom"},
+    {"name": "search_conseil_etat", "description": "Recherche par mots-clés dans les ~270 000 décisions du Conseil d'État"},
+    {"name": "search_juridiction", "description": "Recherche par mots-clés dans une juridiction précise (TA, CAA ou CE)"},
+    {"name": "search_all_tribunaux_admin", "description": "Recherche parallèle sur les 40 tribunaux administratifs"},
+    {"name": "search_all_cours_appel", "description": "Recherche parallèle sur les 9 cours administratives d'appel"},
+    {"name": "get_decision_text", "description": "Texte intégral d'une décision (visas, considérants, dispositif)"}
+  ]
+}
