@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<title>Statistiques // justicelibre.org</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
+  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
+  --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
+  --display:"DM Serif Display",Georgia,serif;
+  --sans:"DM Sans",-apple-system,sans-serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
+a{color:var(--teal);text-decoration:none}
+.wrap{max-width:800px;margin:0 auto;padding:3rem 2rem 5rem}
+h1{font-family:var(--display);font-size:2.4rem;margin-bottom:.3rem}
+h1 em{font-style:italic;color:var(--teal)}
+.sub{color:var(--muted);font-size:.92rem;margin-bottom:2.5rem}
+.back{font-size:.85rem;color:var(--muted);margin-bottom:2rem;display:block}
+.back:hover{color:var(--teal)}
+
+.stats-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;
+  margin-bottom:3rem;
+}
+.stat-card{
+  padding:1.5rem;
+  text-align:center;
+}
+.stat-card .num{
+  font-family:var(--display);font-size:2.4rem;color:var(--teal);
+  display:block;margin-bottom:.3rem;
+}
+.stat-card .label{
+  font-size:.75rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.1em;font-weight:600;
+}
+@media(max-width:560px){.stats-grid{grid-template-columns:1fr}}
+
+h2{
+  font-family:var(--display);font-size:1.4rem;margin:2.5rem 0 1rem;
+  padding-top:1.5rem;border-top:1px solid var(--line);
+}
+h2 em{font-style:italic;color:var(--teal)}
+
+.tool-row{
+  display:grid;grid-template-columns:1fr 4rem 120px;gap:1rem;
+  align-items:center;padding:.7rem 0;border-bottom:1px solid var(--line);
+}
+.tool-row:last-child{border-bottom:none}
+.tool-name{font-family:var(--mono);font-size:.85rem;color:var(--teal)}
+.tool-count{text-align:right;font-weight:700;color:var(--ink)}
+.bar{background:var(--teal-xl);height:8px;border-radius:4px;overflow:hidden}
+.bar-fill{background:var(--teal);height:100%;border-radius:4px;transition:width .6s}
+
+.meta{margin-top:2.5rem;font-size:.85rem;color:var(--muted)}
+.meta span{display:inline-block;margin-right:2rem}
+.refresh{color:var(--muted);font-size:.78rem;margin-top:1rem;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back">&larr; justicelibre.org</a>
+  <h1>Statistiques <em>d'utilisation</em></h1>
+  <p class="sub">Données en temps réel du serveur MCP.</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="num" id="total">...</span>
+      <span class="label">Requêtes totales</span>
+    </div>
+    <div class="stat-card">
+      <span class="num" id="today">...</span>
+      <span class="label">Aujourd'hui</span>
+    </div>
+    <div class="stat-card">
+      <span class="num" id="status">...</span>
+      <span class="label">Serveur</span>
+    </div>
+  </div>
+
+  <h2>Outils <em>les plus utilisés</em></h2>
+  <div id="tools-list"></div>
+
+  <div class="meta">
+    <span>Uptime : <strong id="uptime">...</strong></span>
+    <span>Dernière requête : <strong id="last">...</strong></span>
+  </div>
+  <p class="refresh">Auto-refresh toutes les 30 secondes.</p>
+</div>
+
+<script>
+function fetchStats(){
+  fetch('/stats.json')
+    .then(function(r){return r.json()})
+    .then(function(d){
+      document.getElementById('total').textContent = (d.total||0).toLocaleString('fr-FR');
+      document.getElementById('today').textContent = (d.today||0).toLocaleString('fr-FR');
+      document.getElementById('status').textContent = d.server_status || 'active';
+      document.getElementById('uptime').textContent = d.uptime || '?';
+      document.getElementById('last').textContent = d.last_call || 'aucune';
+
+      var el = document.getElementById('tools-list');
+      el.innerHTML = '';
+      var tools = d.per_tool || {};
+      var max = 1;
+      Object.values(tools).forEach(function(v){if(v>max)max=v});
+      Object.entries(tools)
+        .sort(function(a,b){return b[1]-a[1]})
+        .forEach(function(e){
+          var row = document.createElement('div');
+          row.className = 'tool-row';
+          row.innerHTML =
+            '<span class="tool-name">'+e[0]+'</span>'+
+            '<span class="tool-count">'+e[1]+'</span>'+
+            '<div class="bar"><div class="bar-fill" style="width:'+Math.round(e[1]/max*100)+'%"></div></div>';
+          el.appendChild(row);
+        });
+    })
+    .catch(function(){});
+}
+fetchStats();
+setInterval(fetchStats, 30000);
+</script>
+</body>
+</html>

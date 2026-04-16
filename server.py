@@ -17,6 +17,11 @@ into Claude Desktop / Cursor / any MCP client.
 """
 from __future__ import annotations
 
+import json
+import threading
+import time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -25,6 +30,68 @@ from mcp.server.fastmcp import FastMCP
 from sources import ariane, juriadmin
 
 mcp = FastMCP("justicelibre")
+
+# Stats counter
+_STATS_PATH = Path("/var/www/justicelibre/stats.json")
+_STATS_LOCK = threading.Lock()
+_STATS = {"total": 0, "today": 0, "today_date": "", "per_tool": {}, "last_call": None}
+_START_TIME = time.monotonic()
+
+
+def _load_stats():
+    global _STATS
+    try:
+        if _STATS_PATH.exists():
+            with open(_STATS_PATH) as f:
+                saved = json.load(f)
+            _STATS["total"] = saved.get("total", 0)
+            _STATS["today"] = saved.get("today", 0)
+            _STATS["today_date"] = saved.get("today_date", "")
+            _STATS["per_tool"] = saved.get("per_tool", {})
+            _STATS["last_call"] = saved.get("last_call")
+    except Exception:
+        pass
+
+
+def _save_stats():
+    try:
+        paris = timezone(timedelta(hours=2))
+        now = datetime.now(paris)
+        elapsed = int(time.monotonic() - _START_TIME)
+        hours, rem = divmod(elapsed, 3600)
+        mins = rem // 60
+        data = {
+            "total": _STATS["total"],
+            "today": _STATS["today"],
+            "today_date": _STATS["today_date"],
+            "per_tool": _STATS["per_tool"],
+            "last_call": _STATS["last_call"],
+            "server_status": "active",
+            "uptime": f"{hours}h {mins:02d}m",
+        }
+        _STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_STATS_PATH, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+
+def _record_call(tool_name: str):
+    paris = timezone(timedelta(hours=2))
+    now = datetime.now(paris)
+    today_str = now.strftime("%Y-%m-%d")
+    with _STATS_LOCK:
+        if _STATS["today_date"] != today_str:
+            _STATS["today"] = 0
+            _STATS["today_date"] = today_str
+        _STATS["total"] += 1
+        _STATS["today"] += 1
+        _STATS["per_tool"][tool_name] = _STATS["per_tool"].get(tool_name, 0) + 1
+        _STATS["last_call"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        _save_stats()
+
+
+_load_stats()
 
 _TIMEOUT = httpx.Timeout(120.0, connect=10.0)
 _HEADERS = {
@@ -48,6 +115,7 @@ async def list_juridictions() -> dict[str, Any]:
 
     Utilise cette liste pour connaître le code à passer à `search_juridiction`.
     """
+    _record_call("list_juridictions")
     return {
         "conseil_etat": juriadmin.CONSEIL_ETAT,
         "cours_administratives_appel": juriadmin.COURS_ADMIN_APPEL,
@@ -72,6 +140,7 @@ async def search_conseil_etat(query: str, limit: int = 20) -> dict[str, Any]:
         query: mots-clés de recherche (ex: "référé liberté", "QPC 145")
         limit: nombre maximum de résultats (défaut 20)
     """
+    _record_call("search_conseil_etat")
     async with _client() as client:
         return await ariane.search(client, query=query, limit=limit)
 
@@ -103,6 +172,7 @@ async def search_juridiction(
         `decisions` (liste d'objets avec id, ecli, formation, numero_dossier,
         date_lecture, etc.). L'`id` peut être passé à `get_decision_text`.
     """
+    _record_call("search_juridiction")
     async with _client() as client:
         return await juriadmin.search(
             client, query=query, juridiction=juridiction, limit=limit
@@ -129,6 +199,7 @@ async def search_all_tribunaux_admin(
         Dict avec `per_court_totals` (nombre de hits par TA), `decisions`
         (liste fusionnée triée par date), et les éventuelles `errors`.
     """
+    _record_call("search_all_tribunaux_admin")
     async with _client() as client:
         return await juriadmin.search_many(
             client,
@@ -151,6 +222,7 @@ async def search_all_cours_appel(
         query: mots-clés de recherche
         limit_per_court: résultats par cour (défaut 5)
     """
+    _record_call("search_all_cours_appel")
     async with _client() as client:
         return await juriadmin.search_many(
             client,
@@ -177,6 +249,7 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         paragraphes), et `full_text` (texte intégral joint), ou None si
         la décision n'existe pas.
     """
+    _record_call("get_decision_text")
     async with _client() as client:
         return await juriadmin.get_decision(client, decision_id=decision_id)
 

@@ -1,0 +1,15 @@
+{
+  "total": 47,
+  "today": 12,
+  "last_call": "2026-04-16 12:34:02",
+  "server_status": "active",
+  "uptime": "11h 42m",
+  "per_tool": {
+    "search_juridiction": 18,
+    "search_conseil_etat": 12,
+    "get_decision_text": 8,
+    "search_all_tribunaux_admin": 5,
+    "list_juridictions": 3,
+    "search_all_cours_appel": 1
+  }
+}
