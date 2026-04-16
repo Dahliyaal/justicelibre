@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+test_mcp_client.py
+web/logo-preview.html
