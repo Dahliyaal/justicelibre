@@ -1,0 +1,1354 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<title>Recherche · justicelibre.org</title>
+<meta name="description" content="Moteur de recherche public sur 1,7 million de décisions de justice françaises et européennes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal:    #1a4e4e;
+  --teal-l:  #2a6b6b;
+  --teal-xl: #e8f0f0;
+  --ink:     #1a1a1a;
+  --body:    #3a3a3a;
+  --muted:   #6b6b6b;
+  --light:   #f5f5f3;
+  --white:   #ffffff;
+  --line:    #e0ddd6;
+  --gold:    #b8932b;
+  --display: "DM Serif Display", Georgia, serif;
+  --sans:    "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono:    "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* badges par source */
+  --src-ce:    #1a4e4e;
+  --src-admin: #2a6b6b;
+  --src-jud:   #5c3317;
+  --src-cedh:  #6b3d8a;
+  --src-cjue:  #8a5c2b;
+}
+
+/* ─── DARK MODE ─── */
+html[data-theme="dark"]{
+  --teal:    #4ea0a0;
+  --teal-l:  #66baba;
+  --teal-xl: #1e3a3a;
+  --ink:     #e8e6df;
+  --body:    #c8c5bc;
+  --muted:   #8a867d;
+  --light:   #141413;
+  --white:   #1e1e1c;
+  --line:    #2a2a27;
+  --gold:    #d4b050;
+
+  --src-ce:    #4ea0a0;
+  --src-admin: #5cb4b4;
+  --src-jud:   #a07854;
+  --src-cedh:  #a77bc4;
+  --src-cjue:  #c49964;
+}
+html[data-theme="dark"] body{background:var(--light)}
+html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
+html[data-theme="dark"] ::selection{background:var(--teal);color:var(--white)}
+html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --teal:    #4ea0a0;
+    --teal-l:  #66baba;
+    --teal-xl: #1e3a3a;
+    --ink:     #e8e6df;
+    --body:    #c8c5bc;
+    --muted:   #8a867d;
+    --light:   #141413;
+    --white:   #1e1e1c;
+    --line:    #2a2a27;
+    --gold:    #d4b050;
+    --src-ce:    #4ea0a0;
+    --src-admin: #5cb4b4;
+    --src-jud:   #a07854;
+    --src-cedh:  #a77bc4;
+    --src-cjue:  #c49964;
+  }
+  html:not([data-theme="light"]) body{background:var(--light)}
+  html:not([data-theme="light"]) .topbar{background:rgba(30,30,28,.96)}
+  html:not([data-theme="light"]) ::selection{background:var(--teal);color:var(--white)}
+}
+
+/* Toggle button */
+.theme-toggle{
+  background:none;border:1px solid var(--line);
+  width:34px;height:34px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:color .2s,border-color .2s;
+}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
+.theme-toggle svg{width:16px;height:16px}
+html[data-theme="dark"] .theme-toggle .sun{display:block}
+html[data-theme="dark"] .theme-toggle .moon{display:none}
+html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
+html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
+  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--light);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+::selection{background:var(--teal);color:#fff}
+
+/* ─── SCROLLBAR ─── */
+html{scrollbar-color:var(--line) var(--light);scrollbar-width:thin}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--light)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--light)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-corner{background:var(--light)}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+img,svg{display:block;max-width:100%}
+button{font-family:inherit}
+
+/* ─── TOPBAR ─── */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2.5rem;
+  border-bottom:1px solid var(--line);
+}
+.logo-area{display:flex;align-items:center;gap:.8rem}
+.logo-area img,.logo-area svg{width:44px;height:44px}
+.logo-area .name{font-family:var(--display);font-size:1.1rem;color:var(--ink)}
+.logo-area .name .tld{color:var(--teal)}
+.proto-badge{
+  display:inline-block;margin-left:.65rem;
+  font-size:.58rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:.18rem .45rem;border:1px solid var(--gold);color:var(--gold);
+  border-radius:2px;vertical-align:middle;cursor:help;
+}
+nav.main-nav{display:flex;align-items:center;gap:2rem}
+nav.main-nav a{
+  font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent;
+}
+nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
+nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
+@media(max-width:860px){nav.main-nav a:not(.active){display:none}}
+
+/* ─── SEARCH BAR ─── */
+.searchbar{
+  background:var(--white);border-bottom:1px solid var(--line);
+  padding:1rem 2.5rem;
+}
+.searchbar-inner{max-width:1400px;margin:0 auto}
+.sb-primary{
+  display:grid;grid-template-columns:1fr 220px auto auto;gap:.5rem;
+}
+.sb-primary input[type=text],
+.sb-primary select{
+  font-family:var(--sans);font-size:.95rem;
+  padding:.75rem 1rem;
+  background:var(--white);color:var(--ink);
+  border:1px solid var(--line);border-radius:3px;
+}
+.sb-primary input[type=text]:focus,
+.sb-primary select:focus{outline:none;border-color:var(--teal)}
+.sb-primary .cs-display{
+  font-size:.95rem;padding:.75rem 1rem;
+}
+.sb-primary button.submit{
+  padding:.75rem 1.8rem;
+  background:var(--teal);color:#fff;
+  font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  border:none;border-radius:3px;cursor:pointer;
+}
+.sb-primary button.submit:hover{background:var(--teal-l)}
+.sb-primary button.toggle-adv{
+  padding:.75rem 1rem;background:transparent;color:var(--muted);
+  font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  border:1px solid var(--line);border-radius:3px;cursor:pointer;
+  display:flex;align-items:center;gap:.4rem;
+}
+.sb-primary button.toggle-adv:hover{color:var(--teal);border-color:var(--teal)}
+.sb-primary button.toggle-adv .chev{display:inline-block;transition:transform .2s}
+.sb-primary button.toggle-adv.open .chev{transform:rotate(180deg)}
+
+/* Filtres avancés */
+.sb-advanced{
+  display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:.5rem;
+  max-height:0;overflow:hidden;
+  transition:max-height .25s ease, padding .25s ease;
+}
+.sb-advanced.open{
+  max-height:420px;padding:.75rem 0 .2rem;
+  /* Une fois ouvert, permet aux popovers (custom dropdown) de déborder */
+  animation:unclip 0s .25s forwards;
+}
+@keyframes unclip{to{overflow:visible}}
+.field label{
+  display:block;font-size:.7rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;
+}
+.field input,.field select{
+  width:100%;font-family:var(--sans);font-size:.88rem;
+  padding:.55rem .75rem;
+  background:var(--white);color:var(--ink);
+  border:1px solid var(--line);border-radius:3px;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--teal)}
+
+/* ─── Custom dropdown ─── */
+.cs-wrap{position:relative;width:100%}
+.cs-display{
+  width:100%;text-align:left;cursor:pointer;
+  font-family:var(--sans);font-size:.88rem;color:var(--ink);
+  padding:.55rem .75rem;
+  background:var(--white);border:1px solid var(--line);border-radius:3px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.cs-display:hover{border-color:var(--teal)}
+.cs-display .chev{color:var(--muted);transition:transform .2s}
+.cs-wrap.open .cs-display{border-color:var(--teal)}
+.cs-wrap.open .cs-display .chev{transform:rotate(180deg)}
+.cs-panel{
+  position:absolute;top:calc(100% + 4px);left:0;
+  min-width:100%;width:max-content;max-width:420px;
+  background:var(--white);border:1px solid var(--line);border-radius:3px;
+  box-shadow:0 6px 20px rgba(0,0,0,.12);
+  max-height:360px;overflow-y:auto;
+  z-index:200;display:none;
+}
+.cs-wrap.open .cs-panel{display:block}
+.cs-item{
+  padding:.5rem .85rem;font-size:.85rem;cursor:pointer;
+  color:var(--ink);transition:background .12s;
+}
+.cs-item:hover{background:var(--teal-xl)}
+.cs-item.selected{background:var(--teal-xl);color:var(--teal);font-weight:600}
+/* Headers : match optgroup natif (bold non-italic, texte dark, séparateurs ━) */
+.cs-group{
+  padding:.35rem .85rem;font-size:.85rem;font-weight:700;
+  color:var(--ink);cursor:pointer;
+  background:var(--white);
+  text-align:center;position:relative;
+  transition:background .12s,color .12s;
+}
+.cs-group::before,.cs-group::after{
+  content:"━";display:inline-block;margin:0 .5rem;opacity:.5;
+}
+.cs-group:hover{background:var(--teal);color:#fff}
+.cs-group:hover::before,.cs-group:hover::after{opacity:.8}
+.cs-group.selected{background:var(--teal);color:#fff}
+.cs-group.selected::before,.cs-group.selected::after{opacity:.8}
+/* Hint "tout" visible seulement au hover */
+.cs-group .hint{
+  display:none;
+  font-size:.62rem;font-weight:400;font-style:normal;
+  opacity:.75;text-transform:none;margin-left:.5rem;
+}
+.cs-group:hover .hint{display:inline}
+.cs-item.cs-sub{padding-left:1.6rem;color:var(--body)}
+.cs-item.cs-sub:hover{color:var(--ink)}
+.sb-help{
+  font-size:.74rem;color:var(--muted);margin-top:.5rem;padding-top:.6rem;
+  border-top:1px dashed var(--line);line-height:1.4;
+}
+.sb-help p{margin-bottom:.55rem}
+.sb-help p:last-child{margin-bottom:0}
+.sb-help strong{color:var(--ink);font-weight:600;display:block;margin-bottom:.75rem;font-size:.78rem}
+.sb-help em{font-style:italic;color:var(--muted)}
+.sb-help code{
+  font-family:var(--mono);font-size:.7rem;
+  background:var(--light);padding:.12rem .35rem;border-radius:2px;color:var(--teal);
+  white-space:nowrap;
+}
+
+@media(max-width:720px){
+  .searchbar{padding:1rem 1.2rem}
+  .sb-primary{grid-template-columns:1fr}
+}
+
+/* ─── MAIN GRID ─── */
+.results-shell{
+  flex:1 1 auto;
+  max-width:1400px;width:100%;margin:0 auto;
+  display:grid;grid-template-columns:minmax(320px, 40%) 1fr;gap:1px;
+  background:var(--line);
+  min-height:calc(100vh - 180px);
+}
+.results-list{
+  background:var(--white);
+  overflow-y:auto;max-height:calc(100vh - 180px);
+}
+.results-header{
+  position:sticky;top:0;z-index:2;background:var(--white);
+  padding:.85rem 1.2rem;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+}
+.results-header .sort-switch{
+  font-size:.7rem;color:var(--muted);cursor:pointer;
+  padding:.3rem .6rem;background:var(--light);border-radius:3px;
+}
+.results-header .sort-switch:hover{color:var(--teal)}
+
+/* Cartes résultat */
+.result-card{
+  padding:.9rem 1.2rem;border-bottom:1px solid var(--line);
+  cursor:pointer;transition:background .15s;
+}
+.result-card:hover{background:var(--teal-xl)}
+.result-card.active{background:var(--teal-xl);border-left:3px solid var(--teal);padding-left:calc(1.2rem - 3px)}
+.result-card .meta-line{
+  display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;
+  font-size:.72rem;color:var(--muted);
+  margin-bottom:.35rem;
+}
+.result-card .src-badge{
+  display:inline-block;padding:.15rem .5rem;border-radius:2px;
+  font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#fff;
+}
+.src-badge.ce   {background:var(--src-ce)}
+.src-badge.admin{background:var(--src-admin)}
+.src-badge.jud  {background:var(--src-jud)}
+.src-badge.cedh {background:var(--src-cedh)}
+.src-badge.cjue {background:var(--src-cjue)}
+.result-card .juri{color:var(--teal);font-weight:600}
+.result-card .date{font-variant-numeric:tabular-nums}
+.result-card .title{
+  font-family:var(--display);font-size:.98rem;line-height:1.3;color:var(--ink);
+  margin-bottom:.3rem;
+}
+.result-card .extract{font-size:.8rem;color:var(--body);line-height:1.45}
+.result-card .extract em{background:rgba(184,147,43,.25);font-style:normal;padding:0 2px;border-radius:1px}
+.result-card .tags{
+  display:flex;gap:.3rem;margin-top:.45rem;flex-wrap:wrap;
+}
+.result-card .tag{
+  font-size:.68rem;color:var(--muted);
+  padding:.1rem .45rem;background:var(--light);border-radius:2px;
+}
+
+/* ─── Loader : dots qui sautent ─── */
+.loader-box{
+  padding:2rem 1.2rem;text-align:center;color:var(--muted);font-size:.85rem;
+}
+.dots{
+  display:inline-block;font-size:1.6rem;line-height:1;letter-spacing:.3em;
+  color:var(--teal);margin-bottom:.8rem;user-select:none;
+}
+.dots span{
+  display:inline-block;opacity:.25;
+  animation:dotPulse 1.4s ease-in-out infinite;
+}
+.dots span:nth-child(1){animation-delay:0s}
+.dots span:nth-child(2){animation-delay:.18s}
+.dots span:nth-child(3){animation-delay:.36s}
+.dots span:nth-child(4){animation-delay:.54s}
+@keyframes dotPulse{
+  0%,60%,100%{opacity:.25;transform:translateY(0)}
+  30%{opacity:1;transform:translateY(-3px)}
+}
+/* Version inline dans le header : même typo que le texte autour */
+.dots-inline{
+  display:inline-block;letter-spacing:.25em;user-select:none;
+  vertical-align:middle;margin-left:.3rem;
+}
+.dots-inline span{
+  display:inline-block;opacity:.25;
+  animation:dotPulse 1.4s ease-in-out infinite;
+}
+.dots-inline span:nth-child(1){animation-delay:0s}
+.dots-inline span:nth-child(2){animation-delay:.18s}
+.dots-inline span:nth-child(3){animation-delay:.36s}
+.dots-inline span:nth-child(4){animation-delay:.54s}
+.loader-note{
+  font-size:.72rem;font-style:italic;color:var(--muted);
+  margin-top:.6rem;max-width:320px;margin-left:auto;margin-right:auto;
+  line-height:1.4;
+}
+.loader-progress{
+  margin-top:.7rem;font-size:.72rem;color:var(--muted);
+  display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;
+}
+.loader-progress span{
+  padding:.1rem .5rem;background:var(--light);border-radius:2px;
+  border:1px solid var(--line);
+}
+
+/* Bandeau avertissement (source timeout) */
+.source-warning{
+  padding:.6rem 1.2rem;background:rgba(184,147,43,.08);
+  border-bottom:1px solid rgba(184,147,43,.3);
+  font-size:.74rem;color:var(--body);
+}
+.source-warning strong{color:var(--gold)}
+
+/* ─── Charger plus ─── */
+.load-more-wrap{
+  padding:1.2rem;text-align:center;border-top:1px solid var(--line);
+}
+.load-more{
+  font-family:var(--sans);font-size:.78rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:.7rem 1.6rem;
+  background:var(--white);color:var(--teal);
+  border:1px solid var(--teal);border-radius:3px;cursor:pointer;
+  transition:background .15s, color .15s;
+}
+.load-more:hover{background:var(--teal);color:#fff}
+.load-more:disabled{opacity:.5;cursor:wait}
+
+/* ─── TEXTE INTÉGRAL ─── */
+.text-viewer{
+  background:var(--white);padding:2.5rem 3rem;
+  overflow-y:auto;max-height:calc(100vh - 180px);
+}
+.text-viewer.empty{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:.95rem;padding:4rem;text-align:center;
+}
+.text-viewer h1{
+  font-family:var(--display);font-size:1.7rem;line-height:1.25;color:var(--ink);
+  margin-bottom:.7rem;
+}
+.text-viewer .doc-meta{
+  display:flex;gap:1.2rem;flex-wrap:wrap;
+  font-size:.82rem;color:var(--muted);
+  padding-bottom:1.2rem;margin-bottom:1.5rem;border-bottom:1px solid var(--line);
+}
+.text-viewer .doc-meta strong{color:var(--ink);font-weight:600;margin-right:.3rem}
+.text-viewer .actions{display:flex;gap:.6rem;margin-bottom:1.8rem;flex-wrap:wrap}
+.text-viewer .actions a{
+  font-size:.72rem;padding:.45rem .85rem;
+  background:var(--teal-xl);color:var(--teal);
+  border-radius:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;
+}
+.text-viewer .actions a:hover{background:var(--teal);color:#fff;text-decoration:none}
+.text-viewer .body{
+  font-size:.98rem;line-height:1.7;color:var(--body);max-width:70ch;
+}
+.text-viewer .body p{margin-bottom:1em}
+
+@media(max-width:860px){
+  .results-shell{grid-template-columns:1fr;min-height:auto}
+  .results-list{max-height:500px}
+  .text-viewer{padding:2rem 1.4rem;max-height:none}
+  .text-viewer .body{max-width:none}
+}
+
+/* ─── FOOTER ─── */
+.footer-min{
+  padding:.8rem 2.5rem;background:var(--white);border-top:1px solid var(--line);
+  font-size:.75rem;color:var(--muted);text-align:center;
+}
+.footer-min a{color:var(--muted)}
+.footer-min a:hover{color:var(--teal)}
+</style>
+</head>
+<body>
+
+<!-- ─── TOPBAR ─── -->
+<header class="topbar">
+  <a href="/" class="logo-area">
+    <img src="/logo.svg" alt="">
+    <span class="name">justicelibre<span class="tld">.org</span></span>
+    <span class="proto-badge" title="Version bêta — moteur en rodage. Envoyer retour via GitHub ou Ko-fi.">bêta</span>
+  </a>
+  <nav class="main-nav">
+    <a href="/">Accueil</a>
+    <a href="/search.html" class="active">Recherche</a>
+    <a href="/#connect">MCP</a>
+    <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
+    <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </nav>
+</header>
+
+<!-- ─── SEARCH BAR ─── -->
+<div class="searchbar">
+  <div class="searchbar-inner">
+
+    <!-- Ligne principale -->
+    <div class="sb-primary">
+      <input type="text" id="q" placeholder="Rechercher une décision, un arrêt, un considérant…">
+
+      <div class="cs-wrap" id="sourceCs">
+        <button type="button" class="cs-display"><span class="cs-display-text">Toutes juridictions</span><span class="chev">▾</span></button>
+        <div class="cs-panel">
+          <div class="cs-item selected" data-value="" data-label="Toutes juridictions">Toutes juridictions</div>
+          <div class="cs-item" data-value="admin" data-label="Administratif">Administratif</div>
+          <div class="cs-item" data-value="judic" data-label="Judiciaire">Judiciaire</div>
+          <div class="cs-item" data-value="europ" data-label="Européen">Européen</div>
+        </div>
+      </div>
+      <input type="hidden" id="source" value="">
+
+      <button class="toggle-adv" id="toggleAdv">Filtres <span class="chev">▾</span></button>
+      <button class="submit">Chercher</button>
+    </div>
+
+    <!-- Filtres avancés -->
+    <div class="sb-advanced" id="advPanel">
+
+      <div class="field">
+        <label>Juridiction</label>
+        <div class="cs-wrap" id="juriCs">
+          <button type="button" class="cs-display">
+            <span class="cs-display-text">Toutes juridictions</span>
+            <span class="chev">▾</span>
+          </button>
+          <div class="cs-panel">
+            <div class="cs-item selected" data-value="" data-label="Toutes juridictions">Toutes juridictions</div>
+
+            <div class="cs-group" data-value="admin" data-label="Tout administratif">
+              <span>Administratif</span><span class="hint">tout</span>
+            </div>
+            <div class="cs-item cs-sub" data-value="ce" data-label="Conseil d'État">Conseil d'État</div>
+            <div class="cs-item cs-sub" data-value="caa" data-label="Cours admin. d'appel">Cours administratives d'appel</div>
+            <div class="cs-item cs-sub" data-value="ta" data-label="Tribunaux admin.">Tribunaux administratifs</div>
+
+            <div class="cs-group" data-value="judic" data-label="Tout judiciaire">
+              <span>Judiciaire</span><span class="hint">tout</span>
+            </div>
+            <div class="cs-item cs-sub" data-value="cass" data-label="Cour de cassation">Cour de cassation</div>
+            <div class="cs-item cs-sub" data-value="ca" data-label="Cours d'appel">Cours d'appel</div>
+            <div class="cs-item cs-sub" data-value="constit" data-label="Conseil constitutionnel">Conseil constitutionnel</div>
+
+            <div class="cs-group" data-value="europ" data-label="Tout européen">
+              <span>Européen</span><span class="hint">tout</span>
+            </div>
+            <div class="cs-item cs-sub" data-value="cedh" data-label="Cour EDH">Cour EDH (Strasbourg)</div>
+            <div class="cs-item cs-sub" data-value="cjue" data-label="CJUE">CJUE + Tribunal UE</div>
+          </div>
+        </div>
+        <input type="hidden" id="juridiction" value="">
+      </div>
+
+      <div class="field" id="fieldLieu" style="display:none">
+        <label>Lieu géographique</label>
+        <div class="cs-wrap" id="lieuCs">
+          <button type="button" class="cs-display"><span class="cs-display-text">Tous</span><span class="chev">▾</span></button>
+          <div class="cs-panel"></div>
+        </div>
+        <input type="hidden" id="lieu" value="">
+      </div>
+
+      <div class="field" id="fieldFormation" style="display:none">
+        <label>Chambre / formation</label>
+        <div class="cs-wrap" id="formationCs">
+          <button type="button" class="cs-display"><span class="cs-display-text">Toutes</span><span class="chev">▾</span></button>
+          <div class="cs-panel"></div>
+        </div>
+        <input type="hidden" id="formation" value="">
+      </div>
+
+      <div class="field">
+        <label>Date (à partir de)</label>
+        <input type="date" value="2020-01-01">
+      </div>
+
+      <div class="field">
+        <label>Date (jusqu'au)</label>
+        <input type="date" value="2026-04-17">
+      </div>
+
+      <div class="field">
+        <label>N° de pourvoi / dossier</label>
+        <input type="text" placeholder="ex : 19-19.122">
+      </div>
+
+      <div class="field">
+        <label>Tri des résultats</label>
+        <div class="cs-wrap" id="triCs">
+          <button type="button" class="cs-display"><span class="cs-display-text">Pertinence (si dispo)</span><span class="chev">▾</span></button>
+          <div class="cs-panel">
+            <div class="cs-item selected" data-value="pertinence" data-label="Pertinence (si dispo)">Pertinence (si dispo)</div>
+            <div class="cs-item" data-value="date_desc" data-label="Date — plus récent d'abord">Date — plus récent d'abord</div>
+            <div class="cs-item" data-value="date_asc" data-label="Date — plus ancien d'abord">Date — plus ancien d'abord</div>
+          </div>
+        </div>
+        <input type="hidden" id="tri" value="pertinence">
+      </div>
+
+      <div class="sb-help" style="grid-column:1/-1">
+        <strong>Opérateurs acceptés · syntaxes multiples · espaces optionnels</strong>
+        <p><b>ET</b> : <code>AND</code> · <code>ET</code> · <code>&amp;</code> &nbsp;—&nbsp; <b>OU</b> : <code>OR</code> · <code>OU</code> · <code>|</code> &nbsp;—&nbsp; <b>SAUF</b> : <code>NOT</code> · <code>SAUF</code> · <code>-mot</code></p>
+        <p><b>Phrase exacte</b> : <code>"atteinte à la liberté"</code> &nbsp;—&nbsp; <b>Préfixe</b> : <code>signal*</code> (matche signaler, signalement, signalée…)</p>
+        <p><b>Exemples valides</b> : <code>liberté &amp; signalement</code> · <code>liberté ET signalement</code> · <code>licenci* OU renvoi</code> · <code>"vie privée" SAUF médical</code></p>
+        <p><em>Note : le Conseil d'État (ArianeWeb) utilise un moteur sémantique distinct — les opérateurs sont normalisés côté serveur pour chaque source.</em></p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── RÉSULTATS ─── -->
+<div class="results-shell">
+
+  <aside class="results-list" id="resultsList">
+    <div class="results-header" id="resultsHeader">
+      <span>Saisissez une requête pour commencer</span>
+    </div>
+  </aside>
+
+  <main class="text-viewer empty" id="textViewer">
+    <div>Sélectionnez une décision dans la liste<br>pour afficher son texte intégral.</div>
+  </main>
+
+</div>
+
+<footer class="footer-min">
+  justicelibre.org · <a href="/">Accueil</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Licence Ouverte 2.0 (Etalab)
+</footer>
+
+<script>
+/* ─── Dark mode ─── */
+const savedTheme = localStorage.getItem('jl-theme');
+if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const html = document.documentElement;
+  const current = html.dataset.theme;
+  const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Cycle : system → opposite → system
+  let next;
+  if (!current) next = system === 'dark' ? 'light' : 'dark';
+  else if (current === 'dark' && system === 'light') next = 'light';
+  else if (current === 'light' && system === 'dark') next = 'dark';
+  else next = ''; // retour auto
+  if (next) { html.dataset.theme = next; localStorage.setItem('jl-theme', next); }
+  else { delete html.dataset.theme; localStorage.removeItem('jl-theme'); }
+});
+
+const toggleBtn = document.getElementById('toggleAdv');
+const advPanel  = document.getElementById('advPanel');
+toggleBtn.addEventListener('click', () => {
+  advPanel.classList.toggle('open');
+  toggleBtn.classList.toggle('open');
+});
+document.querySelectorAll('.result-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.result-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  });
+});
+
+/* ─── Formations / chambres connues par juridiction ─── */
+const FORMATIONS = {
+  cass: [
+    "Chambre civile 1", "Chambre civile 2", "Chambre civile 3",
+    "Chambre commerciale", "Chambre sociale", "Chambre criminelle",
+    "Assemblée plénière", "Chambre mixte",
+  ],
+  ce: [
+    "Assemblée du contentieux", "Section du contentieux",
+    "1re chambre", "2e chambre", "3e chambre", "4e chambre", "5e chambre",
+    "6e chambre", "7e chambre", "8e chambre", "9e chambre", "10e chambre",
+    "Juge des référés", "Ordonnance",
+  ],
+  caa: [
+    "1re chambre", "2e chambre", "3e chambre", "4e chambre",
+    "5e chambre", "6e chambre", "Formation plénière",
+  ],
+  ta: [
+    "1re chambre", "2e chambre", "3e chambre", "4e chambre",
+    "5e chambre", "6e chambre", "Formation ordinaire",
+    "Juge unique", "Ordonnance (art. R.222-1 CJA)",
+  ],
+  ca: [
+    "Chambre civile", "Chambre sociale", "Chambre commerciale",
+    "Chambre correctionnelle", "Chambre des appels correctionnels",
+    "Chambre de la famille", "Chambre de l'instruction",
+  ],
+  cedh: [
+    "Grande Chambre", "Chambre", "Comité à 3 juges", "Comité à 1 juge",
+  ],
+  // constit / cjue : pas de filtre formation pertinent
+};
+
+/* ─── Géographies des juridictions locales ─── */
+const INSTANCES = {
+  ta: [
+    ['TA06', 'Nice'], ['TA13', 'Marseille'], ['TA14', 'Caen'],
+    ['TA20', 'Bastia'], ['TA21', 'Dijon'], ['TA25', 'Besançon'],
+    ['TA30', 'Nîmes'], ['TA31', 'Toulouse'], ['TA33', 'Bordeaux'],
+    ['TA34', 'Montpellier'], ['TA35', 'Rennes'], ['TA38', 'Grenoble'],
+    ['TA44', 'Nantes'], ['TA45', "Orléans"], ['TA51', 'Châlons-en-Ch.'],
+    ['TA54', 'Nancy'], ['TA59', 'Lille'], ['TA63', 'Clermont-Ferrand'],
+    ['TA64', 'Pau'], ['TA67', 'Strasbourg'], ['TA69', 'Lyon'],
+    ['TA75', 'Paris'], ['TA76', 'Rouen'], ['TA77', 'Melun'],
+    ['TA78', 'Versailles'], ['TA80', 'Amiens'], ['TA83', 'Toulon'],
+    ['TA86', 'Poitiers'], ['TA87', 'Limoges'], ['TA93', 'Montreuil'],
+    ['TA95', 'Cergy-Pontoise'],
+    ['TA101', 'La Réunion'], ['TA102', 'Martinique'], ['TA103', 'Polynésie fr.'],
+    ['TA104', 'Nouvelle-Calédonie'], ['TA105', 'Guadeloupe'],
+    ['TA106', 'Guyane'], ['TA107', 'Mayotte'], ['TA108', 'St-Martin'],
+    ['TA109', 'St-Barthélemy'],
+  ],
+  caa: [
+    ['CAA13', 'Marseille'], ['CAA31', 'Toulouse'], ['CAA33', 'Bordeaux'],
+    ['CAA44', 'Nantes'], ['CAA54', 'Nancy'], ['CAA59', 'Douai'],
+    ['CAA69', 'Lyon'], ['CAA75', 'Paris'], ['CAA78', 'Versailles'],
+  ],
+  ca: [
+    ['Paris', 'Paris'], ['Versailles', 'Versailles'], ['Lyon', 'Lyon'],
+    ['Rennes', 'Rennes'], ['Douai', 'Douai'], ['Angers', 'Angers'],
+    ['Limoges', 'Limoges'], ['Bastia', 'Bastia'], ['Basse-Terre', 'Basse-Terre'],
+    ['Aix-en-Provence', 'Aix-en-Provence'], ['Montpellier', 'Montpellier'],
+    ['Agen', 'Agen'], ['Toulouse', 'Toulouse'], ['Orléans', 'Orléans'],
+    ['Bordeaux', 'Bordeaux'], ['Nîmes', 'Nîmes'], ['Saint-Denis', 'St-Denis Réunion'],
+    ['Rouen', 'Rouen'], ['Metz', 'Metz'], ['Nancy', 'Nancy'],
+    ['Reims', 'Reims'], ['Besançon', 'Besançon'], ['Dijon', 'Dijon'],
+    ['Grenoble', 'Grenoble'], ['Chambéry', 'Chambéry'], ['Poitiers', 'Poitiers'],
+    ['Pau', 'Pau'], ['Riom', 'Riom'], ['Bourges', 'Bourges'],
+    ['Amiens', 'Amiens'], ['Caen', 'Caen'], ['Colmar', 'Colmar'],
+    ['Fort-de-France', 'Fort-de-France'], ['Nouméa', 'Nouméa'],
+    ['Papeete', 'Papeete'], ['Cayenne', 'Cayenne'],
+  ],
+};
+
+/* ─── Custom dropdown logic — réutilisable ─── */
+function bindCs(wrapId, hiddenId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const display = wrap.querySelector('.cs-display');
+  const dispText = wrap.querySelector('.cs-display-text');
+  const panel = wrap.querySelector('.cs-panel');
+  const hidden = document.getElementById(hiddenId);
+
+  display.addEventListener('click', e => {
+    e.stopPropagation();
+    // Close other open dropdowns
+    document.querySelectorAll('.cs-wrap.open').forEach(w => {
+      if (w !== wrap) w.classList.remove('open');
+    });
+    wrap.classList.toggle('open');
+  });
+
+  panel.addEventListener('click', e => {
+    const el = e.target.closest('[data-value]');
+    if (!el) return;
+    hidden.value = el.dataset.value;
+    dispText.textContent = el.dataset.label;
+    panel.querySelectorAll('.selected').forEach(n => n.classList.remove('selected'));
+    el.classList.add('selected');
+    wrap.classList.remove('open');
+    hidden.dispatchEvent(new Event('change'));
+  });
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.cs-wrap.open').forEach(w => w.classList.remove('open'));
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.cs-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+
+bindCs('juriCs', 'juridiction');
+bindCs('sourceCs', 'source');
+bindCs('triCs', 'tri');
+bindCs('formationCs', 'formation');
+bindCs('lieuCs', 'lieu');
+
+const juriEl = document.getElementById('juridiction');
+const sourceEl = document.getElementById('source');
+
+/* ─── Sync coarse (primary) ↔ fine (filters) ─── */
+const PARENT_OF = {
+  // filtre fin → catégorie parent
+  '':        '',       // toutes
+  'admin':   'admin',  'ce': 'admin',  'caa': 'admin',  'ta': 'admin',
+  'judic':   'judic',  'cass': 'judic', 'ca': 'judic',  'constit': 'judic',
+  'europ':   'europ',  'cedh': 'europ', 'cjue': 'europ',
+};
+const COARSE_LABELS = {
+  '':      'Toutes juridictions',
+  'admin': 'Administratif',
+  'judic': 'Judiciaire',
+  'europ': 'Européen',
+};
+const FINE_LABELS_WHEN_COARSE = {
+  '':      ['',      'Toutes juridictions'],
+  'admin': ['admin', 'Tout administratif'],
+  'judic': ['judic', 'Tout judiciaire'],
+  'europ': ['europ', 'Tout européen'],
+};
+
+function setCsDisplay(wrapId, value, label) {
+  const wrap = document.getElementById(wrapId);
+  wrap.querySelector('.cs-display-text').textContent = label;
+  wrap.querySelectorAll('.cs-item.selected,.cs-group.selected').forEach(n => n.classList.remove('selected'));
+  const node = wrap.querySelector(`[data-value="${value}"]`);
+  if (node) node.classList.add('selected');
+}
+
+// Quand on change le filtre fin → remonter au parent dans le primary
+juriEl.addEventListener('change', () => {
+  const fine = juriEl.value;
+  const coarse = PARENT_OF[fine] ?? '';
+  if (sourceEl.value !== coarse) {
+    sourceEl.value = coarse;
+    setCsDisplay('sourceCs', coarse, COARSE_LABELS[coarse]);
+  }
+});
+
+// Quand on change le primary → propager au filtre fin (sélectionne le "tout X")
+sourceEl.addEventListener('change', () => {
+  const coarse = sourceEl.value;
+  const [fineVal, fineLabel] = FINE_LABELS_WHEN_COARSE[coarse] ?? ['', 'Toutes juridictions'];
+  if (juriEl.value !== fineVal) {
+    juriEl.value = fineVal;
+    setCsDisplay('juriCs', fineVal, fineLabel);
+    // Trigger subsequent formation/lieu updates
+    juriEl.dispatchEvent(new Event('change'));
+  }
+});
+const fieldLieu = document.getElementById('fieldLieu');
+const fieldFormation = document.getElementById('fieldFormation');
+const lieuCs = document.getElementById('lieuCs');
+const lieuDisp = lieuCs.querySelector('.cs-display-text');
+const lieuPanel = lieuCs.querySelector('.cs-panel');
+const lieuHidden = document.getElementById('lieu');
+const formCs = document.getElementById('formationCs');
+const formDisp = formCs.querySelector('.cs-display-text');
+const formPanel = formCs.querySelector('.cs-panel');
+const formHidden = document.getElementById('formation');
+
+function fillCs(panel, options, placeholder='Toutes', placeholderLabel='Toutes') {
+  panel.innerHTML = '';
+  const top = document.createElement('div');
+  top.className = 'cs-item selected';
+  top.dataset.value = '';
+  top.dataset.label = placeholderLabel;
+  top.textContent = placeholder;
+  panel.appendChild(top);
+  for (const o of options) {
+    const it = document.createElement('div');
+    it.className = 'cs-item';
+    it.dataset.value = o.value;
+    it.dataset.label = o.label;
+    it.textContent = o.label;
+    panel.appendChild(it);
+  }
+}
+
+/* ─── FETCH API + render ─── */
+const resultsList = document.getElementById('resultsList');
+const resultsHeader = document.getElementById('resultsHeader');
+const textViewer = document.getElementById('textViewer');
+const queryInput = document.getElementById('q');
+const submitBtn = document.querySelector('.sb-primary .submit');
+// Cache local des résultats : utile pour ArianeWeb qui n'a pas d'endpoint /decision
+const resultCache = new Map();
+function cacheKey(src, id) { return src + ':' + id; }
+
+const SRC_BADGES = {
+  ariane: 'ce', admin: 'admin', dila: 'jud', cedh: 'cedh', cjue: 'cjue',
+};
+
+/**
+ * Découpe un bloc de texte juridique en paragraphes lisibles.
+ * DILA/Cass ont perdu leurs séparateurs lors de l'indexation XML :
+ * on recrée les ruptures sur les patterns typiques d'arrêt.
+ */
+function splitLegalBlock(text) {
+  if (!text) return [];
+  let t = text.replace(/\s+/g, ' ').trim();
+  // Decode HTML entities résiduelles (&amp; &quot; etc.) du XML d'origine
+  const tempEl = document.createElement('textarea');
+  tempEl.innerHTML = t;
+  t = tempEl.value;
+
+  // 1) Décorations visuelles de l'arrêt original (lignes d'underscores, bullets)
+  t = t.replace(/_{5,}/g, '\n\n');
+  t = t.replace(/\s•\s/g, '\n\n');
+  t = t.replace(/\s\*\s\*\s\*\s/g, '\n\n');
+
+  // 2) Alinéas numérotés : "... phrase. 2. La cour..." → split avant chaque "N."
+  //    Tolère minuscules après (CEDH FR : "1. Le requérant...")
+  t = t.replace(/\.\s+(?=\d{1,3}\.\s+[A-Za-zÀ-ÖØ-öø-ÿ«])/g, '.\n\n');
+
+  // 3) Marqueurs juridiques canoniques français
+  const KEYWORDS = [
+    'PAR CES MOTIFS', 'CASSE ET ANNULE', 'LA COUR', 'REJETTE', 'RENVOIE',
+    'Faits et procédure', 'Examen des moyens', 'Examen du moyen',
+    'Énoncé du moyen', 'Enoncé du moyen', 'Réponse de la Cour',
+    'Portée et conséquences', 'EN FAIT', 'EN DROIT',
+  ];
+  for (const kw of KEYWORDS) {
+    const re = new RegExp('\\s(?=' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b)', 'g');
+    t = t.replace(re, '\n\n');
+  }
+
+  // 5) Marqueurs "Sur le X moyen"
+  t = t.replace(
+    /\s(?=(?:Sur|Mais sur|Et sur) (?:le|les|ce) (?:premier|second|deuxième|troisième|quatrième|cinquième|sixième|septième|huitième|neuvième|unique) moyen)/gi,
+    '\n\n'
+  );
+
+  // 6) Dispositifs finaux (PAR CES MOTIFS CASSE et ANNULE, ORDONNE, etc.)
+  t = t.replace(/\s(?=(?:DIT QUE|CONDAMNE|ORDONNE|FIXE|DÉBOUTE|DECIDE|DÉCIDE)\b)/g, '\n\n');
+
+  // 7) Fallback : blocs > 1500 chars split sur "... . Suivant... "
+  const parts = t.split(/\n{2,}/).filter(p => p.trim().length > 2);
+  const result = [];
+  for (const p of parts) {
+    if (p.length <= 1500) { result.push(p.trim()); continue; }
+    // Découper sur phrase + majuscule (heuristique souple)
+    const sub = p.split(/(?<=\.)\s+(?=[A-ZÉÈ])/).reduce((acc, sentence) => {
+      if (!acc.length || acc[acc.length - 1].length + sentence.length > 800) {
+        acc.push(sentence);
+      } else {
+        acc[acc.length - 1] += ' ' + sentence;
+      }
+      return acc;
+    }, []);
+    result.push(...sub.map(s => s.trim()));
+  }
+  return result.filter(p => p.length > 2);
+}
+
+function juridictionToSources(juri) {
+  // Nom convivial des backends interrogés selon la juridiction choisie
+  const MAP = {
+    'admin':  ['ArianeWeb', 'opendata.gouv'],
+    'ce':     ['ArianeWeb', 'opendata.gouv'],
+    'caa':    ['opendata.gouv'],
+    'ta':     ['opendata.gouv (fan-out)'],
+    'judic':  ['DILA'],
+    'cass':   ['DILA'],
+    'ca':     ['DILA'],
+    'constit':['DILA'],
+    'europ':  ['HUDOC', 'EUR-Lex'],
+    'cedh':   ['HUDOC'],
+    'cjue':   ['EUR-Lex'],
+  };
+  return MAP[juri] || ['DILA', 'ArianeWeb', 'opendata.gouv', 'HUDOC', 'EUR-Lex'];
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+function highlightExtract(html, q) {
+  // Extract : ArianeWeb utilise ; comme séparateur. DILA pré-formatte avec <em>…</em>.
+  let clean = String(html ?? '').replace(/;+/g, ' · ').trim();
+  if (clean.length > 320) clean = clean.slice(0, 320) + '…';
+  // Détecte si les <em> sont déjà présents (FTS5 snippet côté serveur)
+  const hasPrebuiltEm = /<em>/.test(clean);
+  let escaped = escapeHtml(clean);
+  if (hasPrebuiltEm) {
+    escaped = escaped.replace(/&lt;em&gt;/g, '<em>').replace(/&lt;\/em&gt;/g, '</em>');
+    return escaped;
+  }
+  if (!q) return escaped;
+  const tokens = q.replace(/["*&|]/g, ' ').split(/\s+/).filter(t => t.length > 2 && !['AND','OR','NOT','ET','OU','SAUF'].includes(t.toUpperCase()));
+  if (!tokens.length) return escaped;
+  const re = new RegExp('(' + tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+  return escaped.replace(re, '<em>$1</em>');
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, dd] = d.split('-');
+  if (!y) return d;
+  const months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  return `${parseInt(dd)} ${months[parseInt(m) - 1] || ''} ${y}`;
+}
+
+function renderResults(data, query) {
+  const results = data.results || [];
+  const perSource = data.per_source || {};
+  const noResult = data.sources_no_result || [];
+  const parts = [];
+  // En-tête : on garde juste le placeholder, updateHeader() le remplit
+  parts.push(`<div class="results-header" id="resultsHeader"></div>`);
+  // Avertissement si des sources ont timeout
+  const slow = noResult;
+  if (slow.length) {
+    const retryingNow = (lastSearchState?.pendingSources?.size)
+      ? [...lastSearchState.pendingSources].filter(s => slow.includes(s))
+      : [];
+    const slowLabels = slow.map(s => SOURCE_NAMES[s] || s).join(', ');
+    if (retryingNow.length) {
+      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} lent — nouvelle tentative en cours (timeout 60 s) <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></div>`);
+    } else {
+      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} n'a pas répondu (12 s puis 60 s). Affinez la requête pour y accéder.</div>`);
+    }
+  }
+  if (!results.length) {
+    parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem">Aucun résultat. Essayez des mots-clés plus larges, ou enlevez certains filtres.</div>`);
+    resultsList.innerHTML = parts.join('');
+    return;
+  }
+  for (const r of results) {
+    resultCache.set(cacheKey(r.source, r.id), r);
+    const badge = SRC_BADGES[r.source] || 'admin';
+    parts.push(`<article class="result-card" data-source="${escapeHtml(r.source)}" data-id="${escapeHtml(r.id)}">`);
+    parts.push(`<div class="meta-line">`);
+    parts.push(`<span class="src-badge ${badge}">${escapeHtml(r.source_label)}</span>`);
+    if (r.juridiction) parts.push(`<span class="juri">${escapeHtml(r.juridiction)}</span>`);
+    if (r.date) parts.push(`<span class="date">${escapeHtml(fmtDate(r.date))}</span>`);
+    parts.push(`</div>`);
+    parts.push(`<h3 class="title">${escapeHtml(r.title || '(sans titre)')}</h3>`);
+    if (r.extract) parts.push(`<p class="extract">${highlightExtract(r.extract, query)}</p>`);
+    const tags = [];
+    if (r.formation) tags.push(r.formation);
+    if (r.numero) tags.push(`n° ${r.numero}`);
+    if (r.ecli) tags.push(r.ecli);
+    if (r.article) tags.push(`art. ${r.article}`);
+    if (tags.length) {
+      parts.push(`<div class="tags">`);
+      for (const t of tags) parts.push(`<span class="tag">${escapeHtml(t)}</span>`);
+      parts.push(`</div>`);
+    }
+    parts.push(`</article>`);
+  }
+  // Bouton "Charger plus" si la dernière page était pleine
+  const canLoadMore = !lastSearchState?.pendingSources?.size && lastSearchState?.lastChunkSize >= PAGE_SIZE;
+  if (canLoadMore) {
+    parts.push(`<div class="load-more-wrap"><button class="load-more" id="loadMoreBtn">Charger ${PAGE_SIZE} de plus</button></div>`);
+  }
+
+  resultsList.innerHTML = parts.join('');
+  updateHeader();
+
+  // Bind clicks
+  resultsList.querySelectorAll('.result-card').forEach(card => {
+    card.addEventListener('click', () => {
+      resultsList.querySelectorAll('.result-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      loadDecision(card.dataset.source, card.dataset.id);
+    });
+  });
+  const lmBtn = document.getElementById('loadMoreBtn');
+  if (lmBtn) {
+    lmBtn.addEventListener('click', () => {
+      lmBtn.disabled = true;
+      lmBtn.textContent = '';
+      runSearch(true);
+    });
+  }
+}
+
+async function loadDecision(source, id) {
+  textViewer.classList.remove('empty');
+  textViewer.innerHTML = `<div style="padding:2rem;color:var(--muted)">Chargement…</div>`;
+
+  // ArianeWeb : le backend sait désormais aller chercher le texte intégral
+  // via le plugin Sinequa `downloadFilePagePlugin`. On laisse suivre
+  // le chemin normal (fetch /api/decision).
+
+  try {
+    const r = await fetch(`/api/decision?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`);
+    const d = await r.json();
+    if (!r.ok || d.error) {
+      textViewer.innerHTML = `<div class="empty" style="padding:3rem;color:var(--muted)"><em>${escapeHtml(d.error || 'Erreur inconnue')}</em></div>`;
+      return;
+    }
+    const body = (d.full_text || '').trim();
+    // Découpage multi-niveau des paragraphes : d'abord \n\n ou $$$,
+    // puis fallback sur patterns juridiques (numéros, sections, PAR CES MOTIFS).
+    let paragraphs = body ? body.split(/\n{2,}|\$\$\$/).map(p => p.trim()).filter(Boolean) : [];
+    if (paragraphs.length === 1) {
+      paragraphs = splitLegalBlock(body);
+    } else {
+      // Même si on a déjà des paragraphes, certains peuvent rester denses
+      paragraphs = paragraphs.flatMap(p => p.length > 600 ? splitLegalBlock(p) : [p]);
+    }
+    const html = [];
+    html.push(`<div class="actions">`);
+    html.push(`<a href="#" class="action-copy-link" data-id="${escapeHtml(d.id)}" data-source="${escapeHtml(d.source)}">Copier lien</a>`);
+    html.push(`<a href="#" class="action-download" data-title="${escapeHtml(d.title || 'decision')}">Télécharger .txt</a>`);
+    html.push(`</div>`);
+    html.push(`<h1>${escapeHtml(d.title || '(sans titre)')}</h1>`);
+    html.push(`<div class="doc-meta">`);
+    if (d.juridiction) html.push(`<span><strong>Juridiction :</strong> ${escapeHtml(d.juridiction)}</span>`);
+    if (d.date) html.push(`<span><strong>Date :</strong> ${escapeHtml(fmtDate(d.date))}</span>`);
+    if (d.formation) html.push(`<span><strong>Formation :</strong> ${escapeHtml(d.formation)}</span>`);
+    if (d.numero) html.push(`<span><strong>N° :</strong> ${escapeHtml(d.numero)}</span>`);
+    if (d.ecli) html.push(`<span><strong>ECLI :</strong> ${escapeHtml(d.ecli)}</span>`);
+    html.push(`<span><strong>ID :</strong> ${escapeHtml(d.id)}</span>`);
+    html.push(`</div>`);
+    html.push(`<div class="body">`);
+    if (paragraphs.length) {
+      for (const p of paragraphs) html.push(`<p>${escapeHtml(p)}</p>`);
+    } else {
+      html.push(`<p><em>Texte intégral indisponible pour cette source. Vérifier directement sur le site officiel.</em></p>`);
+    }
+    html.push(`</div>`);
+    textViewer.innerHTML = html.join('');
+    // Handlers pour les actions (pas d'inline onclick → pas d'XSS via interpolation)
+    const copyBtn = textViewer.querySelector('.action-copy-link');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = copyBtn.dataset.id;
+        const src = copyBtn.dataset.source;
+        const url = `${location.origin}/search.html?id=${encodeURIComponent(id)}&source=${encodeURIComponent(src)}`;
+        navigator.clipboard.writeText(url).then(() => {
+          copyBtn.textContent = 'Copié ✓';
+          setTimeout(() => { copyBtn.textContent = 'Copier lien'; }, 1500);
+        });
+      });
+    }
+    const dlBtn = textViewer.querySelector('.action-download');
+    if (dlBtn) {
+      dlBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const fullText = paragraphs.join('\n\n');
+        const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (dlBtn.dataset.title || 'decision').replace(/[^\w-]+/g, '_').slice(0, 80) + '.txt';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    }
+  } catch (e) {
+    textViewer.innerHTML = `<div class="empty" style="padding:3rem;color:var(--muted)"><em>Erreur : ${escapeHtml(e.message)}</em></div>`;
+  }
+}
+
+/**
+ * Résout un résultat ArianeWeb vers un identifiant admin ES (DCE_*)
+ * pour charger le texte intégral de manière transparente.
+ * Retourne le nouveau id admin, ou null si échec.
+ */
+async function resolveArianeToAdmin(ariane) {
+  // Une seule tentative rapide : numéro à la fin de l'id ArianeWeb
+  // vs dossier n° dans admin ES.
+  const m = (ariane.id || '').match(/\|(\d{3,})$/);
+  if (!m) return null;
+  const num = m[1];
+  try {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(num)}&juridiction=ce&limit=5`);
+    const data = await r.json();
+    for (const hit of data.results || []) {
+      if (hit.source !== 'admin') continue;
+      if ((hit.numero || '').includes(num) || (hit.id || '').includes(num)) {
+        return hit.id;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function renderAriane(data) {
+  // Affiche l'extrait long d'ArianeWeb comme "texte disponible"
+  const extract = (data.extract || '').trim();
+  const paragraphs = extract
+    ? extract.split(/;+/).map(s => s.trim()).filter(s => s.length > 10)
+    : [];
+  // Deep-link ArianeWeb : /view-document/{documentId URL-encoded}
+  const official = data.id
+    ? `https://www.conseil-etat.fr/arianeweb/#/view-document/${encodeURIComponent(data.id)}`
+    : `https://www.conseil-etat.fr/arianeweb/`;
+  const html = [
+    `<div class="actions">`,
+    `<a href="${official}" target="_blank" rel="noopener">Voir sur ArianeWeb ↗</a>`,
+    `</div>`,
+    `<h1>${escapeHtml(data.title || 'Arrêt du Conseil d\'État')}</h1>`,
+    `<div class="doc-meta">`,
+    `<span><strong>Juridiction :</strong> Conseil d'État (via ArianeWeb)</span>`,
+    `<span><strong>Pertinence :</strong> ${data.relevance ?? '—'}</span>`,
+    `<span><strong>ID ArianeWeb :</strong> ${escapeHtml(data.id)}</span>`,
+    `</div>`,
+    `<p style="font-size:.78rem;color:var(--muted);font-style:italic;margin-bottom:1.2rem">Extrait indexé (ArianeWeb ne fournit pas le texte intégral). <a href="${official}" target="_blank" rel="noopener">Voir sur le site officiel</a>.</p>`,
+    `<div class="body">`,
+  ];
+  if (paragraphs.length) {
+    for (const p of paragraphs) html.push(`<p>${escapeHtml(p)}</p>`);
+  } else {
+    html.push(`<p><em>Extrait indisponible.</em></p>`);
+  }
+  html.push(`</div>`);
+  textViewer.innerHTML = html.join('');
+}
+
+const PAGE_SIZE = 30;
+let lastSearchState = null; // { q, juri, lieu, offset, accumulated }
+
+const SOURCE_NAMES = {
+  'dila':   'DILA',
+  'ariane': 'Conseil d\'État (ArianeWeb)',
+  'admin':  'justice administrative',
+  'cedh':   'Cour EDH',
+  'cjue':   'CJUE',
+};
+
+function juridictionToSourceSet(juri) {
+  const MAP = {
+    '':        ['dila', 'ariane', 'admin', 'cedh', 'cjue'],
+    'admin':   ['ariane', 'admin'],
+    'ce':      ['ariane', 'admin'],
+    'caa':     ['admin'],
+    'ta':      ['admin'],
+    'judic':   ['dila'],
+    'cass':    ['dila'],
+    'ca':      ['dila'],
+    'constit': ['dila'],
+    'europ':   ['cedh', 'cjue'],
+    'cedh':    ['cedh'],
+    'cjue':    ['cjue'],
+  };
+  return MAP[juri] || MAP[''];
+}
+
+async function runSearch(append = false) {
+  const q = queryInput.value.trim();
+  if (!q) return;
+  if (q.length < 3) {
+    resultsList.innerHTML = `<div style="padding:2rem;color:var(--muted)">Merci d'entrer au moins 3 caractères.</div>`;
+    return;
+  }
+  const juri = document.getElementById('juridiction').value;
+  const lieu = document.getElementById('lieu').value;
+  const sources = juridictionToSourceSet(juri);
+
+  // Reset si nouvelle recherche
+  const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri || lastSearchState.lieu !== lieu;
+  if (isNew) {
+    lastSearchState = { q, juri, lieu, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
+    resultsList.innerHTML = '<div class="results-header" id="resultsHeader"><span>0 résultats <span class="dots-inline" id="hdrDots"><span>.</span><span>.</span><span>.</span><span>.</span></span></span></div>';
+  } else {
+    lastSearchState.pendingSources = new Set(sources);
+    updateHeader();
+  }
+
+  // Lancer un fetch par source, en parallèle
+  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset)));
+
+  // Tout est fini (1re passe)
+  lastSearchState.offset += PAGE_SIZE;
+  lastSearchState.lastChunkSize = lastSearchState.accumulated.length - (lastSearchState.previousSize || 0);
+  lastSearchState.previousSize = lastSearchState.accumulated.length;
+  finalizeHeader();
+
+  // Retry en background des sources qui ont timeout (timeout 60s)
+  if (lastSearchState.noResult.length) {
+    retryTimedOutSources();
+  }
+}
+
+async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12) {
+  try {
+    updateHeader(src);
+    const params = new URLSearchParams({
+      q, limit: String(PAGE_SIZE),
+      offset: String(offset), sources: src, timeout: String(timeout),
+    });
+    if (juri) params.set('juridiction', juri);
+    if (lieu) params.set('lieu', lieu);
+    const r = await fetch('/api/search?' + params);
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('json')) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    const count = (data.results || []).length;
+    if (count > 0) {
+      lastSearchState.perSource[src] = (lastSearchState.perSource[src] || 0) + count;
+      lastSearchState.accumulated.push(...(data.results || []));
+      // Si la retry a réussi, retire le warning
+      lastSearchState.noResult = lastSearchState.noResult.filter(s => s !== src);
+      return true; // success
+    }
+    if ((data.sources_no_result || []).includes(src)) {
+      if (!lastSearchState.noResult.includes(src)) lastSearchState.noResult.push(src);
+    }
+    return false;
+  } catch (e) {
+    console.warn(`[${src} err]`, e);
+    if (!lastSearchState.noResult.includes(src)) lastSearchState.noResult.push(src);
+    return false;
+  } finally {
+    lastSearchState.pendingSources.delete(src);
+    renderResults(
+      { results: lastSearchState.accumulated, per_source: lastSearchState.perSource, sources_no_result: lastSearchState.noResult, sources_queried: [...lastSearchState.pendingSources, ...Object.keys(lastSearchState.perSource)] },
+      q
+    );
+  }
+}
+
+async function retryTimedOutSources() {
+  if (!lastSearchState) return;
+  const toRetry = [...lastSearchState.noResult];
+  if (!toRetry.length) return;
+  console.log(`[retry] ${toRetry.join(', ')} avec timeout 60s`);
+  for (const src of toRetry) {
+    // Marquer comme "en re-tentative" dans le warning
+    lastSearchState.pendingSources.add(src);
+    updateHeader(src);
+    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60);
+  }
+  finalizeHeader();
+}
+
+function updateHeader(currentSrc) {
+  const pending = [...(lastSearchState?.pendingSources || [])];
+  const hdr = document.getElementById('resultsHeader');
+  if (!hdr) return;
+  const count = lastSearchState?.accumulated?.length || 0;
+  const hasMore = lastSearchState?.lastChunkSize >= PAGE_SIZE;
+  const countStr = `${count}${hasMore ? '+' : ''} résultats`;
+  if (pending.length) {
+    const srcName = SOURCE_NAMES[currentSrc || pending[0]] || pending[0];
+    hdr.innerHTML = `<span>${countStr} · chargement <em style="font-style:normal">${srcName}</em> <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></span>`;
+  } else {
+    const srcCount = Object.values(lastSearchState?.perSource || {}).filter(n => n > 0).length;
+    hdr.innerHTML = `<span>${countStr} · ${srcCount} sources</span>`;
+  }
+}
+
+function finalizeHeader() {
+  updateHeader();
+}
+
+submitBtn.addEventListener('click', runSearch);
+queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+// Auto-search sur chargement si la query est préremplie
+if (queryInput.value.trim()) setTimeout(runSearch, 100);
+
+juriEl.addEventListener('change', () => {
+  const v = juriEl.value;
+
+  // Lieu géographique (TA/CAA/CA)
+  const items = INSTANCES[v];
+  if (items) {
+    fieldLieu.style.display = '';
+    const opts = items.map(([code, ville]) => ({ value: code, label: `${ville} (${code})` }));
+    const plLabel = v === 'ta' ? 'Tous TA' : v === 'caa' ? 'Toutes CAA' : 'Toutes CA';
+    fillCs(lieuPanel, opts, plLabel, plLabel);
+    lieuDisp.textContent = plLabel;
+    lieuHidden.value = '';
+  } else {
+    fieldLieu.style.display = 'none';
+  }
+
+  // Formation / chambre (cass, ce, caa, ta, ca, cedh)
+  const formations = FORMATIONS[v];
+  if (formations) {
+    fieldFormation.style.display = '';
+    const opts = formations.map(f => ({ value: f, label: f }));
+    fillCs(formPanel, opts, 'Toutes', 'Toutes');
+    formDisp.textContent = 'Toutes';
+    formHidden.value = '';
+  } else {
+    fieldFormation.style.display = 'none';
+  }
+});
+</script>
+
+</body>
+</html>

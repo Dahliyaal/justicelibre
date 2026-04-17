@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<title>Tutoriel PISTE : accéder à la jurisprudence judiciaire | justicelibre.org</title>
+<meta name="description" content="Guide pas-à-pas pour obtenir un accès à l'API Judilibre via la plateforme PISTE. 13 étapes documentées avec captures d'écran.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
+  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
+  --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;--gold:#b8932b;
+  --red:#8a1f1f;
+  --display:"DM Serif Display",Georgia,serif;
+  --sans:"DM Sans",-apple-system,sans-serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:900px;margin:0 auto;padding:3rem 2.5rem 5rem}
+.back{font-size:.85rem;color:var(--muted);margin-bottom:2.5rem;display:block}
+h1{font-family:var(--display);font-size:2.2rem;margin-bottom:.4rem;line-height:1.15}
+h1 em{font-style:italic;color:var(--teal)}
+.sub{color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+.warning{
+  color:var(--body);padding:1rem 0;margin:2rem 0;font-size:.95rem;line-height:1.6
+}
+.warning strong{color:var(--teal)}
+.step-count{
+  font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--teal);font-weight:700;margin:3rem 0 .5rem;
+  padding-top:2rem;border-top:1px solid var(--line)
+}
+.step-count:first-of-type{border-top:none;padding-top:0;margin-top:2.5rem}
+h2{font-family:var(--display);font-size:1.4rem;margin-bottom:.8rem;line-height:1.2}
+p{font-size:1rem;line-height:1.65;color:var(--body);margin-bottom:.8rem}
+.screenshot{
+  margin:1.2rem 0;border:1px solid var(--teal);border-radius:6px;
+  overflow:hidden;background:var(--light);display:block;
+  max-width:fit-content;margin-left:auto;margin-right:auto
+}
+.screenshot img{max-width:100%;height:auto;display:block}
+code{
+  font-family:var(--mono);font-size:.88em;
+  background:var(--teal-xl);color:var(--teal);
+  padding:.1em .4em;border-radius:2px
+}
+.finale{
+  margin:4rem 0 2rem;padding:2.5rem;
+  background:var(--teal);color:#fff;border-radius:6px;
+  text-align:center
+}
+.finale h2{color:#fff;font-size:1.8rem;margin-bottom:1rem}
+.finale p{color:rgba(255,255,255,.85);max-width:36rem;margin:0 auto 1.5rem}
+.finale .btn{
+  display:inline-block;padding:.85rem 2rem;
+  background:#fff;color:var(--teal);
+  font-size:.85rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;border-radius:4px;text-decoration:none
+}
+.finale .btn:hover{background:var(--light);text-decoration:none}
+.counter{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:2rem;height:2rem;background:var(--teal);color:#fff;
+  border-radius:50%;font-size:.8rem;font-weight:700;margin-right:.5rem;
+  flex-shrink:0;vertical-align:middle
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back">&larr; justicelibre.org</a>
+
+  <h1>Accéder à la jurisprudence <em>judiciaire</em> via PISTE</h1>
+  <p class="sub">13 étapes. Pour accéder à des données que la loi qualifie de "libres et gratuites".</p>
+
+  <div class="warning">
+    Dans un système de données véritablement ouvert, <strong>ce tutoriel n'aurait aucune raison d'exister.</strong> Si la loi du 7 octobre 2016 consacre le principe d'une mise à disposition libre et gratuite des décisions de justice, une obligation appliquée sans aucune friction technique par le Conseil d'État, la Cour de cassation a opté pour une approche bien différente. Pour accéder à sa jurisprudence, elle impose aujourd'hui un parcours d'authentification OAuth2 labyrinthique en treize étapes, externalisé sur une plateforme tierce. Rien dans les textes de loi ne justifie ni ne prévoit cette restriction. Si nous prenons le temps de documenter ce parcours du combattant, c'est à la fois pour vous permettre de le franchir, mais également pour en exposer l'incohérence manifeste.
+  </div>
+
+  <p class="step-count"><span class="counter">1</span> Créer un compte PISTE</p>
+  <h2>Rendez-vous sur piste.gouv.fr</h2>
+  <p>Allez sur <a href="https://piste.gouv.fr">piste.gouv.fr</a> et cliquez sur <strong>"Créer un compte"</strong>. Remplissez le formulaire (nom, email, mot de passe) et validez votre email.</p>
+  <div class="screenshot"><img src="/img/01-compte.png" alt="Page de création de compte PISTE"></div>
+
+  <p class="step-count"><span class="counter">2</span> Accéder à vos applications</p>
+  <h2>Menu "APPLICATIONS"</h2>
+  <p>Une fois connecté, cliquez sur l'onglet <strong>"APPLICATIONS"</strong> dans la barre de navigation en haut. Une application sandbox a été créée automatiquement à votre nom.</p>
+  <div class="screenshot"><img src="/img/02-applications.png" alt="Menu Applications PISTE"></div>
+
+  <p class="step-count"><span class="counter">3</span> Ouvrir les détails de votre application</p>
+  <h2>Cliquez sur le nom de votre application</h2>
+  <p>Cliquez sur le nom de votre application (ex: <code>APP_SANDBOX_...</code>).</p>
+  <div class="screenshot"><img src="/img/11-app-list.png" alt="Liste des applications"></div>
+  <p>Vous arrivez sur la page de consultation. Assurez-vous d'être sur l'onglet <strong>"Details"</strong> (à côté de "Usage").</p>
+  <div class="screenshot"><img src="/img/03b-details-usage.png" alt="Onglets Details et Usage"></div>
+  <p>Dans la section <strong>"Identifiants Oauth externes"</strong>, cliquez sur le lien <strong>"Modifiez l'application"</strong>.</p>
+  <div class="screenshot"><img src="/img/03-modifier.png" alt="Lien Modifier l'application"></div>
+
+  <p class="step-count"><span class="counter">4</span> Recliquer sur "Détails"</p>
+  <h2>Les onglets changent</h2>
+  <p>Attention : les onglets sont maintenant <strong>"Détails"</strong> et <strong>"Authentification"</strong> (pas les mêmes qu'avant). Cliquez sur <strong>"Détails"</strong>.</p>
+  <div class="screenshot"><img src="/img/04-details.png" alt="Onglet Détails après Modifier"></div>
+
+  <p class="step-count"><span class="counter">5</span> Accepter les CGU</p>
+  <h2>Cliquez sur "Cliquez ici pour accéder à la page de consentement"</h2>
+  <p>La checkbox JUDILIBRE est grisée tant que vous n'avez pas accepté les CGU. Cliquez sur le lien <strong>"Cliquez ici pour accéder à la page de consentement"</strong>.</p>
+  <div class="screenshot"><img src="/img/05-consentement.png" alt="Lien page de consentement"></div>
+
+  <p class="step-count"><span class="counter">6</span> Rechercher JUDILIBRE</p>
+  <h2>Filtrer les API</h2>
+  <p>Tapez <strong>"JUDILIBRE"</strong> dans le champ de recherche. Deux entrées apparaissent : PROD et SANDBOX.</p>
+  <div class="screenshot"><img src="/img/06-judilibre-cgu.png" alt="Recherche JUDILIBRE dans les CGU"></div>
+
+  <p class="step-count"><span class="counter">7</span> Cocher et valider les CGU</p>
+  <h2>Accepter les CGU JUDILIBRE</h2>
+  <p>Cochez les deux lignes (PROD et SANDBOX), puis cliquez sur <strong>"Valider mes choix CGU"</strong>. Les CGU font 12 pages et ne sont pas publiées au Journal Officiel.</p>
+  <div class="screenshot"><img src="/img/07-cocher.png" alt="CGU cochées"></div>
+
+  <p class="step-count"><span class="counter">8</span> Souscrire à l'API JUDILIBRE</p>
+  <h2>Retour dans "Modifier l'application"</h2>
+  <p>La checkbox JUDILIBRE est maintenant sélectionnable. Cochez-la.</p>
+  <div class="screenshot"><img src="/img/08-checkbox.png" alt="Checkbox JUDILIBRE activée"></div>
+
+  <p class="step-count"><span class="counter">9</span> Appliquer les modifications</p>
+  <h2>Cliquez sur "Appliquer les modifications"</h2>
+  <p>Scrollez en bas de la page et cliquez sur le bouton orange.</p>
+  <div class="screenshot"><img src="/img/09-valider.png" alt="Bouton Appliquer les modifications"></div>
+
+  <p class="step-count"><span class="counter">10</span> Confirmation</p>
+  <h2>Succès</h2>
+  <p>Un message vert confirme que les modifications ont été enregistrées.</p>
+  <div class="screenshot"><img src="/img/10-succes.png" alt="Message de succès"></div>
+
+  <p class="step-count"><span class="counter">11</span> Récupérer les identifiants OAuth</p>
+  <h2>Retournez dans vos applications</h2>
+  <p>Retournez dans <strong>APPLICATIONS</strong>.</p>
+  <div class="screenshot"><img src="/img/11-app-list.png" alt="Liste des applications"></div>
+  <p>Cliquez sur votre application. Dans la section <strong>"Identifiants Oauth"</strong>, notez votre <strong>Client ID</strong> et cliquez sur <strong>"Consulter le secret"</strong> pour obtenir votre <strong>Client Secret</strong>.</p>
+  <div class="screenshot"><img src="/img/12-oauth-secret.png" alt="Identifiants OAuth"></div>
+
+  <p class="step-count"><span class="counter">12</span> Récupérer la clé API</p>
+  <h2>Section "API Keys"</h2>
+  <p>Toujours sur la page de votre application, la section <strong>"API Keys"</strong> contient votre clé API. Cliquez sur <strong>"Afficher le secret"</strong> pour voir la clé secrète associée.</p>
+  <div class="screenshot"><img src="/img/13-api-key.png" alt="API Keys"></div>
+
+  <p class="step-count"><span class="counter">13</span> Utiliser vos identifiants</p>
+  <h2>Collez vos identifiants dans justicelibre</h2>
+  <p>Dans votre chat, utilisez le tool <code>search_judiciaire</code> en renseignant votre <strong>Client ID</strong> et votre <strong>Client Secret</strong> dans les paramètres <code>client_id</code> et <code>client_secret</code>. Le serveur justicelibre.org les échange contre un token Judilibre temporaire, effectue la recherche, et oublie tout. Attention : vos identifiants transitent par votre assistant (Claude, ChatGPT, etc.) avant d'arriver à justicelibre. Ne réutilisez pas ces identifiants pour d'autres services sensibles.</p>
+
+  <div class="token-form" style="margin:3rem 0;padding:2rem;border:1px solid var(--line);border-radius:6px;background:var(--light)">
+    <h2 style="font-family:var(--display);font-size:1.4rem;margin-bottom:.5rem">Générer votre token justicelibre</h2>
+    <p style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Vos identifiants sont envoyés directement à notre serveur via HTTPS, échangés contre un token PISTE, puis oubliés. Le token expire après 1 heure. Rien n'est stocké sur disque.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem">
+      <input type="text" id="piste-cid" placeholder="Client ID" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem">
+      <input type="password" id="piste-secret" placeholder="Client Secret" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem">
+    </div>
+    <button onclick="generateToken()" style="padding:.75rem 1.8rem;background:var(--teal);color:#fff;border:none;border-radius:4px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;cursor:pointer">Générer mon token</button>
+    <div id="token-result" style="margin-top:1.2rem;display:none">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:.4rem">Votre token justicelibre (valable 1 heure) :</p>
+      <code id="token-value" style="display:block;padding:.8rem 1rem;background:var(--ink);color:#f0f0e8;font-family:var(--mono);font-size:.9rem;border-radius:4px;user-select:all;word-break:break-all"></code>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.6rem">Donnez ce token à votre assistant : <em>« Cherche "licenciement abusif" dans la jurisprudence judiciaire, mon token justicelibre est [coller ici]. »</em></p>
+    </div>
+    <div id="token-error" style="margin-top:1rem;color:var(--red);display:none"></div>
+  </div>
+
+  <div class="finale">
+    <h2>Vous trouvez ça inadmissible ?</h2>
+    <p>L'exposé même de cette procédure suffit à en démontrer l'irrégularité. Exiger des justiciables et des développeurs de traverser treize étapes techniques, de manipuler trois identifiants distincts et de se soumettre à une douzaine de pages de conditions générales jamais publiées au Journal Officiel constitue une violation singulière du principe de gratuité et de libre accès voulu par le législateur. Un paradoxe d'autant plus saisissant que le Conseil d'État, pourtant soumis aux mêmes exigences légales, garantit au quotidien un accès ouvert et sans la moindre friction.</p>
+    <p>C'est pour pallier cette anomalie institutionnelle que nous avons procédé à l'indexation indépendante des archives publiques de la DILA. La plateforme justicelibre.org a été conçue pour rétablir techniquement le droit que l'administration restreint : un accès direct à la jurisprudence judiciaire, sans passage par PISTE, sans protocole OAuth2, et sans création de compte.</p>
+    <a href="/" class="btn">Retour à justicelibre.org</a>
+  </div>
+</div>
+<script>
+function generateToken(){
+  var cid=document.getElementById('piste-cid').value.trim();
+  var secret=document.getElementById('piste-secret').value.trim();
+  var result=document.getElementById('token-result');
+  var error=document.getElementById('token-error');
+  result.style.display='none';
+  error.style.display='none';
+  if(!cid||!secret){error.textContent='Veuillez remplir les deux champs.';error.style.display='block';return}
+  fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:secret})})
+    .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
+    .then(function(res){
+      if(res.ok){
+        document.getElementById('token-value').textContent=res.data.session_token;
+        result.style.display='block';
+        document.getElementById('piste-cid').value='';
+        document.getElementById('piste-secret').value='';
+      } else {
+        error.textContent=res.data.error||'Erreur inconnue';
+        error.style.display='block';
+      }
+    })
+    .catch(function(e){error.textContent='Erreur réseau : '+e.message;error.style.display='block'});
+}
+</script>
+</body>
+</html>

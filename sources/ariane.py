@@ -42,6 +42,43 @@ def _normalize_doc(doc: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+DOWNLOAD_URL = "https://www.conseil-etat.fr/plugin"
+
+
+async def fetch_full_text(client: httpx.AsyncClient, ariane_id: str) -> str:
+    """Récupère le texte intégral d'une décision ArianeWeb via le plugin
+    Sinequa `downloadFilePagePlugin` (réponse HTML iso-8859-1).
+    """
+    if not ariane_id:
+        return ""
+    # L'API accepte l'id brut avec slashes et pipe (ne pas URL-encoder)
+    params = {
+        "plugin": "Service.downloadFilePagePlugin",
+        "Index": "Ariane_Web",
+        "Id": ariane_id,
+    }
+    r = await client.get(DOWNLOAD_URL, params=params, timeout=60)
+    if r.status_code != 200:
+        return ""
+    # Le serveur renvoie souvent iso-8859-1 — forcer le décodage propre
+    if "charset=iso-8859-1" in (r.headers.get("content-type") or "").lower():
+        r.encoding = "iso-8859-1"
+    html = r.text
+    # Nettoyage HTML basique
+    import re as _re
+    text = _re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=_re.DOTALL)
+    text = _re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=_re.DOTALL)
+    text = _re.sub(r"<br\s*/?>", "\n", text)
+    text = _re.sub(r"</p>", "\n\n", text)
+    text = _re.sub(r"<[^>]+>", " ", text)
+    import html as _html
+    text = _html.unescape(text)
+    text = _re.sub(r"[ \t]+", " ", text)
+    text = _re.sub(r"\n[ \t]+", "\n", text)
+    text = _re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 async def search(
     client: httpx.AsyncClient,
     query: str,
@@ -61,8 +98,9 @@ async def search(
     data = r.json()
     total = data.get("TotalCount", 0)
     all_docs = data.get("Documents") or []
-    # Sinequa ignores PageSize on this endpoint, so slice client-side.
-    sliced = all_docs[: max(0, int(limit))]
+    # Sinequa ignore PageSize sur cet endpoint, on slice côté client
+    start = max(0, int(skip))
+    sliced = all_docs[start : start + max(0, int(limit))]
     return {
         "total": total,
         "returned": len(sliced),
