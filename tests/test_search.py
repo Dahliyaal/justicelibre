@@ -112,10 +112,9 @@ LIVE_CASES = [
     ("102948",         "ariane", "102948"),          # ArianeWeb ID lookup direct
     ("14-80854",       "dila",   "14-80854"),        # Cass crim 16/12/2014 (racisme anti-Blancs)
     ("liberté académique", "ariane", "liberté"),     # FTS sémantique ArianeWeb
-    ("licenciement",   "cedh",   ""),                # Juste vérifier non-vide (FTS5 CEDH)
-    # TODO : ECLI direct lookup nécessite d'ajouter le champ `ecli` au FTS5
-    # index (ou un lookup par colonne direct). Régression à corriger :
-    # ("ECLI:FR:CCASS:2020:SO00283", "dila", "SO00283"),
+    ("licenciement",   "cedh",   ""),                    # FTS5 CEDH (non-vide)
+    ("ECLI:FR:CCASS:2020:SO00283", "dila", "SO00283"),  # ECLI → direct lookup (non-FTS)
+    ("62024CJ0642",    "cjue",   "62024CJ0642"),         # CELEX → direct lookup CJUE
 ]
 
 
@@ -143,7 +142,7 @@ def test_live():
         found = any(
             must_contain in (
                 r.get("title", "") + r.get("extract", "") + r.get("id", "")
-                + r.get("numero", "") + r.get("juridiction", "")
+                + r.get("numero", "") + r.get("juridiction", "") + r.get("ecli", "")
             )
             for r in results
         )

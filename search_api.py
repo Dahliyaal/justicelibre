@@ -1,12 +1,17 @@
-"""REST search API : normalise et fédère les 5 sources de jurisprudence.
+"""REST search API : fédère 5 sources de jurisprudence avec dispatch
+intent-aware.
+
+Architecture en 3 couches :
+  1. Détection d'intent (`query_intent.detect_intent`) — comprend
+     ce que l'user cherche (n° pourvoi, ECLI, ID interne, FTS, etc.)
+  2. Routage par capabilités (`query_intent.sources_for_intent`) —
+     décide quelles sources sont pertinentes pour cet intent
+  3. Dispatch par source — chaque source a sa stratégie selon l'intent
+     (lookup direct ID > recherche par champ > FTS5 fallback)
 
 Endpoints servis par token_server.py :
-  GET /api/search?q=...&juridiction=...&formation=...&date_from=...&date_to=...&limit=...
+  GET /api/search?q=...&juridiction=...&lieu=...&limit=...&offset=...&sources=...
   GET /api/decision?source=...&id=...
-
-Sources agrégées : DILA judic (local), HUDOC CEDH (local), EUR-Lex CJUE (local),
-ArianeWeb CE (live), Open Data admin ES (live). Les deux dernières sont
-appelées en async via asyncio ; les index locaux via sqlite3.
 """
 from __future__ import annotations
 
@@ -16,57 +21,22 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-# Pour le hook direct-lookup par numéro CE
-# (q injectée via fermeture dans search_federated)
-
 import httpx
 
 from sources import ariane, juriadmin, dila, european
+from query_intent import (
+    QueryIntent, detect_intent, normalize_fts_query, sources_for_intent,
+    SOURCE_CAPABILITIES,
+)
 
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
 
-# ─── PARSEUR D'OPÉRATEURS ──────────────────────────────────────────
+# ─── ALIAS LEGACY ──────────────────────────────────────────────────
+# Le vrai normalizer vit désormais dans `query_intent.normalize_fts_query`.
+# On garde l'alias pour ne casser aucun ancien import.
 
 def normalize_query(q: str) -> str:
-    """Convertit les opérateurs multi-syntaxe en FTS5/ES canonique (AND/OR/NOT)."""
-    if not q:
-        return ""
-    q = q.strip()
-
-    # Protéger les phrases exactes "..."
-    phrases: list[str] = []
-    def _protect(m):
-        phrases.append(m.group(0))
-        return f"\x00{len(phrases)-1}\x00"
-    q = re.sub(r'"[^"]*"', _protect, q)
-
-    # Symboles : & → AND, | → OR (espaces optionnels)
-    q = re.sub(r"\s*&\s*", " AND ", q)
-    q = re.sub(r"\s*\|\s*", " OR ", q)
-
-    # - devant un mot (début ou après espace) = exclusion → NOT mot
-    q = re.sub(r"(^|\s)-(\w+\*?)", r"\1NOT \2", q)
-
-    # Tokens composés (14-80854, ECLI:FR:CCASS:2014:CR07114, C-72/24, etc.) :
-    # les envelopper en phrase exacte pour que FTS5 les cherche comme
-    # séquence adjacente (sinon le "-" = NOT et "14 80854" matche trop large).
-    def _quote_compound(m):
-        inner = re.sub(r"[-/:]+", " ", m.group(0))
-        return f'"{inner}"'
-    q = re.sub(r"\b\w+(?:[-/:]\w+)+\b", _quote_compound, q)
-
-    # Mots-clés français
-    q = re.sub(r"\bET\b", "AND", q, flags=re.IGNORECASE)
-    q = re.sub(r"\bOU\b", "OR", q, flags=re.IGNORECASE)
-    q = re.sub(r"\bSAUF\b", "NOT", q, flags=re.IGNORECASE)
-
-    # Normaliser les espaces
-    q = re.sub(r"\s+", " ", q).strip()
-
-    # Rétablir les phrases
-    for i, p in enumerate(phrases):
-        q = q.replace(f"\x00{i}\x00", p)
-    return q
+    return normalize_fts_query(q)
 
 
 def _clean_date(d: str) -> str:
@@ -218,7 +188,189 @@ def _admin_juri_code(juri: str, lieu: str = "") -> str | None:
     return None
 
 
-# ─── RECHERCHE FÉDÉRÉE ─────────────────────────────────────────────
+# ─── DISPATCH PAR SOURCE × INTENT ──────────────────────────────────
+# Chaque dispatcher prend (intent, contexte) et retourne une liste de
+# résultats normalisés. Stratégie : direct lookup si l'intent matche
+# une capability spécifique, sinon FTS comme fallback.
+
+ALL_TA = list(juriadmin.TRIBUNAUX_ADMIN.keys())   # 40 TAs (dont outre-mer)
+ALL_CAA = list(juriadmin.COURS_ADMIN_APPEL.keys())  # 9 CAAs
+
+
+async def _dispatch_ariane(
+    client, intent: QueryIntent, limit: int, offset: int,
+) -> list[dict]:
+    out = []
+    # 1) Lookup direct par ID interne ArianeWeb (5-7 chiffres)
+    if intent.kind == "ariane_id" and offset == 0:
+        try:
+            text = await ariane.fetch_full_text(
+                client, f"/Ariane_Web/AW_DCE/|{intent.value}"
+            )
+            if text and len(text) > 200:
+                first_line = text.split("\n")[0][:120]
+                out.append({
+                    "id": f"/Ariane_Web/AW_DCE/|{intent.value}",
+                    "source": "ariane",
+                    "source_label": SOURCE_LABELS["ariane"],
+                    "title": first_line or f"Arrêt CE n° {intent.value}",
+                    "juridiction": "Conseil d'État",
+                    "date": "",
+                    "formation": "",
+                    "numero": intent.value,
+                    "ecli": "",
+                    "extract": text[:400],
+                })
+        except Exception as e:
+            print(f"[ariane id-lookup err] {e}")
+    # 2) FTS sémantique (toujours en complément, sauf intents non textuels)
+    if intent.kind not in ("ariane_id",) or not out:
+        try:
+            r = await ariane.search(client, query=intent.fts_query, limit=limit, skip=offset)
+            seen = {x["id"] for x in out}
+            out.extend(
+                _norm_ariane(d) for d in r.get("decisions", [])
+                if d.get("id") not in seen
+            )
+        except Exception as e:
+            print(f"[ariane fts err] {e}")
+    return out
+
+
+async def _dispatch_admin(
+    client, intent: QueryIntent, juridiction: str, lieu: str,
+    limit: int, offset: int,
+) -> list[dict]:
+    out = []
+    # 1) Si l'intent est dce_id : fetch_decision direct
+    if intent.kind == "dce_id":
+        try:
+            r = await juriadmin.get_decision(client, decision_id=intent.value)
+            if r:
+                out.append({**_norm_admin(r), "extract": ""})
+                return out
+        except Exception as e:
+            print(f"[admin dce_id err] {e}")
+    # 2) Routage du code juridiction selon contexte (fan-out vs single)
+    try:
+        if juridiction == "ta" and not lieu:
+            r = await juriadmin.search_many(
+                client, query=intent.fts_query, juridictions=ALL_TA, limit_per_court=1,
+            )
+            out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
+        elif juridiction == "caa" and not lieu:
+            r = await juriadmin.search_many(
+                client, query=intent.fts_query, juridictions=ALL_CAA,
+                limit_per_court=max(1, limit // 3),
+            )
+            out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
+        elif juridiction in ("", "admin") and not lieu:
+            fanout = ["CE-CAA"] + ALL_CAA + ALL_TA
+            r = await juriadmin.search_many(
+                client, query=intent.fts_query, juridictions=fanout, limit_per_court=1,
+            )
+            out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
+        else:
+            code = _admin_juri_code(juridiction, lieu) or "CE"
+            r = await juriadmin.search(
+                client, query=intent.fts_query, juridiction=code, limit=limit,
+            )
+            out.extend([_norm_admin(d) for d in r.get("decisions", [])])
+    except Exception as e:
+        print(f"[admin fts err] {e}")
+    return out
+
+
+def _dispatch_dila_sync(
+    intent: QueryIntent, juridiction: str, limit: int, offset: int,
+) -> list[dict]:
+    juri_filter = None
+    if juridiction == "cass":
+        juri_filter = "cassation"
+    elif juridiction == "ca":
+        juri_filter = "appel"
+    out = []
+    seen = set()
+    try:
+        # 1) Lookups directs par champ (numero, ecli, id) — bypass FTS5
+        if intent.kind == "juritext":
+            row = dila.get_decision(intent.value)
+            if row:
+                out.append({**_norm_dila(row), "extract": ""})
+                seen.add(row["id"])
+        elif intent.kind == "ecli":
+            for hit in dila.lookup_by_field("ecli", intent.value, limit=5):
+                out.append(_norm_dila(hit))
+                seen.add(hit["id"])
+        elif intent.kind == "pourvoi":
+            for hit in dila.lookup_by_field("numero", intent.value, limit=5):
+                out.append(_norm_dila(hit))
+                seen.add(hit["id"])
+        elif intent.kind == "rg":
+            # RG = numero pour les Cours d'appel
+            for hit in dila.lookup_by_field("numero", intent.value, limit=5):
+                out.append(_norm_dila(hit))
+                seen.add(hit["id"])
+        # 2) FTS5 toujours en complément (sauf si on a déjà un hit unique)
+        if not out or intent.kind in ("fts", "phrase"):
+            r = dila.search(
+                query=intent.fts_query, juridiction=juri_filter,
+                limit=limit, offset=offset,
+            )
+            for d in r.get("decisions", []):
+                if d["id"] not in seen:
+                    out.append(_norm_dila(d))
+                    seen.add(d["id"])
+    except Exception as e:
+        print(f"[dila err] {e}")
+    return out
+
+
+def _dispatch_cedh_sync(
+    intent: QueryIntent, limit: int, offset: int,
+) -> list[dict]:
+    out = []
+    seen = set()
+    try:
+        if intent.kind == "itemid_hudoc":
+            row = european.get_cedh(intent.value)
+            if row:
+                out.append({**_norm_cedh(row), "extract": ""})
+                seen.add(row["id"])
+        if not out or intent.kind in ("fts", "phrase"):
+            r = european.search_cedh(query=intent.fts_query, limit=limit, offset=offset)
+            for d in r.get("decisions", []):
+                if d["id"] not in seen:
+                    out.append(_norm_cedh(d))
+                    seen.add(d["id"])
+    except Exception as e:
+        print(f"[cedh err] {e}")
+    return out
+
+
+def _dispatch_cjue_sync(
+    intent: QueryIntent, limit: int, offset: int,
+) -> list[dict]:
+    out = []
+    seen = set()
+    try:
+        if intent.kind == "celex":
+            row = european.get_cjue(intent.value)
+            if row:
+                out.append({**_norm_cjue(row), "extract": ""})
+                seen.add(row["id"])
+        if not out or intent.kind in ("fts", "phrase"):
+            r = european.search_cjue(query=intent.fts_query, limit=limit, offset=offset)
+            for d in r.get("decisions", []):
+                if d["id"] not in seen:
+                    out.append(_norm_cjue(d))
+                    seen.add(d["id"])
+    except Exception as e:
+        print(f"[cjue err] {e}")
+    return out
+
+
+# ─── RECHERCHE FÉDÉRÉE (orchestrateur) ─────────────────────────────
 
 async def search_federated(
     q: str,
@@ -232,124 +384,49 @@ async def search_federated(
 ) -> dict[str, Any]:
     """Interroge en parallèle les sources pertinentes, fusionne et trie.
 
-    Si `sources_only` est fourni, restreint aux sources listées (intersection
-    avec celles impliquées par `juridiction`). Utile pour du streaming
-    progressif côté frontend (un appel par source).
+    1. Détecte l'intent de la query via `detect_intent(q)`
+    2. Croise les sources autorisées (par juridiction filter + sources_only)
+       avec celles capables de traiter cet intent
+    3. Dispatch chaque source avec sa stratégie spécifique à l'intent
+    4. Fusionne, trie, retourne
     """
-    q_norm = normalize_query(q)
-    if not q_norm:
+    intent = detect_intent(q)
+    if intent.kind == "empty":
         return {"total": 0, "results": [], "per_source": {}}
 
-    sources_to_query = JURI_DISPATCH.get(juridiction, JURI_DISPATCH[""])
+    # Sources autorisées par le filtre juridiction
+    juri_sources = JURI_DISPATCH.get(juridiction, JURI_DISPATCH[""])
     if sources_only:
-        sources_to_query = [s for s in sources_to_query if s in sources_only]
+        juri_sources = [s for s in juri_sources if s in sources_only]
+    # Sources capables de traiter cet intent (intersection)
+    sources_to_query = sources_for_intent(intent, juri_sources)
 
     async def _q_ariane(client):
         if "ariane" not in sources_to_query:
             return []
-        results = []
-        # Si la query est un pur numéro CE (5-7 chiffres), tenter aussi un
-        # lookup direct par ID ArianeWeb (ce moteur n'indexe pas les IDs)
-        q_raw = q.strip()
-        if offset == 0 and re.fullmatch(r"\d{5,7}", q_raw):
-            try:
-                text = await ariane.fetch_full_text(
-                    client, f"/Ariane_Web/AW_DCE/|{q_raw}"
-                )
-                if text and len(text) > 200:
-                    # Extraire un titre court depuis le début du texte
-                    first_line = text.split("\n")[0][:120]
-                    results.append({
-                        "id": f"/Ariane_Web/AW_DCE/|{q_raw}",
-                        "source": "ariane",
-                        "source_label": SOURCE_LABELS["ariane"],
-                        "title": first_line or f"Arrêt CE n° {q_raw}",
-                        "juridiction": "Conseil d'État",
-                        "date": "",
-                        "formation": "",
-                        "numero": q_raw,
-                        "ecli": "",
-                        "extract": text[:400],
-                    })
-            except Exception as e:
-                print(f"[ariane direct lookup err] {e}")
-        try:
-            r = await ariane.search(client, query=q_norm, limit=limit_per_source, skip=offset)
-            results.extend([_norm_ariane(d) for d in r.get("decisions", [])])
-        except Exception as e:
-            print(f"[ariane err] {e}")
-        return results
-
-    ALL_TA = list(juriadmin.TRIBUNAUX_ADMIN.keys())  # 40 TAs (dont outre-mer)
-    ALL_CAA = list(juriadmin.COURS_ADMIN_APPEL.keys())  # 9 CAAs
+        return await _dispatch_ariane(client, intent, limit_per_source, offset)
 
     async def _q_admin(client):
         if "admin" not in sources_to_query:
             return []
-        try:
-            # Fan-out TA sans lieu → tous les 40
-            if juridiction == "ta" and not lieu:
-                r = await juriadmin.search_many(
-                    client, query=q_norm, juridictions=ALL_TA, limit_per_court=1,
-                )
-                return [_norm_admin(d) for d in r.get("decisions", [])][:limit_per_source]
-            # Fan-out CAA sans lieu → tous les 9
-            if juridiction == "caa" and not lieu:
-                r = await juriadmin.search_many(
-                    client, query=q_norm, juridictions=ALL_CAA,
-                    limit_per_court=max(1, limit_per_source // 3),
-                )
-                return [_norm_admin(d) for d in r.get("decisions", [])][:limit_per_source]
-            # Toutes juridictions / admin sans lieu : fan-out CE + 9 CAAs + 40 TAs
-            # (50 calls parallèles, chacune avec 1 résultat max)
-            if juridiction in ("", "admin") and not lieu:
-                fanout = ["CE-CAA"] + ALL_CAA + ALL_TA
-                r = await juriadmin.search_many(
-                    client, query=q_norm, juridictions=fanout, limit_per_court=1,
-                )
-                return [_norm_admin(d) for d in r.get("decisions", [])][:limit_per_source]
-            code = _admin_juri_code(juridiction, lieu) or "CE"
-            r = await juriadmin.search(client, query=q_norm, juridiction=code, limit=limit_per_source)
-            return [_norm_admin(d) for d in r.get("decisions", [])]
-        except Exception as e:
-            print(f"[admin err] {e}")
-            return []
+        return await _dispatch_admin(
+            client, intent, juridiction, lieu, limit_per_source, offset,
+        )
 
-    # Les 3 sources locales (SQLite) : appels sync encapsulés en run_in_executor
     def _q_dila_sync():
         if "dila" not in sources_to_query:
             return []
-        juri_filter = None
-        if juridiction == "cass":
-            juri_filter = "cassation"
-        elif juridiction == "ca":
-            juri_filter = "appel"
-        try:
-            r = dila.search(query=q_norm, juridiction=juri_filter, limit=limit_per_source, offset=offset)
-            return [_norm_dila(d) for d in r.get("decisions", [])]
-        except Exception as e:
-            print(f"[dila err] {e}")
-            return []
+        return _dispatch_dila_sync(intent, juridiction, limit_per_source, offset)
 
     def _q_cedh_sync():
         if "cedh" not in sources_to_query:
             return []
-        try:
-            r = european.search_cedh(query=q_norm, limit=limit_per_source, offset=offset)
-            return [_norm_cedh(d) for d in r.get("decisions", [])]
-        except Exception as e:
-            print(f"[cedh err] {e}")
-            return []
+        return _dispatch_cedh_sync(intent, limit_per_source, offset)
 
     def _q_cjue_sync():
         if "cjue" not in sources_to_query:
             return []
-        try:
-            r = european.search_cjue(query=q_norm, limit=limit_per_source, offset=offset)
-            return [_norm_cjue(d) for d in r.get("decisions", [])]
-        except Exception as e:
-            print(f"[cjue err] {e}")
-            return []
+        return _dispatch_cjue_sync(intent, limit_per_source, offset)
 
     loop = asyncio.get_event_loop()
     async with httpx.AsyncClient(
@@ -401,7 +478,8 @@ async def search_federated(
     final = [*with_rel, *without_rel][:limit]
 
     return {
-        "query_normalized": q_norm,
+        "query_normalized": intent.fts_query,
+        "intent": intent.kind,
         "total": len(merged),
         "per_source": per_source,
         "sources_queried": sources_to_query,

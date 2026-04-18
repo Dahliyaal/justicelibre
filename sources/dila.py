@@ -99,6 +99,48 @@ def search(
         conn.close()
 
 
+def lookup_by_field(field: str, value: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Lookup direct par colonne indexée (numero, ecli) sans FTS5.
+
+    Permet de retrouver une décision quand le champ cherché n'est pas
+    dans le full-text (typiquement ECLI qui n'est pas dans le trigger FTS5).
+
+    Args:
+        field: nom de colonne ("numero", "ecli", "id")
+        value: valeur exacte à matcher
+        limit: cap résultats (défaut 5)
+    """
+    if field not in {"numero", "ecli", "id"}:
+        raise ValueError(f"field {field!r} non autorisé pour lookup_by_field")
+    conn = _get_conn()
+    try:
+        rows = conn.execute(
+            f"""SELECT id, titre, date, juridiction, solution,
+                       numero, formation, ecli, nature
+                FROM decisions
+                WHERE {field} = ?
+                LIMIT ?""",
+            (value, int(limit)),
+        ).fetchall()
+        return [
+            {
+                "id": r["id"],
+                "titre": r["titre"],
+                "date": r["date"],
+                "juridiction": r["juridiction"],
+                "solution": r["solution"],
+                "numero": r["numero"],
+                "formation": r["formation"],
+                "ecli": r["ecli"],
+                "nature": r["nature"],
+                "snippet": "",
+            }
+            for r in rows
+        ]
+    finally:
+        conn.close()
+
+
 def get_decision(decision_id: str) -> dict[str, Any] | None:
     conn = _get_conn()
     try:
