@@ -435,6 +435,30 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
   font-size:.98rem;line-height:1.7;color:var(--body);max-width:70ch;
 }
 .text-viewer .body p{margin-bottom:1em}
+.text-viewer .body .lawref,
+.result-card .extract .lawref{
+  color:#1a7a3e;font-weight:600;cursor:pointer;
+  border-bottom:1px dashed rgba(26,122,62,.4);
+  transition:background .15s;
+}
+.text-viewer .body .lawref:hover,
+.result-card .extract .lawref:hover{
+  background:rgba(26,122,62,.1);border-bottom-style:solid;
+}
+html[data-theme="dark"] .text-viewer .body .lawref,
+html[data-theme="dark"] .result-card .extract .lawref{
+  color:#5cc88a;border-bottom-color:rgba(92,200,138,.5);
+}
+html[data-theme="dark"] .text-viewer .body .lawref:hover,
+html[data-theme="dark"] .result-card .extract .lawref:hover{
+  background:rgba(92,200,138,.15);
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .text-viewer .body .lawref,
+  html:not([data-theme="light"]) .result-card .extract .lawref{
+    color:#5cc88a;border-bottom-color:rgba(92,200,138,.5);
+  }
+}
 
 @media(max-width:860px){
   .results-shell{grid-template-columns:1fr;min-height:auto}
@@ -942,6 +966,171 @@ function escapeHtml(s) {
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[c]);
 }
+
+/**
+ * Détecte les citations d'articles de loi/code dans un texte juridique
+ * et les wrap en <span class="lawref">. Le HTML d'entrée doit DÉJÀ être
+ * échappé (pas de tags). On retourne du HTML qui peut contenir des span.
+ *
+ * Patterns détectés :
+ *   - "art. X du code Y" / "article 1240 du Code civil" / "article L. 521-1 CJA"
+ *   - "L. 132-1 du code de la consommation" (sans "art." préfixe)
+ *   - "art. X, alinéa N" / "art. X al. 2"
+ *   - Conventions : CEDH, TFUE, TUE, CDFUE, DDHC, Constitution
+ *   - Règlements UE : "règlement (CE) n° 883/2004", "règlement (UE) n° 492/2011"
+ *   - Directives UE : "directive 2004/38/CE"
+ *   - Lois/décrets/ordonnances nominatives : "loi n° YYYY-NNNN", etc.
+ */
+function highlightLawRefs(escapedHtml) {
+  // Whitelist des codes/lois reconnus + alias.
+  // L'ordre compte : codes les plus spécifiques d'abord pour éviter
+  // qu'un code court matche à la place d'un nom complet.
+  const CODES = [
+    { code: 'CESEDA', patterns: ['code de l[\'’]entrée et du séjour des étrangers et du droit d[\'’]asile', 'CESEDA'] },
+    { code: 'CGCT',   patterns: ['code général des collectivités territoriales', 'CGCT'] },
+    { code: 'CGI',    patterns: ['code général des impôts', 'CGI'] },
+    { code: 'CRPA',   patterns: ['code des relations entre le public et l[\'’]administration', 'CRPA'] },
+    { code: 'CCH',    patterns: ['code de la construction et de l[\'’]habitation', 'CCH'] },
+    { code: 'CPI',    patterns: ['code de la propriété intellectuelle', 'CPI'] },
+    { code: 'CASF',   patterns: ['code de l[\'’]action sociale et des familles', 'CASF'] },
+    { code: 'CMF',    patterns: ['code monétaire et financier', 'CMF'] },
+    { code: 'CSS',    patterns: ['code de la sécurité sociale', 'c\\.\\s*séc\\.\\s*soc\\.', 'CSS'] },
+    { code: 'CSP',    patterns: ['code de la santé publique', 'c\\.\\s*santé\\s*publ\\.', 'CSP'] },
+    { code: 'CJA',    patterns: ['code de justice administrative', 'CJA'] },
+    { code: 'CPC',    patterns: ['code de procédure civile', 'c\\.\\s*pr\\.\\s*civ\\.', 'CPC', 'NCPC'] },
+    { code: 'CPP',    patterns: ['code de procédure pénale', 'c\\.\\s*pr\\.\\s*pén\\.', 'CPP'] },
+    { code: 'C.cons', patterns: ['code de la consommation', 'c\\.\\s*consom?\\.'] },
+    { code: 'C.éduc', patterns: ['code de l[\'’]éducation', 'c\\.\\s*éduc\\.'] },
+    { code: 'C.com',  patterns: ['code de commerce', 'c\\.\\s*com\\.'] },
+    { code: 'CT',     patterns: ['code du travail', 'c\\.\\s*trav\\.', 'CT'] },
+    { code: 'CU',     patterns: ['code de l[\'’]urbanisme', 'c\\.\\s*urb\\.'] },
+    { code: 'C.env',  patterns: ['code de l[\'’]environnement', 'c\\.\\s*env\\.'] },
+    { code: 'CR',     patterns: ['code rural et de la pêche maritime', 'code rural', 'CRPM'] },
+    { code: 'CC',     patterns: ['code civil', 'c\\.\\s*civ\\.', 'CC'] },
+    { code: 'CP',     patterns: ['code pénal', 'c\\.\\s*pén\\.', 'CP'] },
+  ];
+
+  const CONVENTIONS = [
+    { code: 'CEDH',   patterns: ['Convention européenne des droits de l[\'’]homme', 'Conv\\.\\s*EDH', 'CEDH'] },
+    { code: 'TFUE',   patterns: ['Traité sur le fonctionnement de l[\'’]Union européenne', 'TFUE'] },
+    { code: 'TUE',    patterns: ['Traité sur l[\'’]Union européenne', 'TUE'] },
+    { code: 'CDFUE',  patterns: ['Charte des droits fondamentaux de l[\'’]Union européenne', 'CDFUE'] },
+    { code: 'DDHC',   patterns: ['Déclaration des droits de l[\'’]homme et du citoyen', 'DDHC'] },
+    { code: 'CONST',  patterns: ['Constitution(?:\\s+française)?'] },
+  ];
+
+  // Composants regex réutilisables
+  // Article numéro : préfixe lettre optionnel (L./R./D./A.) + chiffres + tirets/points + § optionnel
+  const ART_NUM = '(?:premier|[LRDA]\\b\\.?\\s*)?\\d+(?:[-.\\s]\\d+)*(?:\\s*§\\s*\\d+)?';
+  // Préfixe "art." ou "article(s)"
+  const ART_PREFIX = '(?:articles?|art\\.?)';
+  // Suffixe alinéa optionnel : ", alinéa N" ou " al. N"
+  const ART_ALINEA = '(?:\\s*,?\\s*(?:alinéas?|al\\.)\\s*\\d+)?';
+  // Article complet (avec préfixe)
+  const ART_FULL = `${ART_PREFIX}\\s+${ART_NUM}${ART_ALINEA}(?:\\s*(?:,|et|;)\\s*${ART_NUM}${ART_ALINEA})*`;
+  // Article SANS préfixe : juste "L. 521-1" ou "R. 222-1" (pas pour articles purement numériques pour éviter FP)
+  const ART_LETTER = '[LRDA]\\b\\.?\\s*\\d+(?:[-.\\s]\\d+)*(?:\\s*§\\s*\\d+)?';
+
+  function makeWrap(item, art, code) {
+    const numMatch = art.match(/(?:[LRDA]\.?\s*)?\d+(?:[-.]\d+)*(?:\s*§\s*\d+)?/);
+    const num = numMatch ? numMatch[0].replace(/\s+/g, '') : '';
+    const safeCode = item.code;
+    return `<span class="lawref" data-code="${safeCode}" data-num="${num}" title="${safeCode} ${num}">${art} ${code}</span>`;
+  }
+
+  let result = escapedHtml;
+
+  // Marqueur pour éviter de re-matcher des trucs déjà wrappés
+  const MARKER = '\x00LAWREF\x00';
+
+  // 1) Codes : pattern complet "art. X du code Y" + variante "L. X-Y code Y"
+  for (const item of CODES) {
+    const codeAlts = item.patterns.join('|');
+
+    // 1a — avec préfixe "art."
+    const re_art = new RegExp(
+      `(${ART_FULL})\\s+(?:du\\s+|de\\s+la\\s+)?(${codeAlts})\\b`,
+      'gi'
+    );
+    result = result.replace(re_art, (m, art, code) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + makeWrap(item, art, code) + MARKER;
+    });
+
+    // 1b — sans préfixe : "L. 521-1 du code Y" / "L. 521-1 CJA"
+    const re_letter = new RegExp(
+      `(?<![\\w-])(${ART_LETTER}${ART_ALINEA})\\s+(?:du\\s+|de\\s+la\\s+)?(${codeAlts})\\b`,
+      'gi'
+    );
+    result = result.replace(re_letter, (m, art, code) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + makeWrap(item, art, code) + MARKER;
+    });
+  }
+
+  // 2) Conventions internationales : "art. X CEDH", "article 258 TFUE"
+  for (const item of CONVENTIONS) {
+    const codeAlts = item.patterns.join('|');
+    const re = new RegExp(
+      `(${ART_FULL})\\s+(?:du\\s+|de\\s+la\\s+)?(${codeAlts})\\b`,
+      'gi'
+    );
+    result = result.replace(re, (m, art, code) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + makeWrap(item, art, code) + MARKER;
+    });
+  }
+
+  // 3) Règlements UE : "règlement (CE) n° 883/2004"
+  result = result.replace(
+    /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+n[°º]\s*\d+\/\d+)\b/gi,
+    (m) => {
+      if (m.includes(MARKER)) return m;
+      const num = (m.match(/n[°º]\s*(\d+\/\d+)/i) || [])[1] || '';
+      return MARKER + `<span class="lawref" data-code="REG-EU" data-num="${num}" title="Règlement UE n° ${num}">${m}</span>` + MARKER;
+    }
+  );
+
+  // 4) Directives UE : "directive 2004/38/CE" ou "directive (UE) 2016/679"
+  result = result.replace(
+    /\b(directive\s+(?:\(?(?:CE|UE)\)?\s+)?\d+\/\d+(?:\/(?:CE|UE))?)\b/gi,
+    (m) => {
+      if (m.includes(MARKER)) return m;
+      const num = (m.match(/\d+\/\d+(?:\/(?:CE|UE))?/) || [])[0] || '';
+      return MARKER + `<span class="lawref" data-code="DIR-EU" data-num="${num}" title="Directive UE ${num}">${m}</span>` + MARKER;
+    }
+  );
+
+  // 5) Lois nominatives : "loi n° YYYY-NNNN du DD mois YYYY"
+  result = result.replace(
+    /\b(loi\s+n[°º]\s*(\d{4}-\d+))\b/gi,
+    (m, full, num) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + `<span class="lawref" data-code="LOI" data-num="${num}" title="Loi n° ${num}">${full}</span>` + MARKER;
+    }
+  );
+
+  // 6) Décrets : "décret n° YYYY-NNNN"
+  result = result.replace(
+    /\b(décret\s+n[°º]\s*(\d{4}-\d+))\b/gi,
+    (m, full, num) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + `<span class="lawref" data-code="DECRET" data-num="${num}" title="Décret n° ${num}">${full}</span>` + MARKER;
+    }
+  );
+
+  // 7) Ordonnances : "ordonnance n° YYYY-NNNN"
+  result = result.replace(
+    /\b(ordonnance\s+n[°º]\s*(\d{4}-\d+))\b/gi,
+    (m, full, num) => {
+      if (m.includes(MARKER)) return m;
+      return MARKER + `<span class="lawref" data-code="ORD" data-num="${num}" title="Ordonnance n° ${num}">${full}</span>` + MARKER;
+    }
+  );
+
+  // Nettoyer les marqueurs
+  return result.split(MARKER).join('');
+}
 function highlightExtract(html, q) {
   // Extract : ArianeWeb utilise ; comme séparateur. DILA pré-formatte avec <em>…</em>.
   let clean = String(html ?? '').replace(/;+/g, ' · ').trim();
@@ -1083,7 +1272,9 @@ async function loadDecision(source, id) {
     html.push(`</div>`);
     html.push(`<div class="body">`);
     if (paragraphs.length) {
-      for (const p of paragraphs) html.push(`<p>${escapeHtml(p)}</p>`);
+      for (const p of paragraphs) {
+        html.push(`<p>${highlightLawRefs(escapeHtml(p))}</p>`);
+      }
     } else {
       html.push(`<p><em>Texte intégral indisponible pour cette source. Vérifier directement sur le site officiel.</em></p>`);
     }

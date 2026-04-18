@@ -62,15 +62,76 @@ def _strip_wrapping_quotes(q: str) -> tuple[str, bool]:
     return q, False
 
 
+# ─── ALIAS DE JURIDICTIONS (réformes / variations historiques) ────
+# Quand l'utilisateur tape un alias court (TJ, TGI, etc.), on étend la
+# requête FTS à toutes les variantes textuelles équivalentes pour ne pas
+# rater les décisions qui utilisent l'ancienne nomenclature.
+#
+# Réforme du 1er janvier 2020 (loi 23 mars 2019) :
+#   TGI + TI → TJ (tribunal judiciaire)
+#   TASS → pôle social du TJ
+JURIDICTION_ALIASES = {
+    "TJ":   ["Tribunal judiciaire", "Tribunal de grande instance",
+             "Tribunal d'instance", "TGI", "TI"],
+    "TGI":  ["Tribunal de grande instance", "Tribunal judiciaire", "TJ"],
+    "TI":   ["Tribunal d'instance", "Tribunal judiciaire", "TJ"],
+    "TASS": ["Tribunal des affaires de sécurité sociale", "pôle social",
+             "Tribunal judiciaire"],
+    "CPH":  ["Conseil de prud'hommes", "conseil prud'hommes"],
+    "CAA":  ["Cour administrative d'appel"],
+    "CEDH": ["Cour européenne des droits de l'homme", "Cour EDH"],
+    "CJUE": ["Cour de justice de l'Union européenne",
+             "Cour de justice de l'Union", "CJCE"],
+    "CJCE": ["Cour de justice des Communautés européennes",
+             "Cour de justice de l'Union européenne", "CJUE"],
+}
+
+# On limite l'expansion aux alias non-ambigus (ignore CC/CE/CA/TC qui
+# pourraient matcher des mots français courants ou d'autres entités)
+SAFE_ALIASES = ["TJ", "TGI", "TI", "TASS", "CPH", "CAA", "CEDH", "CJUE", "CJCE"]
+_RE_ALIAS = re.compile(r"\b(" + "|".join(SAFE_ALIASES) + r")\b")
+
+
+def expand_juridiction_aliases(q: str) -> str:
+    """Si la query contient un alias court de juridiction (ex: "TJ Lyon"),
+    remplace ce mot par une expression OR couvrant toutes les variantes
+    historiques équivalentes ("Tribunal judiciaire" OR "Tribunal de grande
+    instance" OR ...). Permet de retrouver les décisions PRE-réforme 2020.
+    """
+    if not q:
+        return q
+    def _replace(m):
+        upper = m.group(0).upper()
+        aliases = JURIDICTION_ALIASES.get(upper)
+        if not aliases:
+            return m.group(0)
+        parts = []
+        seen = set()
+        for v in [m.group(0)] + aliases:
+            v_clean = v.strip()
+            if v_clean.lower() in seen:
+                continue
+            seen.add(v_clean.lower())
+            if " " in v_clean or "'" in v_clean:
+                parts.append(f'"{v_clean}"')
+            else:
+                parts.append(v_clean)
+        return "(" + " OR ".join(parts) + ")"
+    return _RE_ALIAS.sub(_replace, q)
+
+
 def normalize_fts_query(q: str) -> str:
     """Convertit les opérateurs multi-syntaxe vers FTS5/ES canonique.
 
     Accepte : AND/ET/& · OR/OU/| · NOT/SAUF/-mot · "phrase" · mot*
     Les tokens composés (14-80854, ECLI:…, C-72/24) sont wrappés en phrase.
+    Les alias courts de juridictions (TJ, TGI, CAA…) sont étendus en OR.
     """
     if not q:
         return ""
     q = q.strip()
+    # Expansion des alias de juridictions (TJ → "(TJ OR TGI OR ...)")
+    q = expand_juridiction_aliases(q)
     # Protéger les phrases exactes "..."
     phrases: list[str] = []
     def _protect(m):

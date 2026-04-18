@@ -69,6 +69,32 @@ NORMALIZE_CASES = [
 ]
 
 
+# ─── Tests d'expansion des alias de juridictions ────────────────
+
+ALIAS_CASES = [
+    # (input, doit contenir ces tokens dans le résultat)
+    ("TJ Lyon",   ['"Tribunal judiciaire"', '"Tribunal de grande instance"', "TGI", "Lyon"]),
+    ("TGI Paris", ['"Tribunal de grande instance"', '"Tribunal judiciaire"', "Paris"]),
+    ("CAA Lyon",  ['"Cour administrative d\'appel"', "Lyon"]),
+    ("CEDH 2020", ['"Cour européenne des droits de l\'homme"', "2020"]),
+    ("CJUE 2023", ['"Cour de justice de l\'Union européenne"', "CJCE", "2023"]),
+    # Cas négatifs : alias ambigus doivent NE PAS être étendus
+    ("CC 2020",   ["CC", "2020"]),  # CC ambigu (Code civil aussi) → pas d'expansion
+    ("CE 2024",   ["CE", "2024"]),  # CE ambigu (pronoun ce capitalisé) → pas d'expansion
+]
+
+
+def test_alias_expansion():
+    from query_intent import expand_juridiction_aliases
+    errors = []
+    for q, must_contain in ALIAS_CASES:
+        result = expand_juridiction_aliases(q)
+        for token in must_contain:
+            if token not in result:
+                errors.append(f"  {q!r} → {result!r} (manque : {token!r})")
+    assert not errors, "Alias expansion mismatches:\n" + "\n".join(errors)
+
+
 def test_normalize():
     errors = []
     for q, expected in NORMALIZE_CASES:
@@ -158,6 +184,7 @@ if __name__ == "__main__":
     tests = [
         ("intent detection",  test_intent_detection),
         ("normalize fts",     test_normalize),
+        ("alias expansion",   test_alias_expansion),
         ("source routing",    test_routing),
         ("live API",          test_live),
     ]
