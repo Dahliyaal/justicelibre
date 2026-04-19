@@ -463,7 +463,85 @@ html[data-theme="dark"] .result-card .extract .lawref:hover{
 /* Default desktop: les éléments bottom-sheet sont cachés */
 .sheet-backdrop,.sheet-handle,.sheet-close{display:none}
 
+/* ─── LAW VIEWER (panel latéral gauche desktop, stack mobile) ─── */
+.law-viewer{
+  position:fixed;top:0;left:0;bottom:0;width:380px;max-width:90vw;
+  background:var(--white);color:var(--ink);
+  border-right:1px solid var(--line);
+  box-shadow:4px 0 24px rgba(0,0,0,.12);
+  transform:translateX(-100%);transition:transform .25s ease-out;
+  z-index:110;overflow-y:auto;display:flex;flex-direction:column;
+}
+body.law-open .law-viewer{transform:translateX(0)}
+.law-viewer .law-header{
+  padding:1.2rem 1.4rem 1rem;border-bottom:1px solid var(--line);position:sticky;top:0;
+  background:var(--white);z-index:1;
+}
+.law-viewer .law-close{
+  position:absolute;top:12px;right:14px;
+  width:32px;height:32px;border-radius:50%;
+  background:none;border:1px solid var(--line);color:var(--ink);
+  font-size:20px;line-height:1;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.law-viewer .law-close:hover{background:var(--line)}
+.law-viewer h2.law-title{
+  font-family:var(--display);font-size:1.25rem;line-height:1.2;
+  margin:0 36px .3rem 0;color:var(--ink);
+}
+.law-viewer .law-meta{
+  font-size:.78rem;color:var(--muted);letter-spacing:.02em;
+}
+.law-viewer .law-meta .law-etat{
+  display:inline-block;padding:.1rem .4rem;border-radius:3px;
+  font-size:.68rem;font-weight:700;text-transform:uppercase;
+  margin-left:.4rem;
+}
+.law-viewer .law-etat-vigueur{background:var(--teal-xl);color:var(--teal)}
+.law-viewer .law-etat-modifie,.law-viewer .law-etat-abroge{
+  background:rgba(138,31,31,.1);color:var(--red);
+}
+.law-viewer .law-note{
+  margin-top:.6rem;padding:.5rem .7rem;background:rgba(184,147,43,.1);
+  border-left:2px solid var(--gold);font-size:.78rem;color:var(--body);
+}
+.law-viewer .law-body{
+  padding:1.2rem 1.4rem;flex:1;
+  font-size:.96rem;line-height:1.7;color:var(--body);
+  white-space:pre-wrap;
+}
+.law-viewer .law-body .law-loading,.law-viewer .law-body .law-error{
+  color:var(--muted);font-style:italic;font-size:.9rem;
+}
+.law-viewer .law-nota{
+  margin-top:1.2rem;padding-top:1rem;border-top:1px dashed var(--line);
+  font-size:.85rem;color:var(--muted);
+}
+.law-viewer .law-nota::before{
+  content:"Note :";font-weight:600;color:var(--ink);display:block;margin-bottom:.3rem;
+}
+.law-viewer .law-footer{
+  padding:.9rem 1.4rem;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:.6rem;background:var(--white);
+}
+.law-viewer .law-footer button,.law-viewer .law-footer a{
+  padding:.5rem .9rem;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:600;background:none;border:1px solid var(--line);color:var(--body);
+  border-radius:3px;cursor:pointer;text-decoration:none;
+}
+.law-viewer .law-footer button:hover,.law-viewer .law-footer a:hover{
+  color:var(--teal);border-color:var(--teal);text-decoration:none;
+}
+.law-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.35);
+  z-index:109;opacity:0;pointer-events:none;transition:opacity .25s;
+}
+body.law-open .law-backdrop{opacity:1;pointer-events:auto}
+
 @media(max-width:860px){
+  /* Sur mobile : le law-viewer est caché ; le panel article s'affiche
+     EN STACK dans le bottom sheet existant (cf. #textViewerBody swap). */
+  .law-viewer, .law-backdrop{display:none !important}
   .results-shell{grid-template-columns:1fr;min-height:auto}
   .results-list{max-height:none}
   /* Bottom sheet mobile : le text-viewer devient un volet fixe slide-up */
@@ -663,6 +741,24 @@ html[data-theme="dark"] .result-card .extract .lawref:hover{
 
 </div>
 <div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true"></div>
+
+<!-- Panel article de loi (desktop gauche / mobile stack dans le bottom sheet) -->
+<div class="law-backdrop" id="lawBackdrop" aria-hidden="true"></div>
+<aside class="law-viewer" id="lawViewer" aria-hidden="true">
+  <div class="law-header">
+    <button class="law-close" id="lawClose" aria-label="Fermer">×</button>
+    <h2 class="law-title" id="lawTitle">—</h2>
+    <p class="law-meta" id="lawMeta"></p>
+    <div class="law-note" id="lawNote" style="display:none"></div>
+  </div>
+  <div class="law-body" id="lawBody">
+    <p class="law-loading">Chargement de l'article…</p>
+  </div>
+  <div class="law-footer">
+    <button id="lawVersions" type="button">Voir toutes les versions</button>
+    <a id="lawExtern" href="#" target="_blank" rel="noopener">Voir sur Légifrance ↗</a>
+  </div>
+</aside>
 
 <footer class="footer-min">
   justicelibre.org · <a href="/">Accueil</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Licence Ouverte 2.0 (Etalab)
@@ -1366,10 +1462,262 @@ async function loadDecision(source, id) {
         URL.revokeObjectURL(a.href);
       });
     }
+    // Date de la décision courante → utilisée pour trouver la version d'article pertinente
+    window.currentDecisionDate = d.date || null;
+    // Précharger les articles cités (batch) + attacher les handlers click
+    scanCitedArticles(viewerBody, window.currentDecisionDate);
   } catch (e) {
     viewerBody.innerHTML = `<div style="padding:3rem;color:var(--muted)"><em>Erreur : ${escapeHtml(e.message)}</em></div>`;
   }
 }
+
+// ─── LAW VIEWER : article de loi à la version d'époque ─────────────
+
+const LAW_CACHE_PREFIX = 'law:';
+const LAW_CACHE_TTL = 24 * 3600 * 1000; // 24h
+
+function lawCacheKey(code, num, date) {
+  return `${LAW_CACHE_PREFIX}${code}:${num}:${date || 'current'}`;
+}
+
+function lawCacheGet(code, num, date) {
+  try {
+    const raw = localStorage.getItem(lawCacheKey(code, num, date));
+    if (!raw) return null;
+    const {t, d} = JSON.parse(raw);
+    if (Date.now() - t > LAW_CACHE_TTL) {
+      localStorage.removeItem(lawCacheKey(code, num, date));
+      return null;
+    }
+    return d;
+  } catch { return null; }
+}
+
+function lawCacheSet(code, num, date, data) {
+  try {
+    // Éviction LRU naïve : si >500 entrées law:, supprimer les plus anciennes
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(LAW_CACHE_PREFIX));
+    if (keys.length >= 500) {
+      const entries = keys.map(k => {
+        try { return [k, JSON.parse(localStorage.getItem(k)).t]; }
+        catch { return [k, 0]; }
+      }).sort((a,b) => a[1] - b[1]);
+      for (let i = 0; i < 100; i++) localStorage.removeItem(entries[i][0]);
+    }
+    localStorage.setItem(lawCacheKey(code, num, date), JSON.stringify({t: Date.now(), d: data}));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+async function scanCitedArticles(root, date) {
+  const spans = root.querySelectorAll('.lawref[data-num]');
+  if (!spans.length) return;
+  // Dédupliquer par (code, num)
+  const seen = new Set();
+  const refs = [];
+  for (const s of spans) {
+    const code = s.dataset.code || '';
+    const num = s.dataset.num || '';
+    if (!code || !num) continue;
+    const key = `${code}|${num}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Skip si déjà en cache
+    if (lawCacheGet(code, num, date)) continue;
+    refs.push({code, num});
+  }
+  if (refs.length) {
+    try {
+      const r = await fetch('/api/law/batch', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({date, refs})
+      });
+      if (r.ok) {
+        const data = await r.json();
+        for (const item of (data.items || [])) {
+          if (item.found) lawCacheSet(item.code, item.num, date, item);
+        }
+      }
+    } catch { /* silent — fallback sur fetch au click */ }
+  }
+  // Attacher les handlers click sur les spans
+  root.addEventListener('click', onLawRefClick);
+}
+
+function onLawRefClick(e) {
+  const span = e.target.closest('.lawref[data-num]');
+  if (!span) return;
+  e.preventDefault();
+  openLawPanel(span.dataset.code, span.dataset.num, window.currentDecisionDate);
+}
+
+async function openLawPanel(code, num, date) {
+  const isMobile = window.matchMedia('(max-width:860px)').matches;
+  if (isMobile) {
+    openLawInSheet(code, num, date);
+  } else {
+    openLawInSidebar(code, num, date);
+  }
+}
+
+function formatLawDate(d) {
+  if (!d) return '';
+  const [y, m, dd] = d.split('-');
+  if (!y) return d;
+  const months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  return `${parseInt(dd)} ${months[parseInt(m) - 1] || ''} ${y}`;
+}
+
+function renderLawInto(container, code, num, data) {
+  if (!data) {
+    container.title.textContent = `Article ${num}`;
+    container.meta.innerHTML = '';
+    container.note.style.display = 'block';
+    container.note.textContent = `Article ${code} ${num} introuvable.`;
+    container.body.innerHTML = '';
+    container.extern.href = '#';
+    return;
+  }
+  container.title.textContent = `Article ${data.num} ${data.titre_section || ''}`.trim();
+  const etat = data.etat || '';
+  const etatCls = etat === 'VIGUEUR' ? 'law-etat-vigueur'
+                 : (etat === 'ABROGE' ? 'law-etat-abroge' : 'law-etat-modifie');
+  const range = data.date_debut
+    ? `Version du ${formatLawDate(data.date_debut)}${data.date_fin && data.date_fin !== '2999-01-01' ? ' au ' + formatLawDate(data.date_fin) : ' — en vigueur'}`
+    : '';
+  container.meta.innerHTML = `${range}${etat ? ` <span class="law-etat ${etatCls}">${etat}</span>` : ''}`;
+  if (data.note) {
+    container.note.style.display = 'block';
+    container.note.textContent = data.note;
+  } else {
+    container.note.style.display = 'none';
+  }
+  container.body.innerHTML = `<div>${escapeHtml(data.texte || '(pas de texte)')}</div>${data.nota ? `<div class="law-nota">${escapeHtml(data.nota)}</div>` : ''}`;
+  if (data.legiarti) {
+    container.extern.href = `https://www.legifrance.gouv.fr/codes/article_lc/${encodeURIComponent(data.legiarti)}`;
+  }
+}
+
+async function resolveLaw(code, num, date) {
+  let data = lawCacheGet(code, num, date);
+  if (data) return data;
+  try {
+    const url = `/api/law?code=${encodeURIComponent(code)}&num=${encodeURIComponent(num)}${date ? '&date=' + encodeURIComponent(date) : ''}`;
+    const r = await fetch(url);
+    if (r.ok) {
+      data = await r.json();
+      lawCacheSet(code, num, date, data);
+      return data;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function openLawInSidebar(code, num, date) {
+  const panel = document.getElementById('lawViewer');
+  const container = {
+    title: document.getElementById('lawTitle'),
+    meta: document.getElementById('lawMeta'),
+    note: document.getElementById('lawNote'),
+    body: document.getElementById('lawBody'),
+    extern: document.getElementById('lawExtern'),
+  };
+  container.title.textContent = `Article ${num}`;
+  container.meta.textContent = '';
+  container.note.style.display = 'none';
+  container.body.innerHTML = '<p class="law-loading">Chargement…</p>';
+  document.body.classList.add('law-open');
+  panel.setAttribute('aria-hidden', 'false');
+  // Bind fermeture (idempotent)
+  document.getElementById('lawClose').onclick = closeLawPanel;
+  document.getElementById('lawBackdrop').onclick = closeLawPanel;
+  document.getElementById('lawVersions').onclick = () => showLawVersions(code, num);
+  resolveLaw(code, num, date).then(data => renderLawInto(container, code, num, data));
+}
+
+function closeLawPanel() {
+  document.body.classList.remove('law-open');
+  document.getElementById('lawViewer').setAttribute('aria-hidden', 'true');
+}
+
+// Stack navigation mobile : on push le HTML courant du sheet, on remplace par la vue article
+window.sheetStack = [];
+
+function openLawInSheet(code, num, date) {
+  const body = document.getElementById('textViewerBody');
+  // Sauvegarde HTML actuel pour back button
+  window.sheetStack.push(body.innerHTML);
+  body.innerHTML = `
+    <button type="button" class="sheet-back" style="display:inline-flex;align-items:center;gap:.4rem;background:none;border:none;color:var(--teal);cursor:pointer;font-size:.9rem;padding:0;margin-bottom:1rem">← Retour à la décision</button>
+    <h1 id="lawSheetTitle" style="font-family:var(--display);font-size:1.3rem;margin-bottom:.3rem">Article ${escapeHtml(num)}</h1>
+    <p id="lawSheetMeta" class="doc-meta" style="font-size:.78rem;color:var(--muted);margin-bottom:1rem"></p>
+    <div id="lawSheetNote" style="display:none;padding:.5rem .7rem;background:rgba(184,147,43,.1);border-left:2px solid var(--gold);font-size:.82rem;margin-bottom:1rem"></div>
+    <div id="lawSheetBody" style="font-size:.96rem;line-height:1.7;color:var(--body);white-space:pre-wrap"><em style="color:var(--muted)">Chargement…</em></div>
+  `;
+  body.querySelector('.sheet-back').addEventListener('click', popSheet);
+  resolveLaw(code, num, date).then(data => {
+    const container = {
+      title: body.querySelector('#lawSheetTitle'),
+      meta: body.querySelector('#lawSheetMeta'),
+      note: body.querySelector('#lawSheetNote'),
+      body: body.querySelector('#lawSheetBody'),
+      extern: {href: '#'}, // dummy
+    };
+    renderLawInto(container, code, num, data);
+  });
+}
+
+function popSheet() {
+  const body = document.getElementById('textViewerBody');
+  const prev = window.sheetStack.pop();
+  if (prev != null) {
+    body.innerHTML = prev;
+    // Ré-attacher les handlers (le HTML restauré a perdu les listeners)
+    const copyBtn = body.querySelector('.action-copy-link');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = copyBtn.dataset.id, src = copyBtn.dataset.source;
+        const url = `${location.origin}/search.html?id=${encodeURIComponent(id)}&source=${encodeURIComponent(src)}`;
+        navigator.clipboard.writeText(url).then(() => {
+          copyBtn.textContent = 'Copié ✓';
+          setTimeout(() => { copyBtn.textContent = 'Copier lien'; }, 1500);
+        });
+      });
+    }
+    // Réactiver event delegation pour les .lawref
+    body.addEventListener('click', onLawRefClick);
+  }
+}
+
+async function showLawVersions(code, num) {
+  const body = document.getElementById('lawBody');
+  body.innerHTML = '<p class="law-loading">Chargement des versions…</p>';
+  try {
+    const r = await fetch(`/api/law/versions?code=${encodeURIComponent(code)}&num=${encodeURIComponent(num)}`);
+    const data = await r.json();
+    const vs = data.versions || [];
+    if (!vs.length) { body.innerHTML = '<p class="law-error">Pas de versions trouvées.</p>'; return; }
+    const html = vs.map(v => {
+      const range = `${formatLawDate(v.date_debut)} — ${v.date_fin && v.date_fin !== '2999-01-01' ? formatLawDate(v.date_fin) : 'en vigueur'}`;
+      const cls = v.etat === 'VIGUEUR' ? 'law-etat-vigueur' : (v.etat === 'ABROGE' ? 'law-etat-abroge' : 'law-etat-modifie');
+      return `<div style="padding:.8rem 0;border-bottom:1px dashed var(--line)">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.3rem">${range} <span class="law-etat ${cls}">${v.etat}</span></div>
+        <div style="font-size:.92rem;white-space:pre-wrap">${escapeHtml(v.texte || '')}</div>
+      </div>`;
+    }).join('');
+    body.innerHTML = `<h3 style="font-family:var(--display);font-size:1.1rem;margin-bottom:.6rem">Toutes les versions (${vs.length})</h3>${html}`;
+  } catch (e) {
+    body.innerHTML = `<p class="law-error">Erreur : ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// Ferme le law panel sur Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('law-open')) {
+    closeLawPanel();
+  }
+});
 
 /**
  * Résout un résultat ArianeWeb vers un identifiant admin ES (DCE_*)

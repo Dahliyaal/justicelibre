@@ -83,17 +83,59 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._handle_search(qs)
         if parsed.path == "/api/decision":
             return self._handle_decision(qs)
+        if parsed.path == "/api/law":
+            return self._handle_law(qs)
+        if parsed.path == "/api/law/versions":
+            return self._handle_law_versions(qs)
         if parsed.path in ("/api", "/api/"):
             return self._json_response(200, {
                 "service": "justicelibre public REST API",
                 "endpoints": {
                     "GET /api/search?q=&juridiction=&lieu=&limit=": "Recherche fédérée dans 5 sources",
                     "GET /api/decision?source=&id=": "Texte intégral d'une décision",
+                    "GET /api/law?code=&num=&date=": "Article de loi (version à une date)",
+                    "GET /api/law/versions?code=&num=": "Toutes les versions historiques d'un article",
+                    "POST /api/law/batch": "Batch de plusieurs articles en une requête",
                     "POST /api/token": "Échange credentials PISTE → session token",
                 },
                 "docs": "https://justicelibre.org",
             })
-        return self._json_response(404, {"error": f"Endpoint inconnu : {parsed.path}. Endpoints valides : /api/search, /api/decision, /api/token, /api."})
+        return self._json_response(404, {"error": f"Endpoint inconnu : {parsed.path}."})
+
+    def _handle_law(self, qs: dict):
+        code = (qs.get("code", [""])[0] or "").strip()
+        num = (qs.get("num", [""])[0] or "").strip()
+        date = (qs.get("date", [""])[0] or "").strip()
+        if not code or not num:
+            return self._json_response(400, {"error": "Paramètres `code` et `num` requis."})
+        if len(code) > 20 or len(num) > 30:
+            return self._json_response(400, {"error": "Paramètres trop longs."})
+        if date and not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            return self._json_response(400, {"error": "Format date invalide (attendu YYYY-MM-DD)."})
+        try:
+            from sources import warehouse as wh
+            data = wh.sync_get_law(code, num, date or None)
+            if data is None:
+                return self._json_response(404, {"error": f"Article introuvable : {code} {num}."})
+            return self._json_response(200, data)
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return self._json_response(500, {"error": "Erreur interne — entrepôt indisponible."})
+
+    def _handle_law_versions(self, qs: dict):
+        code = (qs.get("code", [""])[0] or "").strip()
+        num = (qs.get("num", [""])[0] or "").strip()
+        if not code or not num:
+            return self._json_response(400, {"error": "Paramètres `code` et `num` requis."})
+        try:
+            from sources import warehouse as wh
+            versions = wh.sync_get_law_versions(code, num)
+            return self._json_response(200, {"code": code, "num": num, "versions": versions})
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return self._json_response(500, {"error": "Erreur interne."})
 
     def _handle_search(self, qs: dict):
         q = (qs.get("q", [""])[0] or "").strip()
@@ -162,6 +204,8 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(500, {"error": "Erreur interne du serveur. Réessayez."})
 
     def do_POST(self):
+        if self.path == "/api/law/batch":
+            return self._handle_law_batch()
         if self.path != "/api/token":
             self.send_response(404)
             self.end_headers()
@@ -204,6 +248,41 @@ class TokenHandler(BaseHTTPRequestHandler):
             "expires_in": 3600,
             "message": "Token valide 1 heure. Utilisez-le dans le paramètre session_token des tools search_judiciaire et get_decision_judiciaire.",
         })
+
+    def _handle_law_batch(self):
+        content_len = int(self.headers.get("Content-Length", 0))
+        if content_len > 50000:  # 50 KB max = ~500 refs
+            return self._json_response(400, {"error": "Body trop gros."})
+        raw = self.rfile.read(content_len)
+        try:
+            body = json.loads(raw)
+        except json.JSONDecodeError:
+            return self._json_response(400, {"error": "JSON invalide"})
+        refs = body.get("refs", [])
+        date = (body.get("date") or "").strip() or None
+        if not isinstance(refs, list) or not refs:
+            return self._json_response(400, {"error": "`refs` doit être une liste non vide de {code, num}"})
+        if len(refs) > 200:
+            return self._json_response(400, {"error": "Max 200 refs par batch."})
+        if date and not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            return self._json_response(400, {"error": "Format date invalide (YYYY-MM-DD)."})
+        # Sanitize refs
+        clean_refs = []
+        for r in refs[:200]:
+            if not isinstance(r, dict):
+                continue
+            code = str(r.get("code", ""))[:20]
+            num = str(r.get("num", ""))[:30]
+            if code and num:
+                clean_refs.append({"code": code, "num": num})
+        try:
+            from sources import warehouse as wh
+            items = wh.sync_get_laws_batch(clean_refs, date)
+            return self._json_response(200, {"date": date, "count": len(items), "items": items})
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return self._json_response(500, {"error": "Erreur entrepôt."})
 
     def _json_response(self, code: int, data: dict):
         body = json.dumps(data, ensure_ascii=False).encode()
