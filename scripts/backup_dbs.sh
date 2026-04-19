@@ -44,9 +44,9 @@ for db in "${DBS[@]}"; do
     || echo "[$(date -u '+%H:%M:%S')] $db FAILED" >> $LOG
 done
 
-# Backup also le fichier judiciaire.db de PROD (sur PatrologiaLatina lui-même)
-# vers un sous-dossier — pour avoir une copie locale même si on perd l'instance.
-ssh root@$REMOTE_HOST "cp /opt/justicelibre/dila/judiciaire.db $REMOTE_DIR/judiciaire.${TS}.db.local 2>/dev/null && zstd -19 --rm $REMOTE_DIR/judiciaire.${TS}.db.local 2>>$LOG" >> $LOG 2>&1
+# Backup judiciaire.db de PROD : stream zstd direct vers le fichier compressé
+# (PAS de .local intermediate qui bouffe 11 GB le temps de la compression).
+ssh root@$REMOTE_HOST "zstd -19 --long -T0 -c /opt/justicelibre/dila/judiciaire.db > $REMOTE_DIR/judiciaire.${TS}.db.zst 2>>$LOG && echo 'judiciaire.db backed up'" >> $LOG 2>&1
 
 echo "[$(date -u '+%H:%M:%S')] backup done. List:" >> $LOG
 ssh root@$REMOTE_HOST "ls -lh $REMOTE_DIR/ | tail -10" >> $LOG 2>&1
