@@ -458,7 +458,9 @@ footer p{margin:.2rem 0}
   <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
 
   <div class="callout" style="margin:2rem 0;border-color:var(--teal)">
-    <p><strong>Killer feature</strong> : <code>get_law_article(code, num, date)</code> — récupère l'article à sa version <em>en vigueur à la date donnée</em>. Une décision de 1992 cite l'article 1128 du Code civil ? Le tool retourne le texte napoléonien d'époque, pas la réforme 2016. <strong>C'est ce que Dalloz facture 200€/mois.</strong></p>
+    <p><code>get_law_article(code, num, date)</code></p>
+    <p style="margin-top:.6rem">L'analyse de la jurisprudence exige d'éviter tout <strong>anachronisme juridique</strong>. Cet outil restitue la <strong>rédaction d'époque</strong> d'une disposition, strictement en vigueur à la date demandée. Une décision de 1992 cite l'article 1128 du Code civil ? Vous obtenez le texte d'origine, immunisé contre la réforme de 2016.</p>
+    <p style="margin-top:.6rem"><strong>C'est exactement cette garantie que Dalloz vous facture 200 € par mois.</strong></p>
   </div>
 
   <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Recherche fédérée (pertinence BM25)</h3>
