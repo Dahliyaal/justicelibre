@@ -465,11 +465,11 @@ html[data-theme="dark"] .result-card .extract .lawref:hover{
 
 /* ─── LAW VIEWER (panel latéral gauche desktop, stack mobile) ─── */
 .law-viewer{
-  position:fixed;top:0;left:0;bottom:0;width:380px;max-width:90vw;
+  position:fixed;top:0;right:0;bottom:0;width:380px;max-width:90vw;
   background:var(--white);color:var(--ink);
-  border-right:1px solid var(--line);
-  box-shadow:4px 0 24px rgba(0,0,0,.12);
-  transform:translateX(-100%);transition:transform .25s ease-out;
+  border-left:1px solid var(--line);
+  box-shadow:-4px 0 24px rgba(0,0,0,.12);
+  transform:translateX(100%);transition:transform .25s ease-out;
   z-index:110;overflow-y:auto;display:flex;flex-direction:column;
 }
 body.law-open .law-viewer{transform:translateX(0)}
