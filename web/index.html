@@ -455,7 +455,7 @@ footer p{margin:.2rem 0}
 <!-- TOOLS -->
 <section class="section" id="tools">
   <h2>24 outils, <em>toute la matière</em> juridique française</h2>
-  <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR. Ci-dessous, les 13 outils de recherche ; le reste (11) = extraction de texte <code style="font-size:.76rem">get_decision_*</code>, utilitaires (<code style="font-size:.76rem">about_justicelibre</code>, <code style="font-size:.76rem">list_juridictions</code>), fallbacks tri-date et PISTE.</p>
+  <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
 
   <div class="callout" style="margin:2rem 0;border-color:var(--teal)">
     <p><strong>Killer feature</strong> : <code>get_law_article(code, num, date)</code> — récupère l'article à sa version <em>en vigueur à la date donnée</em>. Une décision de 1992 cite l'article 1128 du Code civil ? Le tool retourne le texte napoléonien d'époque, pas la réforme 2016. <strong>C'est ce que Dalloz facture 200€/mois.</strong></p>
@@ -525,8 +525,61 @@ footer p{margin:.2rem 0}
     </div>
   </div>
 
-  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--muted)">Chronologique & PISTE (usages secondaires)</h3>
-  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1rem"><code>search_admin_recent</code>, <code>search_admin_recent_all_ta</code>, <code>search_admin_recent_all_caa</code> : tri par date pour voir l'actualité d'une juridiction. Les tools <code>search_judiciaire</code> / <code>get_decision_judiciaire</code> ciblent Judilibre temps réel (auth PISTE — <a href="/tutoriel-piste.html">tutoriel</a>).</p>
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Extraction texte intégral</h3>
+  <div class="tools-grid">
+    <div class="tool-card">
+      <code>get_decision_text</code>
+      <p>Texte d'une décision admin (IDs <code style="font-size:.74rem">DCE_*</code>, <code style="font-size:.74rem">DTA_*</code>, <code style="font-size:.74rem">DCAA_*</code>).</p>
+    </div>
+    <div class="tool-card">
+      <code>get_decision_judiciaire_libre</code>
+      <p>Texte d'une décision Cass / CA / CC (IDs <code style="font-size:.74rem">JURITEXT*</code>, <code style="font-size:.74rem">CONSTEXT*</code>).</p>
+    </div>
+    <div class="tool-card">
+      <code>get_decision_cedh</code>
+      <p>Texte d'une décision CEDH (IDs <code style="font-size:.74rem">001-XXXXXX</code>).</p>
+    </div>
+    <div class="tool-card">
+      <code>get_decision_cjue</code>
+      <p>Texte d'une décision CJUE (CELEX ou ECLI).</p>
+    </div>
+    <div class="tool-card">
+      <code>get_decision_judiciaire</code>
+      <p>Texte via Judilibre PISTE (auth OAuth2 — <a href="/tutoriel-piste.html">tutoriel</a>).</p>
+    </div>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Utilitaires</h3>
+  <div class="tools-grid">
+    <div class="tool-card">
+      <code>about_justicelibre</code>
+      <p>Cartographie complète des sources et règles d'usage. À appeler en début de session.</p>
+    </div>
+    <div class="tool-card">
+      <code>list_juridictions</code>
+      <p>Codes des 51 juridictions admin (CE, 9 CAA, 40 TA) — pour filtrer search_admin.</p>
+    </div>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--muted)">Chronologique (tri date, usages d'actualité)</h3>
+  <div class="tools-grid">
+    <div class="tool-card" style="border-color:var(--muted)">
+      <code style="color:var(--muted)">search_admin_recent</code>
+      <p>Décisions admin récentes d'une juridiction (tri date). Pour la pertinence, préférer <code style="font-size:.74rem">search_admin</code>.</p>
+    </div>
+    <div class="tool-card" style="border-color:var(--muted)">
+      <code style="color:var(--muted)">search_admin_recent_all_ta</code>
+      <p>Fan-out chronologique sur les 40 Tribunaux Administratifs.</p>
+    </div>
+    <div class="tool-card" style="border-color:var(--muted)">
+      <code style="color:var(--muted)">search_admin_recent_all_caa</code>
+      <p>Fan-out chronologique sur les 9 Cours Administratives d'Appel.</p>
+    </div>
+    <div class="tool-card" style="border-color:var(--muted)">
+      <code style="color:var(--muted)">search_judiciaire</code>
+      <p>Recherche temps réel Judilibre (auth OAuth2 PISTE).</p>
+    </div>
+  </div>
 </section>
 
 <!-- MISSION -->
