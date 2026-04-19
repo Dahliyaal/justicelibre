@@ -188,33 +188,20 @@ code{
   <p>Retournez dans <strong>APPLICATIONS</strong> et cliquez sur votre application.</p>
   <div class="screenshot"><img src="/img/11-app-list.png" alt="Liste des applications"></div>
 
-  <p class="step-count"><span class="counter">12</span> Récupérer vos identifiants (OAuth et/ou API Key)</p>
-  <h2>Sections "Identifiants Oauth" et "API Keys"</h2>
-  <p>PISTE expose deux mécanismes d'authentification selon l'API ciblée : <strong>OAuth2</strong> (pour Judilibre, Légifrance, et la plupart des API juridiques) et <strong>API Key</strong> (pour les API gateway Gravitee : marchés publics DECP, DUME, facturation Chorus, etc.). Pour ne pas avoir à revenir ici, <strong>récupérez les deux</strong> d'un coup.</p>
-  <p><strong>Section "API Keys"</strong> : notez l'<strong>identifiant de la clé</strong>, puis cliquez sur <strong>"Afficher le secret"</strong> pour voir la <strong>clé secrète</strong>.</p>
-  <div class="screenshot"><img src="/img/13-api-key.png" alt="API Keys"></div>
-  <p><strong>Section "Identifiants Oauth"</strong> : notez votre <strong>Client ID</strong>, puis cliquez sur <strong>"Consulter le secret"</strong> pour obtenir votre <strong>Client Secret</strong>.</p>
+  <p class="step-count"><span class="counter">12</span> Récupérer vos identifiants OAuth</p>
+  <h2>Section "Identifiants Oauth"</h2>
+  <p>Pour Judilibre (jurisprudence judiciaire), l'authentification utilise OAuth2. Notez votre <strong>Client ID</strong>, puis cliquez sur <strong>"Consulter le secret"</strong> pour obtenir votre <strong>Client Secret</strong>.</p>
   <div class="screenshot"><img src="/img/12-oauth-secret.png" alt="Identifiants OAuth"></div>
+  <p style="color:var(--muted);font-size:.88rem">La section "API Keys" juste en dessous n'est <strong>pas utilisée</strong> par justicelibre ; elle concerne d'autres API PISTE (marchés publics, facturation) hors-sujet ici.</p>
 
   <p class="step-count"><span class="counter">13</span> Utiliser vos identifiants</p>
   <h2>Collez vos identifiants dans justicelibre</h2>
-  <p>Pour accéder à <strong>Judilibre via justicelibre.org</strong>, seuls <strong>Client ID</strong> et <strong>Client Secret</strong> (OAuth) sont nécessaires. Pour les autres API PISTE (DECP, DUME, etc.), renseignez également <strong>API Key</strong> + <strong>API Key Secret</strong>. Vos identifiants transitent par votre assistant (Claude, ChatGPT…) avant d'arriver à justicelibre. Ne réutilisez pas ces identifiants pour d'autres services sensibles.</p>
+  <p>Collez votre <strong>Client ID</strong> et votre <strong>Client Secret</strong> dans le formulaire ci-dessous : le serveur justicelibre.org les échange contre un token Judilibre temporaire (valide 1 heure), vous le retourne, et oublie vos identifiants. Vous utiliserez ensuite ce token dans vos assistants (Claude, ChatGPT…) sans jamais re-exposer vos creds PISTE. Ne réutilisez pas ces identifiants pour d'autres services sensibles.</p>
 
   <div class="token-form" style="margin:3rem 0;padding:2rem;border:1px solid var(--line);border-radius:6px;background:var(--light)">
     <h2 style="font-family:var(--display);font-size:1.4rem;margin-bottom:.5rem">Générer votre token justicelibre</h2>
-    <p style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Pour Judilibre : Client ID + Client Secret suffisent. Pour le reste de PISTE : ajoutez aussi l'API Key.</p>
+    <p style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">OAuth2 Client ID + Client Secret de votre application PISTE PROD.</p>
 
-    <p style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem">API Key (optionnel · pour API Gravitee)</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.3rem">
-      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">API Key ID</label>
-      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">API Key Secret</label>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1.5rem">
-      <input type="text" id="piste-apikey" placeholder="44d1c895-2b6c-..." style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
-      <input type="password" id="piste-apikey-secret" placeholder="Secret associé à l'API key" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
-    </div>
-
-    <p style="font-size:.78rem;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem">OAuth2 (requis)</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.3rem">
       <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Client ID</label>
       <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Client Secret</label>
@@ -262,17 +249,12 @@ code{
 function generateToken(){
   var cid=document.getElementById('piste-cid').value.trim();
   var secret=document.getElementById('piste-secret').value.trim();
-  var apikey=document.getElementById('piste-apikey').value.trim();
-  var apikeySecret=document.getElementById('piste-apikey-secret').value.trim();
   var result=document.getElementById('token-result');
   var error=document.getElementById('token-error');
   result.style.display='none';
   error.style.display='none';
-  if(!cid||!secret){error.textContent='Client ID et Client Secret (OAuth) sont requis.';error.style.display='block';return}
-  var body={client_id:cid,client_secret:secret};
-  if(apikey) body.api_key=apikey;
-  if(apikeySecret) body.api_key_secret=apikeySecret;
-  fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+  if(!cid||!secret){error.textContent='Client ID et Client Secret sont requis.';error.style.display='block';return}
+  fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:secret})})
     .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
     .then(function(res){
       if(res.ok){
@@ -280,8 +262,6 @@ function generateToken(){
         result.style.display='block';
         document.getElementById('piste-cid').value='';
         document.getElementById('piste-secret').value='';
-        document.getElementById('piste-apikey').value='';
-        document.getElementById('piste-apikey-secret').value='';
       } else {
         error.textContent=res.data.error||'Erreur inconnue';
         error.style.display='block';

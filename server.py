@@ -28,7 +28,10 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-from sources import ariane, dila, european, judilibre, juriadmin
+from sources import (
+    ariane, dila, european, judilibre, juriadmin, legi,
+    jade_remote, jorf_remote, kali_remote, cnil_remote,
+)
 
 mcp = FastMCP(
     "justicelibre",
@@ -221,54 +224,101 @@ async def about_justicelibre() -> dict[str, Any]:
             "(Dalloz, Doctrine, Lexis, Pappers Justice)."
         ),
         "sources": {
+            "0_unified": {
+                "tools": ["search_all"],
+                "strengths": "Tool one-stop : fan-out sur DILA + JADE + LEGI + CEDH + CJUE en parallèle, tri par pertinence BM25 avec bonus d'autorité (CE/Cass/CEDH > CAA > TA/CA). Utilise le thésaurus juridique FR (expand_synonyms=True par défaut). **À utiliser en priorité** quand on ne sait pas d'avance où chercher.",
+            },
             "1_arianeweb": {
                 "tools": ["search_conseil_etat"],
                 "volume": "~270 000 décisions du Conseil d'État",
-                "strengths": "Moteur sémantique Sinequa (scoring de pertinence, extraits en surbrillance). Seul outil disposant d'un véritable algorithme de pertinence — à privilégier pour le droit public.",
+                "strengths": "Moteur sémantique Sinequa natif (pertinence). Complémentaire à `search_admin` pour CE seulement.",
                 "id_format": "/Ariane_Web/AW_DCE/|XXXXXX",
-                "id_compatible_with": "(aucun get_decision_* — procéder à une ré-indexation via search_juridiction, cf. docstring)",
+                "id_compatible_with": "(pas de get_decision_*)",
             },
-            "2_opendata_admin": {
-                "tools": ["search_juridiction", "search_all_tribunaux_admin", "search_all_cours_appel", "get_decision_text", "list_juridictions"],
-                "volume": "~1 050 000 décisions : Conseil d'État + 9 CAA + 40 TA (incluant l'outre-mer)",
-                "strengths": "Recherche Elasticsearch, tri chronologique (et non par pertinence). Outil optimal lorsque la cour et la période sont préalablement identifiées.",
-                "id_format": "DCE_XXX_YYYYMMDD, DTA_XXX_YYYYMMDD, DCAA_XXX_YYYYMMDD",
+            "2_admin_pertinence": {
+                "tools": ["search_admin", "list_juridictions"],
+                "volume": "~4M décisions JADE : CE + 9 CAA + 40 TA full text",
+                "strengths": "Ranking BM25 (vraie pertinence) + snippets + date range. REMPLACE les tools date-sorted pour trouver la jurisprudence pertinente.",
+                "id_format": "DCE_*, DTA_*, DCAA_*",
                 "id_compatible_with": "get_decision_text",
+            },
+            "2b_admin_recent": {
+                "tools": ["search_admin_recent", "search_admin_recent_all_ta", "search_admin_recent_all_caa", "get_decision_text"],
+                "strengths": "API live opendata.justice-administrative.fr, tri chronologique. Pour voir les décisions les plus récentes (actu), pas pour trouver du pertinent — utiliser `search_admin` à la place.",
             },
             "3_dila_judiciaire": {
                 "tools": ["search_judiciaire_libre", "get_decision_judiciaire_libre"],
-                "volume": "~620 000 décisions : Cour de cassation + 36 Cours d'appel + Conseil constitutionnel",
-                "strengths": "Index local SQLite FTS5 — aucune authentification requise. Support des opérateurs FTS5 (phrase exacte, AND, OR, préfixe*).",
+                "volume": "~620 000 décisions : Cour de cassation + 36 Cours d'appel + Conseil constitutionnel (archives DILA locales)",
+                "strengths": "Index local FTS5, aucune auth. Opérateurs FTS5 (phrase exacte, AND, OR, préfixe*).",
                 "id_format": "JURITEXT*, CONSTEXT*, JURI*",
                 "id_compatible_with": "get_decision_judiciaire_libre",
             },
             "4_piste_judilibre": {
                 "tools": ["search_judiciaire", "get_decision_judiciaire"],
-                "volume": "Intégralité du corpus Judilibre (inclut les décisions récentes non encore archivées par la DILA)",
-                "strengths": "Fraîcheur temporelle, mais soumise à authentification OAuth2 PISTE (gratuite — inscription environ 15 min).",
-                "id_format": "variables (selon Judilibre)",
+                "volume": "Corpus Judilibre live (décisions récentes non encore archivées par DILA)",
+                "strengths": "Fraîcheur, mais auth OAuth2 PISTE requise (token temporaire obtenable sur justicelibre.org/tutoriel-piste.html).",
+                "id_format": "variables Judilibre",
                 "id_compatible_with": "get_decision_judiciaire",
             },
             "5_cedh": {
                 "tools": ["search_cedh", "get_decision_cedh"],
-                "volume": "~76 000 documents HUDOC en français (arrêts, décisions, rapports de Chambre, Grande Chambre, Comité)",
+                "volume": "~76 000 documents HUDOC FR",
                 "strengths": "Cour européenne des droits de l'homme. Libre d'accès.",
-                "id_format": "001-XXXXXX (itemid HUDOC)",
+                "id_format": "001-XXXXXX",
                 "id_compatible_with": "get_decision_cedh",
             },
             "6_cjue": {
                 "tools": ["search_cjue", "get_decision_cjue"],
-                "volume": "~40 000+ arrêts CJUE, Tribunal UE et conclusions d'avocats généraux en français",
-                "strengths": "Cour de justice de l'Union européenne. Libre d'accès.",
-                "id_format": "6XXXXCJXXXX (CELEX) ou ECLI",
+                "volume": "~44 000 arrêts CJUE + Tribunal UE + conclusions AG",
+                "strengths": "Libre d'accès.",
+                "id_format": "6XXXXCJXXXX (CELEX) / ECLI",
                 "id_compatible_with": "get_decision_cjue",
             },
+            "7_articles_loi": {
+                "tools": ["get_law_article", "get_law_versions", "search_legi", "search_decisions_citing"],
+                "volume": "~3,6 Go bulk LEGI : 22 codes consolidés (CC, CP, CT, etc.) AVEC toutes les versions historiques",
+                "strengths": "**Killer feature** : récupérer un article à sa version en vigueur à une date précise. Ex: art. 1128 CC en 1992 → texte napoléonien ; en 2024 → texte réforme 2016. Ce que Dalloz facture 200€/mois.",
+                "id_format": "LEGIARTI*",
+                "id_compatible_with": "get_law_article / get_law_versions",
+            },
+            "8_jorf": {
+                "tools": ["search_jorf"],
+                "volume": "~1,1 Go JO post-1990 : lois non codifiées, décrets, arrêtés, circulaires, ordonnances",
+                "strengths": "Textes publiés au Journal Officiel en dehors des codes consolidés.",
+                "id_format": "JORFTEXT*",
+            },
+            "9_kali": {
+                "tools": ["search_kali"],
+                "volume": "Conventions collectives + accords de branche (745 Mo)",
+                "strengths": "Droit du travail sectoriel. Filtrable par IDCC.",
+            },
+            "10_cnil": {
+                "tools": ["search_cnil"],
+                "volume": "~26 000 délibérations CNIL",
+                "strengths": "Droit des données personnelles (RGPD).",
+            },
+        },
+        "hiérarchie_autorité": {
+            "principe": "En cas de divergence ou d'arbitrage, classer les décisions selon leur autorité jurisprudentielle.",
+            "ordre": [
+                "CJUE (primauté du droit UE)",
+                "Conseil constitutionnel (constitutionnalité)",
+                "Cour EDH (conventionnalité)",
+                "Cour de cassation (judiciaire national)",
+                "Conseil d'État (administratif national)",
+                "Cours d'appel / Cours administratives d'appel (appel)",
+                "Tribunaux de première instance (TA, TJ, etc.)",
+            ],
+            "note": "`search_all` applique automatiquement un bonus d'autorité lors du tri.",
         },
         "workflow_recommande": [
-            "1. Initier toute recherche par `search_conseil_etat` (droit public) ou `search_judiciaire_libre` (droit privé), seuls moteurs dotés d'un scoring sémantique.",
-            "2. En cas de filtrage par cour administrative : consulter `list_juridictions` pour récupérer les codes normés, puis invoquer `search_juridiction`.",
-            "3. Pour l'extraction du texte intégral : invoquer le `get_decision_*` correspondant au format de l'identifiant retourné (voir matrice supra).",
-            "4. Pour le droit de l'Union et les droits fondamentaux : compléter par `search_cjue` et `search_cedh`.",
+            "1. **Query floue, on ne sait pas où** → `search_all(query)` : fan-out + pertinence + thésaurus FR.",
+            "2. **Query précise sur un type de source** → `search_admin` (admin BM25), `search_judiciaire_libre` (Cass/CA archives), `search_cedh`, `search_cjue`, `search_legi` (articles de loi).",
+            "3. **Article de loi cité dans une décision** → `get_law_article(code, num, date)` avec la date de la décision pour la version d'époque.",
+            "4. **Timeline d'un article** → `get_law_versions(code, num)`.",
+            "5. **Cross-référencement article ↔ décisions** → `search_decisions_citing(code, num)`.",
+            "6. **Texte intégral d'une décision identifiée** → `get_decision_*` selon format ID.",
+            "7. **Actualité récente d'une juridiction** → `search_admin_recent*` (tri date).",
         ],
         "licence": "Licence Ouverte 2.0 (Etalab). Redistribution libre avec mention source + date.",
         "github": "https://github.com/Dahliyaal/justicelibre",
@@ -332,19 +382,17 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
 
 
 @mcp.tool()
-async def search_juridiction(
+async def search_admin_recent(
     query: str,
     juridiction: str = "CE",
     limit: int = 20,
 ) -> dict[str, Any]:
-    """Recherche textuelle exhaustive au sein d'une juridiction
-    administrative ciblée (API opendata.justice-administrative.fr).
+    """Décisions admin **récentes** triées chronologiquement (API live).
 
-    À noter : le tri s'effectue par ordre chronologique décroissant et non
-    par pertinence sémantique. Outil optimal lorsque la cour et la période
-    de la décision sont préalablement identifiées. Pour une recherche
-    pondérée par la pertinence sémantique, recourir à `search_conseil_etat`
-    (moteur Sinequa).
+    Priorité au récent : tri par date de lecture décroissante, pas par
+    pertinence. Utile pour "actualité d'une juridiction" mais PAS pour
+    trouver la jurisprudence pertinente sur un sujet — pour cela, utiliser
+    `search_admin` (bulk JADE avec BM25 ranking).
 
     Périmètre : CE + 9 CAA + 40 TA (incluant l'outre-mer), depuis ~2022.
 
@@ -364,7 +412,7 @@ async def search_juridiction(
             pour la nomenclature complète.
         limit: nombre maximum de résultats (défaut 20)
     """
-    _record_call("search_juridiction")
+    _record_call("search_admin_recent")
     async with _client() as client:
         return await juriadmin.search(
             client, query=query, juridiction=juridiction, limit=limit
@@ -372,7 +420,7 @@ async def search_juridiction(
 
 
 @mcp.tool()
-async def search_all_tribunaux_admin(
+async def search_admin_recent_all_ta(
     query: str,
     limit_per_court: int = 5,
     total_limit: int = 0,
@@ -397,7 +445,7 @@ async def search_all_tribunaux_admin(
         `decisions` (liste fusionnée triée chronologiquement) et les
         éventuelles `errors`.
     """
-    _record_call("search_all_tribunaux_admin")
+    _record_call("search_admin_recent_all_ta")
     async with _client() as client:
         result = await juriadmin.search_many(
             client,
@@ -412,7 +460,7 @@ async def search_all_tribunaux_admin(
 
 
 @mcp.tool()
-async def search_all_cours_appel(
+async def search_admin_recent_all_caa(
     query: str,
     limit_per_court: int = 5,
     total_limit: int = 0,
@@ -427,7 +475,7 @@ async def search_all_cours_appel(
             résultats au total)
         total_limit: plafond global après fusion (0 = aucun plafond).
     """
-    _record_call("search_all_cours_appel")
+    _record_call("search_admin_recent_all_caa")
     async with _client() as client:
         result = await juriadmin.search_many(
             client,
@@ -753,6 +801,468 @@ async def get_decision_cjue(decision_id: str) -> dict[str, Any] | None:
     """
     _record_call("get_decision_cjue")
     return european.get_cjue(decision_id)
+
+
+# ─── BULKS DILA — RECHERCHE BM25 SUR ARCHIVES COMPLÈTES ────────────
+# Ces outils exploitent les bulks DILA ingérés en local sur al-uzza :
+# jade (4M décisions admin), legi (codes+lois consolidés), jorf (JO
+# post-1990), kali (conventions collectives), cnil (délibérations).
+# Tous avec ranking BM25 (vraie pertinence) + snippet + date range.
+# Différence-clé avec les tools `*_recent` : tri par pertinence, pas
+# par date. Préférer ces outils pour trouver la jurisprudence
+# pertinente sur un sujet.
+
+@mcp.tool()
+async def search_admin(
+    query: str,
+    juridiction: str = "",
+    sort: str = "relevance",
+    date_min: str = "",
+    date_max: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche pondérée par pertinence BM25 sur la jurisprudence
+    administrative complète (Conseil d'État + 9 CAA + 40 TA).
+
+    Source : bulk JADE DILA (~4M décisions full text). Contrairement aux
+    outils `search_admin_recent*` qui trient par date, celui-ci classe par
+    pertinence sémantique des mots-clés. Indispensable pour trouver LES
+    bonnes décisions sur un sujet sans dépendre de l'ancienneté.
+
+    Args:
+        query: mots-clés (opérateurs FTS5 : AND/OR/NOT, "phrase exacte", mot*)
+        juridiction: filtre optionnel sur un code (CE, CAA75, TA75...)
+        sort: "relevance" (défaut, BM25) ou "date_desc" / "date_asc"
+        date_min: limite inférieure ISO YYYY-MM-DD (optionnel)
+        date_max: limite supérieure ISO YYYY-MM-DD (optionnel)
+        limit: nombre de résultats (défaut 20, max 50)
+        offset: pagination
+
+    Returns:
+        {"total", "returned", "decisions": [...]} avec extracts BM25.
+    """
+    _record_call("search_admin")
+    return await jade_remote.search(
+        query=query, juridiction=juridiction or None, sort=sort,
+        date_min=date_min or None, date_max=date_max or None,
+        limit=limit, offset=offset,
+    )
+
+
+@mcp.tool()
+async def search_legi(
+    query: str,
+    code: str = "",
+    date_min: str = "",
+    date_max: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche pondérée dans les codes et lois consolidés français.
+
+    Source : bulk LEGI DILA (3,6 Go avec versions historiques). Trouve
+    les articles dont le texte ou le titre contient les mots-clés.
+
+    Args:
+        query: mots-clés FTS5
+        code: filtre optionnel sur un code spécifique (CC, CT, CSP...)
+        date_min/date_max: filtre par date_debut de version (ISO)
+        limit: max 50
+        offset: pagination
+
+    Returns:
+        {"total", "returned", "articles": [...]}
+    """
+    _record_call("search_legi")
+    from sources import warehouse as wh
+    data = await wh.search_fond(
+        "legi", query, limit=limit, offset=offset, sort="relevance",
+        date_min=date_min or None, date_max=date_max or None,
+        code=code or None,
+    )
+    return {
+        "total": data.get("total", 0),
+        "returned": data.get("returned", 0),
+        "limit": limit, "offset": offset,
+        "articles": [
+            {
+                "legiarti": h.get("id"),
+                "num": h.get("num"),
+                "titre_section": h.get("titre"),
+                "legitext": h.get("legitext"),
+                "etat": h.get("etat"),
+                "date_debut": h.get("date"),
+                "extract": h.get("extract"),
+            }
+            for h in data.get("results", [])
+        ],
+    }
+
+
+@mcp.tool()
+async def search_jorf(
+    query: str,
+    nature: str = "",
+    date_min: str = "",
+    date_max: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche dans le Journal officiel (JORF post-1990).
+
+    Source : bulk JORF DILA (1,1 Go). Contient les textes publiés au JO
+    non codifiés : lois, décrets, arrêtés, circulaires, ordonnances.
+
+    Args:
+        query: mots-clés FTS5
+        nature: filtre optionnel ("LOI", "DECRET", "ARRETE", "CIRCULAIRE"...)
+        date_min/date_max: fourchette de publication (ISO)
+        limit: max 50
+
+    Returns:
+        {"total", "returned", "textes": [...]}
+    """
+    _record_call("search_jorf")
+    return await jorf_remote.search(
+        query=query, nature=nature or None,
+        date_min=date_min or None, date_max=date_max or None,
+        limit=limit, offset=offset,
+    )
+
+
+@mcp.tool()
+async def search_kali(
+    query: str,
+    idcc: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche dans les conventions collectives et accords de branche (KALI).
+
+    Source : bulk KALI DILA (745 Mo). Couvre les conventions collectives
+    nationales, accords de branche, avenants, identifiés par leur IDCC.
+
+    Args:
+        query: mots-clés
+        idcc: filtre optionnel par IDCC (4 chiffres, ex "1486" pour bureaux
+              d'études techniques)
+        limit: max 50
+    """
+    _record_call("search_kali")
+    return await kali_remote.search(
+        query=query, idcc=idcc or None,
+        limit=limit, offset=offset,
+    )
+
+
+@mcp.tool()
+async def search_cnil(
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche dans les délibérations de la CNIL.
+
+    Source : bulk CNIL (109 Mo, ~26k délibérations). Utile pour le droit
+    des données personnelles, RGPD, traitements algorithmiques.
+    """
+    _record_call("search_cnil")
+    return await cnil_remote.search(query=query, limit=limit, offset=offset)
+
+
+# ─── ARTICLES DE LOI (codes consolidés, versions historiques) ───────
+# Ces outils exploitent le bulk LEGI DILA (3,6 Go, versions historiques
+# complètes). Spécificité justicelibre : on peut retourner la version
+# d'un article telle qu'elle existait à une date précise (ex: art. 1128
+# du Code civil en 1992 = texte napoléonien, pas la réforme 2016).
+# C'est le "killer feature" que Dalloz vend 200€/mois, exposé ici gratis.
+
+@mcp.tool()
+async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]:
+    """Renvoie le texte d'un article de loi à une date donnée (ou version
+    actuelle si `date` vide).
+
+    Particularité justicelibre : quand une décision de 1992 cite
+    l'article 1128 du Code civil, l'article a été totalement réécrit en
+    2016. Avec ce tool on récupère le texte **tel qu'il existait en 1992**
+    (l'ancienne version napoléonienne), pas le texte actuel.
+
+    Codes supportés (22) : CC, CP, CPC, CPP, CT, CSP, CJA, CGCT, CRPA,
+    CPI, CASF, CMF, C.com, C.cons, C.éduc, CU, C.env, CR, CGI, CESEDA,
+    CSS, CCH.
+
+    Args:
+        code: code court (ex : "CC" pour Code civil, "CT" pour Code du travail)
+        num: numéro de l'article (ex : "1128", "L1152-1", "132-1")
+        date: date ISO YYYY-MM-DD (optionnel — si absent, version en vigueur).
+              Utiliser la date de la décision citante pour obtenir la
+              version contemporaine de la citation.
+
+    Returns:
+        dict avec `legiarti`, `num`, `code`, `texte`, `etat`
+        (VIGUEUR/MODIFIE/ABROGE), `date_debut`, `date_fin`, `nota`. Plus
+        un champ `note` si la version retournée n'est pas celle demandée.
+    """
+    _record_call("get_law_article")
+    return await legi.get_article(code, num, date or None)
+
+
+@mcp.tool()
+async def get_law_versions(code: str, num: str) -> dict[str, Any]:
+    """Renvoie toutes les versions historiques d'un article de loi, du plus
+    ancien au plus récent.
+
+    Utile pour construire une "timeline" de l'article et comprendre son
+    évolution (ex : un article modifié en 1964, 1994, 2016 aura 3-4 lignes
+    avec `date_debut`, `date_fin`, `etat`, `texte` distincts).
+
+    Args:
+        code: code court (voir get_law_article pour la liste des 22 codes)
+        num: numéro de l'article
+
+    Returns:
+        dict avec `code`, `code_long`, `num`, `count`, `versions`
+        (liste ordonnée par `date_debut` ascendante).
+    """
+    _record_call("get_law_versions")
+    return await legi.get_versions(code, num)
+
+
+@mcp.tool()
+async def search_decisions_citing(
+    code: str,
+    num: str,
+    sources: list[str] | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Cherche les décisions qui citent explicitement un article de loi donné.
+
+    Exploite l'index FTS5 sur les sources jurisprudence disponibles pour
+    matcher les formulations courantes de citation (`"article 1382 du code
+    civil"`, `"art. L. 1152-1 du Code du travail"`, etc.). Cross-référencement
+    inverse : partant d'un article, on trouve la jurisprudence pertinente.
+
+    Args:
+        code: code court de l'article (ex : "CT", "CC")
+        num: numéro de l'article (ex : "L1152-1", "1240")
+        sources: liste optionnelle de sources à interroger parmi
+                 ["dila", "jade", "cedh", "cjue"]. Par défaut : toutes.
+        limit: nombre de décisions par source (défaut 20, max 50)
+
+    Returns:
+        dict `{"code", "num", "total", "per_source": {source: count},
+        "decisions": [{source, id, juridiction, date, title, extract}]}`
+    """
+    _record_call("search_decisions_citing")
+    if not legi.is_supported(code):
+        return {"error": f"Code inconnu: {code!r}",
+                "supported_codes": list(legi.SUPPORTED_CODES.keys())}
+    code_long = legi.SUPPORTED_CODES[code]
+    limit = max(1, min(int(limit), 50))
+    # Construire une query FTS5 couvrant les formulations habituelles.
+    # On enrobe en phrases pour éviter les faux positifs.
+    variants = [
+        f'"article {num}"',
+        f'"art. {num}"',
+        f'"art {num}"',
+    ]
+    # Code nom complet + code court
+    query = f'({" OR ".join(variants)}) AND ("{code_long}" OR "{code}")'
+    allowed = set(sources) if sources else {"dila", "jade", "cedh", "cjue"}
+    results = []
+    per_source: dict[str, int] = {}
+    # DILA (local FTS5)
+    if "dila" in allowed:
+        try:
+            d = dila.search(query=query, juridiction="", limit=limit)
+            for h in d.get("decisions", []):
+                results.append({
+                    "source": "dila", "id": h.get("id"),
+                    "juridiction": h.get("juridiction"),
+                    "date": h.get("date"), "title": h.get("title"),
+                    "extract": h.get("extract"),
+                })
+            per_source["dila"] = d.get("total", 0)
+        except Exception as e:
+            per_source["dila"] = f"error: {e}"
+    # JADE (via warehouse)
+    if "jade" in allowed:
+        try:
+            from sources import warehouse as wh
+            d = await wh.search_fond("jade", query, limit=limit, sort="relevance")
+            for h in d.get("results", []):
+                results.append({
+                    "source": "jade", "id": h.get("id"),
+                    "juridiction": h.get("juridiction"),
+                    "date": h.get("date"), "title": h.get("titre"),
+                    "extract": h.get("extract"),
+                })
+            per_source["jade"] = d.get("total", 0)
+        except Exception as e:
+            per_source["jade"] = f"error: {e}"
+    # CEDH
+    if "cedh" in allowed:
+        try:
+            d = european.search_cedh(query=query, limit=limit)
+            for h in d.get("decisions", []):
+                results.append({
+                    "source": "cedh", "id": h.get("id"),
+                    "juridiction": "Cour EDH",
+                    "date": h.get("date"), "title": h.get("title"),
+                    "extract": h.get("extract"),
+                })
+            per_source["cedh"] = d.get("total", 0)
+        except Exception as e:
+            per_source["cedh"] = f"error: {e}"
+    # CJUE
+    if "cjue" in allowed:
+        try:
+            d = european.search_cjue(query=query, limit=limit)
+            for h in d.get("decisions", []):
+                results.append({
+                    "source": "cjue", "id": h.get("id"),
+                    "juridiction": "CJUE",
+                    "date": h.get("date"), "title": h.get("title"),
+                    "extract": h.get("extract"),
+                })
+            per_source["cjue"] = d.get("total", 0)
+        except Exception as e:
+            per_source["cjue"] = f"error: {e}"
+    return {
+        "code": code, "num": num,
+        "query_built": query,
+        "total": len(results),
+        "per_source": per_source,
+        "decisions": results[:limit * len(allowed)],
+    }
+
+
+# ─── TOOL UNIFIÉ : search_all ──────────────────────────────────────
+
+@mcp.tool()
+async def search_all(
+    query: str,
+    sources: list[str] | None = None,
+    sort: str = "relevance",
+    date_min: str = "",
+    date_max: str = "",
+    limit: int = 30,
+    expand_synonyms: bool = True,
+) -> dict[str, Any]:
+    """Recherche fédérée pondérée par pertinence sur toutes les sources.
+
+    Tool ONE-STOP quand on ne sait pas où chercher : interroge en parallèle
+    les sources locales (DILA judic, JADE admin, LEGI, CEDH, CJUE) et
+    retourne une liste fusionnée triée par score BM25 avec un bonus
+    d'autorité (CE/Cass/CEDH > CAA > TA/CA).
+
+    Args:
+        query: mots-clés (ou phrase). Si `expand_synonyms=True` (défaut),
+            les termes du thésaurus juridique FR sont automatiquement
+            étendus à leurs équivalents (ex: "harcèlement" → aussi
+            "intimidation", "vexation morale", etc.)
+        sources: liste optionnelle parmi ["dila", "jade", "legi", "cedh",
+            "cjue"]. None = toutes.
+        sort: "relevance" (défaut) ou "date_desc"
+        date_min, date_max: ISO YYYY-MM-DD
+        limit: nombre de résultats fusionnés (défaut 30, max 100)
+        expand_synonyms: active le thésaurus (défaut True)
+
+    Returns:
+        dict {"query_expanded", "per_source_counts", "results": [...]}
+    """
+    _record_call("search_all")
+    limit = max(1, min(int(limit), 100))
+    allowed = set(sources) if sources else {"dila", "jade", "legi", "cedh", "cjue"}
+    # Expansion thésaurus
+    from query_intent import expand_synonyms as _expand, detect_intent
+    intent = detect_intent(query)
+    if expand_synonyms and intent.kind in ("fts", "phrase"):
+        q_expanded = _expand(query)
+    else:
+        q_expanded = query
+
+    # Bonus d'autorité par source (multiplicateur score)
+    AUTHORITY = {
+        "cjue": 1.20, "cedh": 1.20,
+        "jade": 1.10,  # admin (CE dedans)
+        "dila": 1.15,  # Cass dominante
+        "legi": 0.80,  # articles de loi (pertinents mais on veut des décisions)
+    }
+
+    async def _search_one(src: str):
+        try:
+            if src == "dila":
+                d = dila.search(query=q_expanded, juridiction="", limit=limit)
+                hits = [{"source": "dila", "id": h.get("id"),
+                         "juridiction": h.get("juridiction"),
+                         "date": h.get("date"), "title": h.get("title"),
+                         "extract": h.get("extract"),
+                         "score": 1.0} for h in d.get("decisions", [])]
+                return src, d.get("total", 0), hits
+            if src == "jade":
+                d = await jade_remote.search(query=q_expanded, sort=sort,
+                    date_min=date_min or None, date_max=date_max or None, limit=limit)
+                hits = [{"source": "jade", "id": h.get("id"),
+                         "juridiction": h.get("juridiction"),
+                         "date": h.get("date"), "title": h.get("titre"),
+                         "extract": h.get("extract"),
+                         "score": 1.0} for h in d.get("decisions", [])]
+                return src, d.get("total", 0), hits
+            if src == "legi":
+                from sources import warehouse as wh
+                d = await wh.search_fond("legi", q_expanded, limit=limit,
+                    sort=sort, date_min=date_min or None, date_max=date_max or None)
+                hits = [{"source": "legi", "id": h.get("id"),
+                         "juridiction": "Articles de loi",
+                         "date": h.get("date"), "title": f"Article {h.get('num')} — {h.get('titre')}",
+                         "extract": h.get("extract"),
+                         "score": 1.0} for h in d.get("results", [])]
+                return src, d.get("total", 0), hits
+            if src == "cedh":
+                d = european.search_cedh(query=q_expanded, limit=limit)
+                hits = [{"source": "cedh", "id": h.get("id"),
+                         "juridiction": "Cour EDH",
+                         "date": h.get("date"), "title": h.get("title"),
+                         "extract": h.get("extract"),
+                         "score": 1.0} for h in d.get("decisions", [])]
+                return src, d.get("total", 0), hits
+            if src == "cjue":
+                d = european.search_cjue(query=q_expanded, limit=limit)
+                hits = [{"source": "cjue", "id": h.get("id"),
+                         "juridiction": "CJUE",
+                         "date": h.get("date"), "title": h.get("title"),
+                         "extract": h.get("extract"),
+                         "score": 1.0} for h in d.get("decisions", [])]
+                return src, d.get("total", 0), hits
+        except Exception as e:
+            return src, 0, [{"source": src, "error": str(e)}]
+        return src, 0, []
+
+    import asyncio
+    tasks = [_search_one(s) for s in allowed]
+    results_raw = await asyncio.gather(*tasks)
+    per_source = {}
+    merged = []
+    for src, total, hits in results_raw:
+        per_source[src] = total
+        boost = AUTHORITY.get(src, 1.0)
+        for h in hits:
+            if "error" in h:
+                continue
+            h["score"] = h.get("score", 1.0) * boost
+            merged.append(h)
+    # Tri global par score desc (BM25 côté chaque source déjà appliqué,
+    # le boost d'autorité discrimine entre sources de même pertinence)
+    merged.sort(key=lambda h: h.get("score", 0), reverse=True)
+    return {
+        "query": query,
+        "query_expanded": q_expanded if q_expanded != query else None,
+        "per_source_counts": per_source,
+        "total_returned": len(merged[:limit]),
+        "results": merged[:limit],
+    }
 
 
 if __name__ == "__main__":

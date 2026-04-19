@@ -120,16 +120,109 @@ def expand_juridiction_aliases(q: str) -> str:
     return _RE_ALIAS.sub(_replace, q)
 
 
-def normalize_fts_query(q: str) -> str:
+# ─── THÉSAURUS JURIDIQUE (synonymes métier) ────────────────────────
+
+_THESAURUS: dict[str, list[str]] | None = None
+
+
+def _load_thesaurus() -> dict[str, list[str]]:
+    global _THESAURUS
+    if _THESAURUS is None:
+        import json
+        from pathlib import Path
+        path = Path(__file__).with_name("thesaurus_fr.json")
+        try:
+            data = json.loads(path.read_text())
+            # Virer les clés techniques (_comment)
+            _THESAURUS = {k.lower(): v for k, v in data.items() if not k.startswith("_")}
+        except (FileNotFoundError, json.JSONDecodeError):
+            _THESAURUS = {}
+    return _THESAURUS
+
+
+def expand_synonyms(q: str) -> str:
+    """Étend une query FTS5 en ajoutant les synonymes issus du thésaurus.
+
+    Pour chaque expression du thésaurus trouvée dans la query hors phrases
+    "...", remplace par `(expr OR syn1 OR syn2 ...)`. Les phrases explicites
+    entre guillemets sont préservées telles quelles.
+
+    Exemple : `harcèlement moral` → `(harcèlement moral OR "intimidation morale"
+    OR "vexation morale" OR "agissement répété" OR ...)`
+    """
+    if not q:
+        return q
+    th = _load_thesaurus()
+    if not th:
+        return q
+    # Protéger les phrases "..." (on ne les étend PAS — l'utilisateur a été explicite)
+    phrases: list[str] = []
+
+    def _protect(m):
+        phrases.append(m.group(0))
+        return f"\x01{len(phrases) - 1}\x01"
+
+    q2 = re.sub(r'"[^"]*"', _protect, q)
+    # Trier les clés par longueur descendante pour matcher les plus longues d'abord
+    # ("harcèlement moral" avant "harcèlement")
+    keys = sorted(th.keys(), key=len, reverse=True)
+    # Chaque clé remplacée une fois max (éviter matchs imbriqués)
+    replaced_spans: list[tuple[int, int]] = []
+
+    def _overlaps(start: int, end: int) -> bool:
+        for s, e in replaced_spans:
+            if start < e and end > s:
+                return True
+        return False
+
+    # On construit la nouvelle string en splice
+    result_parts: list[tuple[int, int, str]] = []  # (start, end, replacement)
+    for key in keys:
+        pattern = r"\b" + re.escape(key) + r"\b"
+        for m in re.finditer(pattern, q2, flags=re.IGNORECASE):
+            if _overlaps(m.start(), m.end()):
+                continue
+            syns = th[key]
+            # Quote multi-word synonyms for FTS5
+            quoted = [f'"{s}"' if " " in s else s for s in syns]
+            original = m.group(0)
+            # Si original multi-mot aussi, le wrapper en phrase
+            if " " in original:
+                original_for_or = f'"{original}"'
+            else:
+                original_for_or = original
+            replacement = "(" + original_for_or + " OR " + " OR ".join(quoted) + ")"
+            result_parts.append((m.start(), m.end(), replacement))
+            replaced_spans.append((m.start(), m.end()))
+    # Apply replacements right-to-left to preserve offsets
+    result_parts.sort(key=lambda x: -x[0])
+    for start, end, rep in result_parts:
+        q2 = q2[:start] + rep + q2[end:]
+    # Restaurer phrases
+    for i, p in enumerate(phrases):
+        q2 = q2.replace(f"\x01{i}\x01", p)
+    return q2
+
+
+def normalize_fts_query(q: str, expand: bool = False) -> str:
     """Convertit les opérateurs multi-syntaxe vers FTS5/ES canonique.
 
     Accepte : AND/ET/& · OR/OU/| · NOT/SAUF/-mot · "phrase" · mot*
     Les tokens composés (14-80854, ECLI:…, C-72/24) sont wrappés en phrase.
     Les alias courts de juridictions (TJ, TGI, CAA…) sont étendus en OR.
+
+    Args:
+        q: la query utilisateur brute
+        expand: si True, applique expand_synonyms() avant normalisation
+            (élargit la recherche aux termes équivalents du thésaurus FR).
+            Par défaut False — les tools MCP passent True explicitement.
     """
     if not q:
         return ""
     q = q.strip()
+    # Expansion des synonymes (thésaurus) avant les opérateurs
+    if expand:
+        q = expand_synonyms(q)
     # Expansion des alias de juridictions (TJ → "(TJ OR TGI OR ...)")
     q = expand_juridiction_aliases(q)
     # Protéger les phrases exactes "..."
