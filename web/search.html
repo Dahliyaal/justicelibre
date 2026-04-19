@@ -460,11 +460,41 @@ html[data-theme="dark"] .result-card .extract .lawref:hover{
   }
 }
 
+/* Default desktop: les éléments bottom-sheet sont cachés */
+.sheet-backdrop,.sheet-handle,.sheet-close{display:none}
+
 @media(max-width:860px){
   .results-shell{grid-template-columns:1fr;min-height:auto}
-  .results-list{max-height:500px}
-  .text-viewer{padding:2rem 1.4rem;max-height:none}
+  .results-list{max-height:none}
+  /* Bottom sheet mobile : le text-viewer devient un volet fixe slide-up */
+  .text-viewer{
+    position:fixed;left:0;right:0;bottom:0;top:auto;height:92vh;
+    z-index:100;transform:translateY(100%);transition:transform .28s ease-out;
+    border-radius:16px 16px 0 0;overflow-y:auto;
+    box-shadow:0 -6px 24px rgba(0,0,0,.22);
+    padding:1.5rem 1.4rem 3rem;max-height:none;
+  }
+  body.sheet-open .text-viewer{transform:translateY(0)}
+  .text-viewer.empty{display:none}
   .text-viewer .body{max-width:none}
+  .sheet-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);
+    z-index:99;opacity:0;pointer-events:none;
+    transition:opacity .25s;
+  }
+  body.sheet-open .sheet-backdrop{opacity:1;pointer-events:auto}
+  .sheet-handle{
+    display:block;width:44px;height:4px;background:var(--line);
+    border-radius:2px;margin:0 auto 1rem;
+  }
+  .sheet-close{
+    display:flex;align-items:center;justify-content:center;
+    position:absolute;top:12px;right:14px;
+    width:36px;height:36px;border-radius:50%;
+    background:var(--white);border:1px solid var(--line);color:var(--ink);
+    font-size:22px;line-height:1;cursor:pointer;z-index:1;padding:0;
+  }
+  .sheet-close:hover{background:var(--line)}
 }
 
 /* ─── FOOTER ─── */
@@ -626,10 +656,13 @@ html[data-theme="dark"] .result-card .extract .lawref:hover{
   </aside>
 
   <main class="text-viewer empty" id="textViewer">
-    <div>Sélectionnez une décision dans la liste<br>pour afficher son texte intégral.</div>
+    <span class="sheet-handle" aria-hidden="true"></span>
+    <button class="sheet-close" id="sheetClose" aria-label="Fermer">×</button>
+    <div id="textViewerBody"><div>Sélectionnez une décision dans la liste<br>pour afficher son texte intégral.</div></div>
   </main>
 
 </div>
+<div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true"></div>
 
 <footer class="footer-min">
   justicelibre.org · <a href="/">Accueil</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Licence Ouverte 2.0 (Etalab)
@@ -1032,10 +1065,28 @@ function highlightLawRefs(escapedHtml) {
   const ART_LETTER = '[LRDA]\\b\\.?\\s*\\d+(?:[-.\\s]\\d+)*(?:\\s*§\\s*\\d+)?';
 
   function makeWrap(item, art, code) {
-    const numMatch = art.match(/(?:[LRDA]\.?\s*)?\d+(?:[-.]\d+)*(?:\s*§\s*\d+)?/);
-    const num = numMatch ? numMatch[0].replace(/\s+/g, '') : '';
+    // Trouve TOUS les numéros d'article dans le segment (ex: "articles 132-1, 132-20")
+    // → on wrap chaque numéro individuellement, chacun cliquable vers son article.
+    const numRe = /(?:[LRDA]\b\.?\s*)?\d+(?:[-.]\d+)*(?:\s*§\s*\d+)?/g;
+    const matches = [...art.matchAll(numRe)];
     const safeCode = item.code;
-    return `<span class="lawref" data-code="${safeCode}" data-num="${num}" title="${safeCode} ${num}">${art} ${code}</span>`;
+    if (matches.length <= 1) {
+      const num = matches[0] ? matches[0][0].replace(/\s+/g, '') : '';
+      return `<span class="lawref" data-code="${safeCode}" data-num="${num}" title="${safeCode} ${num}">${art} ${code}</span>`;
+    }
+    // Multi-articles : wrap chaque numéro séparément
+    let html = '';
+    let lastEnd = 0;
+    for (const m of matches) {
+      const num = m[0].replace(/\s+/g, '');
+      html += art.substring(lastEnd, m.index);
+      html += `<span class="lawref" data-code="${safeCode}" data-num="${num}" title="${safeCode} ${num}">${m[0]}</span>`;
+      lastEnd = m.index + m[0].length;
+    }
+    html += art.substring(lastEnd);
+    // Le code (ex "code pénal") wrappé avec la classe générique pour visuel cohérent
+    html += ` <span class="lawref lawref-code" data-code="${safeCode}" title="${safeCode}">${code}</span>`;
+    return html;
   }
 
   let result = escapedHtml;
@@ -1231,9 +1282,17 @@ function renderResults(data, query) {
   }
 }
 
+function openSheet(){ document.body.classList.add('sheet-open'); }
+function closeSheet(){ document.body.classList.remove('sheet-open'); }
+document.getElementById('sheetBackdrop').addEventListener('click', closeSheet);
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
 async function loadDecision(source, id) {
   textViewer.classList.remove('empty');
-  textViewer.innerHTML = `<div style="padding:2rem;color:var(--muted)">Chargement…</div>`;
+  openSheet();
+  const viewerBody = document.getElementById('textViewerBody');
+  viewerBody.innerHTML = `<div style="padding:2rem;color:var(--muted)">Chargement…</div>`;
 
   // ArianeWeb : le backend sait désormais aller chercher le texte intégral
   // via le plugin Sinequa `downloadFilePagePlugin`. On laisse suivre
@@ -1243,7 +1302,7 @@ async function loadDecision(source, id) {
     const r = await fetch(`/api/decision?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`);
     const d = await r.json();
     if (!r.ok || d.error) {
-      textViewer.innerHTML = `<div class="empty" style="padding:3rem;color:var(--muted)"><em>${escapeHtml(d.error || 'Erreur inconnue')}</em></div>`;
+      viewerBody.innerHTML = `<div style="padding:3rem;color:var(--muted)"><em>${escapeHtml(d.error || 'Erreur inconnue')}</em></div>`;
       return;
     }
     const body = (d.full_text || '').trim();
@@ -1279,9 +1338,9 @@ async function loadDecision(source, id) {
       html.push(`<p><em>Texte intégral indisponible pour cette source. Vérifier directement sur le site officiel.</em></p>`);
     }
     html.push(`</div>`);
-    textViewer.innerHTML = html.join('');
+    viewerBody.innerHTML = html.join('');
     // Handlers pour les actions (pas d'inline onclick → pas d'XSS via interpolation)
-    const copyBtn = textViewer.querySelector('.action-copy-link');
+    const copyBtn = viewerBody.querySelector('.action-copy-link');
     if (copyBtn) {
       copyBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1294,7 +1353,7 @@ async function loadDecision(source, id) {
         });
       });
     }
-    const dlBtn = textViewer.querySelector('.action-download');
+    const dlBtn = viewerBody.querySelector('.action-download');
     if (dlBtn) {
       dlBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1308,7 +1367,7 @@ async function loadDecision(source, id) {
       });
     }
   } catch (e) {
-    textViewer.innerHTML = `<div class="empty" style="padding:3rem;color:var(--muted)"><em>Erreur : ${escapeHtml(e.message)}</em></div>`;
+    viewerBody.innerHTML = `<div style="padding:3rem;color:var(--muted)"><em>Erreur : ${escapeHtml(e.message)}</em></div>`;
   }
 }
 
@@ -1365,7 +1424,9 @@ function renderAriane(data) {
     html.push(`<p><em>Extrait indisponible.</em></p>`);
   }
   html.push(`</div>`);
-  textViewer.innerHTML = html.join('');
+  textViewer.classList.remove('empty');
+  openSheet();
+  document.getElementById('textViewerBody').innerHTML = html.join('');
 }
 
 const PAGE_SIZE = 30;

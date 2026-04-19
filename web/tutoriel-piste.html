@@ -19,8 +19,39 @@
   --sans:"DM Sans",-apple-system,sans-serif;
   --mono:"JetBrains Mono",Menlo,Consolas,monospace;
 }
+html[data-theme="dark"]{
+  --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
+  --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
+  --light:#141413;--white:#1e1e1c;--line:#2a2a27;--gold:#d4b050;
+  --red:#d26a6a;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
+    --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
+    --light:#141413;--white:#1e1e1c;--line:#2a2a27;--gold:#d4b050;
+    --red:#d26a6a;
+  }
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
+body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white);transition:background .2s,color .2s}
+.theme-toggle{
+  position:fixed;top:1.2rem;right:1.2rem;z-index:10;
+  background:var(--white);border:1px solid var(--line);
+  width:34px;height:34px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:color .2s,border-color .2s,background .2s;padding:0;
+}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
+.theme-toggle svg{width:16px;height:16px}
+html[data-theme="dark"] .theme-toggle .sun{display:block}
+html[data-theme="dark"] .theme-toggle .moon{display:none}
+html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
+html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
+  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
+}
 a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
 .wrap{max-width:900px;margin:0 auto;padding:3rem 2.5rem 5rem}
@@ -74,10 +105,15 @@ code{
 </style>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
+  <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+</button>
 <div class="wrap">
   <a href="/" class="back">&larr; justicelibre.org</a>
 
   <h1>Accéder à la jurisprudence <em>judiciaire</em> via PISTE</h1>
+  <p style="font-family:var(--display);font-size:1.1rem;color:var(--ink);margin-bottom:.4rem;line-height:1.2">(ou toute autre ressource exposée sur PISTE)</p>
   <p class="sub">13 étapes. Pour accéder à des données que la loi qualifie de "libres et gratuites".</p>
 
   <div class="warning">
@@ -91,22 +127,31 @@ code{
 
   <p class="step-count"><span class="counter">2</span> Accéder à vos applications</p>
   <h2>Menu "APPLICATIONS"</h2>
-  <p>Une fois connecté, cliquez sur l'onglet <strong>"APPLICATIONS"</strong> dans la barre de navigation en haut. Une application sandbox a été créée automatiquement à votre nom.</p>
+  <p>Une fois connecté, cliquez sur l'onglet <strong>"APPLICATIONS"</strong> dans la barre de navigation en haut. Une application <strong>sandbox</strong> a été créée automatiquement à votre nom.</p>
   <div class="screenshot"><img src="/img/02-applications.png" alt="Menu Applications PISTE"></div>
 
-  <p class="step-count"><span class="counter">3</span> Ouvrir les détails de votre application</p>
-  <h2>Cliquez sur le nom de votre application</h2>
-  <p>Cliquez sur le nom de votre application (ex: <code>APP_SANDBOX_...</code>).</p>
-  <div class="screenshot"><img src="/img/11-app-list.png" alt="Liste des applications"></div>
-  <p>Vous arrivez sur la page de consultation. Assurez-vous d'être sur l'onglet <strong>"Details"</strong> (à côté de "Usage").</p>
-  <div class="screenshot"><img src="/img/03b-details-usage.png" alt="Onglets Details et Usage"></div>
-  <p>Dans la section <strong>"Identifiants Oauth externes"</strong>, cliquez sur le lien <strong>"Modifiez l'application"</strong>.</p>
-  <div class="screenshot"><img src="/img/03-modifier.png" alt="Lien Modifier l'application"></div>
+  <p class="step-count"><span class="counter">3</span> Créer une application PRODUCTION</p>
+  <h2>L'app sandbox auto-créée est limitée — créez une app prod</h2>
+  <p>L'application <code>APP_SANDBOX_…</code> créée automatiquement à votre inscription donne accès à un échantillon de démonstration (quelques centaines de décisions). Pour accéder au <strong>vrai dataset complet</strong> (~600 000 décisions Cass), il faut créer une application <strong>PRODUCTION</strong>. Cliquez sur le bouton orange <strong>"Créer une application"</strong> en haut à droite.</p>
+  <div class="screenshot"><img src="/img/03a-creer-app.png" alt="Bouton Créer une application"></div>
+  <p>Remplissez le formulaire <strong>Général</strong> : nom (ex: <code>MonAppProd</code>), description, email. Laissez l'organisation sur <strong>"Universelle"</strong>. Vérifiez que la case <strong>"Activer l'application"</strong> est cochée, puis cliquez sur <strong>"Sauvegarder l'application"</strong>.</p>
+  <div class="screenshot"><img src="/img/03b-form-general.png" alt="Formulaire Général de création d'application"></div>
+  <p>Une bannière bleue confirme la création :</p>
+  <div class="screenshot"><img src="/img/03c-succes-creation.png" alt="Message de succès création d'application"></div>
+  <p>PISTE vous téléporte directement à la page d'édition de votre nouvelle app, avec les onglets <strong>"Détails"</strong> et <strong>"Authentification"</strong> visibles → passez directement à l'<strong>étape 4</strong>.</p>
+  <div style="border-left:3px solid var(--teal);padding:1rem 1.2rem;margin:1.5rem 0;background:var(--teal-xl);font-size:.92rem;color:var(--body)">
+    💡 <strong>Si vous avez quitté la page ou revenez plus tard :</strong> retournez dans <strong>APPLICATIONS</strong> (étape 2), cliquez sur <code>MonAppProd</code> dans la liste.
+    <div class="screenshot" style="margin-top:.8rem"><img src="/img/11-app-list.png" alt="Liste avec MonAppProd en PRODUCTION"></div>
+    <p style="margin-top:.8rem">Assurez-vous d'être sur l'onglet <strong>"Details"</strong> (à côté de "Usage") :</p>
+    <div class="screenshot" style="margin-top:.4rem"><img src="/img/03b-details-usage.png" alt="Onglets Details et Usage"></div>
+    <p style="margin-top:.8rem">Puis cliquez sur le lien <strong>"Modifiez l'application"</strong> dans la section <strong>"Identifiants Oauth externes"</strong>. Vous tomberez à l'étape 4.</p>
+    <div class="screenshot" style="margin-top:.4rem"><img src="/img/03-modifier.png" alt="Lien Modifiez l'application"></div>
+  </div>
 
-  <p class="step-count"><span class="counter">4</span> Recliquer sur "Détails"</p>
-  <h2>Les onglets changent</h2>
-  <p>Attention : les onglets sont maintenant <strong>"Détails"</strong> et <strong>"Authentification"</strong> (pas les mêmes qu'avant). Cliquez sur <strong>"Détails"</strong>.</p>
-  <div class="screenshot"><img src="/img/04-details.png" alt="Onglet Détails après Modifier"></div>
+  <p class="step-count"><span class="counter">4</span> Onglet "Détails"</p>
+  <h2>Page d'édition de l'application</h2>
+  <p>Vous voyez deux onglets : <strong>"Détails"</strong> et <strong>"Authentification"</strong>. Cliquez sur <strong>"Détails"</strong>.</p>
+  <div class="screenshot"><img src="/img/04-details.png" alt="Onglet Détails sur la page d'édition"></div>
 
   <p class="step-count"><span class="counter">5</span> Accepter les CGU</p>
   <h2>Cliquez sur "Cliquez ici pour accéder à la page de consentement"</h2>
@@ -138,33 +183,51 @@ code{
   <p>Un message vert confirme que les modifications ont été enregistrées.</p>
   <div class="screenshot"><img src="/img/10-succes.png" alt="Message de succès"></div>
 
-  <p class="step-count"><span class="counter">11</span> Récupérer les identifiants OAuth</p>
-  <h2>Retournez dans vos applications</h2>
-  <p>Retournez dans <strong>APPLICATIONS</strong>.</p>
+  <p class="step-count"><span class="counter">11</span> Retourner dans vos applications</p>
+  <h2>Rouvrir la page de votre application</h2>
+  <p>Retournez dans <strong>APPLICATIONS</strong> et cliquez sur votre application.</p>
   <div class="screenshot"><img src="/img/11-app-list.png" alt="Liste des applications"></div>
-  <p>Cliquez sur votre application. Dans la section <strong>"Identifiants Oauth"</strong>, notez votre <strong>Client ID</strong> et cliquez sur <strong>"Consulter le secret"</strong> pour obtenir votre <strong>Client Secret</strong>.</p>
-  <div class="screenshot"><img src="/img/12-oauth-secret.png" alt="Identifiants OAuth"></div>
 
-  <p class="step-count"><span class="counter">12</span> Récupérer la clé API</p>
-  <h2>Section "API Keys"</h2>
-  <p>Toujours sur la page de votre application, la section <strong>"API Keys"</strong> contient votre clé API. Cliquez sur <strong>"Afficher le secret"</strong> pour voir la clé secrète associée.</p>
+  <p class="step-count"><span class="counter">12</span> Récupérer vos identifiants (OAuth et/ou API Key)</p>
+  <h2>Sections "Identifiants Oauth" et "API Keys"</h2>
+  <p>PISTE expose deux mécanismes d'authentification selon l'API ciblée : <strong>OAuth2</strong> (pour Judilibre, Légifrance, et la plupart des API juridiques) et <strong>API Key</strong> (pour les API gateway Gravitee : marchés publics DECP, DUME, facturation Chorus, etc.). Pour ne pas avoir à revenir ici, <strong>récupérez les deux</strong> d'un coup.</p>
+  <p><strong>Section "API Keys"</strong> : notez l'<strong>identifiant de la clé</strong>, puis cliquez sur <strong>"Afficher le secret"</strong> pour voir la <strong>clé secrète</strong>.</p>
   <div class="screenshot"><img src="/img/13-api-key.png" alt="API Keys"></div>
+  <p><strong>Section "Identifiants Oauth"</strong> : notez votre <strong>Client ID</strong>, puis cliquez sur <strong>"Consulter le secret"</strong> pour obtenir votre <strong>Client Secret</strong>.</p>
+  <div class="screenshot"><img src="/img/12-oauth-secret.png" alt="Identifiants OAuth"></div>
 
   <p class="step-count"><span class="counter">13</span> Utiliser vos identifiants</p>
   <h2>Collez vos identifiants dans justicelibre</h2>
-  <p>Dans votre chat, utilisez le tool <code>search_judiciaire</code> en renseignant votre <strong>Client ID</strong> et votre <strong>Client Secret</strong> dans les paramètres <code>client_id</code> et <code>client_secret</code>. Le serveur justicelibre.org les échange contre un token Judilibre temporaire, effectue la recherche, et oublie tout. Attention : vos identifiants transitent par votre assistant (Claude, ChatGPT, etc.) avant d'arriver à justicelibre. Ne réutilisez pas ces identifiants pour d'autres services sensibles.</p>
+  <p>Pour accéder à <strong>Judilibre via justicelibre.org</strong>, seuls <strong>Client ID</strong> et <strong>Client Secret</strong> (OAuth) sont nécessaires. Pour les autres API PISTE (DECP, DUME, etc.), renseignez également <strong>API Key</strong> + <strong>API Key Secret</strong>. Vos identifiants transitent par votre assistant (Claude, ChatGPT…) avant d'arriver à justicelibre. Ne réutilisez pas ces identifiants pour d'autres services sensibles.</p>
 
   <div class="token-form" style="margin:3rem 0;padding:2rem;border:1px solid var(--line);border-radius:6px;background:var(--light)">
     <h2 style="font-family:var(--display);font-size:1.4rem;margin-bottom:.5rem">Générer votre token justicelibre</h2>
-    <p style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Vos identifiants sont envoyés directement à notre serveur via HTTPS, échangés contre un token PISTE, puis oubliés. Le token expire après 1 heure. Rien n'est stocké sur disque.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem">
-      <input type="text" id="piste-cid" placeholder="Client ID" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem">
-      <input type="password" id="piste-secret" placeholder="Client Secret" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem">
+    <p style="color:var(--muted);font-size:.92rem;margin-bottom:1.2rem">Pour Judilibre : Client ID + Client Secret suffisent. Pour le reste de PISTE : ajoutez aussi l'API Key.</p>
+
+    <p style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem">API Key (optionnel · pour API Gravitee)</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.3rem">
+      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">API Key ID</label>
+      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">API Key Secret</label>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1.5rem">
+      <input type="text" id="piste-apikey" placeholder="44d1c895-2b6c-..." style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
+      <input type="password" id="piste-apikey-secret" placeholder="Secret associé à l'API key" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
+    </div>
+
+    <p style="font-size:.78rem;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem">OAuth2 (requis)</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.3rem">
+      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Client ID</label>
+      <label style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Client Secret</label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1.2rem">
+      <input type="text" id="piste-cid" placeholder="6c80c779-28ed-4913-..." style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
+      <input type="password" id="piste-secret" placeholder="Client secret OAuth" style="padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:.85rem;background:var(--white);color:var(--ink)">
+    </div>
+
     <button onclick="generateToken()" style="padding:.75rem 1.8rem;background:var(--teal);color:#fff;border:none;border-radius:4px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;cursor:pointer">Générer mon token</button>
     <div id="token-result" style="margin-top:1.2rem;display:none">
       <p style="font-size:.85rem;color:var(--muted);margin-bottom:.4rem">Votre token justicelibre (valable 1 heure) :</p>
-      <code id="token-value" style="display:block;padding:.8rem 1rem;background:var(--ink);color:#f0f0e8;font-family:var(--mono);font-size:.9rem;border-radius:4px;user-select:all;word-break:break-all"></code>
+      <code id="token-value" style="display:block;padding:.8rem 1rem;background:#1a1a1a;color:#f0f0e8;font-family:var(--mono);font-size:.9rem;border-radius:4px;user-select:all;word-break:break-all"></code>
       <p style="font-size:.82rem;color:var(--muted);margin-top:.6rem">Donnez ce token à votre assistant : <em>« Cherche "licenciement abusif" dans la jurisprudence judiciaire, mon token justicelibre est [coller ici]. »</em></p>
     </div>
     <div id="token-error" style="margin-top:1rem;color:var(--red);display:none"></div>
@@ -178,15 +241,38 @@ code{
   </div>
 </div>
 <script>
+// Dark mode
+(function(){
+  var saved = localStorage.getItem('jl-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var html = document.documentElement;
+    var current = html.dataset.theme;
+    var system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var next;
+    if (!current) next = system === 'dark' ? 'light' : 'dark';
+    else if (current === 'dark' && system === 'light') next = 'light';
+    else if (current === 'light' && system === 'dark') next = 'dark';
+    else next = '';
+    if (next) { html.dataset.theme = next; localStorage.setItem('jl-theme', next); }
+    else { delete html.dataset.theme; localStorage.removeItem('jl-theme'); }
+  });
+})();
+
 function generateToken(){
   var cid=document.getElementById('piste-cid').value.trim();
   var secret=document.getElementById('piste-secret').value.trim();
+  var apikey=document.getElementById('piste-apikey').value.trim();
+  var apikeySecret=document.getElementById('piste-apikey-secret').value.trim();
   var result=document.getElementById('token-result');
   var error=document.getElementById('token-error');
   result.style.display='none';
   error.style.display='none';
-  if(!cid||!secret){error.textContent='Veuillez remplir les deux champs.';error.style.display='block';return}
-  fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:secret})})
+  if(!cid||!secret){error.textContent='Client ID et Client Secret (OAuth) sont requis.';error.style.display='block';return}
+  var body={client_id:cid,client_secret:secret};
+  if(apikey) body.api_key=apikey;
+  if(apikeySecret) body.api_key_secret=apikeySecret;
+  fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
     .then(function(res){
       if(res.ok){
@@ -194,6 +280,8 @@ function generateToken(){
         result.style.display='block';
         document.getElementById('piste-cid').value='';
         document.getElementById('piste-secret').value='';
+        document.getElementById('piste-apikey').value='';
+        document.getElementById('piste-apikey-secret').value='';
       } else {
         error.textContent=res.data.error||'Erreur inconnue';
         error.style.display='block';

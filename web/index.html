@@ -135,6 +135,15 @@ nav.main-nav a.btn{color:#ffffff;border-bottom:none;padding:.85rem 1.8rem}
   transition:background .2s
 }
 .btn:hover{background:var(--teal-l);text-decoration:none}
+.btn-search-nav{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.85rem 1.8rem;background:var(--teal);color:#ffffff;
+  font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  border:none;border-radius:4px;cursor:pointer;text-align:center;line-height:1;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.btn-search-nav:hover{background:var(--teal-l);text-decoration:none;color:#fff}
+.btn-search-nav .btn-icon{display:none}
 .btn-disabled{
   background:var(--muted);cursor:not-allowed;opacity:.6;position:relative;
 }
@@ -149,10 +158,18 @@ nav.main-nav a.btn{color:#ffffff;border-bottom:none;padding:.85rem 1.8rem}
 }
 .btn-disabled:hover::after{opacity:1}
 @media(max-width:860px){
-  nav.main-nav a:not(.btn){display:none}
+  nav.main-nav a:not(.btn):not(.btn-search-nav){display:none}
 }
-@media(max-width:640px){
+@media(max-width:860px){
   nav.main-nav .btn{display:none}
+  .btn-search-nav{
+    background:none !important;border:1px solid var(--line) !important;
+    width:34px !important;height:34px !important;border-radius:50% !important;
+    padding:0 !important;color:var(--muted) !important;
+  }
+  .btn-search-nav:hover{background:none !important;color:var(--teal) !important;border-color:var(--teal) !important}
+  .btn-search-nav .btn-label{display:none}
+  .btn-search-nav .btn-icon{display:block;width:16px;height:16px}
 }
 @media(max-width:480px){
   .topbar{padding:.8rem 1.2rem}
@@ -384,7 +401,10 @@ footer p{margin:.2rem 0}
     <a href="#mission">Légalité</a>
     <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
     <a href="https://ko-fi.com/justicelibre" target="_blank" rel="noopener" style="color:var(--teal)">Soutenir</a>
-    <a href="/search.html" class="btn">Rechercher librement</a>
+    <a href="/search.html" class="btn-search-nav" aria-label="Rechercher librement">
+      <span class="btn-label">Rechercher librement</span>
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    </a>
     <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -526,7 +546,6 @@ footer p{margin:.2rem 0}
     <h3>Accéder à la jurisprudence judiciaire</h3>
     <p style="color:var(--body);margin-bottom:1rem">La Cour de cassation impose 13 étapes d'inscription pour accéder à ses données par API. Nous avons documenté l'intégralité du processus.</p>
     <a href="/tutoriel-piste.html" class="btn" style="margin-bottom:1rem">Voir le tutoriel complet (13 étapes)</a>
-    <p style="color:var(--muted);font-size:.88rem;margin-top:1rem">Vos identifiants ne sont jamais stockés par justicelibre. Ils sont utilisés pour obtenir un token temporaire, puis oubliés.</p>
   </div>
 
   <div class="timeline">

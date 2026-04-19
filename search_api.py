@@ -200,7 +200,20 @@ ALL_CAA = list(juriadmin.COURS_ADMIN_APPEL.keys())  # 9 CAAs
 async def _dispatch_ariane(
     client, intent: QueryIntent, limit: int, offset: int,
 ) -> list[dict]:
+    """ArianeWeb dispatch.
+
+    IMPORTANT : pour un intent `ariane_id`, on fait LES DEUX :
+      - direct ID lookup via plugin (peut renvoyer la décision dont
+        l'ID INTERNE Ariane = le numéro tapé — souvent pas la bonne)
+      - search Sinequa avec le numéro comme texte (peut trouver la
+        décision dont le N° de dossier est ce numéro, citée dans le
+        texte — souvent la bonne)
+
+    On présente les deux. La direct lookup est marquée comme telle.
+    """
     out = []
+    seen = set()
+
     # 1) Lookup direct par ID interne ArianeWeb (5-7 chiffres)
     if intent.kind == "ariane_id" and offset == 0:
         try:
@@ -209,31 +222,33 @@ async def _dispatch_ariane(
             )
             if text and len(text) > 200:
                 first_line = text.split("\n")[0][:120]
+                aid = f"/Ariane_Web/AW_DCE/|{intent.value}"
                 out.append({
-                    "id": f"/Ariane_Web/AW_DCE/|{intent.value}",
+                    "id": aid,
                     "source": "ariane",
                     "source_label": SOURCE_LABELS["ariane"],
-                    "title": first_line or f"Arrêt CE n° {intent.value}",
-                    "juridiction": "Conseil d'État",
+                    "title": (first_line or f"Arrêt CE — index ArianeWeb {intent.value}"),
+                    "juridiction": "Conseil d'État (lookup ID interne ArianeWeb)",
                     "date": "",
                     "formation": "",
                     "numero": intent.value,
                     "ecli": "",
-                    "extract": text[:400],
+                    "extract": "[Décision dont l'index interne ArianeWeb = " + intent.value + "]. Si tu cherches par n° de DOSSIER CE, voir aussi les autres résultats. " + text[:300],
                 })
+                seen.add(aid)
         except Exception as e:
             print(f"[ariane id-lookup err] {e}")
-    # 2) FTS sémantique (toujours en complément, sauf intents non textuels)
-    if intent.kind not in ("ariane_id",) or not out:
-        try:
-            r = await ariane.search(client, query=intent.fts_query, limit=limit, skip=offset)
-            seen = {x["id"] for x in out}
-            out.extend(
-                _norm_ariane(d) for d in r.get("decisions", [])
-                if d.get("id") not in seen
-            )
-        except Exception as e:
-            print(f"[ariane fts err] {e}")
+
+    # 2) Search Sinequa : TOUJOURS, même pour ariane_id (le numéro tapé
+    #    peut être un n° de dossier, qu'on retrouve dans le texte indexé)
+    try:
+        r = await ariane.search(client, query=intent.fts_query, limit=limit, skip=offset)
+        for d in r.get("decisions", []):
+            if d.get("id") not in seen:
+                out.append(_norm_ariane(d))
+                seen.add(d.get("id"))
+    except Exception as e:
+        print(f"[ariane fts err] {e}")
     return out
 
 
