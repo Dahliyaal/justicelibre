@@ -268,15 +268,15 @@ class TokenHandler(BaseHTTPRequestHandler):
         ua = (body.get("ua") or "").strip()[:300]
         if len(msg) < 5:
             return self._json_response(400, {"error": "Message trop court."})
-        # Rate limit très basique : max 10 feedbacks/IP/heure via fichier
-        ip = self.headers.get("CF-Connecting-IP") or self.client_address[0]
+        # RGPD : on NE stocke PAS l'IP (donnée à caractère personnel sans base
+        # légale + sans info au point de collecte). Email optionnel, fourni
+        # volontairement par l'utilisateur. UA tronqué (debug browser/OS).
         entry = {
             "ts": time.time(),
-            "ip": ip[:50],
             "message": msg,
             "email": email,
             "context": context,
-            "ua": ua,
+            "ua": ua[:150],
         }
         try:
             os.makedirs("/var/log/justicelibre", exist_ok=True)
