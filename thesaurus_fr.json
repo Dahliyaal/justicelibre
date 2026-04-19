@@ -1,95 +1,1883 @@
 {
-  "_comment": "Thésaurus juridique FR — extension de pertinence FTS5. Chaque clé est un terme; la valeur est la liste de ses équivalents. Utilisé par query_intent.expand_synonyms() pour réécrire les queries avec des OR. Ne PAS mettre d'IDs, codes, ECLI. Seulement des concepts métier français modernes.",
-  "harcèlement": ["intimidation", "vexation morale", "agissement répété", "pression psychologique", "brimade"],
-  "harcèlement moral": ["intimidation morale", "vexation morale", "agissement répété", "souffrance au travail", "brimade hiérarchique"],
-  "harcèlement sexuel": ["propos à connotation sexuelle", "propos sexistes", "comportement à connotation sexuelle"],
-  "licenciement": ["rupture du contrat", "révocation", "renvoi", "mise à pied définitive", "congédiement"],
-  "licenciement abusif": ["licenciement sans cause", "licenciement sans motif", "rupture abusive"],
-  "discrimination": ["différence de traitement", "atteinte à l'égalité", "rupture d'égalité", "distinction fondée"],
-  "responsabilité": ["obligation de réparer", "imputabilité", "faute génératrice"],
-  "responsabilité civile": ["réparation du préjudice", "dommage civil", "réparation intégrale"],
-  "responsabilité pénale": ["imputabilité pénale", "répression pénale"],
-  "préjudice": ["dommage", "tort", "souffrance", "atteinte"],
-  "préjudice moral": ["dommage moral", "souffrance psychique", "atteinte à la dignité"],
-  "préjudice matériel": ["dommage matériel", "perte économique", "perte financière"],
-  "garde à vue": ["mesure privative de liberté", "retenue policière"],
-  "détention provisoire": ["incarcération préventive", "mise en détention", "détention avant jugement"],
-  "prescription": ["extinction du droit", "forclusion", "péremption"],
-  "nullité": ["annulation", "invalidité", "inopposabilité"],
-  "annulation": ["nullité", "retrait", "invalidité"],
-  "consentement": ["accord", "acceptation", "adhésion"],
-  "dol": ["manœuvre frauduleuse", "tromperie", "déception"],
-  "erreur": ["vice du consentement", "fausse représentation"],
-  "violence": ["contrainte", "menace", "coercition"],
-  "contrat": ["convention", "accord", "engagement"],
-  "rupture": ["résiliation", "dénonciation", "résolution"],
-  "rupture contractuelle": ["résiliation", "rupture unilatérale", "dénonciation du contrat"],
-  "abus de droit": ["usage abusif", "détournement", "dévoiement"],
-  "faute": ["manquement", "négligence", "imprudence"],
-  "faute lourde": ["négligence grave", "imprudence caractérisée", "manquement grave"],
-  "faute inexcusable": ["négligence exceptionnelle", "manquement caractérisé"],
-  "mise en demeure": ["sommation", "injonction", "réquisition"],
-  "réparation": ["indemnisation", "dédommagement", "compensation"],
-  "réparation intégrale": ["indemnisation totale", "dédommagement complet"],
-  "dommages-intérêts": ["indemnités", "indemnisation", "dédommagement pécuniaire"],
-  "saisie": ["mesure d'exécution", "mesure conservatoire", "séquestre"],
-  "expulsion": ["éviction", "mise dehors", "départ forcé"],
-  "bail": ["contrat de location", "louage", "convention locative"],
-  "loyer": ["redevance locative", "prix du bail"],
-  "hypothèque": ["garantie réelle", "sûreté réelle"],
-  "caution": ["garant", "garantie personnelle", "cautionnement"],
-  "divorce": ["dissolution du mariage", "séparation", "rupture matrimoniale"],
-  "autorité parentale": ["responsabilité parentale", "droits parentaux"],
-  "pension alimentaire": ["contribution aux charges", "obligation alimentaire", "aliments"],
-  "succession": ["héritage", "transmission à cause de mort", "dévolution successorale"],
-  "héritier": ["successeur", "ayant droit", "légataire"],
-  "donation": ["libéralité", "don", "transfert gratuit"],
-  "testament": ["legs", "dernières volontés", "disposition à cause de mort"],
-  "copropriété": ["propriété divise", "indivision forcée"],
-  "propriété": ["droit réel", "maîtrise juridique"],
-  "servitude": ["charge foncière", "restriction à la propriété"],
-  "usufruit": ["droit de jouissance", "démembrement de propriété"],
-  "nue-propriété": ["propriété démembrée", "droit de disposition"],
-  "faillite": ["redressement judiciaire", "liquidation judiciaire", "procédure collective"],
-  "liquidation": ["dissolution d'entreprise", "cessation d'activité", "procédure collective"],
-  "société": ["personne morale", "entité juridique", "structure juridique"],
-  "gérant": ["dirigeant", "représentant légal", "mandataire social"],
-  "actionnaire": ["associé", "porteur de parts", "détenteur de titres"],
-  "fraude fiscale": ["évasion fiscale", "soustraction à l'impôt", "dissimulation d'assiette"],
-  "blanchiment": ["recyclage de capitaux", "dissimulation d'origine"],
-  "corruption": ["trafic d'influence", "prise illégale d'intérêt", "concussion"],
-  "recel": ["détention frauduleuse", "réception frauduleuse"],
-  "vol": ["soustraction frauduleuse", "appropriation frauduleuse"],
-  "escroquerie": ["tromperie", "manœuvre frauduleuse", "abus de confiance"],
-  "abus de confiance": ["détournement", "malversation"],
-  "viol": ["agression sexuelle aggravée", "atteinte sexuelle avec pénétration"],
-  "agression sexuelle": ["atteinte sexuelle", "acte sexuel non consenti"],
-  "violences conjugales": ["violences intra-familiales", "violences au sein du couple", "violences domestiques"],
-  "meurtre": ["homicide volontaire", "assassinat"],
-  "homicide involontaire": ["mort accidentelle", "décès non intentionnel"],
-  "légitime défense": ["riposte défensive", "défense proportionnée"],
-  "état de nécessité": ["cause exonératoire", "fait justificatif"],
-  "présomption d'innocence": ["principe de non-culpabilité", "droit à la présomption"],
-  "droit au procès équitable": ["impartialité du juge", "garantie procédurale"],
-  "droit au silence": ["droit de se taire", "non-incrimination"],
-  "droit à l'assistance d'un avocat": ["assistance juridique", "droit à un conseil"],
-  "liberté d'expression": ["liberté d'opinion", "liberté de la presse", "liberté de communication"],
-  "liberté de religion": ["liberté de culte", "liberté de conscience"],
-  "vie privée": ["intimité", "sphère privée", "droit au respect de la vie privée"],
-  "secret professionnel": ["confidentialité", "obligation de discrétion"],
-  "données personnelles": ["informations à caractère personnel", "traitements de données", "RGPD"],
-  "asile": ["protection internationale", "statut de réfugié", "protection subsidiaire"],
-  "expulsion étranger": ["reconduite à la frontière", "éloignement", "renvoi du territoire"],
-  "titre de séjour": ["autorisation de séjour", "carte de séjour", "permis de résidence"],
-  "nationalité": ["citoyenneté", "lien de rattachement"],
-  "permis de construire": ["autorisation d'urbanisme", "autorisation de bâtir"],
-  "déclaration d'utilité publique": ["DUP", "expropriation pour cause d'utilité publique"],
-  "préemption": ["droit de préemption", "priorité d'achat"],
-  "marchés publics": ["commande publique", "contrat public", "DECP"],
-  "délégation de service public": ["DSP", "concession de service"],
-  "référé": ["procédure d'urgence", "ordonnance de référé"],
-  "mesures conservatoires": ["mesures provisoires", "mesures de protection urgente"],
-  "expertise": ["appréciation technique", "évaluation d'expert"],
-  "pourvoi": ["recours en cassation", "voie de recours"],
-  "appel": ["recours d'appel", "contestation du jugement"]
+  "_comment": "Thésaurus juridique FR — merged Eurovoc legal microthesauri (356 concepts officiels EU) + ~80 ajouts curés pour le droit FR moderne. Format : {terme: [synonymes, équivalents]}. Utilisé par query_intent.expand_synonyms() pour étendre les queries FTS5. Source Eurovoc : licence libre (équivalent CC-BY UE).",
+  "abus de confiance": [
+    "détournement",
+    "malversation"
+  ],
+  "abus de droit": [
+    "usage abusif",
+    "détournement",
+    "dévoiement"
+  ],
+  "abus de marché": [
+    "dam",
+    "directive sur les abus de marché",
+    "manipulation des cours",
+    "règlement relatif aux abus de marché"
+  ],
+  "abus de pouvoir": [
+    "abus d'autorité",
+    "détournement de pouvoir"
+  ],
+  "acquisition de la propriété": [
+    "accès à la propriété",
+    "droits d'accession à la propriété"
+  ],
+  "acte de l'ue": [
+    "acte ce",
+    "acte communautaire",
+    "acte de l'union européenne",
+    "acte juridique communautaire",
+    "acte juridique de l'ue",
+    "acte juridique de l'union européenne"
+  ],
+  "acte législatif (ue)": [
+    "acte normatif (ue)"
+  ],
+  "acte unique européen": [
+    "acte unique",
+    "aue"
+  ],
+  "action en justice": [
+    "affaire judiciaire",
+    "instance judiciaire",
+    "recours juridictionnel"
+  ],
+  "action en matière civile": [
+    "action devant une juridiction civile",
+    "litige"
+  ],
+  "action en responsabilité": [
+    "action en dommages et intérêts"
+  ],
+  "actionnaire": [
+    "associé",
+    "porteur de parts",
+    "détenteur de titres"
+  ],
+  "admission des étrangers": [
+    "visa",
+    "visa touristique"
+  ],
+  "agression sexuelle": [
+    "atteinte sexuelle",
+    "acte sexuel non consenti"
+  ],
+  "aide aux victimes": [
+    "droits des victimes"
+  ],
+  "aide judiciaire": [
+    "assistance juridique"
+  ],
+  "allégement de peine": [
+    "remise de peine",
+    "réduction de peine"
+  ],
+  "amende": [
+    "sanction pécuniaire"
+  ],
+  "annulation": [
+    "nullité",
+    "retrait",
+    "invalidité"
+  ],
+  "appel": [
+    "recours d'appel",
+    "contestation du jugement"
+  ],
+  "applicabilité directe": [
+    "applicabilité immédiate",
+    "effet direct",
+    "effet immédiat"
+  ],
+  "application de la loi": [
+    "dérogation à la loi",
+    "exécution de la loi",
+    "mise en oeuvre de la loi",
+    "mise en œuvre de la loi",
+    "validité de la loi"
+  ],
+  "application du droit de l'ue": [
+    "application du droit communautaire",
+    "application du droit de l'union européenne"
+  ],
+  "arrêt de la cour (ue)": [
+    "arrêt cjce",
+    "arrêt de la cour (ce)",
+    "arrêt de la cour de justice (ce)",
+    "arrêt de la cour de justice (ue)"
+  ],
+  "asile": [
+    "protection internationale",
+    "statut de réfugié",
+    "protection subsidiaire"
+  ],
+  "asile politique": [
+    "asile diplomatique",
+    "demande d'asile politique"
+  ],
+  "assistance mutuelle": [
+    "clause de défense mutuelle",
+    "clause de solidarité mutuelle",
+    "devoir d'assistance mutuelle"
+  ],
+  "association professionnelle": [
+    "organisation interprofessionnelle",
+    "organisation professionnelle"
+  ],
+  "atteinte à la sûreté de l'état": [
+    "crime contre la paix publique",
+    "crime contre la sûreté de l'état"
+  ],
+  "audience judiciaire": [
+    "procès"
+  ],
+  "autogestion": [
+    "autogestion ouvrière"
+  ],
+  "autorité parentale": [
+    "responsabilité parentale",
+    "droits parentaux"
+  ],
+  "autoréglementation": [
+    "coréglementation",
+    "droit mou",
+    "législation non contraignante",
+    "normes douces",
+    "réglementation volontaire"
+  ],
+  "avis (ue)": [
+    "avis communautaire"
+  ],
+  "avis cdr": [
+    "avis du comité des régions"
+  ],
+  "avis cese": [
+    "avis ces",
+    "avis du comité économique et social",
+    "avis du comité économique et social européen"
+  ],
+  "avis cour de justice (ue)": [
+    "avis cour de justice (ce)"
+  ],
+  "avis de la banque centrale européenne": [
+    "avis de la bce"
+  ],
+  "avis du conseil": [
+    "avis du conseil de l'union européenne"
+  ],
+  "avis pe": [
+    "avis motivé du pe",
+    "avis obligatoire"
+  ],
+  "bail": [
+    "contrat de location",
+    "louage",
+    "convention locative"
+  ],
+  "blanchiment": [
+    "recyclage de capitaux",
+    "dissimulation d'origine"
+  ],
+  "cadastre": [
+    "administration cadastrale",
+    "cadastre de l'impôt",
+    "matrice cadastrale",
+    "registre foncier"
+  ],
+  "cadre commun de référence": [
+    "ccr"
+  ],
+  "capacité juridique": [
+    "incapacité juridique"
+  ],
+  "caution": [
+    "garant",
+    "garantie personnelle",
+    "cautionnement"
+  ],
+  "centre d'éducation surveillée": [
+    "établissement d'éducation surveillée"
+  ],
+  "charte des droits de l'homme": [
+    "charte internationale des droits de l'homme",
+    "convention des droits de l'homme",
+    "déclaration des droits de l'homme"
+  ],
+  "clause contractuelle": [
+    "disposition contractuelle"
+  ],
+  "clause de répartition": [
+    "barrière électorale"
+  ],
+  "code juridique": [
+    "codification juridique"
+  ],
+  "codification du droit de l'ue": [
+    "codification du droit communautaire",
+    "codification du droit de l'union européenne"
+  ],
+  "cogestion": [
+    "conseil de surveillance",
+    "cosurveillance",
+    "participation à la gestion"
+  ],
+  "comitologie": [
+    "procédure de comité"
+  ],
+  "comité d'entreprise": [
+    "délégué du personnel",
+    "représentant des travailleurs",
+    "représentant du personnel"
+  ],
+  "common law": [
+    "régime de common law",
+    "système de common law",
+    "système de droit anglo-saxon"
+  ],
+  "complicité": [
+    "complice",
+    "complice d'un acte"
+  ],
+  "compétence d'attribution": [
+    "compétence ratione materiae"
+  ],
+  "compétence de l'ue": [
+    "compétence ce",
+    "compétence communautaire",
+    "compétence de l'union européenne",
+    "compétence de la communauté"
+  ],
+  "compétence des états membres": [
+    "compétence d'appui"
+  ],
+  "compétence externe (ue)": [
+    "compétence externe ce",
+    "compétence externe de la communauté"
+  ],
+  "compétence juridictionnelle": [
+    "compétence des tribunaux",
+    "compétence exclusive",
+    "compétence judiciaire"
+  ],
+  "conciliation": [
+    "procédure de concertation"
+  ],
+  "conflit d'intérêt": [
+    "conflit d'intérêts",
+    "déclaration de conflit d'intérêt",
+    "risque de conflit d'intérêt"
+  ],
+  "conflit de juridictions": [
+    "conflit d'attribution"
+  ],
+  "conférence intergouvernementale (ue)": [
+    "cig",
+    "conférence intergouvernementale ce"
+  ],
+  "consentement": [
+    "accord",
+    "acceptation",
+    "adhésion"
+  ],
+  "consolidation du droit de l'ue": [
+    "consolidation du droit communautaire",
+    "consolidation du droit de l'union européenne"
+  ],
+  "constitution": [
+    "loi constitutionnelle"
+  ],
+  "constitution européenne": [
+    "traité constitutionnel",
+    "traité établissant une constitution pour l'europe"
+  ],
+  "consultation des travailleurs": [
+    "consultation syndicale"
+  ],
+  "contrat": [
+    "conclusion de contrat",
+    "droit des contrats",
+    "signature de contrat",
+    "convention",
+    "accord",
+    "engagement"
+  ],
+  "contrat numérique": [
+    "contrat en ligne",
+    "contrat par voie électronique",
+    "e-contrat"
+  ],
+  "contrôle de constitutionnalité": [
+    "constitutionnalité des lois"
+  ],
+  "contrôle de l'ue": [
+    "contrôle communautaire",
+    "contrôle de l'union européenne"
+  ],
+  "convention collective": [
+    "accord collectif"
+  ],
+  "conversion sexuelle": [
+    "changement de sexe",
+    "opération chirurgicale de conversion sexuelle",
+    "réaffectation sexuelle",
+    "traitement de conversion sexuelle"
+  ],
+  "copropriété": [
+    "propriété divise",
+    "indivision forcée"
+  ],
+  "corpus juris (ue)": [
+    "corpus juris communautaire"
+  ],
+  "corruption": [
+    "trafic d'influence",
+    "prise illégale d'intérêt",
+    "concussion"
+  ],
+  "crime contre l'humanité": [
+    "crime de droit international",
+    "génocide",
+    "holocauste"
+  ],
+  "crime de guerre": [
+    "criminel de guerre"
+  ],
+  "créance": [
+    "créancier",
+    "notation des créances",
+    "risque des créances"
+  ],
+  "dette": [
+    "débiteur"
+  ],
+  "dialogue social": [
+    "concertation sociale"
+  ],
+  "dialogue social (ue)": [
+    "dialogue social communautaire"
+  ],
+  "diffamation": [
+    "calomnie",
+    "injure"
+  ],
+  "directive (ue)": [
+    "directive communautaire",
+    "directive de la commission",
+    "directive du conseil",
+    "directive du parlement européen et du conseil"
+  ],
+  "directive d'exécution": [
+    "directive d'exécution de la commission",
+    "directive d'exécution du conseil"
+  ],
+  "directive déléguée": [
+    "directive déléguée de la commission"
+  ],
+  "discours haineux": [
+    "cyberhaine",
+    "discours de haine",
+    "discours haineux en ligne"
+  ],
+  "discrimination": [
+    "différence de traitement",
+    "atteinte à l'égalité",
+    "rupture d'égalité",
+    "distinction fondée"
+  ],
+  "discrimination basée sur la nationalité": [
+    "discrimination des étrangers"
+  ],
+  "discrimination fondée sur l'orientation sexuelle": [
+    "discrimination envers les homosexuels"
+  ],
+  "discrimination fondée sur l'âge": [
+    "discrimination à l’encontre des personnes âgées",
+    "âgisme"
+  ],
+  "discrimination fondée sur un handicap": [
+    "discrimination envers les handicapés"
+  ],
+  "discrimination raciale": [
+    "déségrégation raciale",
+    "ségrégation raciale",
+    "égalité raciale"
+  ],
+  "discrimination religieuse": [
+    "christianophobie",
+    "intolérance religieuse",
+    "islamophobie"
+  ],
+  "discrimination sexuelle": [
+    "sexisme"
+  ],
+  "divorce": [
+    "dissolution du mariage",
+    "séparation",
+    "rupture matrimoniale"
+  ],
+  "document d'identité": [
+    "carte d'identité"
+  ],
+  "dol": [
+    "manœuvre frauduleuse",
+    "tromperie",
+    "déception"
+  ],
+  "dommage": [
+    "dégât",
+    "préjudice"
+  ],
+  "dommages-intérêts": [
+    "indemnités",
+    "indemnisation",
+    "dédommagement pécuniaire"
+  ],
+  "donation": [
+    "legs",
+    "libéralité",
+    "don",
+    "transfert gratuit"
+  ],
+  "données personnelles": [
+    "informations à caractère personnel",
+    "traitements de données",
+    "RGPD"
+  ],
+  "double nationalité": [
+    "nationalité multiple"
+  ],
+  "droit au logement": [
+    "droit à une aide au logement"
+  ],
+  "droit au procès équitable": [
+    "impartialité du juge",
+    "garantie procédurale"
+  ],
+  "droit au silence": [
+    "droit de se taire",
+    "non-incrimination"
+  ],
+  "droit au travail": [
+    "liberté du travail",
+    "liberté professionnelle"
+  ],
+  "droit civil": [
+    "droit commun"
+  ],
+  "droit constitutionnel": [
+    "droit parlementaire",
+    "droit politique"
+  ],
+  "droit coutumier": [
+    "coutume (droit)",
+    "us et coutumes"
+  ],
+  "droit d'agir en justice": [
+    "droit d'ester en justice",
+    "droit de recours"
+  ],
+  "droit de l'individu": [
+    "droit de la personnalité",
+    "droits fondamentaux",
+    "liberté fondamentale",
+    "liberté individuelle",
+    "liberté publique"
+  ],
+  "droit de l'ue": [
+    "droit communautaire",
+    "droit de l'union européenne",
+    "droit européen",
+    "réglementation communautaire"
+  ],
+  "droit de l'ue-droit international": [
+    "droit de l'union européenne-droit international"
+  ],
+  "droit de l'ue-droit national": [
+    "droit communautaire-droit interne",
+    "droit communautaire-droit national",
+    "droit de l'union européenne-droit national",
+    "droit national-droit communautaire",
+    "droit national-droit de l'union européenne"
+  ],
+  "droit de la mer": [
+    "droit international maritime"
+  ],
+  "droit de préemption": [
+    "préemption"
+  ],
+  "droit de séjour": [
+    "carte de séjour",
+    "permis de séjour",
+    "séjour des étrangers"
+  ],
+  "droit de vote": [
+    "capacité électorale"
+  ],
+  "droit des obligations": [
+    "obligation civile"
+  ],
+  "droit des états": [
+    "droits des nations"
+  ],
+  "droit des étrangers": [
+    "principe de réciprocité",
+    "réciprocité des droits"
+  ],
+  "droit du travail": [
+    "droits du travailleur",
+    "législation du travail"
+  ],
+  "droit dérivé": [
+    "droit dérivé ce"
+  ],
+  "droit international privé": [
+    "conflit de lois",
+    "droit civil international",
+    "loi applicable"
+  ],
+  "droit international relatif aux droits de l’homme": [
+    "convention de genève",
+    "droit humanitaire international"
+  ],
+  "droit international économique": [
+    "droit économique international"
+  ],
+  "droit international-droit interne": [
+    "droit national-droit international"
+  ],
+  "droit musulman": [
+    "droit islamique"
+  ],
+  "droit national": [
+    "droit interne",
+    "législation des états membres",
+    "législation nationale",
+    "ordre juridique national",
+    "réglementation nationale"
+  ],
+  "droit privé européen": [
+    "droit international privé européen"
+  ],
+  "droit pénal": [
+    "droit criminel"
+  ],
+  "droit pénal militaire": [
+    "code pénal militaire",
+    "justice pénale militaire"
+  ],
+  "droit régional": [
+    "législation régionale"
+  ],
+  "droit territorial": [
+    "intégrité territoriale",
+    "souveraineté territoriale",
+    "territoire national",
+    "territorialité"
+  ],
+  "droit à l'assistance d'un avocat": [
+    "assistance juridique",
+    "droit à un conseil"
+  ],
+  "droit à l'intégrité physique": [
+    "droit au respect du corps humain"
+  ],
+  "droit à la justice": [
+    "droit à être jugé",
+    "détention arbitraire",
+    "habeas corpus",
+    "protection juridique",
+    "protection pénale"
+  ],
+  "droit à la santé": [
+    "accès aux soins"
+  ],
+  "droit électoral": [
+    "droit électoral national",
+    "loi électorale nationale"
+  ],
+  "droits civiques": [
+    "liberté civile"
+  ],
+  "droits de l'homme": [
+    "atteinte aux droits de l'homme",
+    "protection des droits de l'homme",
+    "violation des droits de l'homme"
+  ],
+  "droits de la défense": [
+    "droit de visite des avocats",
+    "droits de l'accusé",
+    "présomption d'innocence"
+  ],
+  "droits politiques": [
+    "liberté politique"
+  ],
+  "droits sociaux": [
+    "droits sociaux fondamentaux",
+    "droits économiques et sociaux",
+    "liberté sociale"
+  ],
+  "décision (ue)": [
+    "décision communautaire",
+    "décision de la banque centrale européenne",
+    "décision de la commission",
+    "décision du conseil",
+    "décision du conseil européen",
+    "décision du parlement européen"
+  ],
+  "décision d'exécution": [
+    "décision d'exécution de la commission",
+    "décision d'exécution du conseil"
+  ],
+  "décision déléguée": [
+    "décision déléguée de la commission"
+  ],
+  "déclaration d'utilité publique": [
+    "DUP",
+    "expropriation pour cause d'utilité publique"
+  ],
+  "décompte des voix": [
+    "dépouillement du scrutin"
+  ],
+  "découpage électoral": [
+    "circonscription électorale"
+  ],
+  "déficit de transposition": [
+    "date limite de transposition",
+    "déficit de mise en œuvre",
+    "délai de transposition",
+    "retard de transposition"
+  ],
+  "délit d'initiés": [
+    "opération d'initié",
+    "transaction d'initiés"
+  ],
+  "délit environnemental": [
+    "crime contre l'environnement"
+  ],
+  "délit non intentionnel": [
+    "infraction non intentionnelle"
+  ],
+  "délit économique": [
+    "criminalité économique",
+    "escroquerie",
+    "fausse facture",
+    "infraction économique"
+  ],
+  "délégation de service public": [
+    "DSP",
+    "concession de service"
+  ],
+  "déontologie professionnelle": [
+    "déontologie"
+  ],
+  "dérogation au droit de l'ue": [
+    "dérogation au droit communautaire",
+    "dérogation au droit de l'union européenne"
+  ],
+  "détention provisoire": [
+    "incarcération préventive",
+    "mise en détention",
+    "détention avant jugement"
+  ],
+  "détenu": [
+    "prisonnier"
+  ],
+  "détroit": [
+    "détroit international"
+  ],
+  "eaux de l'ue": [
+    "eau communautaire",
+    "eaux de l'union européenne"
+  ],
+  "eaux internationales": [
+    "eaux maritimes",
+    "haute mer"
+  ],
+  "eaux territoriales": [
+    "eau côtière",
+    "mer territoriale",
+    "préférence côtière",
+    "zone de 12 milles"
+  ],
+  "emprisonnement": [
+    "détention",
+    "privation de liberté",
+    "réclusion"
+  ],
+  "enquête judiciaire": [
+    "enquête de police"
+  ],
+  "erreur": [
+    "vice du consentement",
+    "fausse représentation"
+  ],
+  "esclavage": [
+    "travail forcé"
+  ],
+  "escroquerie": [
+    "tromperie",
+    "manœuvre frauduleuse",
+    "abus de confiance"
+  ],
+  "euthanasie": [
+    "droit à l'euthanasie"
+  ],
+  "expertise": [
+    "appréciation technique",
+    "évaluation d'expert"
+  ],
+  "expulsion": [
+    "éviction",
+    "mise dehors",
+    "départ forcé"
+  ],
+  "expulsion d'un logement": [
+    "expulsion du locataire"
+  ],
+  "expulsion étranger": [
+    "reconduite à la frontière",
+    "éloignement",
+    "renvoi du territoire"
+  ],
+  "exterritorialité": [
+    "extraterritorialité"
+  ],
+  "faillite": [
+    "redressement judiciaire",
+    "liquidation judiciaire",
+    "procédure collective"
+  ],
+  "faute": [
+    "manquement",
+    "négligence",
+    "imprudence"
+  ],
+  "faute inexcusable": [
+    "négligence exceptionnelle",
+    "manquement caractérisé"
+  ],
+  "faute lourde": [
+    "négligence grave",
+    "imprudence caractérisée",
+    "manquement grave"
+  ],
+  "faux en écriture": [
+    "falsification de documents",
+    "faux en écritures",
+    "usage de faux en écriture"
+  ],
+  "faux monnayage": [
+    "contrefaçon de l'euro",
+    "contrefaçon des moyens de paiement",
+    "crime de faux monnayage",
+    "falsification des moyens de paiement",
+    "fausse monnaie",
+    "fausse-monnaie",
+    "faux monnayage de l'euro",
+    "faux-monnayage",
+    "émission de fausse monnaie"
+  ],
+  "frais de justice": [
+    "dépens",
+    "frais judiciaire",
+    "liquidation des dépens"
+  ],
+  "fraude": [
+    "lutte contre la fraude",
+    "prévention des fraudes",
+    "répression des fraudes"
+  ],
+  "fraude contre l'ue": [
+    "fraude contre l’union européenne"
+  ],
+  "fraude fiscale": [
+    "évasion fiscale",
+    "soustraction à l'impôt",
+    "dissimulation d'assiette"
+  ],
+  "frontière extérieure de l'ue": [
+    "frontière extérieure de l’union européenne",
+    "gestion des frontières extérieures de l'ue",
+    "gestion des frontières extérieures de l’union européenne"
+  ],
+  "frontière intérieure de l'ue": [
+    "frontière intracommunautaire",
+    "frontière intérieure de l'union européenne"
+  ],
+  "garantie": [
+    "caution",
+    "cautionnement",
+    "gage"
+  ],
+  "garde à vue": [
+    "mesure privative de liberté",
+    "retenue policière"
+  ],
+  "golfe": [
+    "baie (littoral)"
+  ],
+  "grève": [
+    "grève avec occupation",
+    "grève de solidarité",
+    "grève du zèle",
+    "grève sauvage"
+  ],
+  "gérant": [
+    "dirigeant",
+    "représentant légal",
+    "mandataire social"
+  ],
+  "harcèlement": [
+    "intimidation",
+    "vexation morale",
+    "agissement répété",
+    "pression psychologique",
+    "brimade"
+  ],
+  "harcèlement moral": [
+    "harcèlement psychologique",
+    "intimidation morale",
+    "vexation morale",
+    "agissement répété",
+    "souffrance au travail",
+    "brimade hiérarchique"
+  ],
+  "harcèlement sexuel": [
+    "propos à connotation sexuelle",
+    "propos sexistes",
+    "comportement à connotation sexuelle"
+  ],
+  "homicide involontaire": [
+    "mort accidentelle",
+    "décès non intentionnel"
+  ],
+  "hypothèque": [
+    "droit hypothécaire",
+    "garantie réelle",
+    "sûreté réelle"
+  ],
+  "héritage": [
+    "succession",
+    "testament"
+  ],
+  "héritier": [
+    "successeur",
+    "ayant droit",
+    "légataire"
+  ],
+  "indemnisation": [
+    "dédommagement",
+    "indemnisation des victimes",
+    "indemnité"
+  ],
+  "infraction": [
+    "contravention",
+    "crime",
+    "délit",
+    "violation de la loi"
+  ],
+  "infraction au code de la route": [
+    "infraction routière",
+    "violation du code de la route"
+  ],
+  "instruction judiciaire": [
+    "secret de l'instruction"
+  ],
+  "intention de vote": [
+    "enquête électorale",
+    "sondage électoral"
+  ],
+  "interprétation du droit": [
+    "analogie juridique",
+    "interprétation de la loi",
+    "interprétation juridique"
+  ],
+  "intégration des questions d'égalité entre les hommes et les femmes": [
+    "intégration dans les différentes politiques des questions d'égalité entre les hommes et les femmes"
+  ],
+  "intéressement des travailleurs": [
+    "participation des travailleurs aux bénéfices"
+  ],
+  "intérêt collectif": [
+    "intérêt diffus"
+  ],
+  "juge": [
+    "juge d'instruction",
+    "juge pour enfants",
+    "magistrature assise"
+  ],
+  "jugement": [
+    "arrêt",
+    "arrêt de la cour",
+    "sentence"
+  ],
+  "juridiction": [
+    "système juridictionnel"
+  ],
+  "juridiction administrative": [
+    "conseil d'état",
+    "cour administrative d'appel",
+    "cour des comptes",
+    "tribunal administratif"
+  ],
+  "juridiction arbitrale": [
+    "tribunal arbitral"
+  ],
+  "juridiction commerciale": [
+    "tribunal de commerce"
+  ],
+  "juridiction constitutionnelle": [
+    "conseil constitutionnel",
+    "cour constitutionnelle"
+  ],
+  "juridiction d'exception": [
+    "cour de sûreté de l'état"
+  ],
+  "juridiction du travail": [
+    "conseil de prud'hommes",
+    "prud'hommes",
+    "tribunal du travail"
+  ],
+  "juridiction internationale": [
+    "tribunal international"
+  ],
+  "juridiction judiciaire": [
+    "tribunal d'instance",
+    "tribunal de grande instance",
+    "tribunal judiciaire"
+  ],
+  "juridiction militaire": [
+    "tribunal militaire"
+  ],
+  "juridiction pour mineurs": [
+    "tribunal pour enfants"
+  ],
+  "juridiction pénale": [
+    "cour d'assises",
+    "juridiction de simple police",
+    "tribunal correctionnel",
+    "tribunal de police"
+  ],
+  "juridiction sociale": [
+    "juridiction de sécurité sociale"
+  ],
+  "juridiction supérieure": [
+    "cour d'appel",
+    "cour de cassation",
+    "cour suprême",
+    "tribunal des conflits"
+  ],
+  "jurisprudence (ue)": [
+    "jurisprudence (ce)"
+  ],
+  "justice réparatrice": [
+    "justice restaurative"
+  ],
+  "justice transitionnelle": [
+    "lustration",
+    "réforme transitionnelle du personnel"
+  ],
+  "liberté d'association": [
+    "droit d'association"
+  ],
+  "liberté d'expression": [
+    "liberté d'opinion",
+    "liberté de la presse",
+    "liberté de communication"
+  ],
+  "liberté d'opinion": [
+    "liberté de pensée"
+  ],
+  "liberté de circulation": [
+    "droit de circuler librement",
+    "droit de déplacement",
+    "liberté de déplacement"
+  ],
+  "liberté de religion": [
+    "liberté de culte",
+    "liberté de conscience"
+  ],
+  "liberté de réunion": [
+    "droit de réunion"
+  ],
+  "liberté des mers": [
+    "principe de la liberté des mers"
+  ],
+  "libre disposition de soi-même": [
+    "dignité de la personne",
+    "droit au suicide"
+  ],
+  "licenciement": [
+    "rupture du contrat",
+    "révocation",
+    "renvoi",
+    "mise à pied définitive",
+    "congédiement"
+  ],
+  "licenciement abusif": [
+    "licenciement sans cause",
+    "licenciement sans motif",
+    "rupture abusive"
+  ],
+  "liquidation": [
+    "dissolution d'entreprise",
+    "cessation d'activité",
+    "procédure collective"
+  ],
+  "lockout": [
+    "lock-out"
+  ],
+  "loyer": [
+    "redevance locative",
+    "prix du bail"
+  ],
+  "lutte contre la discrimination": [
+    "discrimination",
+    "traitement discriminatoire"
+  ],
+  "législation": [
+    "acte législatif",
+    "disposition législative"
+  ],
+  "législation locale": [
+    "droit local",
+    "droit municipal",
+    "ordonnance municipale"
+  ],
+  "légitime défense": [
+    "riposte défensive",
+    "défense proportionnée"
+  ],
+  "magistrat": [
+    "magistrature"
+  ],
+  "magistrat non professionnel": [
+    "juge de paix",
+    "jury",
+    "jury populaire",
+    "juré"
+  ],
+  "majorité qualifiée": [
+    "majorité renforcée"
+  ],
+  "majorité simple": [
+    "majorité relative"
+  ],
+  "mandat": [
+    "procuration"
+  ],
+  "marchés publics": [
+    "commande publique",
+    "contrat public",
+    "DECP"
+  ],
+  "mesure nationale d'exécution": [
+    "transposition de directives ce",
+    "transposition de directives européennes",
+    "transposition du droit communautaire"
+  ],
+  "mesures conservatoires": [
+    "mesures provisoires",
+    "mesures de protection urgente"
+  ],
+  "meurtre": [
+    "homicide volontaire",
+    "assassinat"
+  ],
+  "ministère public": [
+    "magistrature debout",
+    "parquet"
+  ],
+  "minorité sexuelle": [
+    "homosexuel",
+    "transsexuel"
+  ],
+  "mise en demeure": [
+    "sommation",
+    "injonction",
+    "réquisition"
+  ],
+  "modes alternatifs de résolution des conflits": [
+    "modes alternatifs de règlement des conflits"
+  ],
+  "multipropriété": [
+    "jouissance à temps partagé"
+  ],
+  "méthode ouverte de coordination": [
+    "moc"
+  ],
+  "nationalité": [
+    "acquisition de la nationalité",
+    "perte de la nationalité",
+    "citoyenneté",
+    "lien de rattachement"
+  ],
+  "nationalité des personnes morales": [
+    "nationalité des sociétés"
+  ],
+  "nue-propriété": [
+    "propriété démembrée",
+    "droit de disposition"
+  ],
+  "nullité": [
+    "annulation",
+    "invalidité",
+    "inopposabilité"
+  ],
+  "nullité d'une élection": [
+    "annulation d'une élection"
+  ],
+  "négligence criminelle": [
+    "délit par omission",
+    "négligence coupable"
+  ],
+  "officier ministériel": [
+    "avoué"
+  ],
+  "ordre juridique de l'ue": [
+    "ordre juridique communautaire",
+    "ordre juridique de l'union européenne"
+  ],
+  "ordre professionnel": [
+    "ordre des avocats",
+    "ordre des médecins"
+  ],
+  "partage de la propriété": [
+    "indivision"
+  ],
+  "participation des travailleurs": [
+    "démocratie dans l'entreprise",
+    "démocratie industrielle",
+    "participation de l'employé"
+  ],
+  "participation électorale": [
+    "votants"
+  ],
+  "passeport européen": [
+    "union des passeports"
+  ],
+  "peine de mort": [
+    "exécution capitale",
+    "peine capitale"
+  ],
+  "peine de substitution": [
+    "peine d'intérêt général"
+  ],
+  "pension alimentaire": [
+    "contribution aux charges",
+    "obligation alimentaire",
+    "aliments"
+  ],
+  "permis de construire": [
+    "autorisation d'urbanisme",
+    "autorisation de bâtir"
+  ],
+  "philosophie du droit": [
+    "théorie du droit"
+  ],
+  "piraterie": [
+    "détournement d'avion",
+    "détournement de bateau",
+    "pirate de l'air",
+    "piraterie aérienne",
+    "piraterie maritime"
+  ],
+  "plainte à la commission": [
+    "plainte antidumping",
+    "plainte en manquement"
+  ],
+  "politique de l'ue en matière de visas": [
+    "politique commune de visas",
+    "politique commune des visas",
+    "politique des visas"
+  ],
+  "pourvoi": [
+    "recours en cassation",
+    "voie de recours"
+  ],
+  "prescription": [
+    "extinction du droit",
+    "forclusion",
+    "péremption"
+  ],
+  "prescription d'action": [
+    "délai de procédure"
+  ],
+  "prescription de peine": [
+    "amnistie",
+    "grâce",
+    "libération",
+    "relaxation",
+    "réhabilitation",
+    "élargissement"
+  ],
+  "preuve": [
+    "charge de la preuve"
+  ],
+  "preuve informatique": [
+    "criminalistique informatique",
+    "criminalistique numérique",
+    "investigation informatique",
+    "investigation numérique",
+    "preuve numérique"
+  ],
+  "primauté du droit de l'ue": [
+    "primauté du droit communautaire",
+    "primauté du droit de l'union européenne"
+  ],
+  "principe de communautarisation": [
+    "communautarisation"
+  ],
+  "principe de reconnaissance mutuelle": [
+    "affaire cassis de dijon"
+  ],
+  "principe de sécurité juridique": [
+    "certitude juridique",
+    "principe d'égalité et de sécurité juridique",
+    "sécurité juridique"
+  ],
+  "privation de droits": [
+    "dégradation civique"
+  ],
+  "privatisation": [
+    "dénationalisation"
+  ],
+  "procédure civile": [
+    "droit de la procédure civile"
+  ],
+  "procédure d'infraction (ue)": [
+    "constatation du manquement",
+    "procédure ce d'infraction",
+    "procédure pré-contentieuse (ue)"
+  ],
+  "procédure de consultation": [
+    "procédure de l'avis simple"
+  ],
+  "procédure judiciaire": [
+    "abandon de la procédure",
+    "fin de la procédure",
+    "procédure générale"
+  ],
+  "procédure préjudicielle": [
+    "demande de décision préjudicielle (ue)",
+    "recours préjudiciel",
+    "renvoi en interprétation",
+    "renvoi préjudiciel"
+  ],
+  "procédure pénale": [
+    "droit de la procédure pénale",
+    "procédure criminelle",
+    "procédure pénale spéciale",
+    "procédure simplifiée"
+  ],
+  "profession judiciaire": [
+    "juriste"
+  ],
+  "programme législatif (ue)": [
+    "programme législatif communautaire"
+  ],
+  "propagande électorale": [
+    "affichage électoral"
+  ],
+  "proposition (ue)": [
+    "proposition ce",
+    "proposition modifiée",
+    "proposition pendante"
+  ],
+  "propriété": [
+    "droit réel",
+    "maîtrise juridique"
+  ],
+  "propriété des biens": [
+    "droit de propriété",
+    "droit des biens",
+    "droit réel",
+    "régime de la propriété"
+  ],
+  "propriété foncière": [
+    "droit foncier"
+  ],
+  "propriété immobilière": [
+    "bien immeuble",
+    "bien immobilier",
+    "droit immobilier"
+  ],
+  "propriété mobilière": [
+    "bien meuble",
+    "bien mobilier",
+    "droit mobilier"
+  ],
+  "propriété publique": [
+    "domaine public",
+    "patrimoine de l'état",
+    "patrimoine national",
+    "propriété d'état"
+  ],
+  "protection de la vie privée": [
+    "droit au respect de la vie privée"
+  ],
+  "protection des communications": [
+    "espionnage informatique",
+    "écoute administrative",
+    "écoute clandestine",
+    "écoute informatique",
+    "écoute téléphonique"
+  ],
+  "protection des libertés": [
+    "sauvegarde de la liberté"
+  ],
+  "protection des témoins": [
+    "mesure de protection des témoins",
+    "programme de protection des témoins",
+    "protection des collaborateurs de justice"
+  ],
+  "protocole (ue)": [
+    "privilège de l'ue",
+    "privilège de l'union européenne",
+    "privilège de la communauté",
+    "privilèges et immunités de l'ue",
+    "privilèges et immunités de l'union européenne",
+    "protocole ce",
+    "protocole de l'ue",
+    "protocole de l'union européenne"
+  ],
+  "préemption": [
+    "droit de préemption",
+    "priorité d'achat"
+  ],
+  "préjudice": [
+    "dommage",
+    "tort",
+    "souffrance",
+    "atteinte"
+  ],
+  "préjudice matériel": [
+    "dommage matériel",
+    "perte économique",
+    "perte financière"
+  ],
+  "préjudice moral": [
+    "dommage moral",
+    "souffrance psychique",
+    "atteinte à la dignité"
+  ],
+  "présomption d'innocence": [
+    "principe de non-culpabilité",
+    "droit à la présomption"
+  ],
+  "pédophilie": [
+    "abus sexuel commis contre des enfants"
+  ],
+  "question préjudicielle": [
+    "recours en interprétation"
+  ],
+  "quotient électoral": [
+    "seuil électoral"
+  ],
+  "racisme": [
+    "lutte contre le racisme"
+  ],
+  "rapprochement des législations": [
+    "harmonisation des législations"
+  ],
+  "recel": [
+    "détention frauduleuse",
+    "réception frauduleuse"
+  ],
+  "recevabilité": [
+    "exception d'irrecevabilité"
+  ],
+  "recommandation (ue)": [
+    "recommandation communautaire",
+    "recommandation de la banque centrale européenne",
+    "recommandation de la commission",
+    "recommandation du conseil"
+  ],
+  "reconnaissance d'état": [
+    "reconnaissance de facto",
+    "reconnaissance de jure"
+  ],
+  "recours collectif": [
+    "action collective",
+    "action représentative",
+    "mécanisme de recours collectif",
+    "plainte collective"
+  ],
+  "recours contentieux (ue)": [
+    "recours contentieux communautaire",
+    "recours devant la cour de justice"
+  ],
+  "recours contentieux administratif": [
+    "recours de pleine juridiction",
+    "recours en appréciation de validité",
+    "recours en légalité"
+  ],
+  "recours du personnel": [
+    "recours des fonctionnaires"
+  ],
+  "recours en annulation": [
+    "recours pour excès de pouvoir"
+  ],
+  "recours en carence": [
+    "recours en carence communautaire"
+  ],
+  "recours en manquement": [
+    "recours en manquement d'état"
+  ],
+  "relation du travail": [
+    "relation professionnelle"
+  ],
+  "repenti": [
+    "incitation au repentir"
+  ],
+  "représentant syndical": [
+    "syndicaliste"
+  ],
+  "représentation du personnel": [
+    "représentation des travailleurs"
+  ],
+  "représentation proportionnelle": [
+    "scrutin proportionnel"
+  ],
+  "responsabilité": [
+    "responsabilité collégiale",
+    "responsabilité juridique",
+    "responsabilité légale",
+    "obligation de réparer",
+    "imputabilité",
+    "faute génératrice"
+  ],
+  "responsabilité civile": [
+    "réparation du préjudice",
+    "dommage civil",
+    "réparation intégrale"
+  ],
+  "responsabilité du producteur": [
+    "garantie commerciale",
+    "responsabilité du fait du produit",
+    "responsabilité du produit"
+  ],
+  "responsabilité pénale": [
+    "majorité pénale",
+    "minorité pénale",
+    "imputabilité pénale",
+    "répression pénale"
+  ],
+  "ressortissant": [
+    "citoyen"
+  ],
+  "ressortissant de l'ue": [
+    "ressortissant communautaire",
+    "ressortissant de l'union européenne"
+  ],
+  "ressortissant étranger": [
+    "ressortissant d'un pays tiers",
+    "étranger"
+  ],
+  "restriction de liberté": [
+    "assignation à résidence",
+    "interdiction de séjour"
+  ],
+  "rupture": [
+    "résiliation",
+    "dénonciation",
+    "résolution"
+  ],
+  "rupture contractuelle": [
+    "résiliation",
+    "rupture unilatérale",
+    "dénonciation du contrat"
+  ],
+  "règlement": [
+    "acte réglementaire",
+    "disposition réglementaire"
+  ],
+  "règlement (ue)": [
+    "règlement communautaire",
+    "règlement de la banque centrale européenne",
+    "règlement de la commission",
+    "règlement du conseil",
+    "règlement du parlement européen"
+  ],
+  "règlement d'exécution": [
+    "règlement d'exécution de la commission",
+    "règlement d'exécution du conseil"
+  ],
+  "règlement délégué": [
+    "règlement délégué de la commission"
+  ],
+  "récusation": [
+    "récusation d'arbitre",
+    "récusation d'un juge",
+    "récusation d'un magistrat non professionnel",
+    "récusation d'un témoignage",
+    "récusation d'un témoin",
+    "récusation de jurés"
+  ],
+  "référé": [
+    "action en référé",
+    "procédure d'urgence",
+    "ordonnance de référé"
+  ],
+  "régime pénitentiaire": [
+    "condition de détention",
+    "congé pénal",
+    "congé pénitentiaire",
+    "isolement"
+  ],
+  "réparation": [
+    "indemnisation",
+    "dédommagement",
+    "compensation"
+  ],
+  "réparation intégrale": [
+    "indemnisation totale",
+    "dédommagement complet"
+  ],
+  "répartition des sièges": [
+    "attribution des sièges",
+    "distribution des sièges",
+    "méthode d'hondt",
+    "méthode hagenbach-bischoff",
+    "méthode imperiali"
+  ],
+  "répartition des votes": [
+    "pourcentage des voix"
+  ],
+  "réquisition des travailleurs": [
+    "réquisition du personnel"
+  ],
+  "résolution (ue)": [
+    "résolution ce",
+    "résolution communautaire",
+    "résolution de la commission"
+  ],
+  "résolution pe": [
+    "résolution du parlement européen"
+  ],
+  "rétroactivité de la loi": [
+    "effet rétroactif",
+    "rétroactivité"
+  ],
+  "révision de la constitution": [
+    "réforme constitutionnelle"
+  ],
+  "révision de traité (ue)": [
+    "révision de traité ce"
+  ],
+  "saisie": [
+    "mesure d'exécution",
+    "mesure conservatoire",
+    "séquestre"
+  ],
+  "saisie de biens": [
+    "saisie conservatoire",
+    "saisie sur salaire",
+    "saisie-arrêt",
+    "saisie-exécution"
+  ],
+  "sanction (ue)": [
+    "amende de l'ue",
+    "paiement d'une astreinte de l'ue",
+    "politique de l'ue en matière d'amendes",
+    "sanction communautaire",
+    "sanction pécuniaire de l'ue"
+  ],
+  "sanction pénale": [
+    "condamnation",
+    "peine"
+  ],
+  "science juridique": [
+    "droit"
+  ],
+  "scrutin de liste": [
+    "scrutin plurinominal"
+  ],
+  "secret professionnel": [
+    "secret médical",
+    "confidentialité",
+    "obligation de discrétion"
+  ],
+  "servitude": [
+    "droit d'accès",
+    "droit de passage",
+    "charge foncière",
+    "restriction à la propriété"
+  ],
+  "société": [
+    "personne morale",
+    "entité juridique",
+    "structure juridique"
+  ],
+  "solvabilité financière": [
+    "insolvabilité financière"
+  ],
+  "statut juridique": [
+    "personnalité juridique",
+    "personne juridique",
+    "statut légal"
+  ],
+  "succession": [
+    "héritage",
+    "transmission à cause de mort",
+    "dévolution successorale"
+  ],
+  "suffrage universel": [
+    "élection directe"
+  ],
+  "surveillance maritime": [
+    "police de la haute mer"
+  ],
+  "suspension de peine": [
+    "sursis"
+  ],
+  "syndicat": [
+    "bourse du travail",
+    "chambre syndicale",
+    "fédération syndicale",
+    "organisation syndicale",
+    "syndicalisme",
+    "syndicat de travailleurs",
+    "syndicat ouvrier"
+  ],
+  "syndicat de fonctionnaires": [
+    "syndicat d'enseignants"
+  ],
+  "système d'information schengen": [
+    "sis"
+  ],
+  "système électoral européen": [
+    "droit électoral communautaire",
+    "procédure électorale uniforme"
+  ],
+  "séquestration de personnes": [
+    "enlèvement",
+    "otage",
+    "prise d'otage"
+  ],
+  "territoire non autonome": [
+    "territoire sous tutelle"
+  ],
+  "testament": [
+    "legs",
+    "dernières volontés",
+    "disposition à cause de mort"
+  ],
+  "titre de séjour": [
+    "autorisation de séjour",
+    "carte de séjour",
+    "permis de résidence"
+  ],
+  "trafic de stupéfiants": [
+    "dealer",
+    "revendeur de drogue",
+    "trafic de drogue",
+    "trafiquant de drogue"
+  ],
+  "traite des êtres humains": [
+    "teh",
+    "trafic d'enfants",
+    "trafic de personnes",
+    "traite des blanches",
+    "traite des personnes"
+  ],
+  "traité ceca": [
+    "traité de paris",
+    "traité instituant la communauté européenne du charbon et de l’acier"
+  ],
+  "traité cee": [
+    "traité de rome"
+  ],
+  "traité ceea": [
+    "traité euratom"
+  ],
+  "traité de fusion": [
+    "fusion des institutions communautaires",
+    "traité de fusion ce"
+  ],
+  "traité sur l'union européenne": [
+    "projet de traité d'union européenne",
+    "traité de maastricht",
+    "traité ue",
+    "tue"
+  ],
+  "traité sur la stabilité, la coordination et la gouvernance": [
+    "pacte budgétaire (ue)",
+    "traité sur la stabilité, la coordination et la gouvernance au sein de l'uem",
+    "traité sur la stabilité, la coordination et la gouvernance au sein de l’union économique et monétaire",
+    "tscg"
+  ],
+  "traité sur le fonctionnement de l'ue": [
+    "tfue",
+    "traité sur le fonctionnement de l'union européenne"
+  ],
+  "traités européens": [
+    "droit primaire",
+    "traités communautaires",
+    "traités de l'ue",
+    "traités de l'union européenne"
+  ],
+  "transmission de la propriété": [
+    "dation"
+  ],
+  "travail du détenu": [
+    "travail du prisonnier"
+  ],
+  "témoignage": [
+    "témoin"
+  ],
+  "unanimité": [
+    "vote à l'unanimité"
+  ],
+  "usufruit": [
+    "droit de jouissance",
+    "démembrement de propriété"
+  ],
+  "usurpation d’identité": [
+    "filoutage",
+    "fraude à l'identité",
+    "hameçonnage",
+    "usurpation d'identité d'un tiers",
+    "vol d'identité"
+  ],
+  "utilisation de l'espace": [
+    "exploration de l'espace",
+    "responsabilité des objets spatiaux",
+    "utilisation pacifique de l'espace"
+  ],
+  "vie privée": [
+    "intimité",
+    "sphère privée",
+    "droit au respect de la vie privée"
+  ],
+  "viol": [
+    "agression sexuelle aggravée",
+    "atteinte sexuelle avec pénétration"
+  ],
+  "violation du droit de l'ue": [
+    "infraction au droit communautaire",
+    "infraction au droit de l'ue",
+    "infraction au droit de l'union européenne",
+    "violation de traité ce",
+    "violation du droit communautaire",
+    "violation du droit de l'union européenne"
+  ],
+  "violence": [
+    "contrainte",
+    "menace",
+    "coercition"
+  ],
+  "violence sexuelle": [
+    "abus sexuel",
+    "agression sexuelle",
+    "viol"
+  ],
+  "violences conjugales": [
+    "violences intra-familiales",
+    "violences au sein du couple",
+    "violences domestiques"
+  ],
+  "voie d'exécution": [
+    "autorité de la chose jugée",
+    "effet du jugement",
+    "exécution d'un arrêt",
+    "exécution du jugement",
+    "mesure d'exécution forcée"
+  ],
+  "voie de recours": [
+    "appel en justice",
+    "pourvoi",
+    "pourvoi en cassation",
+    "recours en révision"
+  ],
+  "vol": [
+    "lutte contre le vol",
+    "soustraction frauduleuse",
+    "appropriation frauduleuse"
+  ],
+  "vote obligatoire": [
+    "vote facultatif"
+  ],
+  "vote secret": [
+    "isoloir",
+    "vote à bulletin secret"
+  ],
+  "vérification du scrutin": [
+    "observation électorale"
+  ],
+  "zone économique exclusive": [
+    "zee",
+    "zone de 200 milles",
+    "zone nationale exclusive"
+  ],
+  "égalité de traitement": [
+    "discrimination positive",
+    "inégalité de traitement",
+    "principe d'égalité",
+    "principe de non-discrimination",
+    "égalité de chances",
+    "égalité des droits"
+  ],
+  "égalité homme-femme": [
+    "ieg",
+    "iig",
+    "indice d'inégalité de genre",
+    "indice d'égalité de genre",
+    "inégalité entre les genres",
+    "inégalité entre les hommes et les femmes",
+    "inégalité entre les sexes",
+    "inégalité hommes-femmes",
+    "égalité des sexes",
+    "égalité entre les femmes et les hommes"
+  ],
+  "élaboration du droit de l'ue": [
+    "procédure législative communautaire",
+    "procédure législative de l'ue",
+    "procédure législative de l'union européenne",
+    "élaboration du droit communautaire",
+    "élaboration du droit de l'union européenne"
+  ],
+  "élection locale": [
+    "élection communale",
+    "élection municipale"
+  ],
+  "élection nationale": [
+    "élections générales"
+  ],
+  "élection parlementaire": [
+    "élection législative",
+    "élection sénatoriale"
+  ],
+  "élection régionale": [
+    "élection cantonale"
+  ],
+  "électorat": [
+    "collège électoral",
+    "électeur"
+  ],
+  "éligibilité": [
+    "inéligibilité"
+  ],
+  "éloignement": [
+    "décision d’éloignement",
+    "expulsion",
+    "expulsion administrative",
+    "expulsion du territoire",
+    "refoulement à la frontière",
+    "refus d’entrée pour les citoyens de l’ue"
+  ],
+  "établissement pénitentiaire": [
+    "centre pénitentiaire",
+    "maison d'arrêt",
+    "prison",
+    "pénitencier",
+    "qhs",
+    "quartier de haute sécurité",
+    "établissement carcéral"
+  ],
+  "état de nécessité": [
+    "cause exonératoire",
+    "fait justificatif"
+  ]
 }
