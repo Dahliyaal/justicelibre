@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<title>Politique de confidentialité · justicelibre.org</title>
+<meta name="description" content="Politique de confidentialité et traitement des données personnelles sur justicelibre.org. Conformité RGPD.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
+--light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
+--display:"DM Serif Display",Georgia,serif;--sans:"DM Sans",-apple-system,sans-serif;}
+html[data-theme="dark"]{--teal:#4ea0a0;--teal-xl:#1e3a3a;--ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
+--light:#141413;--white:#1e1e1c;--line:#2a2a27;}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]){--teal:#4ea0a0;--teal-xl:#1e3a3a;
+--ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;--light:#141413;--white:#1e1e1c;--line:#2a2a27;}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white);transition:background .2s,color .2s}
+a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:780px;margin:0 auto;padding:3rem 2rem 5rem}
+.back{font-size:.85rem;color:var(--muted);margin-bottom:2rem;display:block}
+h1{font-family:var(--display);font-size:2rem;margin-bottom:2rem;line-height:1.15}
+h2{font-family:var(--display);font-size:1.3rem;margin:2.5rem 0 .8rem;color:var(--teal)}
+p{font-size:1rem;line-height:1.7;color:var(--body);margin-bottom:.9rem}
+ul{margin:.5rem 0 1rem 1.5rem;color:var(--body)}
+li{margin-bottom:.5rem;line-height:1.6}
+strong{color:var(--ink)}
+table{width:100%;border-collapse:collapse;margin:1rem 0 1.5rem;font-size:.92rem}
+th,td{padding:.6rem .8rem;border:1px solid var(--line);vertical-align:top;text-align:left}
+th{background:var(--teal-xl);color:var(--teal);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+.theme-toggle{position:fixed;top:1.2rem;right:1.2rem;z-index:10;background:var(--white);
+border:1px solid var(--line);width:34px;height:34px;border-radius:50%;cursor:pointer;
+display:flex;align-items:center;justify-content:center;color:var(--muted);padding:0}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
+.theme-toggle svg{width:16px;height:16px}
+html[data-theme="dark"] .theme-toggle .sun{display:block}html[data-theme="dark"] .theme-toggle .moon{display:none}
+html:not([data-theme="dark"]) .theme-toggle .sun{display:none}html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]) .theme-toggle .sun{display:block}
+html:not([data-theme="light"]) .theme-toggle .moon{display:none}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Thème">
+<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+</button>
+<div class="wrap">
+<a href="/" class="back">&larr; justicelibre.org</a>
+<h1>Politique de confidentialité & RGPD</h1>
+
+<p>justicelibre.org est un service citoyen gratuit d'accès à la jurisprudence publique. Nous collectons le strict minimum de données et ne commercialisons rien.</p>
+
+<h2>Ce qu'on NE collecte PAS</h2>
+<ul>
+<li><strong>Pas de cookies de tracking, pas de cookies publicitaires.</strong> Aucun consentement de ce type n'est requis.</li>
+<li><strong>Pas d'analytics</strong> (Google Analytics, Matomo, etc.).</li>
+<li><strong>Pas de logs d'IP</strong> : les adresses IP ne sont pas enregistrées de manière persistante lors de vos recherches ou de l'utilisation du MCP. Seules les logs techniques nginx conservent les IP pendant 7 jours (protection contre abus), après quoi elles sont purgées.</li>
+<li><strong>Pas de compte utilisateur</strong>. Aucune inscription, aucun profil, aucune session utilisateur.</li>
+<li><strong>Pas de contenu de requêtes historisé</strong>. Vos recherches ne sont pas stockées.</li>
+</ul>
+
+<h2>Ce qu'on utilise (côté navigateur uniquement)</h2>
+<ul>
+<li><strong>localStorage</strong> : stockage local (non envoyé au serveur) pour :
+<ul>
+<li>Préférence de thème (clair/sombre)</li>
+<li>Cache court-terme (24h) des articles de loi consultés, pour éviter les allers-retours inutiles</li>
+</ul>
+Ces données ne quittent jamais votre appareil. Vous pouvez les effacer à tout moment via les outils de votre navigateur.</li>
+</ul>
+
+<h2>Ce qu'on collecte (uniquement sur action volontaire de votre part)</h2>
+
+<h3>1. Token PISTE (échange OAuth2)</h3>
+<p>Si vous utilisez le <a href="/tutoriel-piste.html">tutoriel PISTE</a> pour générer un token de session, vos identifiants <code>Client ID</code> et <code>Client Secret</code> PISTE sont :</p>
+<table>
+<tr><th>Finalité</th><td>Échanger ces identifiants contre un Bearer token PISTE et vous retourner un jeton de session temporaire</td></tr>
+<tr><th>Base légale</th><td>Exécution du service demandé par vous (art. 6.1.b RGPD)</td></tr>
+<tr><th>Conservation</th><td>Les identifiants ne sont JAMAIS stockés sur disque. Ils transitent en RAM le temps de l'échange avec PISTE, puis sont effacés.</td></tr>
+<tr><th>Bearer PISTE obtenu</th><td>Conservé 1 heure maximum, associé à un jeton de session justicelibre anonyme (UUID), puis supprimé automatiquement</td></tr>
+</table>
+
+<h3>2. Formulaire de signalement (bouton « Problème ? »)</h3>
+<p>Si vous utilisez le formulaire de signalement d'erreur dans le panneau article :</p>
+<table>
+<tr><th>Données collectées</th><td>Votre message (obligatoire), votre email (optionnel, seulement si vous voulez une réponse), et un identifiant navigateur tronqué (User-Agent, pour débug)</td></tr>
+<tr><th>Ce qui N'EST PAS collecté</th><td>Votre IP n'est PAS enregistrée</td></tr>
+<tr><th>Finalité</th><td>Améliorer la détection automatique des citations d'articles de loi</td></tr>
+<tr><th>Base légale</th><td>Intérêt légitime (amélioration du service public d'accès au droit, art. 6.1.f RGPD)</td></tr>
+<tr><th>Conservation</th><td>12 mois maximum. Purge automatique mensuelle au-delà.</td></tr>
+<tr><th>Destinataires</th><td>Uniquement le mainteneur du site. Aucune transmission à des tiers.</td></tr>
+</table>
+
+<h2>Vos droits RGPD</h2>
+<p>Conformément au Règlement général sur la protection des données (art. 15 à 22), vous disposez des droits suivants :</p>
+<ul>
+<li><strong>Droit d'accès</strong> : obtenir la confirmation que des données vous concernant sont traitées, et une copie de ces données</li>
+<li><strong>Droit de rectification</strong> : corriger des données inexactes</li>
+<li><strong>Droit à l'effacement</strong> : demander la suppression de vos signalements (nous réécrivons le fichier en excluant vos entrées identifiables par votre email)</li>
+<li><strong>Droit d'opposition</strong> : vous opposer au traitement de vos données</li>
+<li><strong>Droit à la limitation</strong> : restreindre le traitement</li>
+<li><strong>Droit à la portabilité</strong> : recevoir vos données dans un format structuré</li>
+</ul>
+<p>Pour exercer ces droits, écrivez à <a href="mailto:contact@justicelibre.org">contact@justicelibre.org</a>. Réponse sous 1 mois maximum.</p>
+<p>En cas de désaccord, vous pouvez saisir la <strong>CNIL</strong> à l'adresse <a href="https://www.cnil.fr">cnil.fr</a>.</p>
+
+<h2>Sous-traitants & transferts de données</h2>
+<ul>
+<li><strong>Hetzner Online GmbH</strong> (Allemagne, UE) — hébergeur. Données stockées en UE.</li>
+<li><strong>Cloudflare</strong> (le cas échéant, en front CDN) — proxy réseau. Peut voir les IP de connexion (loggées brièvement par Cloudflare selon leurs propres politiques).</li>
+<li><strong>DILA</strong>, <strong>Conseil d'État</strong>, <strong>Cour de cassation</strong>, <strong>HUDOC</strong>, <strong>EUR-Lex</strong> : sources publiques interrogées pour fournir le service. Aucune de vos données personnelles ne leur est transmise.</li>
+</ul>
+<p>Aucun transfert de données hors UE.</p>
+
+<h2>Modifications</h2>
+<p>Cette politique peut évoluer. La date de dernière mise à jour figure en bas de page. Les changements significatifs seront annoncés via le <a href="https://github.com/Dahliyaal/justicelibre">dépôt GitHub</a>.</p>
+
+<p style="margin-top:3rem;color:var(--muted);font-size:.85rem">Dernière mise à jour : 19 avril 2026.</p>
+</div>
+<script>
+(function(){var s=localStorage.getItem('jl-theme');if(s)document.documentElement.dataset.theme=s;
+document.getElementById('themeToggle').addEventListener('click',function(){
+var h=document.documentElement,c=h.dataset.theme,sy=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',n;
+if(!c)n=sy==='dark'?'light':'dark';else if(c==='dark'&&sy==='light')n='light';
+else if(c==='light'&&sy==='dark')n='dark';else n='';
+if(n){h.dataset.theme=n;localStorage.setItem('jl-theme',n)}else{delete h.dataset.theme;localStorage.removeItem('jl-theme')}});})();
+</script>
+</body>
+</html>

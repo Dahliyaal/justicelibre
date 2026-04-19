@@ -186,15 +186,17 @@ def _resolve_session(session_token: str) -> str | None:
         session = _SESSION_STORE.get(session_token)
         if session and time.time() < session["expires"]:
             return session["bearer"]
-    # Check file-based store (from token_server.py)
-    try:
-        with open("/tmp/justicelibre_sessions.json") as f:
-            file_sessions = json.load(f)
-        sess = file_sessions.get(session_token)
-        if sess and time.time() < sess["expires"]:
-            return sess["bearer"]
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        pass
+    # Check file-based store (from token_server.py). Try secure /run first,
+    # fallback to legacy /tmp for backward compat during transition.
+    for session_path in ("/run/justicelibre/sessions.json", "/tmp/justicelibre_sessions.json"):
+        try:
+            with open(session_path) as f:
+                file_sessions = json.load(f)
+            sess = file_sessions.get(session_token)
+            if sess and time.time() < sess.get("expires", 0):
+                return sess["bearer"]
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            continue
     return None
 
 

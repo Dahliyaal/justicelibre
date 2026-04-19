@@ -1,14 +1,20 @@
 """Tiny HTTP server for the PISTE credential exchange + public search API.
 
 Endpoints :
-  POST /api/token      — échange Client ID/Secret PISTE contre session token
-  GET  /api/search     — recherche fédérée publique (sans auth)
-  GET  /api/decision   — récupération du texte intégral
+  POST   /api/token       — échange Client ID/Secret PISTE contre session token
+  DELETE /api/token       — invalide un session token (logout)
+  GET    /api/search      — recherche fédérée publique (sans auth)
+  GET    /api/decision    — récupération du texte intégral
+  GET    /api/law         — article de loi à une date donnée
+  GET    /api/law/versions — toutes les versions d'un article
+  POST   /api/law/batch   — plusieurs articles en une requête
+  POST   /api/feedback    — signalement utilisateur (RGPD-safe, pas de logging d'IP)
 
 Runs on port 8766. Nginx routes /api/* here.
 """
 import asyncio
 import json
+import logging
 import os
 import re
 import sys
@@ -23,30 +29,64 @@ import httpx
 sys.path.insert(0, "/opt/justicelibre")
 from search_api import search_federated, fetch_decision
 
-OAUTH_URL = "https://sandbox-oauth.piste.gouv.fr/api/oauth/token"
+# Logger dédié (remplace les traceback.print_exc sauvages)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("justicelibre.token_server")
 
-# Shared session store (imported by server.py via file-based IPC)
-SESSION_FILE = "/tmp/justicelibre_sessions.json"
+OAUTH_URL = "https://oauth.piste.gouv.fr/api/oauth/token"
+
+# Session store — moved off world-readable /tmp. Created with 0600 perms.
+SESSION_DIR = "/run/justicelibre"
+SESSION_FILE = f"{SESSION_DIR}/sessions.json"
+# Legacy fallback for backward compat (à nettoyer plus tard)
+_LEGACY_SESSION_FILE = "/tmp/justicelibre_sessions.json"
 
 import threading
 _LOCK = threading.Lock()
 
 
-def _load_sessions() -> dict:
+def _ensure_session_dir():
     try:
-        with open(SESSION_FILE) as f:
-            sessions = json.load(f)
-        # Cleanup expired
-        now = time.time()
-        sessions = {k: v for k, v in sessions.items() if v["expires"] > now}
-        return sessions
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+        os.makedirs(SESSION_DIR, exist_ok=True)
+        os.chmod(SESSION_DIR, 0o700)
+    except PermissionError:
+        logger.warning("cannot create %s, fallback to /tmp (less secure)", SESSION_DIR)
+
+
+def _load_sessions() -> dict:
+    """Load sessions from secure location, fallback to legacy /tmp for backward compat."""
+    for path in (SESSION_FILE, _LEGACY_SESSION_FILE):
+        try:
+            with open(path) as f:
+                sessions = json.load(f)
+            now = time.time()
+            return {k: v for k, v in sessions.items() if v.get("expires", 0) > now}
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+    return {}
 
 
 def _save_sessions(sessions: dict):
-    with open(SESSION_FILE, "w") as f:
-        json.dump(sessions, f)
+    _ensure_session_dir()
+    target = SESSION_FILE
+    try:
+        # Atomic write with strict permissions (0600 = owner only)
+        tmp = target + ".tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump(sessions, f)
+        os.replace(tmp, target)
+    except PermissionError:
+        # Fallback legacy path if /run not writable
+        with open(_LEGACY_SESSION_FILE, "w") as f:
+            json.dump(sessions, f)
+        try:
+            os.chmod(_LEGACY_SESSION_FILE, 0o600)
+        except OSError:
+            pass
 
 
 def _exchange_token(client_id: str, client_secret: str) -> str | None:
@@ -70,12 +110,44 @@ def _exchange_token(client_id: str, client_secret: str) -> str | None:
 
 
 class TokenHandler(BaseHTTPRequestHandler):
+    # Sécurité : CORS restreint sur les endpoints sensibles (exchange OAuth2)
+    _CORS_RESTRICTED_PATHS = {"/api/token"}
+    _ALLOWED_ORIGIN = "https://justicelibre.org"
+    _MAX_BODY_SIZE = 100_000  # 100 KB — plus gros = refusé
+
+    def log_message(self, format, *args):
+        # Ne pas logger les IP / user-agents en clair. Version silencieuse pour
+        # réduire l'empreinte RGPD. Les erreurs passent par `logger` dédié.
+        pass
+
+    def _cors_origin(self) -> str:
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path in self._CORS_RESTRICTED_PATHS:
+            return self._ALLOWED_ORIGIN
+        return "*"
+
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
+    def do_DELETE(self):
+        """Invalidation d'un session token (logout)."""
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if parsed.path != "/api/token":
+            return self._json_response(404, {"error": "Endpoint inconnu."})
+        token = (qs.get("session_token", [""])[0] or "").strip()
+        if not token:
+            return self._json_response(400, {"error": "session_token requis"})
+        with _LOCK:
+            sessions = _load_sessions()
+            removed = sessions.pop(token, None)
+            if removed:
+                _save_sessions(sessions)
+        return self._json_response(200, {"ok": True, "invalidated": bool(removed)})
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -120,8 +192,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                 return self._json_response(404, {"error": f"Article introuvable : {code} {num}."})
             return self._json_response(200, data)
         except Exception:
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur interne — entrepôt indisponible."})
 
     def _handle_law_versions(self, qs: dict):
@@ -134,8 +205,7 @@ class TokenHandler(BaseHTTPRequestHandler):
             versions = wh.sync_get_law_versions(code, num)
             return self._json_response(200, {"code": code, "num": num, "versions": versions})
         except Exception:
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur interne."})
 
     def _handle_search(self, qs: dict):
@@ -184,8 +254,7 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(200, data)
         except Exception as e:
             # Ne pas exposer stacktrace/chemin serveur au client
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur interne du serveur. Réessayez."})
 
     def _handle_decision(self, qs: dict):
@@ -200,8 +269,7 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(200, data)
         except Exception as e:
             # Ne pas exposer stacktrace/chemin serveur au client
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur interne du serveur. Réessayez."})
 
     def do_POST(self):
@@ -254,9 +322,12 @@ class TokenHandler(BaseHTTPRequestHandler):
 
     def _handle_feedback(self):
         """Endpoint append-only pour signalements utilisateur."""
-        content_len = int(self.headers.get("Content-Length", 0))
-        if content_len > 10000:
-            return self._json_response(400, {"error": "Message trop long."})
+        try:
+            content_len = int(self.headers.get("Content-Length", "0"))
+        except (ValueError, TypeError):
+            return self._json_response(400, {"error": "Content-Length invalide"})
+        if content_len <= 0 or content_len > 10000:
+            return self._json_response(400, {"error": "Taille de message invalide."})
         raw = self.rfile.read(content_len)
         try:
             body = json.loads(raw)
@@ -264,10 +335,18 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(400, {"error": "JSON invalide"})
         msg = (body.get("message") or "").strip()[:3000]
         email = (body.get("email") or "").strip()[:120]
-        context = body.get("context") or {}
-        ua = (body.get("ua") or "").strip()[:300]
+        context_raw = body.get("context") or {}
+        ua = (body.get("ua") or "").strip()[:150]
         if len(msg) < 5:
             return self._json_response(400, {"error": "Message trop court."})
+        # Whitelist des clés de contexte (évite log injection / pollution arbitraire)
+        ALLOWED_CONTEXT_KEYS = {"source", "id", "url", "title"}
+        context = {}
+        if isinstance(context_raw, dict):
+            for k in ALLOWED_CONTEXT_KEYS:
+                v = context_raw.get(k)
+                if v is not None:
+                    context[k] = str(v)[:300]
         # RGPD : on NE stocke PAS l'IP (donnée à caractère personnel sans base
         # légale + sans info au point de collecte). Email optionnel, fourni
         # volontairement par l'utilisateur. UA tronqué (debug browser/OS).
@@ -276,7 +355,7 @@ class TokenHandler(BaseHTTPRequestHandler):
             "message": msg,
             "email": email,
             "context": context,
-            "ua": ua[:150],
+            "ua": ua,
         }
         try:
             os.makedirs("/var/log/justicelibre", exist_ok=True)
@@ -284,13 +363,15 @@ class TokenHandler(BaseHTTPRequestHandler):
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
             return self._json_response(200, {"ok": True})
         except Exception:
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur d'écriture"})
 
     def _handle_law_batch(self):
-        content_len = int(self.headers.get("Content-Length", 0))
-        if content_len > 50000:  # 50 KB max = ~500 refs
+        try:
+            content_len = int(self.headers.get("Content-Length", "0"))
+        except (ValueError, TypeError):
+            return self._json_response(400, {"error": "Content-Length invalide"})
+        if content_len <= 0 or content_len > 50000:  # 50 KB max = ~500 refs
             return self._json_response(400, {"error": "Body trop gros."})
         raw = self.rfile.read(content_len)
         try:
@@ -319,8 +400,7 @@ class TokenHandler(BaseHTTPRequestHandler):
             items = wh.sync_get_laws_batch(clean_refs, date)
             return self._json_response(200, {"date": date, "count": len(items), "items": items})
         except Exception:
-            import traceback
-            traceback.print_exc()
+            logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur entrepôt."})
 
     def _json_response(self, code: int, data: dict):

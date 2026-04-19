@@ -46,6 +46,14 @@ except FileNotFoundError:
 if len(WAREHOUSE_KEY) < 32:
     sys.exit(f"warehouse key is too short (< 32 chars)")
 
+# Sécurité : refuser de démarrer si la clé est lisible par d'autres utilisateurs
+_KEY_MODE = KEY_FILE.stat().st_mode & 0o777
+if _KEY_MODE & 0o077:
+    sys.exit(
+        f"warehouse key {KEY_FILE} has insecure permissions ({oct(_KEY_MODE)}). "
+        f"Run: chmod 600 {KEY_FILE}"
+    )
+
 # ─── CODE → LEGITEXT MAPPING (22 codes supportés) ────────────────────
 
 CODE_TO_LEGITEXT: dict[str, str] = {

@@ -7,11 +7,26 @@ Covers: Cour de cassation (~144k decisions) + cours d'appel (~73k decisions).
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
 
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
+
+
+def _sanitize_fts5(q: str) -> str:
+    """Nettoie une query utilisateur pour FTS5 MATCH.
+
+    FTS5 plante en SyntaxError sur certains caractères spéciaux mal placés
+    (`:`, `\\`, points en début de mot…). On strip ce qui n'est pas dans
+    le set sûr pour préserver les opérateurs FTS5 valides (AND, OR, NOT,
+    "phrase", mot*, parenthèses) sans permettre d'injection sémantique.
+    """
+    if not q:
+        return ""
+    # Caractères autorisés : alphanum, espaces, ", *, (, ), -, accents (\w + unicode)
+    return re.sub(r"[^\w\s\"*()\-]", " ", q, flags=re.UNICODE).strip()
 
 JURIDICTIONS = {
     "cassation": "Cour de cassation",
@@ -36,8 +51,10 @@ def search(
 
     conn = _get_conn()
     try:
-        # Build FTS5 query
-        fts_query = query.strip()
+        # Build FTS5 query — sanitize to avoid SQLite SyntaxError on user input
+        fts_query = _sanitize_fts5(query)
+        if not fts_query:
+            return {"total": 0, "decisions": []}
 
         # snippet() : extrait autour du match, ~28 tokens, highlights <em>…</em>
         SNIPPET_SQL = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
