@@ -9,6 +9,7 @@ Runs on port 8766. Nginx routes /api/* here.
 """
 import asyncio
 import json
+import os
 import re
 import sys
 import time
@@ -206,6 +207,8 @@ class TokenHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/law/batch":
             return self._handle_law_batch()
+        if self.path == "/api/feedback":
+            return self._handle_feedback()
         if self.path != "/api/token":
             self.send_response(404)
             self.end_headers()
@@ -248,6 +251,42 @@ class TokenHandler(BaseHTTPRequestHandler):
             "expires_in": 3600,
             "message": "Token valide 1 heure. Utilisez-le dans le paramètre session_token des tools search_judiciaire et get_decision_judiciaire.",
         })
+
+    def _handle_feedback(self):
+        """Endpoint append-only pour signalements utilisateur."""
+        content_len = int(self.headers.get("Content-Length", 0))
+        if content_len > 10000:
+            return self._json_response(400, {"error": "Message trop long."})
+        raw = self.rfile.read(content_len)
+        try:
+            body = json.loads(raw)
+        except json.JSONDecodeError:
+            return self._json_response(400, {"error": "JSON invalide"})
+        msg = (body.get("message") or "").strip()[:3000]
+        email = (body.get("email") or "").strip()[:120]
+        context = body.get("context") or {}
+        ua = (body.get("ua") or "").strip()[:300]
+        if len(msg) < 5:
+            return self._json_response(400, {"error": "Message trop court."})
+        # Rate limit très basique : max 10 feedbacks/IP/heure via fichier
+        ip = self.headers.get("CF-Connecting-IP") or self.client_address[0]
+        entry = {
+            "ts": time.time(),
+            "ip": ip[:50],
+            "message": msg,
+            "email": email,
+            "context": context,
+            "ua": ua,
+        }
+        try:
+            os.makedirs("/var/log/justicelibre", exist_ok=True)
+            with open("/var/log/justicelibre/feedback.jsonl", "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            return self._json_response(200, {"ok": True})
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return self._json_response(500, {"error": "Erreur d'écriture"})
 
     def _handle_law_batch(self):
         content_len = int(self.headers.get("Content-Length", 0))

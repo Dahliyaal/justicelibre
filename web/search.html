@@ -757,8 +757,24 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   <div class="law-footer">
     <button id="lawVersions" type="button">Voir toutes les versions</button>
     <a id="lawExtern" href="#" target="_blank" rel="noopener">Voir sur Légifrance ↗</a>
+    <button id="lawFeedback" type="button" title="Signaler un problème" style="font-size:.72rem;color:var(--muted)">Problème ?</button>
   </div>
 </aside>
+
+<!-- Modal feedback (superposé au panel article) -->
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--white);color:var(--ink);max-width:480px;width:100%;padding:1.8rem;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <h3 style="font-family:var(--display);font-size:1.2rem;margin-bottom:.4rem">Signaler un problème</h3>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signale-nous ici. Pas de compte requis ; ton message arrive en append-only sur notre serveur.</p>
+    <textarea id="feedbackMessage" placeholder="Décris brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
+    <input id="feedbackEmail" type="email" placeholder="Email (optionnel — pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
+    <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end">
+      <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Annuler</button>
+      <button type="button" id="feedbackSend" style="padding:.55rem 1.1rem;background:var(--teal);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600">Envoyer</button>
+    </div>
+    <p id="feedbackStatus" style="font-size:.8rem;margin-top:.6rem;color:var(--muted);display:none"></p>
+  </div>
+</div>
 
 <footer class="footer-min">
   justicelibre.org · <a href="/">Accueil</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Licence Ouverte 2.0 (Etalab)
@@ -1716,6 +1732,64 @@ async function showLawVersions(code, num) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.body.classList.contains('law-open')) {
     closeLawPanel();
+  }
+});
+
+// ─── FEEDBACK FORM ─────────────────────────────────────────────
+
+const feedbackModal = document.getElementById('feedbackModal');
+const feedbackStatus = document.getElementById('feedbackStatus');
+
+function openFeedback(context){
+  feedbackStatus.style.display = 'none';
+  document.getElementById('feedbackMessage').value = '';
+  document.getElementById('feedbackEmail').value = '';
+  feedbackModal.dataset.context = JSON.stringify(context || {});
+  feedbackModal.style.display = 'flex';
+}
+
+function closeFeedback(){ feedbackModal.style.display = 'none'; }
+
+document.getElementById('lawFeedback').addEventListener('click', () => {
+  const ctx = {
+    source: 'law-panel',
+    title: document.getElementById('lawTitle').textContent,
+    url: location.href,
+  };
+  openFeedback(ctx);
+});
+document.getElementById('feedbackCancel').addEventListener('click', closeFeedback);
+feedbackModal.addEventListener('click', e => { if (e.target === feedbackModal) closeFeedback(); });
+document.getElementById('feedbackSend').addEventListener('click', async () => {
+  const msg = document.getElementById('feedbackMessage').value.trim();
+  if (msg.length < 5) {
+    feedbackStatus.style.display = 'block';
+    feedbackStatus.textContent = 'Message trop court.';
+    feedbackStatus.style.color = 'var(--red)';
+    return;
+  }
+  const email = document.getElementById('feedbackEmail').value.trim();
+  const context = JSON.parse(feedbackModal.dataset.context || '{}');
+  feedbackStatus.style.display = 'block';
+  feedbackStatus.textContent = 'Envoi…';
+  feedbackStatus.style.color = 'var(--muted)';
+  try {
+    const r = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg, email, context, ua: navigator.userAgent}),
+    });
+    if (r.ok) {
+      feedbackStatus.textContent = '✓ Merci ! Signalement enregistré.';
+      feedbackStatus.style.color = 'var(--teal)';
+      setTimeout(closeFeedback, 1500);
+    } else {
+      feedbackStatus.textContent = 'Erreur serveur. Réessaie.';
+      feedbackStatus.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    feedbackStatus.textContent = 'Erreur réseau.';
+    feedbackStatus.style.color = 'var(--red)';
   }
 });
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <title>justicelibre.org · la jurisprudence française, sans péage</title>
-<meta name="description" content="Serveur MCP open source : accès gratuit à ~1 267 000 décisions de la justice administrative française.">
+<meta name="description" content="Serveur MCP open source : accès gratuit à ~6 500 000 décisions juridiques et ~1 500 000 articles de loi (avec versions historiques). Jurisprudence française et européenne.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -430,9 +430,9 @@ footer p{margin:.2rem 0}
 <!-- STATS -->
 <section class="stats-section reveal d3">
   <div class="stats-grid">
-    <div class="stat-card"><span class="num">1 267 000</span><span class="label">Décisions</span></div>
-    <div class="stat-card"><span class="num">51</span><span class="label">Juridictions</span></div>
-    <div class="stat-card"><span class="num">6</span><span class="label">Outils MCP</span></div>
+    <div class="stat-card"><span class="num">6,5 M+</span><span class="label">Décisions indexées</span></div>
+    <div class="stat-card"><span class="num">1,5 M+</span><span class="label">Articles de loi (avec versions)</span></div>
+    <div class="stat-card"><span class="num">24</span><span class="label">Outils MCP</span></div>
     <div class="stat-card"><span class="num">0 €</span><span class="label">Coût d'accès</span></div>
   </div>
 </section>
@@ -454,62 +454,79 @@ footer p{margin:.2rem 0}
 
 <!-- TOOLS -->
 <section class="section" id="tools">
-  <h2>10 outils, <em>deux ordres</em> juridictionnels</h2>
-  <p>Justice administrative en temps réel (via les APIs ouvertes), justice judiciaire via notre index local des archives DILA (mis à jour automatiquement chaque semaine).</p>
+  <h2>25 outils, <em>toute la matière</em> juridique française</h2>
+  <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
 
-  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Justice administrative (temps réel, sans auth)</h3>
+  <div class="callout" style="margin:2rem 0;border-color:var(--teal)">
+    <p><strong>Killer feature</strong> : <code>get_law_article(code, num, date)</code> — récupère l'article à sa version <em>en vigueur à la date donnée</em>. Une décision de 1992 cite l'article 1128 du Code civil ? Le tool retourne le texte napoléonien d'époque, pas la réforme 2016. <strong>C'est ce que Dalloz facture 200€/mois.</strong></p>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Recherche fédérée (pertinence BM25)</h3>
   <div class="tools-grid">
     <div class="tool-card">
-      <code>list_juridictions</code>
-      <p>Liste les 51 juridictions admin couvertes (40 TA, 9 CAA, CE).</p>
+      <code>search_all</code>
+      <p>Fan-out sur toutes les sources. Thésaurus FR auto (harcèlement → intimidation, vexation…). À utiliser en priorité.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_admin</code>
+      <p>4 M+ décisions JADE (CE, 9 CAA, 40 TA) full text. <strong>Pertinence</strong> BM25.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_judiciaire_libre</code>
+      <p>620 k+ décisions Cass + 36 CA + Conseil constitutionnel. Archives DILA locales.</p>
     </div>
     <div class="tool-card">
       <code>search_conseil_etat</code>
-      <p>Recherche dans les ~270 000 décisions du Conseil d'État (ArianeWeb).</p>
+      <p>270 k+ décisions du CE via moteur Sinequa (ArianeWeb, 114 k indexées en full text).</p>
     </div>
     <div class="tool-card">
-      <code>search_juridiction</code>
-      <p>Recherche dans un TA, CAA ou CE précis. Ex : <code style="font-size:.76rem">TA69</code> pour Lyon.</p>
+      <code>search_cedh</code>
+      <p>76 k décisions de la Cour européenne des droits de l'homme (HUDOC FR).</p>
     </div>
     <div class="tool-card">
-      <code>search_all_tribunaux_admin</code>
-      <p>Recherche parallèle sur les 40 TA simultanément.</p>
-    </div>
-    <div class="tool-card">
-      <code>search_all_cours_appel</code>
-      <p>Recherche parallèle sur les 9 CAA administratives.</p>
-    </div>
-    <div class="tool-card">
-      <code>get_decision_text</code>
-      <p>Texte intégral d'une décision administrative.</p>
+      <code>search_cjue</code>
+      <p>44 k arrêts CJUE + Tribunal UE + conclusions AG en français.</p>
     </div>
   </div>
 
-  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Justice judiciaire (index DILA, sans auth, MAJ hebdo)</h3>
-  <p style="font-size:.92rem;color:var(--muted);margin-bottom:1rem">~217 000 décisions indexées localement depuis les archives publiques DILA. Cour de cassation, 36 cours d'appel, tribunaux judiciaires, tribunaux de commerce, prud'hommes, tribunal des conflits. Aucun compte requis.</p>
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Articles de loi (avec versions historiques)</h3>
   <div class="tools-grid">
     <div class="tool-card">
-      <code>search_judiciaire_libre</code>
-      <p>Recherche par mots-clés dans toute la jurisprudence judiciaire. Filtrable par juridiction ("cassation", "appel").</p>
+      <code>get_law_article</code>
+      <p>Article à une date (ex : art. 1128 CC en 1992 → texte napoléonien).</p>
     </div>
     <div class="tool-card">
-      <code>get_decision_judiciaire_libre</code>
-      <p>Texte intégral d'une décision judiciaire.</p>
+      <code>get_law_versions</code>
+      <p>Timeline complète d'un article (1804 → 1964 → 1994 → 2016…).</p>
+    </div>
+    <div class="tool-card">
+      <code>search_legi</code>
+      <p>1,5 M+ articles de 22 codes (CC, CP, CT, CJA, CSS, CSP…).</p>
+    </div>
+    <div class="tool-card">
+      <code>search_decisions_citing</code>
+      <p>Cross-référence inverse : quelles décisions citent cet article ?</p>
     </div>
   </div>
 
-  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--muted)">Justice judiciaire via PISTE (temps réel, auth requise)</h3>
-  <p style="font-size:.92rem;color:var(--muted);margin-bottom:1rem">Pour les données les plus fraîches (~548 000 décisions) via l'API Judilibre. Nécessite un compte PISTE gratuit. <a href="/tutoriel-piste.html">Voir le tutoriel</a>.</p>
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Droit positif complémentaire</h3>
   <div class="tools-grid">
-    <div class="tool-card" style="border-color:var(--muted)">
-      <code style="color:var(--muted)">search_judiciaire</code>
-      <p>Recherche temps réel via Judilibre (CC, CA, TJ, TCOM). Requiert un token de session.</p>
+    <div class="tool-card">
+      <code>search_jorf</code>
+      <p>Journal Officiel post-1990. Lois non codifiées, décrets, arrêtés, circulaires.</p>
     </div>
-    <div class="tool-card" style="border-color:var(--muted)">
-      <code style="color:var(--muted)">get_decision_judiciaire</code>
-      <p>Texte intégral via Judilibre. Requiert un token de session.</p>
+    <div class="tool-card">
+      <code>search_kali</code>
+      <p>Conventions collectives + accords de branche. Filtrable par IDCC.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_cnil</code>
+      <p>26 k+ délibérations CNIL. Droit des données personnelles, RGPD.</p>
     </div>
   </div>
+
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--muted)">Chronologique & PISTE (usages secondaires)</h3>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1rem"><code>search_admin_recent</code>, <code>search_admin_recent_all_ta</code>, <code>search_admin_recent_all_caa</code> : tri par date pour voir l'actualité d'une juridiction. Les tools <code>search_judiciaire</code> / <code>get_decision_judiciaire</code> ciblent Judilibre temps réel (auth PISTE — <a href="/tutoriel-piste.html">tutoriel</a>).</p>
 </section>
 
 <!-- MISSION -->
