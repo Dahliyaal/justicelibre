@@ -35,47 +35,51 @@ from sources import (
 
 mcp = FastMCP(
     "justicelibre",
-    instructions="""Protocole d'accès libre à la jurisprudence française et européenne.
+    instructions="""Protocole d'accès libre à la jurisprudence et au droit positif français + européen (24 tools).
 
-SIX SOURCES DISTINCTES, chacune assortie de contraintes propres :
+TOOL D'ENTRÉE : `search_all` — recherche fédérée fan-out avec ranking BM25
++ thésaurus juridique FR automatique (ex : "harcèlement" → aussi
+"intimidation", "vexation morale"). À UTILISER EN PRIORITÉ pour toute
+requête floue ou multi-source.
 
-1. ArianeWeb — outil : `search_conseil_etat`.
-   ~270 000 décisions du Conseil d'État. Moteur sémantique Sinequa (scoring
-   de pertinence + extraits en surbrillance). Identifiants retournés au
-   format `/Ariane_Web/AW_DCE/|XXXXXX` — INOPÉRANTS pour les outils
-   `get_decision_*`.
+SOURCES DE JURISPRUDENCE (pertinence BM25) :
+• `search_admin` — 4 M+ décisions JADE (CE + 9 CAA + 40 TA) full text
+• `search_judiciaire_libre` — 620 k+ Cass + 36 CA + Conseil constitutionnel
+• `search_conseil_etat` — 270 k+ CE via Sinequa (moteur sémantique natif)
+• `search_cedh` — 76 k décisions Cour EDH
+• `search_cjue` — 44 k arrêts CJUE + Tribunal UE
 
-2. Open Data Justice administrative — outils : `search_juridiction`,
-   `search_all_tribunaux_admin`, `search_all_cours_appel`,
-   `get_decision_text`, `list_juridictions`.
-   Décisions du CE + 9 CAA + 40 TA (incluant l'outre-mer) depuis ~2022.
-   Recherche Elasticsearch, résultats triés chronologiquement.
-   Identifiants `DCE_*`, `DTA_*`, `DCAA_*` — compatibles avec
-   `get_decision_text`.
+EXTRACTION TEXTE INTÉGRAL : `get_decision_text` (admin DCE_*/DTA_*/DCAA_*),
+`get_decision_judiciaire_libre` (JURITEXT*/CONSTEXT*), `get_decision_cedh`
+(001-*), `get_decision_cjue` (CELEX/ECLI).
 
-3. DILA judiciaire (archives libres) — outils : `search_judiciaire_libre`,
-   `get_decision_judiciaire_libre`. Index local SQLite FTS5 des archives
-   DILA : ~620 000 décisions (Cour de cassation + 36 Cours d'appel +
-   Conseil constitutionnel). Aucune authentification requise.
+ARTICLES DE LOI (killer feature unique à justicelibre) :
+• `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
+  Ex : art. 1128 CC en 1992 → texte napoléonien, pas la réforme 2016.
+• `get_law_versions(code, num)` — timeline complète historique.
+• `search_legi` — 1,5 M articles des 22 codes consolidés.
+• `search_decisions_citing(code, num)` — cross-référence inverse.
 
-4. PISTE Judilibre — outils : `search_judiciaire`, `get_decision_judiciaire`.
-   Couvre les décisions les plus récentes non encore archivées par la DILA.
-   Nécessite des identifiants OAuth2 PISTE (gratuits).
+DROIT POSITIF COMPLÉMENTAIRE :
+• `search_jorf` — JO post-1990 (lois, décrets, arrêtés, circulaires)
+• `search_kali` — conventions collectives + accords de branche
+• `search_cnil` — délibérations CNIL (RGPD, données personnelles)
 
-5. HUDOC (Cour EDH) — outils : `search_cedh`, `get_decision_cedh`.
-   Index local des ~76 000 documents HUDOC en français. Libre d'accès.
+SECONDAIRES (tri date-desc, pour l'actualité d'une juridiction) :
+`search_admin_recent`, `search_admin_recent_all_ta`,
+`search_admin_recent_all_caa` — À éviter pour la recherche de jurisprudence
+pertinente (utiliser `search_admin` qui a BM25).
 
-6. EUR-Lex (CJUE) — outils : `search_cjue`, `get_decision_cjue`.
-   Index local des décisions de la CJUE, du Tribunal UE et des conclusions
-   d'avocats généraux. Libre d'accès.
+PISTE JUDILIBRE (auth OAuth2) :
+`search_judiciaire` + `get_decision_judiciaire` — pour les décisions
+judiciaires récentes non encore archivées. Token obtenable sur
+justicelibre.org/tutoriel-piste.html.
 
-PROTOCOLE D'USAGE : initier toute session par la consultation de
-`about_justicelibre` pour récupérer la cartographie complète. Privilégier
-systématiquement les bases libres (DILA, HUDOC, EUR-Lex, Open Data admin) ;
-ne recourir à l'API PISTE qu'en dernière instance, pour les décisions
-judiciaires récentes absentes de la base libre. Consulter
-`list_juridictions` en amont de tout filtrage par cour administrative
-précise.
+PROTOCOLE D'USAGE : pour tout doute, commencer par `about_justicelibre`
+qui détaille la cartographie. Sinon : `search_all(query)` couvre 90% des
+besoins. Pour les 22 codes de loi consolidés : CC, CP, CPC, CPP, CT, CSP,
+CJA, CGCT, CRPA, CPI, CASF, CMF, C.com, C.cons, C.éduc, CU, C.env, CR,
+CGI, CESEDA, CSS, CCH.
 """,
 )
 
