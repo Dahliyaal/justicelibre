@@ -362,11 +362,10 @@ footer p{margin:.2rem 0}
   width:12px;height:12px;border-radius:50%;
   border:2px solid var(--teal);background:var(--white);
   z-index:1;
-  /* Centre exact sur la barre (.timeline::before left:5px width:2px → centre x=6px).
-     Cercle width:12px → left doit être 0px en coord .timeline.
-     .tl-item est à +2.5rem (padding-left timeline), donc left:-2.5rem
-     mais en pratique CSS ::before sub-pixel render → on ajuste +5px pour visuel propre */
-  left:calc(-2.5rem + 5px)
+  /* Centre cercle exactement sur la barre (.timeline::before left:5px width:2px → x=6px).
+     Avec timeline padding-left:2.5rem, left:-2.5rem positionne le cercle pile sur la barre.
+     Vérifié via Playwright BoundingClientRect : center à 6.0px = barre à 6.0px ✓ */
+  left:-2.5rem
 }
 .tl-item.done::before{background:var(--teal)}
 .tl-item.next::before{
