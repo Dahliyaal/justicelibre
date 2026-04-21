@@ -260,12 +260,33 @@ def _normalize_num(num: str) -> str:
 # ─── FTS5 SEARCH (by fond) ───────────────────────────────────────────
 
 def _fts_query(q: str) -> str:
-    """Sanitize user query for FTS5 MATCH clause."""
+    """Sanitize user query for FTS5 MATCH clause.
+
+    Points durs :
+    - Les tokens composés (14-80854, L1152-1, 23-3, C-72/24, ECLI:…) sont
+      interprétés par FTS5 comme `X NOT Y` (où `-` = NOT) → erreur SQL
+      "no such column: Y". On les wrappe en phrase.
+    - Les autres caractères spéciaux sont strippés.
+    """
     if not q:
         return ""
-    # Strip characters FTS5 doesn't like outside quoted phrases
-    # Simple strategy: keep alphanum + quotes + operators, drop the rest
-    return re.sub(r"[^\w\s\"*():\-]", " ", q, flags=re.UNICODE).strip()
+    # 1. Protéger les phrases utilisateur "..."
+    phrases: list[str] = []
+    def _protect(m):
+        phrases.append(m.group(0))
+        return f"\x01{len(phrases)-1}\x01"
+    q = re.sub(r'"[^"]*"', _protect, q)
+    # 2. Wrapper les tokens composés en phrase pour neutraliser `-`, `/`, `:`
+    def _quote_compound(m):
+        # Remplace séparateurs par espaces et enveloppe en phrase
+        return '"' + re.sub(r"[-/:]+", " ", m.group(0)) + '"'
+    q = re.sub(r"\b\w+(?:[-/:]\w+)+\b", _quote_compound, q)
+    # 3. Strip chars restants que FTS5 n'aime pas
+    q = re.sub(r"[^\w\s\"*()]", " ", q, flags=re.UNICODE)
+    # 4. Restaurer les phrases utilisateur
+    for i, p in enumerate(phrases):
+        q = q.replace(f"\x01{i}\x01", p)
+    return q.strip()
 
 
 def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
