@@ -28,6 +28,7 @@ import sys
 import threading
 from datetime import date as _date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import urllib.parse
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -57,6 +58,7 @@ if _KEY_MODE & 0o077:
 # ─── CODE → LEGITEXT MAPPING (22 codes supportés) ────────────────────
 
 CODE_TO_LEGITEXT: dict[str, str] = {
+    # ─── 22 codes consolidés (LEGITEXT stables) ─────────────────
     "CC":      "LEGITEXT000006070721",  # Code civil
     "CP":      "LEGITEXT000006070719",  # Code pénal
     "CPC":     "LEGITEXT000006070716",  # Code de procédure civile
@@ -79,7 +81,60 @@ CODE_TO_LEGITEXT: dict[str, str] = {
     "CESEDA":  "LEGITEXT000006070158",  # Code de l'entrée et du séjour des étrangers
     "CSS":     "LEGITEXT000006073189",  # Code de la sécurité sociale
     "CCH":     "LEGITEXT000006074096",  # Code de la construction et de l'habitation
+    # ─── Lois non codifiées fréquemment citées ─────────────────
+    # DILA les indexe via JORFTEXT (pas LEGITEXT) car ce sont des publications
+    # au JO, pas des codes consolidés. L'URL Légifrance utilise `/loda/` au
+    # lieu de `/codes/` pour ces textes.
+    "LIL":       "JORFTEXT000000886460",  # Loi 78-17 Informatique et Libertés (474 articles)
+    "LO58":      "JORFTEXT000000705065",  # Ordonnance 58-1067 organique Conseil constit. (95 art.)
+    "L2005-102": "JORFTEXT000000809647",  # Loi 2005-102 handicap (123 articles)
 }
+
+
+def _is_codified(legitext: str) -> bool:
+    """Un texte 'codifié' commence par LEGITEXT (code) vs JORFTEXT (loi non codifiée)."""
+    return legitext.startswith("LEGITEXT")
+
+
+def _build_source_url(identifier: str, legitext: str = "") -> str | None:
+    """Reconstruit l'URL canonique d'un document à partir de son ID.
+
+    Règles basées sur les conventions stables Légifrance / Conseil Constitutionnel /
+    Conseil d'État / EUR-Lex / HUDOC.
+    """
+    if not identifier:
+        return None
+    idp = identifier.strip()
+    # LEGIARTI (article de code ou de loi consolidée)
+    if idp.startswith("LEGIARTI"):
+        # Si on connait le parent LEGITEXT et qu'il est LEGITEXT (code), utiliser /codes/
+        # sinon /loda/ pour les lois non codifiées (JORFTEXT*). Par défaut /codes/ (Légifrance redirige)
+        if legitext and legitext.startswith("JORFTEXT"):
+            return f"https://www.legifrance.gouv.fr/loda/article_lc/{idp}"
+        return f"https://www.legifrance.gouv.fr/codes/article_lc/{idp}"
+    if idp.startswith("LEGITEXT"):
+        return f"https://www.legifrance.gouv.fr/codes/texte_lc/{idp}"
+    if idp.startswith("JORFTEXT"):
+        return f"https://www.legifrance.gouv.fr/loda/id/{idp}"
+    if idp.startswith("JURITEXT"):
+        return f"https://www.legifrance.gouv.fr/juri/id/{idp}"
+    if idp.startswith("CONSTEXT"):
+        return f"https://www.legifrance.gouv.fr/juri/id/{idp}"
+    if idp.startswith("CETATEXT"):
+        return f"https://www.legifrance.gouv.fr/ceta/id/{idp}"
+    # CELEX (CJUE) : 6XXXXCJXXXX ou 6XXXXCC0XXX
+    if re.match(r"^6\d{4}[A-Z]{2}\d{4}$", idp):
+        return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{idp}"
+    # ECLI
+    if idp.upper().startswith("ECLI:"):
+        return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=ecli:{idp}"
+    # HUDOC itemid (001-XXXXXX)
+    if re.match(r"^\d{3}-\d+$", idp):
+        return f"https://hudoc.echr.coe.int/fre?i={idp}"
+    # ArianeWeb /Ariane_Web/AW_DCE/|XXXXXX : deeplinks existent
+    if idp.startswith("/Ariane_Web/"):
+        return f"https://www.conseil-etat.fr/arianeweb/#/view-document/{urllib.parse.quote(idp)}"
+    return None
 LEGITEXT_TO_CODE = {v: k for k, v in CODE_TO_LEGITEXT.items()}
 
 # Supported fonds and their DB files / main search tables
@@ -250,6 +305,7 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str) -> dict:
         "date_fin": row["date_fin"] or None,
         "texte": row["texte"],
         "nota": row["nota"] or None,
+        "source_url": _build_source_url(row["legiarti"], legitext=legitext),
     }
 
 
@@ -418,6 +474,17 @@ class WarehouseHandler(BaseHTTPRequestHandler):
 
         if path == "/v1/health":
             return self._json(200, {"status": "ok", "fonds": list(FONDS.keys()), "codes": list(CODE_TO_LEGITEXT.keys())})
+
+        if path == "/v1/url":
+            # Build source URL from an arbitrary identifier
+            ident = _q(q, "id")
+            legitext = _q(q, "legitext") or ""
+            if not ident:
+                return self._json(400, {"error": "id required"})
+            url = _build_source_url(ident, legitext=legitext)
+            if not url:
+                return self._json(404, {"error": f"identifier type not recognized: {ident!r}"})
+            return self._json(200, {"id": ident, "source_url": url})
 
         if path == "/v1/law":
             code = _q(q, "code")

@@ -760,6 +760,42 @@ async def get_decision_judiciaire(
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
 
 @mcp.tool()
+async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any]:
+    """Construit l'URL canonique d'un document à partir de son identifiant.
+
+    Utile pour vérifier les sources à la main sur le site officiel (Légifrance,
+    Conseil constitutionnel, EUR-Lex, HUDOC, etc.) ou pour inclure un lien
+    cliquable dans un courrier.
+
+    Identifiants reconnus :
+    - `LEGIARTI*` → Légifrance article (passer `legitext` du texte parent
+      pour distinguer code (/codes/) vs loi non codifiée (/loda/)
+    - `LEGITEXT*` / `JORFTEXT*` → texte entier Légifrance
+    - `JURITEXT*` / `CONSTEXT*` / `CETATEXT*` → décisions Légifrance
+    - CELEX (`6XXXXCJXXXX`) → EUR-Lex (CJUE)
+    - `ECLI:*` → EUR-Lex deeplink
+    - itemid HUDOC (`001-XXXXXX`) → Cour EDH
+    - ArianeWeb (`/Ariane_Web/AW_DCE/|XXXXXX`) → conseil-etat.fr
+
+    Args:
+        identifier: l'ID à convertir
+        legitext: (optionnel) LEGITEXT du texte parent si `identifier` est un
+            LEGIARTI — améliore la précision de l'URL (codes/ vs loda/)
+
+    Returns:
+        `{"id", "source_url"}` ou `{"error"}` si format non reconnu.
+    """
+    _record_call("build_source_url")
+    if not identifier.strip():
+        return {"error": "identifier requis"}
+    from sources import warehouse as wh
+    url = await wh.build_url(identifier, legitext or None)
+    if not url:
+        return {"error": f"format d'identifiant non reconnu : {identifier!r}"}
+    return {"id": identifier, "source_url": url}
+
+
+@mcp.tool()
 async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | None:
     """Récupère une décision du Conseil constitutionnel par son numéro.
 

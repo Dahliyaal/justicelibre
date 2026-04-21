@@ -15,6 +15,7 @@ from . import warehouse as wh
 # Codes supportés (miroir de CODE_TO_LEGITEXT côté warehouse)
 # Utile pour validation rapide côté client (évite un round-trip si code bidon)
 SUPPORTED_CODES: dict[str, str] = {
+    # ─── 22 codes consolidés ─────────────────────────────────
     "CC":      "Code civil",
     "CP":      "Code pénal",
     "CPC":     "Code de procédure civile",
@@ -37,6 +38,10 @@ SUPPORTED_CODES: dict[str, str] = {
     "CESEDA":  "Code de l'entrée et du séjour des étrangers et du droit d'asile",
     "CSS":     "Code de la sécurité sociale",
     "CCH":     "Code de la construction et de l'habitation",
+    # ─── Lois non codifiées fréquemment citées ──────────────
+    "LIL":     "Loi Informatique et Libertés (loi n° 78-17)",
+    "LO58":    "Ordonnance organique Conseil constitutionnel (ord. n° 58-1067)",
+    "L2005-102": "Loi handicap (loi n° 2005-102)",
 }
 
 

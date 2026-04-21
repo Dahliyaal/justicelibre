@@ -110,6 +110,17 @@ async def lookup_by_numero(fond: str, numero: str, juridiction: str | None = Non
     return (data or {}).get("results", []) if data else []
 
 
+async def build_url(identifier: str, legitext: str | None = None) -> str | None:
+    """Construit l'URL canonique (source officielle) d'un document à partir
+    de son identifiant. Délègue au warehouse qui connaît tous les patterns.
+    """
+    params = {"id": identifier}
+    if legitext:
+        params["legitext"] = legitext
+    data = await _aget("/v1/url", **params)
+    return (data or {}).get("source_url") if data else None
+
+
 # ─── Sync wrappers for non-async callers (like token_server handlers) ──
 
 def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
