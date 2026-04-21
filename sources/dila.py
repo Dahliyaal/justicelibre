@@ -187,6 +187,40 @@ def search_cc(
         conn.close()
 
 
+def get_cc_decision(numero: str, nature: str | None = None) -> dict[str, Any] | None:
+    """Récupère une décision du Conseil constitutionnel par son numéro.
+
+    Le numéro de décision CC suit le format `AA-NNN NATURE` (ex : "79-105 DC",
+    "2020-800 DC", "2023-1048 QPC"). On cherche via FTS5 sur le pattern
+    pour retrouver l'entrée dans judiciaire.db.
+    """
+    if not numero.strip():
+        return None
+    num_clean = numero.strip().replace(" ", " ")
+    # FTS5 phrase match sur le numéro
+    fts_q = f'"{num_clean}"'
+    conn = _get_conn()
+    try:
+        base = ("SELECT d.id, d.titre, d.date, d.juridiction, d.nature, d.ecli, d.text "
+                "FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid "
+                "WHERE decisions_fts MATCH ? AND d.juridiction = 'Conseil constitutionnel'")
+        params = [fts_q]
+        if nature and nature.upper() in CC_NATURES:
+            base += " AND d.nature = ?"
+            params.append(nature.upper())
+        base += " ORDER BY d.date DESC LIMIT 1"
+        row = conn.execute(base, params).fetchone()
+        if not row:
+            return None
+        return {
+            "id": row["id"], "titre": row["titre"], "date": row["date"],
+            "juridiction": row["juridiction"], "nature": row["nature"],
+            "ecli": row["ecli"], "text": row["text"],
+        }
+    finally:
+        conn.close()
+
+
 def lookup_by_field(field: str, value: str, limit: int = 5) -> list[dict[str, Any]]:
     """Lookup direct par colonne indexée (numero, ecli) sans FTS5.
 

@@ -341,7 +341,7 @@ async def list_juridictions() -> dict[str, Any]:
     canonique.
 
     Consulter impérativement cette liste pour déterminer le code exact à
-    fournir à l'outil `search_juridiction`.
+    fournir à l'outil `search_admin`.
     """
     _record_call("list_juridictions")
     return {
@@ -368,7 +368,7 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
     ATTENTION : les identifiants retournés (format
     `/Ariane_Web/AW_DCE/|XXXXXX`) sont inopérants pour l'extraction de
     texte. Pour récupérer l'intégralité d'un arrêt, ré-indexer la recherche
-    via `search_juridiction` (paramètre `juridiction="CE"` et un extrait de
+    via `search_admin` (paramètre `juridiction="CE"` et un extrait de
     la requête) afin d'obtenir un identifiant compatible
     (`DCE_XXX_YYYYMMDD`).
 
@@ -506,7 +506,7 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
 
     INCOMPATIBILITÉS MAJEURES :
     - Identifiants ArianeWeb `/Ariane_Web/AW_DCE/|XXXXXX` — procéder à une
-      ré-indexation via `search_juridiction` pour obtenir un identifiant
+      ré-indexation via `search_admin` pour obtenir un identifiant
       compatible.
     - Identifiants JURITEXT — rediriger vers `get_decision_judiciaire_libre`
       ou `get_decision_judiciaire`.
@@ -526,7 +526,7 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     if decision_id.startswith("/Ariane_Web/") or decision_id.startswith("|"):
         return {"error": (
             f"L'identifiant fourni ({decision_id!r}) relève du format ArianeWeb et n'est pas "
-            "exploitable par cet outil. Procéder à une ré-indexation via `search_juridiction` "
+            "exploitable par cet outil. Procéder à une ré-indexation via `search_admin` "
             "(juridiction=\"CE\") assortie de mots-clés distinctifs ; un identifiant "
             "compatible au format `DCE_XXX_YYYYMMDD` sera alors disponible."
         )}
@@ -758,6 +758,45 @@ async def get_decision_judiciaire(
 
 
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
+
+@mcp.tool()
+async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | None:
+    """Récupère une décision du Conseil constitutionnel par son numéro.
+
+    Format attendu : "AA-NNN NATURE" ou juste "AA-NNN" (ex : "79-105 DC",
+    "2020-800 DC", "2023-1048 QPC"). Recherche full-text sur le numéro
+    + filtre juridiction="Conseil constitutionnel" dans judiciaire.db.
+
+    Args:
+        numero: numéro de décision CC (ex : "79-105 DC")
+        nature: filtre optionnel (QPC, DC, L, etc.) — cf search_cc
+
+    Returns:
+        `{id, titre, date, juridiction, nature, ecli, text}` ou None.
+    """
+    _record_call("get_cc_decision")
+    return dila.get_cc_decision(numero, nature or None)
+
+
+@mcp.tool()
+async def get_ce_decision(numero: str) -> dict[str, Any] | None:
+    """Récupère une décision du Conseil d'État par son numéro de pourvoi.
+
+    Exemple : "497566" (format numérique pur sans séparateur). Query dans
+    jade.db (bulk JADE DILA) filtré sur juridiction Conseil d'État.
+
+    Pour retrouver une décision via identifiant DCE_*, utiliser
+    `get_decision_text` à la place.
+
+    Args:
+        numero: numéro de pourvoi (ex : "497566")
+
+    Returns:
+        Décision complète avec texte intégral, ou None si introuvable.
+    """
+    _record_call("get_ce_decision")
+    return await jade_remote.get_ce_decision(numero)
+
 
 @mcp.tool()
 async def search_cc(

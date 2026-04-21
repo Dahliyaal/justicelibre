@@ -66,3 +66,20 @@ async def search(
 
 async def get_decision(decision_id: str) -> dict[str, Any] | None:
     return await wh.get_decision_remote("jade", decision_id)
+
+
+async def get_ce_decision(numero: str) -> dict[str, Any] | None:
+    """Récupère une décision du Conseil d'État par son numéro (ex: "497566").
+
+    Utilise l'endpoint /v1/lookup/jade avec filtre exact sur `numero` +
+    juridiction "Conseil d'Etat" (évite le bruit FTS5 sur numéros courts).
+    """
+    if not numero.strip():
+        return None
+    num_clean = numero.strip().replace(" ", "")
+    # Exact lookup SQL, pas FTS5 (pour éviter le bruit des numéros cités ailleurs)
+    results = await wh.lookup_by_numero("jade", num_clean, juridiction="Conseil d'Etat")
+    if not results:
+        return None
+    # Prendre le premier match (il ne devrait y en avoir qu'un par numéro + juridiction)
+    return results[0]

@@ -101,6 +101,15 @@ async def get_decision_remote(fond: str, decision_id: str) -> dict | None:
     return await _aget(f"/v1/decision/{fond}/{decision_id}")
 
 
+async def lookup_by_numero(fond: str, numero: str, juridiction: str | None = None) -> list[dict]:
+    """Exact numero lookup (SQL =), évite FTS5 noyé sur numéros courts."""
+    params = {"numero": numero}
+    if juridiction:
+        params["juridiction"] = juridiction
+    data = await _aget(f"/v1/lookup/{fond}", **params)
+    return (data or {}).get("results", []) if data else []
+
+
 # ─── Sync wrappers for non-async callers (like token_server handlers) ──
 
 def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:

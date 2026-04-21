@@ -465,6 +465,31 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 return self._json(404, {"error": f"decision {did!r} not found in {fond}"})
             return self._json(200, d)
 
+        # /v1/lookup/{fond}?numero=X&juridiction=Y
+        # Exact lookup par numero + filtre juridiction optionnel (évite FTS5 noyé)
+        m = re.match(r"^/v1/lookup/(\w+)$", path)
+        if m:
+            fond = m.group(1)
+            if fond not in FONDS:
+                return self._json(400, {"error": f"unknown fond: {fond}"})
+            numero = _q(q, "numero")
+            juridiction = _q(q, "juridiction")
+            if not numero:
+                return self._json(400, {"error": "numero required"})
+            cfg = FONDS[fond]
+            c = _conn(fond)
+            sql = f"SELECT * FROM {cfg['decision_table']} WHERE numero = ?"
+            params = [numero]
+            if juridiction:
+                # Match juridiction avec tolérance sur les accents (Conseil d'Etat vs d'État)
+                sql += " AND (juridiction = ? OR juridiction LIKE ?)"
+                params.extend([juridiction, f"%{juridiction.replace('État', 'Etat')}%"])
+            sql += " LIMIT 5"
+            rows = c.execute(sql, params).fetchall()
+            if not rows:
+                return self._json(404, {"error": f"no match for numero {numero!r} in {fond}"})
+            return self._json(200, {"count": len(rows), "results": [dict(r) for r in rows]})
+
         return self._json(404, {"error": f"endpoint not found: {path}"})
 
     def _route_post(self):
