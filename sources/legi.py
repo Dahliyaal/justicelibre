@@ -52,18 +52,40 @@ def is_supported(code: str) -> bool:
 async def get_article(code: str, num: str, date: str | None = None) -> dict[str, Any]:
     """Récupère un article à une date donnée (ou version actuelle si None).
 
+    `code` accepte :
+    - un code court parmi SUPPORTED_CODES (CC, CP, LIL, LO58…)
+    - un identifiant LEGITEXT/JORFTEXT direct pour les textes non listés
+      (ex: 'JORFTEXT000000878035' pour la loi 68-1250).
+      → Utiliser `resolve_law_number()` pour trouver l'id à partir d'un
+        numéro de loi.
+
     Retourne un dict structuré, ou {"error": "..."} si introuvable / code inconnu.
     """
-    if not is_supported(code):
+    # Accepter LEGITEXT / JORFTEXT direct comme code
+    if code.startswith("LEGITEXT") or code.startswith("JORFTEXT"):
+        data = await wh.get_law(code, num, date)
+    elif is_supported(code):
+        data = await wh.get_law(code, num, date)
+    else:
         return {
-            "error": f"Code inconnu: {code!r}. Codes supportés: {list(SUPPORTED_CODES.keys())}",
+            "error": f"Code inconnu: {code!r}. Codes supportés: {list(SUPPORTED_CODES.keys())}. "
+                     f"Pour les autres lois/décrets, passer un LEGITEXT/JORFTEXT direct "
+                     f"(utiliser resolve_law_number() pour le trouver depuis un numéro).",
         }
-    data = await wh.get_law(code, num, date)
     if data is None:
         return {
             "error": f"Article {code} {num} introuvable",
             "code": code, "num": num, "date": date,
         }
+    return data
+
+
+async def resolve_number(numero: str) -> dict[str, Any]:
+    """Résout un numéro de loi/ordonnance/décret ('68-1250', '79-587') vers
+    son LEGITEXT/JORFTEXT + métadonnées."""
+    data = await wh.resolve_law_number(numero)
+    if data is None:
+        return {"error": f"Pas de loi/décret trouvé avec le numéro {numero!r}"}
     return data
 
 

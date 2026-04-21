@@ -760,6 +760,34 @@ async def get_decision_judiciaire(
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
 
 @mcp.tool()
+async def resolve_law_number(numero: str) -> dict[str, Any]:
+    """Résout un numéro de loi/ordonnance/décret vers son identifiant LEGITEXT
+    ou JORFTEXT Légifrance.
+
+    Utile pour les textes non codifiés (lois, ordonnances, décrets) qui ne
+    sont pas dans la whitelist des 25 codes courts (CC, CP, LIL, LO58, etc.).
+    Une fois le LEGITEXT/JORFTEXT résolu, on peut l'utiliser avec
+    `get_law_article(code=<LEGITEXT>, num=<N>)` pour récupérer un article
+    spécifique.
+
+    Exemples :
+    - `resolve_law_number("68-1250")` → loi prescription quadriennale des
+      créances publiques (JORFTEXT000000878035)
+    - `resolve_law_number("79-587")` → loi motivation des actes admin
+    - `resolve_law_number("2000-321")` → loi droits citoyens face à l'admin
+
+    Args:
+        numero: format "YY-NNNN" ou "YYYY-NNNN" (ex: "68-1250", "2000-321")
+
+    Returns:
+        `{numero, legitext, titre_section, date_debut, articles_count, source_url}`
+        ou `{error}` si introuvable.
+    """
+    _record_call("resolve_law_number")
+    return await legi.resolve_number(numero)
+
+
+@mcp.tool()
 async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any]:
     """Construit l'URL canonique d'un document à partir de son identifiant.
 

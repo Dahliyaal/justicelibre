@@ -121,6 +121,14 @@ async def build_url(identifier: str, legitext: str | None = None) -> str | None:
     return (data or {}).get("source_url") if data else None
 
 
+async def resolve_law_number(numero: str) -> dict | None:
+    """Résout un numéro de loi/ordonnance/décret (ex: '68-1250', '79-587')
+    vers son LEGITEXT/JORFTEXT + infos (titre, date, nombre d'articles).
+    """
+    data = await _aget("/v1/law/resolve", numero=numero)
+    return data if data else None
+
+
 # ─── Sync wrappers for non-async callers (like token_server handlers) ──
 
 def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:

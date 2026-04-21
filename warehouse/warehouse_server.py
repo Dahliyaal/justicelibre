@@ -196,11 +196,81 @@ def _conn(fond: str) -> sqlite3.Connection:
 
 # ─── LAW (article version at date) ───────────────────────────────────
 
-def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
-    """Return the article version in force at `target_date`, or current if None."""
-    legitext = CODE_TO_LEGITEXT.get(code)
-    if not legitext:
+def resolve_law_number(numero: str) -> dict | None:
+    """Résout un numéro de loi/ordonnance/décret (ex: '68-1250', '79-587')
+    vers son legitext/jorftext parent.
+
+    Heuristique : cherche dans legi_articles le JORFTEXT qui apparaît le plus
+    fréquemment pour les articles dont le texte contient 'n° NUMERO' ou
+    'numéro NUMERO'. Retourne le plus probable + nombre d'articles + titre.
+    """
+    if not numero or not re.match(r"^\d{2,4}-\d+$", numero):
         return None
+    c = _conn("legi")
+    # Pattern 1: cherche le legitext le plus représenté parmi les articles
+    # dont le titre_text contient le numéro (cas où DILA a bien parsé le titre)
+    rows = c.execute(
+        """
+        SELECT legitext, COUNT(*) as nb,
+               MAX(titre_text) as titre_sec,
+               MIN(date_debut) as date_debut
+        FROM legi_articles
+        WHERE titre_text LIKE ? OR titre_text LIKE ?
+        GROUP BY legitext
+        ORDER BY nb DESC
+        LIMIT 5
+        """,
+        (f"%n° {numero}%", f"%n°{numero}%"),
+    ).fetchall()
+    # Pattern 2 (fallback): cherche dans le texte des articles (cas lois
+    # non codifiées où titre_text est vide). On prend le legitext qui a le
+    # plus d'articles dont le texte n'est qu'un article 1er type "Loi ... du ...
+    # N° X-Y". Plus approximatif mais dépanne.
+    if not rows:
+        rows = c.execute(
+            """
+            SELECT legitext, COUNT(*) as nb, '' as titre_sec,
+                   MIN(date_debut) as date_debut
+            FROM legi_articles
+            WHERE num = '1' AND texte LIKE ?
+            GROUP BY legitext
+            ORDER BY nb DESC
+            LIMIT 3
+            """,
+            (f"%loi n° {numero}%",),
+        ).fetchall()
+    if not rows:
+        return None
+    r = rows[0]
+    legitext = r["legitext"]
+    # Count total articles of this text
+    total = c.execute(
+        "SELECT COUNT(*) FROM legi_articles WHERE legitext = ?",
+        (legitext,),
+    ).fetchone()[0]
+    return {
+        "numero": numero,
+        "legitext": legitext,
+        "titre_section": r["titre_sec"],
+        "date_debut": r["date_debut"],
+        "articles_count": total,
+        "source_url": _build_source_url(legitext),
+    }
+
+
+def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
+    """Return the article version in force at `target_date`, or current if None.
+
+    `code` peut être : un code court (CC, CP, LIL, LO58…), OU un LEGITEXT /
+    JORFTEXT direct (ex: 'JORFTEXT000000878035' pour la loi 68-1250).
+    """
+    # Si c'est un identifiant Légifrance direct, on l'utilise tel quel
+    if code.startswith("LEGITEXT") or code.startswith("JORFTEXT"):
+        legitext = code
+    else:
+        legitext = CODE_TO_LEGITEXT.get(code)
+        if not legitext:
+            return None
     target = target_date or _date.today().isoformat()
     # Normalize num: drop spaces, keep structure
     num_clean = _normalize_num(num)
@@ -254,10 +324,16 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
 
 
 def law_versions(code: str, num: str) -> list[dict]:
-    """Return all historical versions of an article, ordered by date_debut asc."""
-    legitext = CODE_TO_LEGITEXT.get(code)
-    if not legitext:
-        return []
+    """Return all historical versions of an article, ordered by date_debut asc.
+
+    `code` accepte soit un code court (CC, LIL…), soit un LEGITEXT/JORFTEXT direct.
+    """
+    if code.startswith("LEGITEXT") or code.startswith("JORFTEXT"):
+        legitext = code
+    else:
+        legitext = CODE_TO_LEGITEXT.get(code)
+        if not legitext:
+            return []
     num_clean = _normalize_num(num)
     c = _conn("legi")
     rows = c.execute(
@@ -402,6 +478,35 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         "cnil": f"m.id, m.numero, m.titre, m.date, m.formation, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
     }[fond]
 
+    # LEGI : dédup par legitext parent (évite 8 versions d'une annexe arrêté).
+    # On over-fetche x3 puis on dédup en Python pour garder les meilleurs scores
+    # par texte-parent distinct, dans l'ordre BM25.
+    if fond == "legi":
+        params_paged = list(params) + [limit * 5, offset]  # over-fetch
+        sql = (f"SELECT {select_cols} FROM {fts_table} JOIN {main_table} m ON m.rowid = {fts_table}.rowid "
+               f"WHERE " + " AND ".join(where) + f" ORDER BY {order} LIMIT ? OFFSET ?")
+        all_rows = c.execute(sql, params_paged).fetchall()
+        seen_legitexts: set[str] = set()
+        deduped: list[dict] = []
+        for row in all_rows:
+            r = dict(row)
+            lt = r.get("legitext") or ""
+            if lt in seen_legitexts:
+                continue
+            seen_legitexts.add(lt)
+            deduped.append(r)
+            if len(deduped) >= limit:
+                break
+        return {
+            "fond": fond,
+            "total": total,
+            "returned": len(deduped),
+            "limit": limit,
+            "offset": offset,
+            "deduplicated_by": "legitext",
+            "results": deduped,
+        }
+
     params_paged = list(params) + [limit, offset]
     sql = (f"SELECT {select_cols} FROM {fts_table} JOIN {main_table} m ON m.rowid = {fts_table}.rowid "
            f"WHERE " + " AND ".join(where) + f" ORDER BY {order} LIMIT ? OFFSET ?")
@@ -504,6 +609,15 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": "code and num are required"})
             versions = law_versions(code, num)
             return self._json(200, {"code": code, "num": num, "versions": versions})
+
+        if path == "/v1/law/resolve":
+            numero = _q(q, "numero")
+            if not numero:
+                return self._json(400, {"error": "numero required (ex: 68-1250)"})
+            d = resolve_law_number(numero)
+            if not d:
+                return self._json(404, {"error": f"pas de loi/décret trouvé avec le numéro {numero!r}"})
+            return self._json(200, d)
 
         # /v1/search/{fond}
         m = re.match(r"^/v1/search/(\w+)$", path)
