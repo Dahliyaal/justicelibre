@@ -31,7 +31,21 @@ def _sanitize_fts5(q: str) -> str:
 JURIDICTIONS = {
     "cassation": "Cour de cassation",
     "appel": "Cour d'appel",
+    "constit": "Conseil constitutionnel",
 }
+
+# Natures des décisions du Conseil constitutionnel :
+# QPC = Question Prioritaire de Constitutionnalité (contrôle a posteriori)
+# DC  = Décision sur loi ordinaire / organique (contrôle a priori)
+# L   = Lois (divers, délégalisation)
+# SEN = Sénat (élections sénatoriales, inéligibilités)
+# AN  = Assemblée nationale (élections législatives)
+# PDR = Élection Président de la République
+# ORGA= Organisation (règlement intérieur, composition)
+# REF = Référendum
+# ELEC= Autres élections
+# I   = Incompétence
+CC_NATURES = {"QPC", "DC", "L", "SEN", "AN", "PDR", "ORGA", "REF", "ELEC", "I"}
 
 
 def _get_conn() -> sqlite3.Connection:
@@ -110,6 +124,63 @@ def search(
             "total": total,
             "returned": len(decisions),
             "source": "DILA (archives publiques, sans authentification)",
+            "decisions": decisions,
+        }
+    finally:
+        conn.close()
+
+
+def search_cc(
+    query: str,
+    nature: str | None = None,
+    date_min: str | None = None,
+    date_max: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche dédiée au Conseil constitutionnel (7 112 décisions).
+
+    Wrapper au-dessus de search() qui force juridiction='Conseil constitutionnel'
+    et permet le filtrage par nature (QPC, DC, L, etc.).
+    """
+    if not query.strip():
+        raise ValueError("query must be non-empty")
+    fts_query = _sanitize_fts5(query)
+    if not fts_query:
+        return {"total": 0, "decisions": []}
+    conn = _get_conn()
+    try:
+        SNIPPET = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
+        base_where = "decisions_fts MATCH ? AND d.juridiction = 'Conseil constitutionnel'"
+        params: list = [fts_query]
+        if nature and nature.upper() in CC_NATURES:
+            base_where += " AND d.nature = ?"
+            params.append(nature.upper())
+        if date_min:
+            base_where += " AND d.date >= ?"
+            params.append(date_min)
+        if date_max:
+            base_where += " AND d.date <= ?"
+            params.append(date_max)
+        sql = (f"SELECT d.id, d.titre, d.date, d.juridiction, d.solution, "
+               f"d.numero, d.formation, d.ecli, d.nature, {SNIPPET} AS snip "
+               f"FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid "
+               f"WHERE {base_where} ORDER BY d.date DESC LIMIT ? OFFSET ?")
+        rows = conn.execute(sql, params + [int(limit), int(offset)]).fetchall()
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {base_where}",
+            params,
+        ).fetchone()[0]
+        decisions = [{
+            "id": r["id"], "titre": r["titre"], "date": r["date"],
+            "juridiction": r["juridiction"], "solution": r["solution"],
+            "numero": r["numero"], "nature": r["nature"], "ecli": r["ecli"],
+            "snippet": r["snip"] or "",
+        } for r in rows]
+        return {
+            "total": total,
+            "returned": len(decisions),
+            "nature_filter": nature.upper() if nature else None,
             "decisions": decisions,
         }
     finally:

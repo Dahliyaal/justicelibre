@@ -667,7 +667,11 @@ async def search_judiciaire(
     if session_token:
         bearer = _resolve_session(session_token)
         if not bearer:
-            return {"error": "Jeton de session expiré ou invalide. En générer un nouveau sur https://justicelibre.org/tutoriel-piste.html"}
+            return {
+                "error": "Jeton de session expiré ou invalide.",
+                "fallback": "Si la décision recherchée a plus de ~2 ans, utiliser `search_judiciaire_libre` (base DILA locale, sans authentification) avant de tenter de régénérer un token.",
+                "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
+            }
         _record_call("search_judiciaire")
         async with _client() as client:
             headers = {"Authorization": f"Bearer {bearer}"}
@@ -728,7 +732,11 @@ async def get_decision_judiciaire(
     if session_token:
         bearer = _resolve_session(session_token)
         if not bearer:
-            return {"error": "Jeton de session expiré ou invalide."}
+            return {
+                "error": "Jeton de session expiré ou invalide.",
+                "fallback": "Tenter `get_decision_judiciaire_libre` avec le même ID si la décision existe dans les archives DILA.",
+                "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
+            }
         _record_call("get_decision_judiciaire")
         async with _client() as client:
             headers = {"Authorization": f"Bearer {bearer}"}
@@ -750,6 +758,55 @@ async def get_decision_judiciaire(
 
 
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
+
+@mcp.tool()
+async def search_cc(
+    query: str,
+    nature: str = "",
+    date_min: str = "",
+    date_max: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche dédiée au **Conseil constitutionnel** (7 112 décisions).
+
+    Quatrième pouvoir juridictionnel français aux côtés de la Cour de cassation,
+    du Conseil d'État et de la Cour de justice de la République. Contrôle la
+    constitutionnalité des lois (contrôle *a priori* via DC, *a posteriori* via
+    QPC) et les élections nationales.
+
+    Args:
+        query: mots-clés (opérateurs FTS5)
+        nature: filtre optionnel par type de décision :
+            - "QPC" : Question Prioritaire de Constitutionnalité
+              (contrôle a posteriori, saisine par justiciable via CE/Cass)
+            - "DC"  : Décision sur conformité de loi ordinaire ou organique
+              (contrôle a priori avant promulgation)
+            - "L"   : Lois diverses, délégalisation
+            - "AN"  : Élections législatives, inéligibilités
+            - "SEN" : Élections sénatoriales
+            - "PDR" : Élection présidentielle
+            - "ORGA": Organisation (règlement intérieur, composition)
+            - "REF" : Référendum
+            - "ELEC": Autres élections
+            - "I"   : Incompétence
+            (si vide, toutes natures confondues)
+        date_min, date_max: ISO YYYY-MM-DD
+        limit: max 50 (défaut 20)
+        offset: pagination
+
+    Returns:
+        `{"total", "returned", "nature_filter", "decisions": [...]}`
+    """
+    _record_call("search_cc")
+    return dila.search_cc(
+        query=query,
+        nature=nature or None,
+        date_min=date_min or None,
+        date_max=date_max or None,
+        limit=limit, offset=offset,
+    )
+
 
 @mcp.tool()
 async def search_cedh(query: str, limit: int = 20) -> dict[str, Any]:
@@ -1042,12 +1099,21 @@ async def search_decisions_citing(
     sources: list[str] | None = None,
     limit: int = 20,
 ) -> dict[str, Any]:
-    """Cherche les décisions qui citent explicitement un article de loi donné.
+    """Cherche les décisions qui citent EXPLICITEMENT un article de loi donné.
 
     Exploite l'index FTS5 sur les sources jurisprudence disponibles pour
     matcher les formulations courantes de citation (`"article 1382 du code
     civil"`, `"art. L. 1152-1 du Code du travail"`, etc.). Cross-référencement
     inverse : partant d'un article, on trouve la jurisprudence pertinente.
+
+    **LIMITATION CONNUE** : ce tool trouve UNIQUEMENT les citations explicites
+    du numéro d'article. Il ne capte PAS :
+    - les références indirectes ("conformément aux dispositions du Code civil
+      relatives à la responsabilité délictuelle…")
+    - les renvois à une section entière sans numéro précis
+    - les citations du code par abréviation seule sans article ("en vertu du CT")
+    Pour une recherche conceptuelle plus large, préférer `search_all` avec
+    l'expansion thésaurus (ex: "harcèlement" → inclut "intimidation" etc.).
 
     Args:
         code: code court de l'article (ex : "CT", "CC")
