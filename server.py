@@ -788,7 +788,7 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any]:
+async def build_source_url(identifier: str, legitext: str = "", date: str = "") -> dict[str, Any]:
     """Construit l'URL canonique d'un document à partir de son identifiant.
 
     Utile pour vérifier les sources à la main sur le site officiel (Légifrance,
@@ -809,6 +809,11 @@ async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any
         identifier: l'ID à convertir
         legitext: (optionnel) LEGITEXT du texte parent si `identifier` est un
             LEGIARTI — améliore la précision de l'URL (codes/ vs loda/)
+        date: (optionnel, YYYY-MM-DD) — appendé à l'URL Légifrance pour pointer
+            vers la version de l'article en vigueur à cette date
+            (ex: `/loda/article_lc/LEGIARTI.../2023-01-01`). Indispensable pour
+            vérifier l'état du droit à une date historique, sinon Légifrance
+            affiche la version courante même si l'article a été abrogé depuis.
 
     Returns:
         `{"id", "source_url"}` ou `{"error"}` si format non reconnu.
@@ -817,7 +822,7 @@ async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any
     if not identifier.strip():
         return {"error": "identifier requis"}
     from sources import warehouse as wh
-    url = await wh.build_url(identifier, legitext or None)
+    url = await wh.build_url(identifier, legitext or None, date or None)
     if not url:
         return {"error": f"format d'identifiant non reconnu : {identifier!r}"}
     return {"id": identifier, "source_url": url}

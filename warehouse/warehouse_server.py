@@ -96,26 +96,34 @@ def _is_codified(legitext: str) -> bool:
     return legitext.startswith("LEGITEXT")
 
 
-def _build_source_url(identifier: str, legitext: str = "") -> str | None:
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _build_source_url(identifier: str, legitext: str = "", at_date: str | None = None) -> str | None:
     """Reconstruit l'URL canonique d'un document à partir de son ID.
 
     Règles basées sur les conventions stables Légifrance / Conseil Constitutionnel /
     Conseil d'État / EUR-Lex / HUDOC.
+
+    `at_date` (YYYY-MM-DD) est appendé aux URLs Légifrance qui supportent le routing
+    versionné (/codes/article_lc, /loda/article_lc, /codes/texte_lc, /loda/id) pour
+    que le lien affiche la version en vigueur à cette date précise.
     """
     if not identifier:
         return None
     idp = identifier.strip()
+    date_suffix = f"/{at_date}" if at_date and _DATE_RE.match(at_date) else ""
     # LEGIARTI (article de code ou de loi consolidée)
     if idp.startswith("LEGIARTI"):
         # Si on connait le parent LEGITEXT et qu'il est LEGITEXT (code), utiliser /codes/
         # sinon /loda/ pour les lois non codifiées (JORFTEXT*). Par défaut /codes/ (Légifrance redirige)
         if legitext and legitext.startswith("JORFTEXT"):
-            return f"https://www.legifrance.gouv.fr/loda/article_lc/{idp}"
-        return f"https://www.legifrance.gouv.fr/codes/article_lc/{idp}"
+            return f"https://www.legifrance.gouv.fr/loda/article_lc/{idp}{date_suffix}"
+        return f"https://www.legifrance.gouv.fr/codes/article_lc/{idp}{date_suffix}"
     if idp.startswith("LEGITEXT"):
-        return f"https://www.legifrance.gouv.fr/codes/texte_lc/{idp}"
+        return f"https://www.legifrance.gouv.fr/codes/texte_lc/{idp}{date_suffix}"
     if idp.startswith("JORFTEXT"):
-        return f"https://www.legifrance.gouv.fr/loda/id/{idp}"
+        return f"https://www.legifrance.gouv.fr/loda/id/{idp}{date_suffix}"
     if idp.startswith("JURITEXT"):
         return f"https://www.legifrance.gouv.fr/juri/id/{idp}"
     if idp.startswith("CONSTEXT"):
@@ -289,7 +297,7 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
         (legitext, num_clean, target, target),
     ).fetchone()
     if row:
-        return _law_row_to_dict(row, code, legitext)
+        return _law_row_to_dict(row, code, legitext, at_date=target_date)
     # Strategy 2: if no match at date, return current version
     row = c.execute(
         """
@@ -369,7 +377,11 @@ def law_batch(refs: list[dict], target_date: str | None) -> list[dict]:
     return out
 
 
-def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str) -> dict:
+def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | None = None) -> dict:
+    # Si on n'a pas de date explicite, on utilise la date_debut de la version
+    # retournée pour que Légifrance affiche bien cette version-là (et pas la
+    # version par défaut, qui peut être une autre).
+    effective_date = at_date or (row["date_debut"] or None)
     return {
         "legiarti": row["legiarti"],
         "num": row["num"],
@@ -381,7 +393,7 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str) -> dict:
         "date_fin": row["date_fin"] or None,
         "texte": row["texte"],
         "nota": row["nota"] or None,
-        "source_url": _build_source_url(row["legiarti"], legitext=legitext),
+        "source_url": _build_source_url(row["legiarti"], legitext=legitext, at_date=effective_date),
     }
 
 
@@ -584,9 +596,10 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             # Build source URL from an arbitrary identifier
             ident = _q(q, "id")
             legitext = _q(q, "legitext") or ""
+            at_date = _q(q, "date") or None
             if not ident:
                 return self._json(400, {"error": "id required"})
-            url = _build_source_url(ident, legitext=legitext)
+            url = _build_source_url(ident, legitext=legitext, at_date=at_date)
             if not url:
                 return self._json(404, {"error": f"identifier type not recognized: {ident!r}"})
             return self._json(200, {"id": ident, "source_url": url})
