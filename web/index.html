@@ -461,12 +461,12 @@ footer p{margin:.2rem 0}
 
 <!-- TOOLS -->
 <section class="section" id="tools">
-  <h2>24 outils, <em>toute la matière</em> juridique française</h2>
+  <h2>29 outils, <em>toute la matière</em> juridique française</h2>
   <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
 
   <div class="callout" style="margin:2rem 0;border-color:var(--teal)">
     <p><code>get_law_article(code, num, date)</code></p>
-    <p style="margin-top:.6rem">L'analyse de la jurisprudence exige d'éviter tout <strong>anachronisme juridique</strong>. Cet outil restitue la <strong>rédaction d'époque</strong> d'une disposition, strictement en vigueur à la date demandée. Une décision de 1992 cite l'article 1128 du Code civil ? Vous obtenez le texte d'origine, immunisé contre la réforme de 2016.</p>
+    <p style="margin-top:.6rem">L'analyse de la jurisprudence exige d'éviter tout <strong>anachronisme juridique</strong>. Cet outil restitue la <strong>rédaction d'époque</strong> d'une disposition, strictement en vigueur à la date demandée. Une décision de 1992 cite l'article 1128 du Code civil ? Vous obtenez le texte d'origine et le <strong>lien Légifrance versionné</strong> pointant sur cette version précise.</p>
     <p style="margin-top:.6rem"><strong>C'est exactement cette garantie que Dalloz vous facture 200 € par mois.</strong></p>
   </div>
 
@@ -496,17 +496,21 @@ footer p{margin:.2rem 0}
       <code>search_cjue</code>
       <p>44 k arrêts CJUE + Tribunal UE + conclusions AG en français.</p>
     </div>
+    <div class="tool-card">
+      <code>search_cc</code>
+      <p>7 k+ décisions du Conseil constitutionnel. Filtrable par nature (QPC, DC, L, SEN, AN…).</p>
+    </div>
   </div>
 
   <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Articles de loi (avec versions historiques)</h3>
   <div class="tools-grid">
     <div class="tool-card">
       <code>get_law_article</code>
-      <p>Article à une date (ex : art. 1128 CC en 1992 → texte napoléonien).</p>
+      <p>Article à une date (ex : art. 1128 CC en 1992 → texte napoléonien). Codes consolidés + lois non codifiées (LIL, LO58…) + JORFTEXT direct.</p>
     </div>
     <div class="tool-card">
       <code>get_law_versions</code>
-      <p>Timeline complète d'un article (1804 → 1964 → 1994 → 2016…).</p>
+      <p>Timeline complète d'un article (1804 → 1964 → 1994 → 2016…). Chaque version avec dates de début/fin.</p>
     </div>
     <div class="tool-card">
       <code>search_legi</code>
@@ -515,6 +519,10 @@ footer p{margin:.2rem 0}
     <div class="tool-card">
       <code>search_decisions_citing</code>
       <p>Cross-référence inverse : quelles décisions citent cet article ?</p>
+    </div>
+    <div class="tool-card">
+      <code>resolve_law_number</code>
+      <p>Résout un numéro de loi/décret ("68-1250", "79-587") → identifiant JORFTEXT + titre + nombre d'articles.</p>
     </div>
   </div>
 
@@ -553,6 +561,14 @@ footer p{margin:.2rem 0}
       <p>Texte d'une décision CJUE (CELEX ou ECLI).</p>
     </div>
     <div class="tool-card">
+      <code>get_cc_decision</code>
+      <p>Décision du Conseil constitutionnel par son numéro ("2020-800 DC", "2023-1048 QPC").</p>
+    </div>
+    <div class="tool-card">
+      <code>get_ce_decision</code>
+      <p>Décision du Conseil d'État par son numéro de requête ("358109", "462117").</p>
+    </div>
+    <div class="tool-card">
       <code>get_decision_judiciaire</code>
       <p>Texte via Judilibre PISTE (auth OAuth2 — <a href="/tutoriel-piste.html">tutoriel</a>).</p>
     </div>
@@ -567,6 +583,10 @@ footer p{margin:.2rem 0}
     <div class="tool-card">
       <code>list_juridictions</code>
       <p>Codes des 51 juridictions admin (CE, 9 CAA, 40 TA) — pour filtrer search_admin.</p>
+    </div>
+    <div class="tool-card">
+      <code>build_source_url</code>
+      <p>Construit le lien Légifrance / EUR-Lex / HUDOC d'un document à une date donnée (LEGIARTI, JORFTEXT, JURITEXT, CELEX, HUDOC…).</p>
     </div>
   </div>
 
