@@ -765,8 +765,8 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 <div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--white);color:var(--ink);max-width:480px;width:100%;padding:1.8rem;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
     <h3 style="font-family:var(--display);font-size:1.2rem;margin-bottom:.4rem">Signaler un problème</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signale-nous ici. Pas de compte requis ; ton message arrive en append-only sur notre serveur.</p>
-    <textarea id="feedbackMessage" placeholder="Décris brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signalez-le ici. Pas de compte requis ; votre message arrive en append-only sur notre serveur.</p>
+    <textarea id="feedbackMessage" placeholder="Décrivez brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
     <input id="feedbackEmail" type="email" placeholder="Email (optionnel — pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
     <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end">
       <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Annuler</button>
@@ -1591,7 +1591,9 @@ function renderLawInto(container, code, num, data) {
     container.note.style.display = 'block';
     container.note.textContent = `Article ${code} ${num} introuvable.`;
     container.body.innerHTML = '';
-    container.extern.href = '#';
+    // Fallback : lien de recherche Légifrance même quand l'article n'est pas en base
+    container.extern.href = `https://www.legifrance.gouv.fr/search/all?query=article+${encodeURIComponent(num)}+${encodeURIComponent(code)}`;
+    container.extern.removeAttribute('hidden');
     return;
   }
   container.title.textContent = `Article ${data.num} ${data.titre_section || ''}`.trim();
@@ -1669,17 +1671,27 @@ function openLawInSheet(code, num, date) {
     <p id="lawSheetMeta" class="doc-meta" style="font-size:.78rem;color:var(--muted);margin-bottom:1rem"></p>
     <div id="lawSheetNote" style="display:none;padding:.5rem .7rem;background:rgba(184,147,43,.1);border-left:2px solid var(--gold);font-size:.82rem;margin-bottom:1rem"></div>
     <div id="lawSheetBody" style="font-size:.96rem;line-height:1.7;color:var(--body);white-space:pre-wrap"><em style="color:var(--muted)">Chargement…</em></div>
+    <div class="law-footer" style="margin-top:1.5rem">
+      <button id="lawSheetVersions" type="button">Voir toutes les versions</button>
+      <a id="lawSheetExtern" href="#" target="_blank" rel="noopener">Voir sur Légifrance ↗</a>
+      <button id="lawSheetFeedback" type="button" title="Signaler un problème" style="font-size:.72rem;color:var(--muted)">Problème ?</button>
+    </div>
   `;
   body.querySelector('.sheet-back').addEventListener('click', popSheet);
+  body.querySelector('#lawSheetVersions').addEventListener('click', () => showLawVersions(code, num));
+  body.querySelector('#lawSheetFeedback').addEventListener('click', () => openFeedback({source: 'law-sheet', code, num, url: location.href}));
   resolveLaw(code, num, date).then(data => {
     const container = {
       title: body.querySelector('#lawSheetTitle'),
       meta: body.querySelector('#lawSheetMeta'),
       note: body.querySelector('#lawSheetNote'),
       body: body.querySelector('#lawSheetBody'),
-      extern: {href: '#'}, // dummy
+      extern: body.querySelector('#lawSheetExtern'),
     };
     renderLawInto(container, code, num, data);
+    if (data && data.legiarti) {
+      container.extern.href = data.source_url || `https://www.legifrance.gouv.fr/codes/article_lc/${encodeURIComponent(data.legiarti)}`;
+    }
   });
 }
 

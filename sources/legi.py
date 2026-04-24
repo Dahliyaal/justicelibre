@@ -38,6 +38,8 @@ SUPPORTED_CODES: dict[str, str] = {
     "CESEDA":  "Code de l'entrée et du séjour des étrangers et du droit d'asile",
     "CSS":     "Code de la sécurité sociale",
     "CCH":     "Code de la construction et de l'habitation",
+    # ─── Constitution ────────────────────────────────────────
+    "CONST":   "Constitution du 4 octobre 1958",
     # ─── Lois non codifiées fréquemment citées ──────────────
     "LIL":     "Loi Informatique et Libertés (loi n° 78-17)",
     "LO58":    "Ordonnance organique Conseil constitutionnel (ord. n° 58-1067)",

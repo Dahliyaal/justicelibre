@@ -81,6 +81,10 @@ CODE_TO_LEGITEXT: dict[str, str] = {
     "CESEDA":  "LEGITEXT000006070158",  # Code de l'entrée et du séjour des étrangers
     "CSS":     "LEGITEXT000006073189",  # Code de la sécurité sociale
     "CCH":     "LEGITEXT000006074096",  # Code de la construction et de l'habitation
+    # ─── Constitution ───────────────────────────────────────────
+    # La Constitution du 4 octobre 1958 est indexée en LEGI via JORFTEXT
+    # (publication au JO, pas un code consolidé). Articles numérotés "1", "66"…
+    "CONST":     "JORFTEXT000000571356",  # Constitution du 4 octobre 1958 (89 articles)
     # ─── Lois non codifiées fréquemment citées ─────────────────
     # DILA les indexe via JORFTEXT (pas LEGITEXT) car ce sont des publications
     # au JO, pas des codes consolidés. L'URL Légifrance utilise `/loda/` au
