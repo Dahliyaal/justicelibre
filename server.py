@@ -851,20 +851,51 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | Non
 async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     """Récupère une décision du Conseil d'État par son numéro de pourvoi.
 
-    Exemple : "497566" (format numérique pur sans séparateur). Query dans
-    jade.db (bulk JADE DILA) filtré sur juridiction Conseil d'État.
+    Essaie d'abord le bulk JADE DILA (lookup SQL exact), puis si introuvable
+    tente ArianeWeb Sinequa — les deux bases ont des couvertures complémentaires.
 
     Pour retrouver une décision via identifiant DCE_*, utiliser
     `get_decision_text` à la place.
 
     Args:
-        numero: numéro de pourvoi (ex : "497566")
+        numero: numéro de pourvoi (ex : "497566", "358109")
 
     Returns:
-        Décision complète avec texte intégral, ou None si introuvable.
+        Décision avec métadonnées, ou None si introuvable dans les deux bases.
     """
     _record_call("get_ce_decision")
     return await jade_remote.get_ce_decision(numero)
+
+
+@mcp.tool()
+async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, Any]:
+    """Récupère une décision administrative par son **numéro de requête exact**.
+
+    Couvre toutes les juridictions : Conseil d'État, cours administratives
+    d'appel (CAA), tribunaux administratifs (TA). Utilise un lookup SQL exact
+    sur le champ `numero` — pas de FTS5, pas de faux positifs.
+
+    À utiliser quand on connaît le numéro précis (ex : lu dans une décision
+    qui cite "TA Paris n° 2116343"). Plus fiable que `search_admin` pour les
+    numéros courts qui peuvent ne pas être indexés en full-text.
+
+    Args:
+        numero: numéro de requête (ex : "2116343", "358109", "497566")
+        juridiction: filtre optionnel sur la juridiction exacte
+            (ex : "Conseil d'Etat", "Cour Administrative d'Appel de Paris",
+            "Tribunal Administratif de Paris"). Laisser vide pour chercher
+            dans toutes les juridictions.
+
+    Returns:
+        Décision avec métadonnées (id, juridiction, numero, date, titre),
+        ou `{"error": "introuvable"}` si aucun résultat dans JADE.
+    """
+    _record_call("get_admin_decision")
+    result = await jade_remote.get_admin_decision(numero, juridiction or None)
+    if result is None:
+        return {"error": f"Décision n° {numero} introuvable dans JADE (bulk DILA). "
+                         f"Si la décision est récente (< 3 mois), essayer `search_admin_recent`."}
+    return result
 
 
 @mcp.tool()
