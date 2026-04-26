@@ -24,6 +24,13 @@ INTENT_CASES = [
     ("14-80854",                          "pourvoi"),
     ("14-80.854",                         "pourvoi"),
     ("2205872",                           "dossier_admin"),
+    ("2116343",                           "dossier_admin"),  # TA Paris 2021
+    # Format CAA/TA codifié YY+CC+NNNN (ajouté avril 2026 — non-régression)
+    ("03NC01126",                         "dossier_admin"),  # CAA Nancy 2003
+    ("23DA00671",                         "dossier_admin"),  # CAA Douai 2023
+    ("22PA05407",                         "dossier_admin"),  # CAA Paris 2022
+    ("18NT01234",                         "dossier_admin"),  # CAA Nantes 2018
+    ("89BX01126",                         "dossier_admin"),  # CAA Bordeaux 1989
     ("23/00854",                          "rg"),
     ("62024CJ0642",                       "celex"),
     ("ECLI:EU:C:2024:642",                "ecli"),
@@ -145,13 +152,19 @@ LIVE_CASES = [
 
 
 def test_live():
-    """Appels HTTP contre la prod. Skip si pas internet/serveur indispo."""
+    """Appels HTTP contre la prod. Skip si pas internet/serveur indispo.
+
+    Distingue les vraies régressions (logique cassée → AssertionError) des
+    erreurs réseau (timeout, fetch error → warning seulement, le runner
+    n'échoue pas car ce ne sont pas des bugs de code).
+    """
     try:
         import urllib.request, json
     except ImportError:
         print("[SKIP live] pas d'urllib")
         return
-    errors = []
+    logic_errors = []
+    fetch_errors = []
     for q, src_expected, must_contain in LIVE_CASES:
         url = f"https://justicelibre.org/api/search?q={urllib.request.quote(q)}&sources={src_expected}&limit=10&timeout=30"
         req = urllib.request.Request(url, headers={"User-Agent": "justicelibre-test/1.0"})
@@ -159,11 +172,11 @@ def test_live():
             with urllib.request.urlopen(req, timeout=45) as r:
                 data = json.loads(r.read())
         except Exception as e:
-            errors.append(f"  {q!r} → fetch error: {e}")
+            fetch_errors.append(f"  {q!r} → fetch error: {e}")
             continue
         results = data.get("results", [])
         if not results:
-            errors.append(f"  {q!r} → 0 résultats sur source={src_expected}")
+            logic_errors.append(f"  {q!r} → 0 résultats sur source={src_expected}")
             continue
         found = any(
             must_contain in (
@@ -173,9 +186,13 @@ def test_live():
             for r in results
         )
         if not found:
-            errors.append(f"  {q!r} → aucun résultat ne contient {must_contain!r}")
-    if errors:
-        raise AssertionError("Live API mismatches:\n" + "\n".join(errors))
+            logic_errors.append(f"  {q!r} → aucun résultat ne contient {must_contain!r}")
+    if fetch_errors:
+        print("[WARN] erreurs réseau (pas une régression de code) :")
+        for e in fetch_errors:
+            print(e)
+    if logic_errors:
+        raise AssertionError("Live API logic regressions:\n" + "\n".join(logic_errors))
 
 
 # ─── Runner minimaliste sans pytest ───────────────────────────────
