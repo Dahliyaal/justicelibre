@@ -685,12 +685,12 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
       <div class="field">
         <label>Date (à partir de)</label>
-        <input type="date" value="2020-01-01">
+        <input type="date">
       </div>
 
       <div class="field">
         <label>Date (jusqu'au)</label>
-        <input type="date" value="2026-04-17">
+        <input type="date">
       </div>
 
       <div class="field">
@@ -1921,6 +1921,15 @@ async function runSearch(append = false) {
   lastSearchState.lastChunkSize = lastSearchState.accumulated.length - (lastSearchState.previousSize || 0);
   lastSearchState.previousSize = lastSearchState.accumulated.length;
   finalizeHeader();
+  // Re-render maintenant que lastChunkSize est connu : sans ça le bouton
+  // "Charger plus" ne s'affiche jamais (canLoadMore évalué quand lastChunkSize
+  // était encore undefined dans les rendus intermédiaires de fetchOneSource).
+  renderResults(
+    { results: lastSearchState.accumulated, per_source: lastSearchState.perSource,
+      sources_no_result: lastSearchState.noResult,
+      sources_queried: Object.keys(lastSearchState.perSource) },
+    lastSearchState.q
+  );
 
   // Retry en background des sources qui ont timeout (timeout 60s)
   if (lastSearchState.noResult.length) {
