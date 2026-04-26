@@ -55,6 +55,33 @@ def test_intent_detection():
     assert not errors, "Intent mismatches:\n" + "\n".join(errors)
 
 
+# ─── Tests helpers : match_admin_docket / normalize_numero ────────
+
+DOCKET_CASES = [
+    # (input, expected_match) — None = ne doit PAS matcher
+    ("03NC01126",       "03NC01126"),
+    ("23DA00671",       "23DA00671"),
+    ("22PA05407",       "22PA05407"),
+    ("2116343",         "2116343"),
+    ("497566",          "497566"),
+    ("n° 03NC01126",    "03NC01126"),  # préfixe nettoyé
+    ("  497566  ",      "497566"),     # whitespace
+    ("liberté",         None),         # pas un numéro
+    ("",                None),
+    ("LEGIARTI000006", None),         # alphanumérique mais pas docket admin
+]
+
+
+def test_match_admin_docket():
+    from query_intent import match_admin_docket
+    errors = []
+    for q, expected in DOCKET_CASES:
+        got = match_admin_docket(q)
+        if got != expected:
+            errors.append(f"  {q!r:25} → got {got!r}, expected {expected!r}")
+    assert not errors, "match_admin_docket mismatches:\n" + "\n".join(errors)
+
+
 # ─── Tests normalize_fts_query ─────────────────────────────────────
 
 NORMALIZE_CASES = [
@@ -199,11 +226,12 @@ def test_live():
 
 if __name__ == "__main__":
     tests = [
-        ("intent detection",  test_intent_detection),
-        ("normalize fts",     test_normalize),
-        ("alias expansion",   test_alias_expansion),
-        ("source routing",    test_routing),
-        ("live API",          test_live),
+        ("intent detection",     test_intent_detection),
+        ("match_admin_docket",   test_match_admin_docket),
+        ("normalize fts",        test_normalize),
+        ("alias expansion",      test_alias_expansion),
+        ("source routing",       test_routing),
+        ("live API",             test_live),
     ]
     failed = 0
     for name, fn in tests:

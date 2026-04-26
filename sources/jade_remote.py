@@ -14,20 +14,11 @@ Remplace la plupart des usages de `search_juridiction`, qui devient
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
-from . import warehouse as wh
+from query_intent import match_admin_docket, normalize_numero
 
-# Numéro de requête administrative :
-# - CE : pur numérique 5-7 chiffres (ex: "497566", "358109")
-# - CAA/TA : format alphanumérique YY+CC+NNNN(N) (ex: "03NC01126" Nancy,
-#   "22PA05407" Paris, "23DA00671" Douai, "08VE01126" Versailles…)
-# Préfixe "n°" optionnel.
-_NUMERO_RE = re.compile(
-    r'^(?:n[°o]?\s*)?(\d{5,7}|\d{2}[A-Z]{2}\d{4,6})$',
-    re.IGNORECASE,
-)
+from . import warehouse as wh
 
 
 def _normalize_hit(h: dict) -> dict:
@@ -58,10 +49,9 @@ async def search(
     """
     limit = max(1, min(int(limit), 50))
 
-    # Détection numéro pur → lookup SQL exact
-    m = _NUMERO_RE.match(query.strip())
-    if m:
-        num = m.group(1)
+    # Détection numéro de dossier admin → lookup SQL exact (bypass FTS5)
+    num = match_admin_docket(query)
+    if num:
         results = await wh.lookup_by_numero("jade", num, juridiction=juridiction)
         if results:
             return {
@@ -112,7 +102,7 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
     """
     if not numero.strip():
         return None
-    num_clean = numero.strip().replace(" ", "").lstrip("n°oN° \t")
+    num_clean = normalize_numero(numero)
 
     # 1. Lookup SQL exact dans JADE bulk
     results = await wh.lookup_by_numero("jade", num_clean, juridiction=juridiction)
@@ -153,7 +143,7 @@ async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     """
     if not numero.strip():
         return None
-    num_clean = numero.strip().replace(" ", "").lstrip("n°oN° \t")
+    num_clean = normalize_numero(numero)
 
     # 1. Lookup SQL exact dans JADE
     results = await wh.lookup_by_numero("jade", num_clean, juridiction="Conseil d'Etat")
