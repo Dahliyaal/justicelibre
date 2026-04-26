@@ -1244,13 +1244,14 @@ function highlightLawRefs(escapedHtml) {
     });
   }
 
-  // 3) Règlements UE : "règlement (CE) n° 883/2004"
+  // 3) Règlements UE : "règlement (CE) n° 883/2004", "règlement (UE) 2016/679"
+  // Le "n°" est optionnel — fréquemment omis pour les actes post-2015.
   result = result.replace(
-    /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+n[°º]\s*\d+\/\d+)\b/gi,
+    /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+(?:n[°º]\s*)?\d+\/\d+)\b/gi,
     (m) => {
       if (m.includes(MARKER)) return m;
-      const num = (m.match(/n[°º]\s*(\d+\/\d+)/i) || [])[1] || '';
-      return MARKER + `<span class="lawref" data-code="REG-EU" data-num="${num}" title="Règlement UE n° ${num}">${m}</span>` + MARKER;
+      const num = (m.match(/(\d+\/\d+)/) || [])[1] || '';
+      return MARKER + `<span class="lawref" data-code="REG-EU" data-num="${num}" title="Règlement UE ${num}">${m}</span>` + MARKER;
     }
   );
 
