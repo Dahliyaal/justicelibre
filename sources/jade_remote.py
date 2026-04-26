@@ -19,8 +19,15 @@ from typing import Any
 
 from . import warehouse as wh
 
-# Numéro de requête administrative : 5-7 chiffres, parfois précédé de "n°"
-_NUMERO_RE = re.compile(r'^(?:n[°o]?\s*)?(\d{5,7})$', re.IGNORECASE)
+# Numéro de requête administrative :
+# - CE : pur numérique 5-7 chiffres (ex: "497566", "358109")
+# - CAA/TA : format alphanumérique YY+CC+NNNN(N) (ex: "03NC01126" Nancy,
+#   "22PA05407" Paris, "23DA00671" Douai, "08VE01126" Versailles…)
+# Préfixe "n°" optionnel.
+_NUMERO_RE = re.compile(
+    r'^(?:n[°o]?\s*)?(\d{5,7}|\d{2}[A-Z]{2}\d{4,6})$',
+    re.IGNORECASE,
+)
 
 
 def _normalize_hit(h: dict) -> dict:

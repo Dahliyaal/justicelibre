@@ -123,6 +123,23 @@ def _norm_admin(raw: dict) -> dict:
         "extract": "",
     }
 
+def _norm_jade_bulk(raw: dict) -> dict:
+    """Normalise un hit JADE bulk (CETATEXT) au format de réponse search."""
+    juri = raw.get("juridiction", "")
+    numero = raw.get("numero", "")
+    return {
+        "id": raw.get("id") or "",
+        "source": "admin",
+        "source_label": SOURCE_LABELS["admin"],
+        "title": raw.get("titre") or (f"{juri} — n° {numero}" if numero else juri),
+        "juridiction": juri,
+        "date": _clean_date(raw.get("date", "")),
+        "formation": raw.get("formation", ""),
+        "numero": numero,
+        "ecli": raw.get("ecli") or "",
+        "extract": "",
+    }
+
 def _norm_cedh(raw: dict) -> dict:
     return {
         "id": raw["id"],
@@ -266,6 +283,18 @@ async def _dispatch_admin(
                 return out
         except Exception as e:
             print(f"[admin dce_id err] {e}")
+    # 1bis) Si l'intent est dossier_admin (TA Paris 21XXXXX ou CAA codifié
+    # XXNCXXXXX, XXDAXXXXX, XXPAXXXXX…) → lookup SQL exact dans JADE bulk.
+    # JADE couvre les anciens numéros que l'API live opendata (post-2022) rate.
+    if intent.kind == "dossier_admin":
+        try:
+            from sources import warehouse as wh
+            bulk_hits = await wh.lookup_by_numero("jade", intent.value)
+            if bulk_hits:
+                out.extend([_norm_jade_bulk(h) for h in bulk_hits[:limit]])
+                return out
+        except Exception as e:
+            print(f"[admin jade lookup err] {e}")
     # 2) Routage du code juridiction selon contexte (fan-out vs single)
     try:
         if juridiction == "ta" and not lieu:
@@ -531,6 +560,22 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
             "full_text": r.get("full_text", ""),
         }
     if source == "admin":
+        # Cas 1 : ID JADE bulk (CETATEXT*) → warehouse direct
+        # Le live API juriadmin n'a pas les anciens dossiers (avant juin 2022).
+        if decision_id.upper().startswith("CETATEXT"):
+            try:
+                from sources import warehouse as wh
+                r = await wh.get_decision_remote("jade", decision_id)
+                if not r:
+                    return None
+                return {
+                    **_norm_jade_bulk(r),
+                    "full_text": r.get("texte", "") or "",
+                    "text_segments": [],
+                }
+            except Exception as e:
+                return {"error": str(e)}
+        # Cas 2 : ID live opendata (DCE_*, DTA_*, DCAA_*) → juriadmin
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
                 r = await juriadmin.get_decision(client, decision_id=decision_id)

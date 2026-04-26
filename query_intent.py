@@ -47,8 +47,11 @@ _RE_RG = re.compile(r"^\d{2}/\d{5,6}$")
 _RE_CELEX = re.compile(r"^6\d{4}[A-Z]{2}\d{4}$")
 # ECLI
 _RE_ECLI = re.compile(r"^ECLI:[A-Z]{2}:[A-Z]+:\d{4}:\S+$", re.IGNORECASE)
-# Dossier admin (TA/CAA) : 7 chiffres commençant par 2 (2XXXXXX)
-_RE_DOSSIER_ADMIN = re.compile(r"^2\d{6}$")
+# Dossier admin :
+# - TA Paris-style : 7 chiffres commençant par 2 (ex: 2116343)
+# - CAA/TA codifié : YY + 2 lettres cour + NNNN(N) (ex: 03NC01126 Nancy,
+#   23DA00671 Douai, 22PA05407 Paris, 18NT01234 Nantes…)
+_RE_DOSSIER_ADMIN = re.compile(r"^(?:2\d{6}|\d{2}[A-Z]{2}\d{4,6})$", re.IGNORECASE)
 # IDs déjà typés (préfixes)
 _RE_DCE = re.compile(r"^D(CE|TA|CAA)_[A-Z0-9_]+$", re.IGNORECASE)
 _RE_HUDOC = re.compile(r"^00[0-9]-\d{4,6}$")
