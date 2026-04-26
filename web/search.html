@@ -2034,6 +2034,18 @@ juriEl.addEventListener('change', () => {
     fieldFormation.style.display = 'none';
   }
 });
+
+// ─── Deep-link : ouvrir une décision depuis ?id=…&source=… ───
+// Permet aux liens copiés via "Copier lien" de fonctionner.
+(function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const source = params.get('source');
+  if (!id || !source) return;
+  // Décodage : URLSearchParams a déjà décodé une fois, mais on accepte aussi
+  // les ID avec slashes/pipes (ex: /Ariane_Web/AW_DCE/|215894)
+  loadDecision(source, id);
+})();
 </script>
 
 </body>
