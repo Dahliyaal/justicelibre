@@ -82,6 +82,29 @@ def test_match_admin_docket():
     assert not errors, "match_admin_docket mismatches:\n" + "\n".join(errors)
 
 
+# ─── Tests filtre par date helper ────────────────────────────────
+
+def test_date_in_range():
+    from search_api import _date_in_range
+    cases = [
+        # (date_str, date_min, date_max, expected)
+        ("2024-06-15", "2024-01-01", "2024-12-31", True),   # dans range
+        ("2023-06-15", "2024-01-01", "2024-12-31", False),  # avant min
+        ("2025-06-15", "2024-01-01", "2024-12-31", False),  # après max
+        ("2024-06-15", "2024-06-15", "2024-06-15", True),   # bornes incluses
+        ("2024-06-15", None, None, True),                   # pas de filtre
+        ("2024-06-15", "2024-01-01", None, True),           # min seul
+        ("2024-06-15", None, "2024-12-31", True),           # max seul
+        ("",            "2024-01-01", "2024-12-31", True),  # date vide → laisse passer
+    ]
+    errors = []
+    for d, dmin, dmax, expected in cases:
+        got = _date_in_range(d, dmin, dmax)
+        if got != expected:
+            errors.append(f"  ({d!r}, {dmin!r}, {dmax!r}) → got {got}, expected {expected}")
+    assert not errors, "_date_in_range mismatches:\n" + "\n".join(errors)
+
+
 # ─── Tests normalize_fts_query ─────────────────────────────────────
 
 NORMALIZE_CASES = [
@@ -228,6 +251,7 @@ if __name__ == "__main__":
     tests = [
         ("intent detection",     test_intent_detection),
         ("match_admin_docket",   test_match_admin_docket),
+        ("date_in_range",        test_date_in_range),
         ("normalize fts",        test_normalize),
         ("alias expansion",      test_alias_expansion),
         ("source routing",       test_routing),

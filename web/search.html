@@ -685,12 +685,12 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
       <div class="field">
         <label>Date (à partir de)</label>
-        <input type="date">
+        <input type="date" id="dateMin">
       </div>
 
       <div class="field">
         <label>Date (jusqu'au)</label>
-        <input type="date">
+        <input type="date" id="dateMax">
       </div>
 
       <div class="field">
@@ -1902,12 +1902,15 @@ async function runSearch(append = false) {
   }
   const juri = document.getElementById('juridiction').value;
   const lieu = document.getElementById('lieu').value;
+  const dateMin = (document.getElementById('dateMin')?.value || '').trim();
+  const dateMax = (document.getElementById('dateMax')?.value || '').trim();
   const sources = juridictionToSourceSet(juri);
 
   // Reset si nouvelle recherche
-  const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri || lastSearchState.lieu !== lieu;
+  const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri
+                || lastSearchState.lieu !== lieu || lastSearchState.dateMin !== dateMin || lastSearchState.dateMax !== dateMax;
   if (isNew) {
-    lastSearchState = { q, juri, lieu, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
+    lastSearchState = { q, juri, lieu, dateMin, dateMax, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
     resultsList.innerHTML = '<div class="results-header" id="resultsHeader"><span>0 résultats <span class="dots-inline" id="hdrDots"><span>.</span><span>.</span><span>.</span><span>.</span></span></span></div>';
   } else {
     lastSearchState.pendingSources = new Set(sources);
@@ -1915,7 +1918,7 @@ async function runSearch(append = false) {
   }
 
   // Lancer un fetch par source, en parallèle
-  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset)));
+  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset, 12, dateMin, dateMax)));
 
   // Tout est fini (1re passe)
   lastSearchState.offset += PAGE_SIZE;
@@ -1938,7 +1941,7 @@ async function runSearch(append = false) {
   }
 }
 
-async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12) {
+async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin = '', dateMax = '') {
   try {
     updateHeader(src);
     const params = new URLSearchParams({
@@ -1947,6 +1950,8 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12) {
     });
     if (juri) params.set('juridiction', juri);
     if (lieu) params.set('lieu', lieu);
+    if (dateMin) params.set('date_min', dateMin);
+    if (dateMax) params.set('date_max', dateMax);
     const r = await fetch('/api/search?' + params);
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error(`HTTP ${r.status}`);
@@ -1986,7 +1991,7 @@ async function retryTimedOutSources() {
     // Marquer comme "en re-tentative" dans le warning
     lastSearchState.pendingSources.add(src);
     updateHeader(src);
-    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60);
+    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60, lastSearchState.dateMin || '', lastSearchState.dateMax || '');
   }
   finalizeHeader();
 }

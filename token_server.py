@@ -241,6 +241,12 @@ class TokenHandler(BaseHTTPRequestHandler):
         except ValueError:
             timeout_s = 12.0
         timeout_s = max(2.0, min(timeout_s, 60.0))
+        # Dates : format ISO YYYY-MM-DD attendu, sinon ignoré silencieusement
+        date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        date_min_raw = (qs.get("date_min", [""])[0] or "").strip()
+        date_max_raw = (qs.get("date_max", [""])[0] or "").strip()
+        date_min = date_min_raw if date_re.match(date_min_raw) else None
+        date_max = date_max_raw if date_re.match(date_max_raw) else None
         # Si on interroge une seule source, limit_per_source = limit entier
         lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
         try:
@@ -250,6 +256,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                 offset=offset,
                 sources_only=sources_only or None,
                 timeout_s=timeout_s,
+                date_min=date_min, date_max=date_max,
             ))
             return self._json_response(200, data)
         except Exception as e:
