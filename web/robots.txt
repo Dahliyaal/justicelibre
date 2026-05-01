@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /mcp
+
+Sitemap: https://justicelibre.org/sitemap.xml

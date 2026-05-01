@@ -57,6 +57,8 @@ def _get_conn() -> sqlite3.Connection:
 def search(
     query: str,
     juridiction: str | None = None,
+    date_min: str | None = None,
+    date_max: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -72,36 +74,34 @@ def search(
 
         # snippet() : extrait autour du match, ~28 tokens, highlights <em>…</em>
         SNIPPET_SQL = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
+        where = ["decisions_fts MATCH ?"]
+        params: list = [fts_query]
         if juridiction and juridiction in JURIDICTIONS:
-            juri_name = JURIDICTIONS[juridiction]
-            rows = conn.execute(
-                f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
-                          d.numero, d.formation, d.ecli, d.nature,
-                          {SNIPPET_SQL} AS snip
-                   FROM decisions_fts f
-                   JOIN decisions d ON d.rowid = f.rowid
-                   WHERE decisions_fts MATCH ?
-                   AND d.juridiction LIKE ?
-                   ORDER BY d.date DESC
-                   LIMIT ? OFFSET ?""",
-                (fts_query, f"%{juri_name}%", int(limit), int(offset)),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
-                          d.numero, d.formation, d.ecli, d.nature,
-                          {SNIPPET_SQL} AS snip
-                   FROM decisions_fts f
-                   JOIN decisions d ON d.rowid = f.rowid
-                   WHERE decisions_fts MATCH ?
-                   ORDER BY d.date DESC
-                   LIMIT ? OFFSET ?""",
-                (fts_query, int(limit), int(offset)),
-            ).fetchall()
+            where.append("d.juridiction LIKE ?")
+            params.append(f"%{JURIDICTIONS[juridiction]}%")
+        if date_min:
+            where.append("d.date >= ?")
+            params.append(date_min)
+        if date_max:
+            where.append("d.date <= ?")
+            params.append(date_max)
+        where_sql = " AND ".join(where)
+
+        rows = conn.execute(
+            f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
+                       d.numero, d.formation, d.ecli, d.nature,
+                       {SNIPPET_SQL} AS snip
+                FROM decisions_fts f
+                JOIN decisions d ON d.rowid = f.rowid
+                WHERE {where_sql}
+                ORDER BY d.date DESC
+                LIMIT ? OFFSET ?""",
+            params + [int(limit), int(offset)],
+        ).fetchall()
 
         total = conn.execute(
-            "SELECT COUNT(*) FROM decisions_fts WHERE decisions_fts MATCH ?",
-            (fts_query,),
+            f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {where_sql}",
+            params,
         ).fetchone()[0]
 
         decisions = [
@@ -236,14 +236,34 @@ def lookup_by_field(field: str, value: str, limit: int = 5) -> list[dict[str, An
         raise ValueError(f"field {field!r} non autorisé pour lookup_by_field")
     conn = _get_conn()
     try:
-        rows = conn.execute(
-            f"""SELECT id, titre, date, juridiction, solution,
-                       numero, formation, ecli, nature
-                FROM decisions
-                WHERE {field} = ?
-                LIMIT ?""",
-            (value, int(limit)),
-        ).fetchall()
+        # `numero` est parfois un champ multi-valeur (ex: "22-83263 24-80053" pour
+        # une décision rendue sur plusieurs pourvois joints). On match :
+        # 1. exact (cas standard, utilise l'index sur numero)
+        # 2. en première position : GLOB "VALUE *" (utilise l'index, ~ms)
+        # ⚠ LIKE est case-insensitive en SQLite par défaut → full scan, 60s+.
+        # GLOB est case-sensitive → SQLite peut le réduire à un range scan.
+        # On ignore le cas "% VALUE" car wildcard initial = full scan inévitable.
+        # En pratique, le numéro principal est toujours en première position.
+        if field == "numero":
+            sql = """SELECT id, titre, date, juridiction, solution,
+                            numero, formation, ecli, nature
+                     FROM decisions
+                     WHERE numero = ?
+                     UNION ALL
+                     SELECT id, titre, date, juridiction, solution,
+                            numero, formation, ecli, nature
+                     FROM decisions
+                     WHERE numero GLOB ?
+                     LIMIT ?"""
+            params = (value, f"{value} *", int(limit))
+        else:
+            sql = f"""SELECT id, titre, date, juridiction, solution,
+                              numero, formation, ecli, nature
+                       FROM decisions
+                       WHERE {field} = ?
+                       LIMIT ?"""
+            params = (value, int(limit))
+        rows = conn.execute(sql, params).fetchall()
         return [
             {
                 "id": r["id"],

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <title>Recherche · justicelibre.org</title>
-<meta name="description" content="Moteur de recherche public sur 1,7 million de décisions de justice françaises et européennes.">
+<meta name="description" content="Moteur de recherche libre sur ~2 millions de décisions de justice françaises et européennes (Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel) et 1,5 million d'articles de loi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -685,12 +685,12 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
       <div class="field">
         <label>Date (à partir de)</label>
-        <input type="date" value="2020-01-01">
+        <input type="date" id="dateMin">
       </div>
 
       <div class="field">
         <label>Date (jusqu'au)</label>
-        <input type="date" value="2026-04-17">
+        <input type="date" id="dateMax">
       </div>
 
       <div class="field">
@@ -765,8 +765,8 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 <div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--white);color:var(--ink);max-width:480px;width:100%;padding:1.8rem;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
     <h3 style="font-family:var(--display);font-size:1.2rem;margin-bottom:.4rem">Signaler un problème</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signale-nous ici. Pas de compte requis ; ton message arrive en append-only sur notre serveur.</p>
-    <textarea id="feedbackMessage" placeholder="Décris brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signalez-le ici. Pas de compte requis ; votre message arrive en append-only sur notre serveur.</p>
+    <textarea id="feedbackMessage" placeholder="Décrivez brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
     <input id="feedbackEmail" type="email" placeholder="Email (optionnel — pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
     <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end">
       <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Annuler</button>
@@ -781,21 +781,18 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 </footer>
 
 <script>
-/* ─── Dark mode ─── */
+/* ─── Dark mode (toggle simple light/dark) ─── */
 const savedTheme = localStorage.getItem('jl-theme');
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
 document.getElementById('themeToggle').addEventListener('click', () => {
   const html = document.documentElement;
-  const current = html.dataset.theme;
-  const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  // Cycle : system → opposite → system
-  let next;
-  if (!current) next = system === 'dark' ? 'light' : 'dark';
-  else if (current === 'dark' && system === 'light') next = 'light';
-  else if (current === 'light' && system === 'dark') next = 'dark';
-  else next = ''; // retour auto
-  if (next) { html.dataset.theme = next; localStorage.setItem('jl-theme', next); }
-  else { delete html.dataset.theme; localStorage.removeItem('jl-theme'); }
+  let cur = html.dataset.theme;
+  if (!cur) {
+    cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  const next = cur === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('jl-theme', next);
 });
 
 const toggleBtn = document.getElementById('toggleAdv');
@@ -1244,13 +1241,14 @@ function highlightLawRefs(escapedHtml) {
     });
   }
 
-  // 3) Règlements UE : "règlement (CE) n° 883/2004"
+  // 3) Règlements UE : "règlement (CE) n° 883/2004", "règlement (UE) 2016/679"
+  // Le "n°" est optionnel — fréquemment omis pour les actes post-2015.
   result = result.replace(
-    /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+n[°º]\s*\d+\/\d+)\b/gi,
+    /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+(?:n[°º]\s*)?\d+\/\d+)\b/gi,
     (m) => {
       if (m.includes(MARKER)) return m;
-      const num = (m.match(/n[°º]\s*(\d+\/\d+)/i) || [])[1] || '';
-      return MARKER + `<span class="lawref" data-code="REG-EU" data-num="${num}" title="Règlement UE n° ${num}">${m}</span>` + MARKER;
+      const num = (m.match(/(\d+\/\d+)/) || [])[1] || '';
+      return MARKER + `<span class="lawref" data-code="REG-EU" data-num="${num}" title="Règlement UE ${num}">${m}</span>` + MARKER;
     }
   );
 
@@ -1591,7 +1589,9 @@ function renderLawInto(container, code, num, data) {
     container.note.style.display = 'block';
     container.note.textContent = `Article ${code} ${num} introuvable.`;
     container.body.innerHTML = '';
-    container.extern.href = '#';
+    // Fallback : lien de recherche Légifrance même quand l'article n'est pas en base
+    container.extern.href = `https://www.legifrance.gouv.fr/search/all?query=article+${encodeURIComponent(num)}+${encodeURIComponent(code)}`;
+    container.extern.removeAttribute('hidden');
     return;
   }
   container.title.textContent = `Article ${data.num} ${data.titre_section || ''}`.trim();
@@ -1669,17 +1669,27 @@ function openLawInSheet(code, num, date) {
     <p id="lawSheetMeta" class="doc-meta" style="font-size:.78rem;color:var(--muted);margin-bottom:1rem"></p>
     <div id="lawSheetNote" style="display:none;padding:.5rem .7rem;background:rgba(184,147,43,.1);border-left:2px solid var(--gold);font-size:.82rem;margin-bottom:1rem"></div>
     <div id="lawSheetBody" style="font-size:.96rem;line-height:1.7;color:var(--body);white-space:pre-wrap"><em style="color:var(--muted)">Chargement…</em></div>
+    <div class="law-footer" style="margin-top:1.5rem">
+      <button id="lawSheetVersions" type="button">Voir toutes les versions</button>
+      <a id="lawSheetExtern" href="#" target="_blank" rel="noopener">Voir sur Légifrance ↗</a>
+      <button id="lawSheetFeedback" type="button" title="Signaler un problème" style="font-size:.72rem;color:var(--muted)">Problème ?</button>
+    </div>
   `;
   body.querySelector('.sheet-back').addEventListener('click', popSheet);
+  body.querySelector('#lawSheetVersions').addEventListener('click', () => showLawVersions(code, num));
+  body.querySelector('#lawSheetFeedback').addEventListener('click', () => openFeedback({source: 'law-sheet', code, num, url: location.href}));
   resolveLaw(code, num, date).then(data => {
     const container = {
       title: body.querySelector('#lawSheetTitle'),
       meta: body.querySelector('#lawSheetMeta'),
       note: body.querySelector('#lawSheetNote'),
       body: body.querySelector('#lawSheetBody'),
-      extern: {href: '#'}, // dummy
+      extern: body.querySelector('#lawSheetExtern'),
     };
     renderLawInto(container, code, num, data);
+    if (data && data.legiarti) {
+      container.extern.href = data.source_url || `https://www.legifrance.gouv.fr/codes/article_lc/${encodeURIComponent(data.legiarti)}`;
+    }
   });
 }
 
@@ -1889,12 +1899,15 @@ async function runSearch(append = false) {
   }
   const juri = document.getElementById('juridiction').value;
   const lieu = document.getElementById('lieu').value;
+  const dateMin = (document.getElementById('dateMin')?.value || '').trim();
+  const dateMax = (document.getElementById('dateMax')?.value || '').trim();
   const sources = juridictionToSourceSet(juri);
 
   // Reset si nouvelle recherche
-  const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri || lastSearchState.lieu !== lieu;
+  const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri
+                || lastSearchState.lieu !== lieu || lastSearchState.dateMin !== dateMin || lastSearchState.dateMax !== dateMax;
   if (isNew) {
-    lastSearchState = { q, juri, lieu, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
+    lastSearchState = { q, juri, lieu, dateMin, dateMax, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
     resultsList.innerHTML = '<div class="results-header" id="resultsHeader"><span>0 résultats <span class="dots-inline" id="hdrDots"><span>.</span><span>.</span><span>.</span><span>.</span></span></span></div>';
   } else {
     lastSearchState.pendingSources = new Set(sources);
@@ -1902,13 +1915,22 @@ async function runSearch(append = false) {
   }
 
   // Lancer un fetch par source, en parallèle
-  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset)));
+  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset, 12, dateMin, dateMax)));
 
   // Tout est fini (1re passe)
   lastSearchState.offset += PAGE_SIZE;
   lastSearchState.lastChunkSize = lastSearchState.accumulated.length - (lastSearchState.previousSize || 0);
   lastSearchState.previousSize = lastSearchState.accumulated.length;
   finalizeHeader();
+  // Re-render maintenant que lastChunkSize est connu : sans ça le bouton
+  // "Charger plus" ne s'affiche jamais (canLoadMore évalué quand lastChunkSize
+  // était encore undefined dans les rendus intermédiaires de fetchOneSource).
+  renderResults(
+    { results: lastSearchState.accumulated, per_source: lastSearchState.perSource,
+      sources_no_result: lastSearchState.noResult,
+      sources_queried: Object.keys(lastSearchState.perSource) },
+    lastSearchState.q
+  );
 
   // Retry en background des sources qui ont timeout (timeout 60s)
   if (lastSearchState.noResult.length) {
@@ -1916,7 +1938,7 @@ async function runSearch(append = false) {
   }
 }
 
-async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12) {
+async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin = '', dateMax = '') {
   try {
     updateHeader(src);
     const params = new URLSearchParams({
@@ -1925,6 +1947,8 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12) {
     });
     if (juri) params.set('juridiction', juri);
     if (lieu) params.set('lieu', lieu);
+    if (dateMin) params.set('date_min', dateMin);
+    if (dateMax) params.set('date_max', dateMax);
     const r = await fetch('/api/search?' + params);
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error(`HTTP ${r.status}`);
@@ -1964,7 +1988,7 @@ async function retryTimedOutSources() {
     // Marquer comme "en re-tentative" dans le warning
     lastSearchState.pendingSources.add(src);
     updateHeader(src);
-    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60);
+    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60, lastSearchState.dateMin || '', lastSearchState.dateMax || '');
   }
   finalizeHeader();
 }
@@ -2022,6 +2046,18 @@ juriEl.addEventListener('change', () => {
     fieldFormation.style.display = 'none';
   }
 });
+
+// ─── Deep-link : ouvrir une décision depuis ?id=…&source=… ───
+// Permet aux liens copiés via "Copier lien" de fonctionner.
+(function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const source = params.get('source');
+  if (!id || !source) return;
+  // Décodage : URLSearchParams a déjà décodé une fois, mais on accepte aussi
+  // les ID avec slashes/pipes (ex: /Ariane_Web/AW_DCE/|215894)
+  loadDecision(source, id);
+})();
 </script>
 
 </body>

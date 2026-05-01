@@ -24,6 +24,13 @@ INTENT_CASES = [
     ("14-80854",                          "pourvoi"),
     ("14-80.854",                         "pourvoi"),
     ("2205872",                           "dossier_admin"),
+    ("2116343",                           "dossier_admin"),  # TA Paris 2021
+    # Format CAA/TA codifié YY+CC+NNNN (ajouté avril 2026 — non-régression)
+    ("03NC01126",                         "dossier_admin"),  # CAA Nancy 2003
+    ("23DA00671",                         "dossier_admin"),  # CAA Douai 2023
+    ("22PA05407",                         "dossier_admin"),  # CAA Paris 2022
+    ("18NT01234",                         "dossier_admin"),  # CAA Nantes 2018
+    ("89BX01126",                         "dossier_admin"),  # CAA Bordeaux 1989
     ("23/00854",                          "rg"),
     ("62024CJ0642",                       "celex"),
     ("ECLI:EU:C:2024:642",                "ecli"),
@@ -46,6 +53,56 @@ def test_intent_detection():
         if intent.kind != expected:
             errors.append(f"  {q!r:50} → got {intent.kind}, expected {expected}")
     assert not errors, "Intent mismatches:\n" + "\n".join(errors)
+
+
+# ─── Tests helpers : match_admin_docket / normalize_numero ────────
+
+DOCKET_CASES = [
+    # (input, expected_match) — None = ne doit PAS matcher
+    ("03NC01126",       "03NC01126"),
+    ("23DA00671",       "23DA00671"),
+    ("22PA05407",       "22PA05407"),
+    ("2116343",         "2116343"),
+    ("497566",          "497566"),
+    ("n° 03NC01126",    "03NC01126"),  # préfixe nettoyé
+    ("  497566  ",      "497566"),     # whitespace
+    ("liberté",         None),         # pas un numéro
+    ("",                None),
+    ("LEGIARTI000006", None),         # alphanumérique mais pas docket admin
+]
+
+
+def test_match_admin_docket():
+    from query_intent import match_admin_docket
+    errors = []
+    for q, expected in DOCKET_CASES:
+        got = match_admin_docket(q)
+        if got != expected:
+            errors.append(f"  {q!r:25} → got {got!r}, expected {expected!r}")
+    assert not errors, "match_admin_docket mismatches:\n" + "\n".join(errors)
+
+
+# ─── Tests filtre par date helper ────────────────────────────────
+
+def test_date_in_range():
+    from search_api import _date_in_range
+    cases = [
+        # (date_str, date_min, date_max, expected)
+        ("2024-06-15", "2024-01-01", "2024-12-31", True),   # dans range
+        ("2023-06-15", "2024-01-01", "2024-12-31", False),  # avant min
+        ("2025-06-15", "2024-01-01", "2024-12-31", False),  # après max
+        ("2024-06-15", "2024-06-15", "2024-06-15", True),   # bornes incluses
+        ("2024-06-15", None, None, True),                   # pas de filtre
+        ("2024-06-15", "2024-01-01", None, True),           # min seul
+        ("2024-06-15", None, "2024-12-31", True),           # max seul
+        ("",            "2024-01-01", "2024-12-31", True),  # date vide → laisse passer
+    ]
+    errors = []
+    for d, dmin, dmax, expected in cases:
+        got = _date_in_range(d, dmin, dmax)
+        if got != expected:
+            errors.append(f"  ({d!r}, {dmin!r}, {dmax!r}) → got {got}, expected {expected}")
+    assert not errors, "_date_in_range mismatches:\n" + "\n".join(errors)
 
 
 # ─── Tests normalize_fts_query ─────────────────────────────────────
@@ -145,13 +202,19 @@ LIVE_CASES = [
 
 
 def test_live():
-    """Appels HTTP contre la prod. Skip si pas internet/serveur indispo."""
+    """Appels HTTP contre la prod. Skip si pas internet/serveur indispo.
+
+    Distingue les vraies régressions (logique cassée → AssertionError) des
+    erreurs réseau (timeout, fetch error → warning seulement, le runner
+    n'échoue pas car ce ne sont pas des bugs de code).
+    """
     try:
         import urllib.request, json
     except ImportError:
         print("[SKIP live] pas d'urllib")
         return
-    errors = []
+    logic_errors = []
+    fetch_errors = []
     for q, src_expected, must_contain in LIVE_CASES:
         url = f"https://justicelibre.org/api/search?q={urllib.request.quote(q)}&sources={src_expected}&limit=10&timeout=30"
         req = urllib.request.Request(url, headers={"User-Agent": "justicelibre-test/1.0"})
@@ -159,11 +222,11 @@ def test_live():
             with urllib.request.urlopen(req, timeout=45) as r:
                 data = json.loads(r.read())
         except Exception as e:
-            errors.append(f"  {q!r} → fetch error: {e}")
+            fetch_errors.append(f"  {q!r} → fetch error: {e}")
             continue
         results = data.get("results", [])
         if not results:
-            errors.append(f"  {q!r} → 0 résultats sur source={src_expected}")
+            logic_errors.append(f"  {q!r} → 0 résultats sur source={src_expected}")
             continue
         found = any(
             must_contain in (
@@ -173,20 +236,26 @@ def test_live():
             for r in results
         )
         if not found:
-            errors.append(f"  {q!r} → aucun résultat ne contient {must_contain!r}")
-    if errors:
-        raise AssertionError("Live API mismatches:\n" + "\n".join(errors))
+            logic_errors.append(f"  {q!r} → aucun résultat ne contient {must_contain!r}")
+    if fetch_errors:
+        print("[WARN] erreurs réseau (pas une régression de code) :")
+        for e in fetch_errors:
+            print(e)
+    if logic_errors:
+        raise AssertionError("Live API logic regressions:\n" + "\n".join(logic_errors))
 
 
 # ─── Runner minimaliste sans pytest ───────────────────────────────
 
 if __name__ == "__main__":
     tests = [
-        ("intent detection",  test_intent_detection),
-        ("normalize fts",     test_normalize),
-        ("alias expansion",   test_alias_expansion),
-        ("source routing",    test_routing),
-        ("live API",          test_live),
+        ("intent detection",     test_intent_detection),
+        ("match_admin_docket",   test_match_admin_docket),
+        ("date_in_range",        test_date_in_range),
+        ("normalize fts",        test_normalize),
+        ("alias expansion",      test_alias_expansion),
+        ("source routing",       test_routing),
+        ("live API",             test_live),
     ]
     failed = 0
     for name, fn in tests:

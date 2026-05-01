@@ -788,7 +788,7 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any]:
+async def build_source_url(identifier: str, legitext: str = "", date: str = "") -> dict[str, Any]:
     """Construit l'URL canonique d'un document à partir de son identifiant.
 
     Utile pour vérifier les sources à la main sur le site officiel (Légifrance,
@@ -809,6 +809,11 @@ async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any
         identifier: l'ID à convertir
         legitext: (optionnel) LEGITEXT du texte parent si `identifier` est un
             LEGIARTI — améliore la précision de l'URL (codes/ vs loda/)
+        date: (optionnel, YYYY-MM-DD) — appendé à l'URL Légifrance pour pointer
+            vers la version de l'article en vigueur à cette date
+            (ex: `/loda/article_lc/LEGIARTI.../2023-01-01`). Indispensable pour
+            vérifier l'état du droit à une date historique, sinon Légifrance
+            affiche la version courante même si l'article a été abrogé depuis.
 
     Returns:
         `{"id", "source_url"}` ou `{"error"}` si format non reconnu.
@@ -817,7 +822,7 @@ async def build_source_url(identifier: str, legitext: str = "") -> dict[str, Any
     if not identifier.strip():
         return {"error": "identifier requis"}
     from sources import warehouse as wh
-    url = await wh.build_url(identifier, legitext or None)
+    url = await wh.build_url(identifier, legitext or None, date or None)
     if not url:
         return {"error": f"format d'identifiant non reconnu : {identifier!r}"}
     return {"id": identifier, "source_url": url}
@@ -846,20 +851,64 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | Non
 async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     """Récupère une décision du Conseil d'État par son numéro de pourvoi.
 
-    Exemple : "497566" (format numérique pur sans séparateur). Query dans
-    jade.db (bulk JADE DILA) filtré sur juridiction Conseil d'État.
+    Essaie d'abord le bulk JADE DILA (lookup SQL exact), puis si introuvable
+    tente ArianeWeb Sinequa — les deux bases ont des couvertures complémentaires.
 
     Pour retrouver une décision via identifiant DCE_*, utiliser
     `get_decision_text` à la place.
 
     Args:
-        numero: numéro de pourvoi (ex : "497566")
+        numero: numéro de pourvoi (ex : "497566", "358109")
 
     Returns:
-        Décision complète avec texte intégral, ou None si introuvable.
+        Décision avec métadonnées, ou None si introuvable dans les deux bases.
     """
     _record_call("get_ce_decision")
     return await jade_remote.get_ce_decision(numero)
+
+
+@mcp.tool()
+async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, Any]:
+    """Récupère une décision administrative par son **numéro de requête exact**.
+
+    Couvre toutes les juridictions : Conseil d'État, cours administratives
+    d'appel (CAA), tribunaux administratifs (TA). Utilise un lookup SQL exact
+    sur le champ `numero` — pas de FTS5, pas de faux positifs.
+
+    ⚠️ **Désambiguïsation indispensable** : un même numéro à 7 chiffres
+    (ex: 2200433) est partagé par 24+ tribunaux administratifs différents
+    (chaque TA a sa propre série annuelle qui repart à 1). Sans `juridiction`,
+    tu obtiens un homonyme au hasard parmi 24 — souvent pas le bon. **Si tu
+    sais quelle juridiction a rendu la décision, passe-la TOUJOURS.**
+
+    Args:
+        numero: numéro de requête (ex : "2200433", "2116343", "497566")
+        juridiction: identifiant de la juridiction. **Recommandé pour tout
+            numéro à 7 chiffres** (TA/CAA codifié). Deux formats acceptés
+            (mapping bidirectionnel automatique) :
+            - **Code court** (recommandé pour les LLMs) : "TA69" (Lyon),
+              "TA75" (Paris), "CAA69", "CE", "CE-CAA"
+            - **Nom long** : "Tribunal Administratif de Lyon", "Conseil d'Etat"
+              (avec ou sans accent), match insensible à la casse
+            Note : "Lyon" seul est ambigu (TA Lyon ou CAA Lyon) — préférer
+            le code court ou le nom complet pour éviter la collision.
+
+    Returns:
+        Décision avec métadonnées (id, juridiction, numero, date, titre),
+        ou `{"error": "introuvable"}` si aucun résultat dans JADE.
+
+    Exemples :
+        get_admin_decision("2200433", juridiction="Tribunal Administratif de Lyon")
+            → DTA_2200433_20230214 (TA Lyon, 14 fév 2023, RSA dérogatoire)
+        get_admin_decision("473286")  # CE n'a pas de doublon, juridiction inutile
+            → DCE_473286_20231123 (CE, non-admission du pourvoi sur la précédente)
+    """
+    _record_call("get_admin_decision")
+    result = await jade_remote.get_admin_decision(numero, juridiction or None)
+    if result is None:
+        return {"error": f"Décision n° {numero} introuvable dans JADE (bulk DILA). "
+                         f"Si la décision est récente (< 3 mois), essayer `search_admin_recent`."}
+    return result
 
 
 @mcp.tool()
@@ -996,9 +1045,18 @@ async def search_admin(
     pertinence sémantique des mots-clés. Indispensable pour trouver LES
     bonnes décisions sur un sujet sans dépendre de l'ancienneté.
 
+    ⚠️ **Si tu cherches par numéro de requête (7 chiffres ex: 2200433)**,
+    utilise plutôt `get_admin_decision(numero, juridiction=...)` qui fait
+    un lookup SQL exact. La recherche FTS5 d'un numéro court ne le trouve
+    que dans les décisions qui le **citent** dans leur texte (ex: décision
+    de cassation), pas la décision identifiée par ce numéro.
+
     Args:
         query: mots-clés (opérateurs FTS5 : AND/OR/NOT, "phrase exacte", mot*)
-        juridiction: filtre optionnel sur un code (CE, CAA75, TA75...)
+        juridiction: filtre par fragment de nom de juridiction. Ex :
+            "Lyon" → toutes les décisions Lyon (TA + CAA), "Tribunal
+            Administratif de Lyon" → uniquement TA Lyon. Combiné en
+            FTS5 AND avec la query principale.
         sort: "relevance" (défaut, BM25) ou "date_desc" / "date_asc"
         date_min: limite inférieure ISO YYYY-MM-DD (optionnel)
         date_max: limite supérieure ISO YYYY-MM-DD (optionnel)

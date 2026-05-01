@@ -149,6 +149,24 @@ class TokenHandler(BaseHTTPRequestHandler):
                 _save_sessions(sessions)
         return self._json_response(200, {"ok": True, "invalidated": bool(removed)})
 
+    def do_HEAD(self):
+        """HEAD = GET sans le body. Googlebot et certains crawlers l'utilisent
+        pour vérifier l'existence/validité d'une URL avant de la fetch.
+        Sans cette méthode, BaseHTTPRequestHandler renvoie 501 -> Google
+        considère l'URL comme non disponible. Solution : on délègue à do_GET
+        et on tronque le body via un buffer wrapper.
+        """
+        # Wrappe wfile pour ne pas écrire le body (juste les headers)
+        original_wfile = self.wfile
+        class _NullWriter:
+            def write(self, *a, **kw): pass
+            def flush(self, *a, **kw): pass
+        self.wfile = _NullWriter()  # pragma: no cover
+        try:
+            self.do_GET()
+        finally:
+            self.wfile = original_wfile
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
@@ -160,6 +178,32 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._handle_law(qs)
         if parsed.path == "/api/law/versions":
             return self._handle_law_versions(qs)
+        # SSR routes pour Google + LLM (HTML indexable)
+        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.]{4,128})$", parsed.path)
+        if m:
+            return self._handle_ssr_decision(m.group(1), m.group(2))
+        if parsed.path == "/sitemap.xml":
+            return self._handle_sitemap_index()
+        if parsed.path == "/sitemap-static.xml":
+            return self._handle_sitemap_static()
+        m = re.match(r"^/sitemap-dila-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_dila(int(m.group(1)))
+        m = re.match(r"^/sitemap-jade-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_jade(int(m.group(1)))
+        m = re.match(r"^/sitemap-legi-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_legi(int(m.group(1)))
+        m = re.match(r"^/sitemap-(cedh|cjue|ariane|cnil|opendata)-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_extra(m.group(1), int(m.group(2)))
+        # Article de loi : /loi/CASF/L262-8 ou /loi/CJA/R772-8
+        # Code: 1-15 caractères (CC, CASF, C.cons, L2005-102…)
+        # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
+        m = re.match(r"^/loi/([\w.\-]{1,15})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
+        if m:
+            return self._handle_ssr_law(m.group(1), m.group(2))
         if parsed.path in ("/api", "/api/"):
             return self._json_response(200, {
                 "service": "justicelibre public REST API",
@@ -241,6 +285,12 @@ class TokenHandler(BaseHTTPRequestHandler):
         except ValueError:
             timeout_s = 12.0
         timeout_s = max(2.0, min(timeout_s, 60.0))
+        # Dates : format ISO YYYY-MM-DD attendu, sinon ignoré silencieusement
+        date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        date_min_raw = (qs.get("date_min", [""])[0] or "").strip()
+        date_max_raw = (qs.get("date_max", [""])[0] or "").strip()
+        date_min = date_min_raw if date_re.match(date_min_raw) else None
+        date_max = date_max_raw if date_re.match(date_max_raw) else None
         # Si on interroge une seule source, limit_per_source = limit entier
         lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
         try:
@@ -250,6 +300,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                 offset=offset,
                 sources_only=sources_only or None,
                 timeout_s=timeout_s,
+                date_min=date_min, date_max=date_max,
             ))
             return self._json_response(200, data)
         except Exception as e:
@@ -402,6 +453,91 @@ class TokenHandler(BaseHTTPRequestHandler):
         except Exception:
             logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur entrepôt."})
+
+    def _handle_ssr_decision(self, source: str, decision_id: str):
+        """Render HTML SSR d'une décision (indexable par Google + LLM)."""
+        from ssr import render_decision, render_decision_404, fetch_decision_sync
+        if source not in {"admin", "dila", "cedh", "cjue", "ariane", "cnil"}:
+            return self._html_response(404, render_decision_404(source, decision_id))
+        try:
+            data = fetch_decision_sync(source, decision_id)
+        except Exception:
+            logger.exception('ssr decision failed')
+            data = None
+        if not data:
+            return self._html_response(404, render_decision_404(source, decision_id))
+        html = render_decision(source, decision_id, data)
+        return self._html_response(200, html, cache_seconds=86400)
+
+    def _handle_sitemap_index(self):
+        from ssr import render_sitemap_index
+        return self._xml_response(200, render_sitemap_index(), cache_seconds=3600)
+
+    def _handle_sitemap_static(self):
+        from ssr import render_sitemap_static
+        return self._xml_response(200, render_sitemap_static(), cache_seconds=86400)
+
+    def _handle_sitemap_dila(self, page: int):
+        from ssr import render_sitemap_dila
+        return self._xml_response(200, render_sitemap_dila(page), cache_seconds=86400)
+
+    def _handle_sitemap_jade(self, page: int):
+        from ssr import render_sitemap_jade
+        return self._xml_response(200, render_sitemap_jade(page), cache_seconds=86400)
+
+    def _handle_sitemap_legi(self, page: int):
+        from ssr import render_sitemap_legi
+        return self._xml_response(200, render_sitemap_legi(page), cache_seconds=86400)
+
+    def _handle_sitemap_extra(self, kind: str, page: int):
+        """Sub-sitemaps (cedh/cjue/ariane/cnil/opendata).
+        Opendata cache court (1h) car le DL est en cours et la liste grandit.
+        """
+        from ssr import (render_sitemap_cedh, render_sitemap_cjue,
+                         render_sitemap_ariane, render_sitemap_cnil,
+                         render_sitemap_opendata)
+        renderers = {
+            "cedh": render_sitemap_cedh, "cjue": render_sitemap_cjue,
+            "ariane": render_sitemap_ariane, "cnil": render_sitemap_cnil,
+            "opendata": render_sitemap_opendata,
+        }
+        fn = renderers.get(kind)
+        if not fn:
+            return self._xml_response(404, "<error>unknown</error>", cache_seconds=60)
+        cache = 3600 if kind == "opendata" else 86400
+        return self._xml_response(200, fn(page), cache_seconds=cache)
+
+    def _handle_ssr_law(self, code: str, num: str):
+        """Render HTML SSR d'un article de loi."""
+        from ssr import render_law, render_law_404
+        from sources.warehouse import sync_get_law
+        try:
+            data = sync_get_law(code, num)
+        except Exception:
+            logger.exception('ssr law failed')
+            data = None
+        if not data:
+            return self._html_response(404, render_law_404(code, num))
+        return self._html_response(200, render_law(code, num, data), cache_seconds=86400)
+
+    def _html_response(self, code: int, html: str, cache_seconds: int = 0):
+        body = html.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        if cache_seconds > 0:
+            self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _xml_response(self, code: int, xml: str, cache_seconds: int = 3600):
+        body = xml.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/xml; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
+        self.end_headers()
+        self.wfile.write(body)
 
     def _json_response(self, code: int, data: dict):
         body = json.dumps(data, ensure_ascii=False).encode()

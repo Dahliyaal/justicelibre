@@ -32,7 +32,10 @@ def test_imports():
     assert hasattr(legi, "get_versions")
     assert hasattr(legi, "get_batch")
     assert hasattr(legi, "SUPPORTED_CODES")
-    assert len(legi.SUPPORTED_CODES) == 22
+    # 22 codes consolidés + Constitution + lois non codifiées (LIL, LO58, L2005-102)
+    assert len(legi.SUPPORTED_CODES) >= 22, f"trop peu de codes: {len(legi.SUPPORTED_CODES)}"
+    for must in ("CC", "CP", "CT", "CONST", "LIL"):
+        assert must in legi.SUPPORTED_CODES, f"code {must} manquant"
     assert hasattr(warehouse, "get_law")
     assert hasattr(warehouse, "search_fond")
     assert hasattr(jade_remote, "search")

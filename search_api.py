@@ -123,6 +123,23 @@ def _norm_admin(raw: dict) -> dict:
         "extract": "",
     }
 
+def _norm_jade_bulk(raw: dict) -> dict:
+    """Normalise un hit JADE bulk (CETATEXT) au format de réponse search."""
+    juri = raw.get("juridiction", "")
+    numero = raw.get("numero", "")
+    return {
+        "id": raw.get("id") or "",
+        "source": "admin",
+        "source_label": SOURCE_LABELS["admin"],
+        "title": raw.get("titre") or (f"{juri} — n° {numero}" if numero else juri),
+        "juridiction": juri,
+        "date": _clean_date(raw.get("date", "")),
+        "formation": raw.get("formation", ""),
+        "numero": numero,
+        "ecli": raw.get("ecli") or "",
+        "extract": "",
+    }
+
 def _norm_cedh(raw: dict) -> dict:
     return {
         "id": raw["id"],
@@ -174,6 +191,20 @@ JURI_DISPATCH = {
     "cedh":    ["cedh"],
     "cjue":    ["cjue"],
 }
+
+def _admin_juri_name(juri: str, lieu: str = "") -> str | None:
+    """Traduit (juri, lieu) en nom de juridiction long pour le filtre warehouse.
+    Ex: ('ta', 'TA69') → 'Tribunal Administratif de Lyon'.
+    Le warehouse fait un LIKE sur ce nom, donc utile pour désambiguïser
+    les numéros de TA partagés (ex: 2200433 partagé par 24+ TA).
+    """
+    code = lieu.upper() if lieu else ""
+    if code and code in juriadmin.VALID_JURI:
+        return juriadmin.VALID_JURI[code]
+    if juri == "ce":
+        return "Conseil d'Etat"
+    return None
+
 
 def _admin_juri_code(juri: str, lieu: str = "") -> str | None:
     """Traduit le filtre UI en code d'API admin ES."""
@@ -255,6 +286,7 @@ async def _dispatch_ariane(
 async def _dispatch_admin(
     client, intent: QueryIntent, juridiction: str, lieu: str,
     limit: int, offset: int,
+    date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
     out = []
     # 1) Si l'intent est dce_id : fetch_decision direct
@@ -266,9 +298,38 @@ async def _dispatch_admin(
                 return out
         except Exception as e:
             print(f"[admin dce_id err] {e}")
+    # 1bis) Si l'intent est dossier_admin (TA Paris 21XXXXX ou CAA codifié
+    # XXNCXXXXX, XXDAXXXXX, XXPAXXXXX…) → lookup SQL exact dans JADE bulk.
+    # JADE couvre les anciens numéros que l'API live opendata (post-2022) rate.
+    if intent.kind == "dossier_admin":
+        try:
+            from sources import warehouse as wh
+            # Désambiguïsation : un même numéro (ex: 2200433) est partagé par
+            # 24+ TA différents. On dérive un filtre juridiction depuis (juri, lieu)
+            # pour cibler le bon TA quand l'UI/MCP a fourni le contexte.
+            juri_filter = _admin_juri_name(juridiction, lieu)
+            bulk_hits = await wh.lookup_by_numero("jade", intent.value, juridiction=juri_filter)
+            if bulk_hits:
+                # Filtrage local par date pour les lookups numéro
+                filtered = [h for h in bulk_hits if _date_in_range(h.get("date", ""), date_min, date_max)]
+                out.extend([_norm_jade_bulk(h) for h in filtered[:limit]])
+                return out
+        except Exception as e:
+            print(f"[admin jade lookup err] {e}")
     # 2) Routage du code juridiction selon contexte (fan-out vs single)
+    # Si dates demandées, on bascule sur le bulk JADE (warehouse) qui supporte
+    # date_min/date_max nativement, sinon l'API live juriadmin (BM25 sans dates).
     try:
-        if juridiction == "ta" and not lieu:
+        if date_min or date_max:
+            from sources import jade_remote
+            jcode = _admin_juri_code(juridiction, lieu)
+            r = await jade_remote.search(
+                query=intent.fts_query, juridiction=jcode,
+                date_min=date_min, date_max=date_max,
+                limit=limit, offset=offset,
+            )
+            out.extend([_norm_jade_bulk(h) for h in r.get("decisions", [])])
+        elif juridiction == "ta" and not lieu:
             r = await juriadmin.search_many(
                 client, query=intent.fts_query, juridictions=ALL_TA, limit_per_court=1,
             )
@@ -298,6 +359,7 @@ async def _dispatch_admin(
 
 def _dispatch_dila_sync(
     intent: QueryIntent, juridiction: str, limit: int, offset: int,
+    date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
     juri_filter = None
     if juridiction == "cass":
@@ -306,30 +368,43 @@ def _dispatch_dila_sync(
         juri_filter = "appel"
     out = []
     seen = set()
+
+    def _within_dates(hit: dict) -> bool:
+        d = hit.get("date") or ""
+        if date_min and d < date_min:
+            return False
+        if date_max and d > date_max:
+            return False
+        return True
+
     try:
         # 1) Lookups directs par champ (numero, ecli, id) — bypass FTS5
         if intent.kind == "juritext":
             row = dila.get_decision(intent.value)
-            if row:
+            if row and _within_dates(row):
                 out.append({**_norm_dila(row), "extract": ""})
                 seen.add(row["id"])
         elif intent.kind == "ecli":
             for hit in dila.lookup_by_field("ecli", intent.value, limit=5):
-                out.append(_norm_dila(hit))
-                seen.add(hit["id"])
+                if _within_dates(hit):
+                    out.append(_norm_dila(hit))
+                    seen.add(hit["id"])
         elif intent.kind == "pourvoi":
             for hit in dila.lookup_by_field("numero", intent.value, limit=5):
-                out.append(_norm_dila(hit))
-                seen.add(hit["id"])
+                if _within_dates(hit):
+                    out.append(_norm_dila(hit))
+                    seen.add(hit["id"])
         elif intent.kind == "rg":
             # RG = numero pour les Cours d'appel
             for hit in dila.lookup_by_field("numero", intent.value, limit=5):
-                out.append(_norm_dila(hit))
-                seen.add(hit["id"])
+                if _within_dates(hit):
+                    out.append(_norm_dila(hit))
+                    seen.add(hit["id"])
         # 2) FTS5 toujours en complément (sauf si on a déjà un hit unique)
         if not out or intent.kind in ("fts", "phrase"):
             r = dila.search(
                 query=intent.fts_query, juridiction=juri_filter,
+                date_min=date_min, date_max=date_max,
                 limit=limit, offset=offset,
             )
             for d in r.get("decisions", []):
@@ -341,23 +416,36 @@ def _dispatch_dila_sync(
     return out
 
 
+def _date_in_range(date_str: str, date_min: str | None, date_max: str | None) -> bool:
+    d = (date_str or "")[:10]  # YYYY-MM-DD
+    if date_min and d and d < date_min:
+        return False
+    if date_max and d and d > date_max:
+        return False
+    return True
+
+
 def _dispatch_cedh_sync(
     intent: QueryIntent, limit: int, offset: int,
+    date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
     out = []
     seen = set()
     try:
         if intent.kind == "itemid_hudoc":
             row = european.get_cedh(intent.value)
-            if row:
+            if row and _date_in_range(row.get("date", ""), date_min, date_max):
                 out.append({**_norm_cedh(row), "extract": ""})
                 seen.add(row["id"])
         if not out or intent.kind in ("fts", "phrase"):
             r = european.search_cedh(query=intent.fts_query, limit=limit, offset=offset)
             for d in r.get("decisions", []):
-                if d["id"] not in seen:
-                    out.append(_norm_cedh(d))
-                    seen.add(d["id"])
+                if d["id"] in seen:
+                    continue
+                if not _date_in_range(d.get("date", ""), date_min, date_max):
+                    continue
+                out.append(_norm_cedh(d))
+                seen.add(d["id"])
     except Exception as e:
         print(f"[cedh err] {e}")
     return out
@@ -365,21 +453,25 @@ def _dispatch_cedh_sync(
 
 def _dispatch_cjue_sync(
     intent: QueryIntent, limit: int, offset: int,
+    date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
     out = []
     seen = set()
     try:
         if intent.kind == "celex":
             row = european.get_cjue(intent.value)
-            if row:
+            if row and _date_in_range(row.get("date", ""), date_min, date_max):
                 out.append({**_norm_cjue(row), "extract": ""})
                 seen.add(row["id"])
         if not out or intent.kind in ("fts", "phrase"):
             r = european.search_cjue(query=intent.fts_query, limit=limit, offset=offset)
             for d in r.get("decisions", []):
-                if d["id"] not in seen:
-                    out.append(_norm_cjue(d))
-                    seen.add(d["id"])
+                if d["id"] in seen:
+                    continue
+                if not _date_in_range(d.get("date", ""), date_min, date_max):
+                    continue
+                out.append(_norm_cjue(d))
+                seen.add(d["id"])
     except Exception as e:
         print(f"[cjue err] {e}")
     return out
@@ -396,6 +488,8 @@ async def search_federated(
     offset: int = 0,
     sources_only: list[str] | None = None,
     timeout_s: float = 12.0,
+    date_min: str | None = None,
+    date_max: str | None = None,
 ) -> dict[str, Any]:
     """Interroge en parallèle les sources pertinentes, fusionne et trie.
 
@@ -426,22 +520,26 @@ async def search_federated(
             return []
         return await _dispatch_admin(
             client, intent, juridiction, lieu, limit_per_source, offset,
+            date_min=date_min, date_max=date_max,
         )
 
     def _q_dila_sync():
         if "dila" not in sources_to_query:
             return []
-        return _dispatch_dila_sync(intent, juridiction, limit_per_source, offset)
+        return _dispatch_dila_sync(intent, juridiction, limit_per_source, offset,
+                                    date_min=date_min, date_max=date_max)
 
     def _q_cedh_sync():
         if "cedh" not in sources_to_query:
             return []
-        return _dispatch_cedh_sync(intent, limit_per_source, offset)
+        return _dispatch_cedh_sync(intent, limit_per_source, offset,
+                                    date_min=date_min, date_max=date_max)
 
     def _q_cjue_sync():
         if "cjue" not in sources_to_query:
             return []
-        return _dispatch_cjue_sync(intent, limit_per_source, offset)
+        return _dispatch_cjue_sync(intent, limit_per_source, offset,
+                                    date_min=date_min, date_max=date_max)
 
     loop = asyncio.get_event_loop()
     async with httpx.AsyncClient(
@@ -531,6 +629,22 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
             "full_text": r.get("full_text", ""),
         }
     if source == "admin":
+        # Cas 1 : ID JADE bulk (CETATEXT*) → warehouse direct
+        # Le live API juriadmin n'a pas les anciens dossiers (avant juin 2022).
+        if decision_id.upper().startswith("CETATEXT"):
+            try:
+                from sources import warehouse as wh
+                r = await wh.get_decision_remote("jade", decision_id)
+                if not r:
+                    return None
+                return {
+                    **_norm_jade_bulk(r),
+                    "full_text": r.get("texte", "") or "",
+                    "text_segments": [],
+                }
+            except Exception as e:
+                return {"error": str(e)}
+        # Cas 2 : ID live opendata (DCE_*, DTA_*, DCAA_*) → juriadmin
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
                 r = await juriadmin.get_decision(client, decision_id=decision_id)
@@ -543,6 +657,24 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 }
             except Exception as e:
                 return {"error": str(e)}
+    if source == "cnil":
+        from sources import warehouse as wh
+        r = await wh.get_decision_remote("cnil", decision_id)
+        if not r:
+            return None
+        return {
+            "id": decision_id,
+            "source": "cnil",
+            "source_label": "CNIL",
+            "title": r.get("titre", ""),
+            "juridiction": "Commission Nationale de l'Informatique et des Libertés",
+            "date": r.get("date", ""),
+            "numero": r.get("numero", ""),
+            "formation": r.get("formation", ""),
+            "ecli": "",
+            "full_text": r.get("texte", "") or "",
+            "text_segments": [],
+        }
     if source == "ariane":
         async with httpx.AsyncClient(timeout=60.0, headers={
             "User-Agent": "justicelibre/1.0 (+https://justicelibre.org)",

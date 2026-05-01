@@ -1,5 +1,23 @@
 {
+  "DALO": [
+    "droit au logement opposable",
+    "carence de relogement",
+    "logement décent",
+    "obligation de relogement"
+  ],
+  "RQTH": [
+    "reconnaissance de la qualité de travailleur handicapé",
+    "travailleur handicapé"
+  ],
   "_comment": "Thésaurus juridique FR — merged Eurovoc legal microthesauri (356 concepts officiels EU) + ~80 ajouts curés pour le droit FR moderne. Format : {terme: [synonymes, équivalents]}. Utilisé par query_intent.expand_synonyms() pour étendre les queries FTS5. Source Eurovoc : licence libre (équivalent CC-BY UE).",
+  "abstention fautive": [
+    "inertie administrative",
+    "défaillance",
+    "manquement à l'obligation",
+    "passivité fautive",
+    "absence de diligence",
+    "carence"
+  ],
   "abus de confiance": [
     "détournement",
     "malversation"
@@ -18,6 +36,10 @@
   "abus de pouvoir": [
     "abus d'autorité",
     "détournement de pouvoir"
+  ],
+  "accommodement raisonnable": [
+    "adaptation raisonnable",
+    "mesures appropriées"
   ],
   "acquisition de la propriété": [
     "accès à la propriété",
@@ -55,6 +77,10 @@
     "porteur de parts",
     "détenteur de titres"
   ],
+  "adaptation raisonnable": [
+    "accommodement raisonnable",
+    "mesures appropriées"
+  ],
   "admission des étrangers": [
     "visa",
     "visa touristique"
@@ -73,8 +99,18 @@
     "remise de peine",
     "réduction de peine"
   ],
+  "aléa thérapeutique": [
+    "risque médical",
+    "complication imprévisible",
+    "accident médical non fautif"
+  ],
   "amende": [
     "sanction pécuniaire"
+  ],
+  "aménagement raisonnable": [
+    "adaptation raisonnable",
+    "accommodement raisonnable",
+    "mesures appropriées"
   ],
   "annulation": [
     "nullité",
@@ -179,6 +215,10 @@
     "recyclage de capitaux",
     "dissimulation d'origine"
   ],
+  "burn-out": [
+    "syndrome d'épuisement professionnel",
+    "épuisement professionnel"
+  ],
   "cadastre": [
     "administration cadastrale",
     "cadastre de l'impôt",
@@ -190,6 +230,27 @@
   ],
   "capacité juridique": [
     "incapacité juridique"
+  ],
+  "carence": [
+    "inertie administrative",
+    "abstention fautive",
+    "défaillance",
+    "manquement à l'obligation",
+    "passivité fautive",
+    "absence de diligence"
+  ],
+  "carence administrative": [
+    "inertie administrative",
+    "abstention fautive",
+    "défaillance",
+    "manquement à l'obligation",
+    "passivité fautive",
+    "absence de diligence"
+  ],
+  "carence fautive": [
+    "défaillance caractérisée",
+    "inaction fautive",
+    "manquement caractérisé"
   ],
   "caution": [
     "garant",
@@ -280,6 +341,11 @@
     "acceptation",
     "adhésion"
   ],
+  "consentement éclairé": [
+    "information du patient",
+    "consentement libre et éclairé",
+    "défaut d'information"
+  ],
   "consolidation du droit de l'ue": [
     "consolidation du droit communautaire",
     "consolidation du droit de l'union européenne"
@@ -361,6 +427,11 @@
     "calomnie",
     "injure"
   ],
+  "dignité": [
+    "dignité humaine",
+    "atteinte à la dignité",
+    "respect de la personne humaine"
+  ],
   "directive (ue)": [
     "directive communautaire",
     "directive de la commission",
@@ -383,7 +454,9 @@
     "différence de traitement",
     "atteinte à l'égalité",
     "rupture d'égalité",
-    "distinction fondée"
+    "distinction fondée",
+    "traitement discriminatoire",
+    "différence de traitement injustifiée"
   ],
   "discrimination basée sur la nationalité": [
     "discrimination des étrangers"
@@ -397,6 +470,11 @@
   ],
   "discrimination fondée sur un handicap": [
     "discrimination envers les handicapés"
+  ],
+  "discrimination indirecte": [
+    "discrimination dissimulée",
+    "désavantage particulier",
+    "effet discriminatoire indirect"
   ],
   "discrimination raciale": [
     "déségrégation raciale",
@@ -428,6 +506,14 @@
     "dégât",
     "préjudice"
   ],
+  "dommage matériel": [
+    "perte économique",
+    "perte financière",
+    "dommages matériels",
+    "perte matérielle",
+    "préjudice patrimonial",
+    "préjudice financier"
+  ],
   "dommages-intérêts": [
     "indemnités",
     "indemnisation",
@@ -446,6 +532,11 @@
   ],
   "double nationalité": [
     "nationalité multiple"
+  ],
+  "doute sérieux": [
+    "doute légitime",
+    "interrogations sérieuses",
+    "moyen sérieux"
   ],
   "droit au logement": [
     "droit à une aide au logement"
@@ -607,7 +698,9 @@
   "droits de la défense": [
     "droit de visite des avocats",
     "droits de l'accusé",
-    "présomption d'innocence"
+    "présomption d'innocence",
+    "respect des droits de la défense",
+    "garanties procédurales"
   ],
   "droits politiques": [
     "liberté politique"
@@ -616,6 +709,11 @@
     "droits sociaux fondamentaux",
     "droits économiques et sociaux",
     "liberté sociale"
+  ],
+  "durée excessive": [
+    "délai déraisonnable",
+    "longueur excessive",
+    "délai raisonnable"
   ],
   "décision (ue)": [
     "décision communautaire",
@@ -642,11 +740,30 @@
   "découpage électoral": [
     "circonscription électorale"
   ],
+  "défaillance administrative": [
+    "inertie administrative",
+    "abstention fautive",
+    "défaillance",
+    "manquement à l'obligation",
+    "passivité fautive",
+    "absence de diligence",
+    "carence"
+  ],
   "déficit de transposition": [
     "date limite de transposition",
     "déficit de mise en œuvre",
     "délai de transposition",
     "retard de transposition"
+  ],
+  "délai déraisonnable": [
+    "délai raisonnable",
+    "durée excessive de la procédure",
+    "longueur excessive"
+  ],
+  "délai raisonnable": [
+    "délai déraisonnable",
+    "durée excessive de la procédure",
+    "longueur excessive"
   ],
   "délit d'initiés": [
     "opération d'initié",
@@ -668,6 +785,10 @@
     "DSP",
     "concession de service"
   ],
+  "déni de justice": [
+    "refus de juger",
+    "refus de rendre la justice"
+  ],
   "déontologie professionnelle": [
     "déontologie"
   ],
@@ -682,6 +803,10 @@
   ],
   "détenu": [
     "prisonnier"
+  ],
+  "détournement de pouvoir": [
+    "abus de pouvoir",
+    "détournement de procédure"
   ],
   "détroit": [
     "détroit international"
@@ -705,12 +830,22 @@
     "privation de liberté",
     "réclusion"
   ],
+  "engagement de la responsabilité": [
+    "responsabilité de la puissance publique",
+    "responsabilité de l'État",
+    "responsabilité du service public"
+  ],
   "enquête judiciaire": [
     "enquête de police"
   ],
   "erreur": [
     "vice du consentement",
     "fausse représentation"
+  ],
+  "erreur manifeste": [
+    "erreur manifeste d'appréciation",
+    "EMA",
+    "appréciation erronée"
   ],
   "esclavage": [
     "travail forcé"
@@ -722,6 +857,11 @@
   ],
   "euthanasie": [
     "droit à l'euthanasie"
+  ],
+  "excès de pouvoir": [
+    "recours pour excès de pouvoir",
+    "REP",
+    "annulation pour illégalité"
   ],
   "expertise": [
     "appréciation technique",
@@ -753,6 +893,11 @@
     "négligence",
     "imprudence"
   ],
+  "faute de service": [
+    "faute du service public",
+    "dysfonctionnement du service",
+    "défaut de service"
+  ],
   "faute inexcusable": [
     "négligence exceptionnelle",
     "manquement caractérisé"
@@ -760,7 +905,9 @@
   "faute lourde": [
     "négligence grave",
     "imprudence caractérisée",
-    "manquement grave"
+    "manquement grave",
+    "faute caractérisée",
+    "négligence fautive grave"
   ],
   "faux en écriture": [
     "falsification de documents",
@@ -828,6 +975,11 @@
     "représentant légal",
     "mandataire social"
   ],
+  "handicap": [
+    "situation de handicap",
+    "personne handicapée",
+    "personne en situation de handicap"
+  ],
   "harcèlement": [
     "intimidation",
     "vexation morale",
@@ -835,18 +987,28 @@
     "pression psychologique",
     "brimade"
   ],
+  "harcèlement institutionnel": [
+    "harcèlement moral",
+    "agissements répétés",
+    "vexations répétées",
+    "dégradation des conditions de travail"
+  ],
   "harcèlement moral": [
     "harcèlement psychologique",
     "intimidation morale",
     "vexation morale",
     "agissement répété",
     "souffrance au travail",
-    "brimade hiérarchique"
+    "brimade hiérarchique",
+    "agissements répétés",
+    "dégradation des conditions de travail",
+    "vexations répétées"
   ],
   "harcèlement sexuel": [
     "propos à connotation sexuelle",
     "propos sexistes",
-    "comportement à connotation sexuelle"
+    "comportement à connotation sexuelle",
+    "comportements sexistes répétés"
   ],
   "homicide involontaire": [
     "mort accidentelle",
@@ -866,10 +1028,33 @@
     "ayant droit",
     "légataire"
   ],
+  "imputabilité au service": [
+    "lien avec le service",
+    "rattachement au service",
+    "accident de service"
+  ],
+  "incompétence": [
+    "incompétence de l'auteur",
+    "défaut de compétence"
+  ],
   "indemnisation": [
     "dédommagement",
     "indemnisation des victimes",
-    "indemnité"
+    "indemnité",
+    "réparation",
+    "compensation"
+  ],
+  "inertie administrative": [
+    "abstention fautive",
+    "défaillance",
+    "manquement à l'obligation",
+    "passivité fautive",
+    "absence de diligence",
+    "carence"
+  ],
+  "infection nosocomiale": [
+    "infection acquise en milieu hospitalier",
+    "infection contractée à l'hôpital"
   ],
   "infraction": [
     "contravention",
@@ -901,6 +1086,10 @@
   ],
   "intérêt collectif": [
     "intérêt diffus"
+  ],
+  "intérêt supérieur de l'enfant": [
+    "IS de l'enfant",
+    "primauté de l'intérêt de l'enfant"
   ],
   "juge": [
     "juge d'instruction",
@@ -1020,6 +1209,11 @@
     "licenciement sans motif",
     "rupture abusive"
   ],
+  "lien de causalité": [
+    "causalité",
+    "lien direct et certain",
+    "rapport de cause à effet"
+  ],
   "liquidation": [
     "dissolution d'entreprise",
     "cessation d'activité",
@@ -1067,6 +1261,15 @@
   "mandat": [
     "procuration"
   ],
+  "manquement à l'obligation": [
+    "inertie administrative",
+    "abstention fautive",
+    "défaillance",
+    "passivité fautive",
+    "absence de diligence",
+    "carence",
+    "manquement"
+  ],
   "marchés publics": [
     "commande publique",
     "contrat public",
@@ -1101,6 +1304,11 @@
   "modes alternatifs de résolution des conflits": [
     "modes alternatifs de règlement des conflits"
   ],
+  "motivation": [
+    "obligation de motivation",
+    "défaut de motivation",
+    "motivation insuffisante"
+  ],
   "multipropriété": [
     "jouissance à temps partagé"
   ],
@@ -1123,7 +1331,8 @@
   "nullité": [
     "annulation",
     "invalidité",
-    "inopposabilité"
+    "inopposabilité",
+    "anéantissement"
   ],
   "nullité d'une élection": [
     "annulation d'une élection"
@@ -1131,6 +1340,15 @@
   "négligence criminelle": [
     "délit par omission",
     "négligence coupable"
+  ],
+  "obligation de diligence": [
+    "devoir de diligence",
+    "diligence raisonnable",
+    "obligation de prudence"
+  ],
+  "obligation de prudence": [
+    "devoir de diligence",
+    "diligence raisonnable"
   ],
   "officier ministériel": [
     "avoué"
@@ -1172,6 +1390,15 @@
   "permis de construire": [
     "autorisation d'urbanisme",
     "autorisation de bâtir"
+  ],
+  "perte de chance": [
+    "chance perdue",
+    "opportunité manquée",
+    "préjudice aléatoire"
+  ],
+  "perte de chance médicale": [
+    "perte de chance de guérison",
+    "perte de chance de survie"
   ],
   "philosophie du droit": [
     "théorie du droit"
@@ -1236,6 +1463,11 @@
     "certitude juridique",
     "principe d'égalité et de sécurité juridique",
     "sécurité juridique"
+  ],
+  "principe du contradictoire": [
+    "contradiction",
+    "débat contradictoire",
+    "respect du contradictoire"
   ],
   "privation de droits": [
     "dégradation civique"
@@ -1352,15 +1584,44 @@
     "souffrance",
     "atteinte"
   ],
+  "préjudice corporel": [
+    "dommage corporel",
+    "atteinte à l'intégrité physique",
+    "préjudice physique"
+  ],
+  "préjudice d'agrément": [
+    "perte d'agrément",
+    "privation d'agrément",
+    "impossibilité de pratiquer"
+  ],
+  "préjudice d'établissement": [
+    "perte de chance d'établir une famille",
+    "atteinte au projet de vie"
+  ],
+  "préjudice financier": [
+    "dommage matériel",
+    "perte économique",
+    "perte financière",
+    "dommages matériels",
+    "perte matérielle",
+    "préjudice patrimonial"
+  ],
   "préjudice matériel": [
     "dommage matériel",
     "perte économique",
-    "perte financière"
+    "perte financière",
+    "dommages matériels",
+    "perte matérielle",
+    "préjudice patrimonial",
+    "préjudice financier"
   ],
   "préjudice moral": [
     "dommage moral",
     "souffrance psychique",
-    "atteinte à la dignité"
+    "atteinte à la dignité",
+    "souffrances morales",
+    "douleur morale",
+    "atteinte morale"
   ],
   "présomption d'innocence": [
     "principe de non-culpabilité",
@@ -1448,10 +1709,26 @@
     "imputabilité",
     "faute génératrice"
   ],
+  "responsabilité administrative": [
+    "responsabilité de la puissance publique",
+    "responsabilité de l'État",
+    "responsabilité du service public",
+    "engagement de la responsabilité"
+  ],
   "responsabilité civile": [
     "réparation du préjudice",
     "dommage civil",
     "réparation intégrale"
+  ],
+  "responsabilité de l'État": [
+    "responsabilité de la puissance publique",
+    "responsabilité du service public",
+    "engagement de la responsabilité"
+  ],
+  "responsabilité de la puissance publique": [
+    "responsabilité de l'État",
+    "responsabilité du service public",
+    "engagement de la responsabilité"
   ],
   "responsabilité du producteur": [
     "garantie commerciale",
@@ -1520,6 +1797,16 @@
     "procédure d'urgence",
     "ordonnance de référé"
   ],
+  "référé liberté": [
+    "référé-liberté",
+    "référé L. 521-2",
+    "atteinte grave à une liberté fondamentale"
+  ],
+  "référé suspension": [
+    "référé-suspension",
+    "référé L. 521-1",
+    "suspension provisoire"
+  ],
   "régime pénitentiaire": [
     "condition de détention",
     "congé pénal",
@@ -1533,7 +1820,10 @@
   ],
   "réparation intégrale": [
     "indemnisation totale",
-    "dédommagement complet"
+    "dédommagement complet",
+    "réparation totale",
+    "compensation intégrale",
+    "principe de réparation"
   ],
   "répartition des sièges": [
     "attribution des sièges",
@@ -1612,6 +1902,20 @@
   ],
   "solvabilité financière": [
     "insolvabilité financière"
+  ],
+  "souffrance morale": [
+    "dommage moral",
+    "souffrance psychique",
+    "atteinte à la dignité",
+    "souffrances morales",
+    "douleur morale",
+    "atteinte morale",
+    "préjudice moral"
+  ],
+  "souffrances endurées": [
+    "pretium doloris",
+    "douleurs subies",
+    "souffrance physique"
   ],
   "statut juridique": [
     "personnalité juridique",
@@ -1724,11 +2028,27 @@
   "travail du détenu": [
     "travail du prisonnier"
   ],
+  "troubles": [
+    "troubles dans les conditions d'existence",
+    "bouleversement des conditions d'existence",
+    "perturbations matérielles",
+    "désagréments"
+  ],
+  "troubles dans les conditions d'existence": [
+    "bouleversement des conditions d'existence",
+    "perturbations matérielles",
+    "désagréments"
+  ],
   "témoignage": [
     "témoin"
   ],
   "unanimité": [
     "vote à l'unanimité"
+  ],
+  "urgence": [
+    "situation d'urgence",
+    "péril imminent",
+    "nécessité d'agir"
   ],
   "usufruit": [
     "droit de jouissance",
@@ -1746,10 +2066,17 @@
     "responsabilité des objets spatiaux",
     "utilisation pacifique de l'espace"
   ],
+  "vice de forme": [
+    "irrégularité formelle",
+    "défaut de forme",
+    "non-respect du formalisme"
+  ],
   "vie privée": [
     "intimité",
     "sphère privée",
-    "droit au respect de la vie privée"
+    "droit au respect de la vie privée",
+    "respect de la vie privée",
+    "atteinte à la vie privée"
   ],
   "viol": [
     "agression sexuelle aggravée",
@@ -1785,6 +2112,10 @@
     "exécution du jugement",
     "mesure d'exécution forcée"
   ],
+  "voie de fait": [
+    "dépassement manifeste",
+    "atteinte grave et manifestement illégale"
+  ],
   "voie de recours": [
     "appel en justice",
     "pourvoi",
@@ -1803,6 +2134,11 @@
     "isoloir",
     "vote à bulletin secret"
   ],
+  "vulnérabilité": [
+    "personne vulnérable",
+    "situation de vulnérabilité",
+    "fragilité particulière"
+  ],
   "vérification du scrutin": [
     "observation électorale"
   ],
@@ -1817,7 +2153,9 @@
     "principe d'égalité",
     "principe de non-discrimination",
     "égalité de chances",
-    "égalité des droits"
+    "égalité des droits",
+    "non-discrimination",
+    "traitement égal"
   ],
   "égalité homme-femme": [
     "ieg",

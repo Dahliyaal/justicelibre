@@ -47,12 +47,42 @@ _RE_RG = re.compile(r"^\d{2}/\d{5,6}$")
 _RE_CELEX = re.compile(r"^6\d{4}[A-Z]{2}\d{4}$")
 # ECLI
 _RE_ECLI = re.compile(r"^ECLI:[A-Z]{2}:[A-Z]+:\d{4}:\S+$", re.IGNORECASE)
-# Dossier admin (TA/CAA) : 7 chiffres commençant par 2 (2XXXXXX)
-_RE_DOSSIER_ADMIN = re.compile(r"^2\d{6}$")
+# Dossier admin :
+# - TA Paris-style : 7 chiffres commençant par 2 (ex: 2116343)
+# - CAA/TA codifié : YY + 2 lettres cour + NNNN(N) (ex: 03NC01126 Nancy,
+#   23DA00671 Douai, 22PA05407 Paris, 18NT01234 Nantes…)
+_RE_DOSSIER_ADMIN = re.compile(r"^(?:2\d{6}|\d{2}[A-Z]{2}\d{4,6})$", re.IGNORECASE)
 # IDs déjà typés (préfixes)
 _RE_DCE = re.compile(r"^D(CE|TA|CAA)_[A-Z0-9_]+$", re.IGNORECASE)
 _RE_HUDOC = re.compile(r"^00[0-9]-\d{4,6}$")
 _RE_JURITEXT = re.compile(r"^(JURI|CONST|ARRETS)\w*$", re.IGNORECASE)
+
+
+# ─── HELPERS PUBLICS ───────────────────────────────────────────────
+# À utiliser depuis sources/jade_remote.py et autres consommateurs pour
+# éviter de re-déclarer les patterns localement (source unique de vérité).
+
+def normalize_numero(query: str) -> str:
+    """Nettoie un numéro pour lookup SQL : strip, retire espaces et préfixe 'n°'."""
+    return (query or "").strip().lstrip("n°oN° \t").replace(" ", "")
+
+
+def match_admin_docket(query: str) -> str | None:
+    """Si la query ressemble à un numéro de dossier admin (CE/CAA/TA),
+    retourne le numéro nettoyé. Sinon None.
+
+    Couvre :
+    - CE pur numérique 5-7 chiffres (ex: "497566", "358109")
+    - TA Paris-style 7 chiffres commençant par 2 (ex: "2116343")
+    - CAA/TA codifié YY+CC+NNNN(N) (ex: "03NC01126", "22PA05407")
+    Préfixe "n°" optionnel.
+    """
+    num = normalize_numero(query)
+    if not num:
+        return None
+    if _RE_DOSSIER_ADMIN.match(num) or _RE_ARIANE_ID.match(num):
+        return num
+    return None
 
 
 def _strip_wrapping_quotes(q: str) -> tuple[str, bool]:
