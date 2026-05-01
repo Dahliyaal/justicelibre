@@ -41,6 +41,24 @@ SOURCE_LABELS = {
     "cnil": "CNIL",
 }
 
+# Origine de la donnée bulk pour chaque source. Important pour la confiance :
+# montre d'où vient l'info (vs un site « AI slop » qui invente des décisions).
+# Affiché dans la meta-table sous "Source de l'archive".
+BULK_SOURCES = {
+    "admin":  ("DILA — bulk JADE",
+               "https://echanges.dila.gouv.fr/OPENDATA/JADE/"),
+    "dila":   ("DILA — bulks CASS / CAPP / CONSTIT",
+               "https://echanges.dila.gouv.fr/OPENDATA/CASS/"),
+    "cedh":   ("HUDOC — Cour européenne des droits de l'homme",
+               "https://hudoc.echr.coe.int/"),
+    "cjue":   ("InforCuria — CJUE",
+               "https://curia.europa.eu/jcms/jcms/j_6/fr/"),
+    "ariane": ("ArianeWeb — Conseil d'État",
+               "https://www.conseil-etat.fr/arianeweb/"),
+    "cnil":   ("DILA — bulk CNIL délibérations",
+               "https://echanges.dila.gouv.fr/OPENDATA/CNIL/"),
+}
+
 # ─── Composants partagés (reproduits du SPA pour cohérence visuelle) ───
 # Ces blocs HTML/CSS sont une copie simplifiée du <head> + topbar de
 # web/search.html. Toute mise à jour visuelle du SPA doit être répercutée
@@ -259,6 +277,13 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
             f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
             f'{_source_host(source_url)} ↗</a></td></tr>'
         )
+    bulk_label, bulk_url = BULK_SOURCES.get(source, ("", ""))
+    if bulk_url:
+        meta_html += (
+            f'<tr class="source-row"><th>Source de l\'archive</th>'
+            f'<td><a href="{esc(bulk_url)}" target="_blank" rel="external noopener">'
+            f'{esc(bulk_label)} ↗</a></td></tr>'
+        )
 
     return f"""<!doctype html>
 <html lang="fr">
@@ -286,7 +311,6 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 {TOPBAR_HTML}
 <div class="page-subbar">
   <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(SOURCE_LABELS.get(source, source))}</div>
-  <a class="return" href="/search.html">← Retour à la recherche</a>
 </div>
 <main class="wrap">
   <div class="kicker">{esc(juri or SOURCE_LABELS.get(source, ''))}</div>
@@ -296,10 +320,6 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
   <article>{text_html}</article>
   <footer class="page-footer">
     <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> — alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
-    <div class="cta-row">
-      <a class="cta" href="/search.html">Rechercher d'autres décisions</a>
-      {'<a class="cta alt" href="' + esc(source_url) + '" target="_blank" rel="external noopener">Voir la source officielle ↗</a>' if source_url else ''}
-    </div>
   </footer>
 </main>
 </body>
@@ -391,6 +411,13 @@ def render_law(code: str, num: str, data: dict) -> str:
             f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
             f'{_source_host(source_url)} ↗</a></td></tr>'
         )
+    # Bulk LEGI pour les articles de loi (toujours pareil)
+    meta_html += (
+        '<tr class="source-row"><th>Source de l\'archive</th>'
+        '<td><a href="https://echanges.dila.gouv.fr/OPENDATA/LEGI/" '
+        'target="_blank" rel="external noopener">'
+        'DILA — bulk LEGI (codes consolidés) ↗</a></td></tr>'
+    )
 
     return f"""<!doctype html>
 <html lang="fr">
@@ -418,7 +445,6 @@ def render_law(code: str, num: str, data: dict) -> str:
 {TOPBAR_HTML}
 <div class="page-subbar">
   <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(code_label)}</div>
-  <a class="return" href="/search.html">← Retour à la recherche</a>
 </div>
 <main class="wrap">
   <div class="kicker">{esc(code_label)}</div>
@@ -428,10 +454,6 @@ def render_law(code: str, num: str, data: dict) -> str:
   <article>{text_html}{nota_html}</article>
   <footer class="page-footer">
     <p>Article de loi publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a> via <strong>JusticeLibre</strong>.</p>
-    <div class="cta-row">
-      <a class="cta" href="/search.html?q={esc(num)}">Décisions citant cet article</a>
-      {f'<a class="cta alt" href="{esc(source_url)}" target="_blank" rel="external noopener">Voir sur Légifrance ↗</a>' if source_url else ''}
-    </div>
   </footer>
 </main>
 </body>
