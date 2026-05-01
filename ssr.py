@@ -162,8 +162,15 @@ footer.page-footer a{color:var(--teal)}
 .cta.alt:hover{background:var(--teal-xl)}
 """
 
-TOPBAR_HTML = """
-<header class="topbar">
+# Source de vérité unique : on extrait le <header class="topbar">…</header>
+# de search.html à chaque render (avec mémo léger 60s pour ne pas re-lire
+# le fichier à chaque requête). Si jamais on touche au topbar dans
+# search.html, le SSR se met à jour automatiquement -> plus de drift.
+SEARCH_HTML_PATH = Path("/var/www/justicelibre/search.html")
+_TOPBAR_CACHE: dict = {"html": None, "loaded_at": 0.0}
+_TOPBAR_TTL = 60.0  # secondes, suffit pour propager les MAJ
+
+_TOPBAR_FALLBACK = """<header class="topbar">
   <a href="/" class="logo-area">
     <img src="/logo.svg" alt="">
     <span class="name">justicelibre<span class="tld">.org</span></span>
@@ -175,8 +182,41 @@ TOPBAR_HTML = """
     <a href="/#connect">MCP</a>
     <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
   </nav>
-</header>
-"""
+</header>"""
+
+
+def get_topbar_html() -> str:
+    """Lit le <header class=\"topbar\">…</header> depuis search.html.
+
+    Cache 60s. Strip l'attribut `active` du lien Recherche (ne s'applique
+    pas aux pages SSR décision/loi).
+    """
+    import time as _time
+    now = _time.time()
+    if _TOPBAR_CACHE["html"] and (now - _TOPBAR_CACHE["loaded_at"] < _TOPBAR_TTL):
+        return _TOPBAR_CACHE["html"]
+    html_str = _TOPBAR_FALLBACK
+    try:
+        if SEARCH_HTML_PATH.exists():
+            content = SEARCH_HTML_PATH.read_text(encoding="utf-8")
+            m = re.search(r'<header class="topbar">.*?</header>', content, re.DOTALL)
+            if m:
+                extracted = m.group(0)
+                # Retire la class "active" (le lien est actif sur /search.html
+                # mais pas sur les pages décision/loi servies en SSR).
+                extracted = extracted.replace(' class="active"', '')
+                html_str = extracted
+    except Exception:
+        pass
+    _TOPBAR_CACHE["html"] = html_str
+    _TOPBAR_CACHE["loaded_at"] = now
+    return html_str
+
+
+# Compat avec le code existant qui référence TOPBAR_HTML comme constante.
+# Note: cette ligne est résolue au moment de l'import. Pour avoir la version
+# fraîche à chaque render, le code utilise désormais get_topbar_html().
+TOPBAR_HTML = get_topbar_html()
 
 # ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -308,7 +348,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 <style>{SHARED_CSS}</style>
 </head>
 <body>
-{TOPBAR_HTML}
+{get_topbar_html()}
 <div class="page-subbar">
   <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(SOURCE_LABELS.get(source, source))}</div>
 </div>
@@ -442,7 +482,7 @@ def render_law(code: str, num: str, data: dict) -> str:
 <style>{SHARED_CSS}</style>
 </head>
 <body>
-{TOPBAR_HTML}
+{get_topbar_html()}
 <div class="page-subbar">
   <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(code_label)}</div>
 </div>
