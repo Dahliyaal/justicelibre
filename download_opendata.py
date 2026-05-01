@@ -68,6 +68,11 @@ ALL_JURI = [
 
 API_BASE = "https://opendata.justice-administrative.fr/recherche/api"
 NO_SECOND = "bm9TZWNvbmR2YWx1ZQ=="
+# Endpoint avec date filter natif découvert via reverse-engineering du
+# frontend opendata.justice-administrative.fr (panel DevTools > Network).
+# Format : /model_search_date_juri/openData/Date_Lecture/{q}/{juri}/{d_start}/{d_end}/{limit}
+# Date format YYYY-MM-DD. Q="*" pour wildcard match-all.
+DATE_API = f"{API_BASE}/model_search_date_juri/openData/Date_Lecture"
 
 # Range d'années à crawler (l'opendata commence ~2009, on couvre large)
 YEARS = list(range(2008, datetime.now().year + 2))
@@ -121,16 +126,25 @@ def init_db():
 
 # ─── HTTP fetch ─────────────────────────────────────────────────────
 
-def fetch_search(client: httpx.Client, juri: str, query: str, limit: int = LIMIT_PER_CALL) -> dict | None:
-    """Search par juri + query, retourne hits ES bruts."""
+def fetch_search(client: httpx.Client, juri: str, query: str, limit: int = LIMIT_PER_CALL,
+                 date_start: str | None = None, date_end: str | None = None) -> dict | None:
+    """Search par juri + query (+ optional date range).
+
+    Si date_start/date_end fournis, utilise l'endpoint model_search_date_juri
+    (date filter natif découvert via reverse-engineering frontend).
+    Sinon, utilise model_search_juri (capacity limited à 10k sans pagination).
+    """
     safe_q = quote(query, safe="")
-    url = f"{API_BASE}/model_search_juri/openData/{juri}/{safe_q}/{int(limit)}"
+    if date_start and date_end:
+        url = f"{DATE_API}/{safe_q}/{juri}/{date_start}/{date_end}/{int(limit)}"
+    else:
+        url = f"{API_BASE}/model_search_juri/openData/{juri}/{safe_q}/{int(limit)}"
     try:
         r = client.get(url)
         r.raise_for_status()
         return r.json().get("decisions", {}).get("body", {}).get("hits", {})
     except Exception as e:
-        print(f"  [fetch_search err] {juri}/{query}: {e}")
+        print(f"  [fetch_search err] {juri}/{query} ({date_start}..{date_end}): {e}")
         return None
 
 
@@ -185,25 +199,37 @@ def insert_decision(c: sqlite3.Connection, hit: dict, full_text: str | None):
     return True
 
 
-def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: bool = True) -> int:
-    """Crawl une partition (une juri + une query/year). Retourne nb décisions ingérées.
-
-    NOTE LIMITATION : l'API opendata.justice-administrative.fr cap à 10 000
-    résultats par appel et ne supporte pas la pagination cursor / scroll_id
-    sur l'endpoint `model_search_juri`. Quand une partition (juri × année)
-    dépasse 10k, les décisions au-delà sont inaccessibles en bulk —
-    seulement accessibles via search live MCP. Pas de fix possible côté
-    client. ~800k décisions en théorie atteignables sont skippées (les
-    grandes années des grosses TA : TA75, CE depuis 2020).
+def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: bool = True,
+                    date_start: str | None = None, date_end: str | None = None) -> int:
+    """Crawl une partition (juri + query/year + optional date range). Renvoie n.
+    Si total > LIMIT_PER_CALL et qu'on a des dates, on récursivement
+    sous-partitionne par moitié de la fenêtre temporelle (binary split).
     """
-    hits_data = fetch_search(client, juri, query)
+    hits_data = fetch_search(client, juri, query, date_start=date_start, date_end=date_end)
     if not hits_data:
         return 0
     hits = hits_data.get("hits", [])
     total = hits_data.get("total", {}).get("value", 0)
     if total > LIMIT_PER_CALL:
-        print(f"  ⚠ {juri}/{query}: {total} > {LIMIT_PER_CALL}, perdu (API limit)")
-        return -total
+        if date_start and date_end and date_start != date_end:
+            # Binary split : divise la fenêtre date en deux
+            from datetime import date as _d
+            try:
+                ds = _d.fromisoformat(date_start); de = _d.fromisoformat(date_end)
+                mid_days = (de - ds).days // 2
+                mid = ds.fromordinal(ds.toordinal() + mid_days)
+                mid_next = ds.fromordinal(ds.toordinal() + mid_days + 1)
+                print(f"  ↻ {juri}/{date_start}..{date_end}: {total} > {LIMIT_PER_CALL}, split sur {mid}")
+                n1 = crawl_partition(client, juri, query, fetch_text, str(ds), str(mid))
+                time.sleep(RATE_LIMIT_SLEEP)
+                n2 = crawl_partition(client, juri, query, fetch_text, str(mid_next), str(de))
+                return n1 + n2
+            except Exception as e:
+                print(f"  [split err] {e}")
+                return -total
+        else:
+            print(f"  ⚠ {juri}/{query}: {total} > {LIMIT_PER_CALL}, pas de date range pour split")
+            return -total
     n = 0
     with sqlite3.connect(str(DB_PATH), timeout=120.0) as c:
         for hit in hits:
@@ -219,64 +245,51 @@ def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: boo
                 n += 1
             if n % LOG_EVERY_N == 0:
                 c.commit()
-                print(f"    {juri}/{query}: {n}/{len(hits)} ingestés")
+                print(f"    {juri}/{query}/{date_start}: {n}/{len(hits)} ingestés")
         c.commit()
     return n
 
 
 def main(fetch_text: bool = True):
-    """Orchestrateur principal.
+    """Orchestrateur principal v2.
 
-    Stratégie : pour chaque juri, on essaie d'abord une query large `*`.
-    Si la juri a > 10k décisions, on partitionne par année.
+    Utilise le date filter natif (model_search_date_juri) découvert
+    par reverse-engineering du frontend. Partitionne par mois → chaque
+    partition < 10k presque toujours. Si dépassement → binary split
+    automatique sur la fenêtre date (récursif).
+
+    Couverture théorique : ~100% des décisions opendata exposées.
     """
     init_db()
     state = load_state()
     done = set(state["done_partitions"])
     print(f"[start] resume: {len(done)} partitions déjà faites")
-    print(f"[start] fetch_text={fetch_text} (False = juste métadonnées, x10 plus rapide)")
-    print(f"[start] target: {len(ALL_JURI)} juridictions × ~{len(YEARS)} années = ~{len(ALL_JURI)*len(YEARS)} partitions max")
+    print(f"[start] fetch_text={fetch_text}")
+    months = []
+    for y in YEARS:
+        for m in range(1, 13):
+            months.append((y, m))
+    print(f"[start] target: {len(ALL_JURI)} juridictions × {len(months)} mois = ~{len(ALL_JURI)*len(months)} partitions max")
 
+    from calendar import monthrange
     with httpx.Client(timeout=TIMEOUT,
                       headers={"User-Agent": "justicelibre-crawler/1.0 (+https://justicelibre.org)"}) as client:
         for juri in ALL_JURI:
-            partition_key = f"{juri}/*"
-            if partition_key in done:
-                continue
-            print(f"\n[{juri}] sondage volume...")
-            time.sleep(RATE_LIMIT_SLEEP)
-            r = fetch_search(client, juri, "*", limit=1)
-            if not r:
-                continue
-            total = r.get("total", {}).get("value", 0)
-            print(f"[{juri}] total: {total}")
-            if total == 0:
-                state["done_partitions"].append(partition_key)
+            for y, m in months:
+                last_day = monthrange(y, m)[1]
+                d_start = f"{y}-{m:02d}-01"
+                d_end = f"{y}-{m:02d}-{last_day:02d}"
+                pk = f"{juri}/{y}-{m:02d}"
+                if pk in done:
+                    continue
+                time.sleep(RATE_LIMIT_SLEEP)
+                n = crawl_partition(client, juri, "*", fetch_text=fetch_text,
+                                    date_start=d_start, date_end=d_end)
+                state["stats"][pk] = max(0, n)
+                state["done_partitions"].append(pk)
                 save_state(state)
-                continue
-            if total <= LIMIT_PER_CALL:
-                # Une seule partition suffit
-                n = crawl_partition(client, juri, "*", fetch_text=fetch_text)
-                state["stats"][partition_key] = n
-                state["done_partitions"].append(partition_key)
-                save_state(state)
-                print(f"[{juri}] DONE: {n} décisions")
-            else:
-                # Partition par année
-                print(f"[{juri}] >10k, partition par année")
-                for year in YEARS:
-                    pk = f"{juri}/{year}"
-                    if pk in done:
-                        continue
-                    time.sleep(RATE_LIMIT_SLEEP)
-                    n = crawl_partition(client, juri, str(year), fetch_text=fetch_text)
-                    if n < 0:
-                        print(f"  ⚠ {pk}: {-n} > 10k, sub-partition non implémentée — manqué {-n} décisions")
-                        # TODO: partitionner par mois si année > 10k
-                    state["stats"][pk] = max(0, n)
-                    state["done_partitions"].append(pk)
-                    save_state(state)
-                    print(f"  [{pk}] DONE: {max(0,n)} décisions")
+                if n != 0:
+                    print(f"  [{pk}] DONE: {n} décisions")
     print("\n[end] tout fini.")
     print(f"[end] total ingéré: {sum(v for v in state['stats'].values() if v > 0)} décisions")
 
