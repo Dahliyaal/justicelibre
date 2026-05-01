@@ -47,6 +47,40 @@ SUPPORTED_CODES: dict[str, str] = {
 }
 
 
+# Mapping code court → identifiant Légifrance (LEGITEXT/JORFTEXT).
+# Doit rester synchronisé avec warehouse_server.CODE_TO_LEGITEXT.
+# Utilisé par render_sitemap_legi pour faire le reverse mapping
+# LEGITEXT → code court lors de la génération des URLs /loi/{code}/{num}.
+SUPPORTED_CODES_LEGITEXT: dict[str, str] = {
+    "CC":      "LEGITEXT000006070721",
+    "CP":      "LEGITEXT000006070719",
+    "CPC":     "LEGITEXT000006070716",
+    "CPP":     "LEGITEXT000006071154",
+    "CT":      "LEGITEXT000006072050",
+    "CSP":     "LEGITEXT000006072665",
+    "CJA":     "LEGITEXT000006070933",
+    "CGCT":    "LEGITEXT000006070633",
+    "CRPA":    "LEGITEXT000031366350",
+    "CPI":     "LEGITEXT000006069414",
+    "CASF":    "LEGITEXT000006074069",
+    "CMF":     "LEGITEXT000006072026",
+    "C.com":   "LEGITEXT000005634379",
+    "C.cons":  "LEGITEXT000006069565",
+    "C.éduc":  "LEGITEXT000006071191",
+    "CU":      "LEGITEXT000006074075",
+    "C.env":   "LEGITEXT000006074220",
+    "CR":      "LEGITEXT000006071367",
+    "CGI":     "LEGITEXT000006069569",
+    "CESEDA":  "LEGITEXT000006070158",
+    "CSS":     "LEGITEXT000006073189",
+    "CCH":     "LEGITEXT000006074096",
+    "CONST":     "JORFTEXT000000571356",
+    "LIL":       "JORFTEXT000000886460",
+    "LO58":      "JORFTEXT000000705065",
+    "L2005-102": "JORFTEXT000000809647",
+}
+
+
 def is_supported(code: str) -> bool:
     return code in SUPPORTED_CODES
 

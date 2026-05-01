@@ -26,6 +26,7 @@ import re
 import sqlite3
 import sys
 import threading
+import time
 from datetime import date as _date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import urllib.parse
@@ -402,7 +403,14 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
 
 
 def _normalize_num(num: str) -> str:
-    return (num or "").strip().replace(" ", "")
+    """Normalise un numéro d'article pour le matching DB.
+
+    LEGI stocke les numéros sans points ni espaces (ex: 'R772-8', pas
+    'R. 772-8' ou 'R.772-8'). Les citations détectées dans les jugements
+    arrivent souvent avec ponctuation libre. On enlève espaces + points
+    pour matcher de manière stable.
+    """
+    return (num or "").strip().replace(" ", "").replace(".", "")
 
 
 # ─── FTS5 SEARCH (by fond) ───────────────────────────────────────────
@@ -688,6 +696,74 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 return self._json(404, {"error": f"no match for numero {numero!r} in {fond}"})
             return self._json(200, {"count": len(rows), "results": [dict(r) for r in rows]})
 
+        # /v1/count/{fond} → total rows. Sert au sitemap-index pour calculer
+        # combien de sub-sitemaps annoncer.
+        m = re.match(r"^/v1/count/(\w+)$", path)
+        if m:
+            fond = m.group(1)
+            if fond not in FONDS:
+                return self._json(400, {"error": f"unknown fond: {fond}"})
+            cfg = FONDS[fond]
+            c = _conn(fond)
+            try:
+                # Pour LEGI on ne compte que les articles en vigueur (les seuls
+                # qu'on met dans le sitemap, les versions historiques étant
+                # accessibles via lien interne depuis leur article courant).
+                if fond == "legi":
+                    total = c.execute(
+                        f"SELECT COUNT(*) FROM {cfg['decision_table']} WHERE etat = 'VIGUEUR'"
+                    ).fetchone()[0]
+                else:
+                    total = c.execute(f"SELECT COUNT(*) FROM {cfg['decision_table']}").fetchone()[0]
+            except sqlite3.Error as e:
+                return self._json(500, {"error": f"count failed: {e}"})
+            return self._json(200, {"fond": fond, "total": total})
+
+        # /v1/enumerate/{fond}?offset=&limit= → liste paginée d'IDs pour
+        # construire les sub-sitemaps Google. Renvoie le minimum nécessaire
+        # à la génération du <url><loc>...</loc><lastmod>...</lastmod></url>.
+        m = re.match(r"^/v1/enumerate/(\w+)$", path)
+        if m:
+            fond = m.group(1)
+            if fond not in FONDS:
+                return self._json(400, {"error": f"unknown fond: {fond}"})
+            try:
+                offset = max(0, int(_q(q, "offset") or "0"))
+                limit = min(50000, max(1, int(_q(q, "limit") or "1000")))
+            except ValueError:
+                return self._json(400, {"error": "offset/limit must be int"})
+            cfg = FONDS[fond]
+            c = _conn(fond)
+            try:
+                if fond == "jade":
+                    sql = "SELECT id, date FROM jade_decisions ORDER BY date DESC LIMIT ? OFFSET ?"
+                    rows = c.execute(sql, (limit, offset)).fetchall()
+                    out = [{"id": r["id"], "date": r["date"]} for r in rows]
+                elif fond == "legi":
+                    # On ne sitemap que les articles en vigueur, triés par
+                    # legiarti pour garantir un ordre stable + cohérent avec
+                    # l'index idx_legi_etat_legiarti. Renvoie aussi (legitext,
+                    # num) pour pouvoir construire l'URL /loi/{code}/{num}.
+                    sql = ("SELECT legiarti, legitext, num, date_debut "
+                           "FROM legi_articles WHERE etat = 'VIGUEUR' "
+                           "ORDER BY legiarti LIMIT ? OFFSET ?")
+                    rows = c.execute(sql, (limit, offset)).fetchall()
+                    out = [{
+                        "id": r["legiarti"], "legitext": r["legitext"],
+                        "num": r["num"], "date": r["date_debut"],
+                    } for r in rows]
+                else:
+                    # Fallback générique : on suppose colonnes id + date
+                    sql = (f"SELECT {cfg['id_col']} AS id, date "
+                           f"FROM {cfg['decision_table']} "
+                           f"ORDER BY date DESC LIMIT ? OFFSET ?")
+                    rows = c.execute(sql, (limit, offset)).fetchall()
+                    out = [{"id": r["id"], "date": r["date"]} for r in rows]
+            except sqlite3.Error as e:
+                return self._json(500, {"error": f"enumerate failed: {e}"})
+            return self._json(200, {"fond": fond, "offset": offset, "limit": limit,
+                                     "count": len(out), "results": out})
+
         return self._json(404, {"error": f"endpoint not found: {path}"})
 
     def _route_post(self):
@@ -717,9 +793,47 @@ def _q(qs: dict, name: str) -> str | None:
     return v[0] if v else None
 
 
+# ─── STARTUP : créer les index nécessaires si absents ─────────────────
+
+# Indexes critiques pour la perf des sitemaps (`/v1/enumerate/{fond}`).
+# Sans ces indexes, ORDER BY ... LIMIT 50000 = full scan = timeout
+# Cloudflare (60s). Avec : ~1-2s.
+_BOOTSTRAP_INDEXES = {
+    "jade": [
+        ("idx_jade_date", "CREATE INDEX IF NOT EXISTS idx_jade_date ON jade_decisions(date DESC)"),
+    ],
+    "legi": [
+        # Couvre la query SELECT WHERE etat='VIGUEUR' ORDER BY legiarti
+        ("idx_legi_etat_legiarti", "CREATE INDEX IF NOT EXISTS idx_legi_etat_legiarti ON legi_articles(etat, legiarti)"),
+    ],
+}
+
+
+def _ensure_indexes():
+    """Crée les indexes manquants au démarrage (read-write éphémère)."""
+    for fond, idxs in _BOOTSTRAP_INDEXES.items():
+        if fond not in FONDS:
+            continue
+        db_path = DB_DIR / FONDS[fond]["db"]
+        if not db_path.exists():
+            print(f"[warehouse] skip indexes {fond}: {db_path} absent")
+            continue
+        try:
+            with sqlite3.connect(str(db_path), timeout=120.0) as c:
+                for name, sql in idxs:
+                    t0 = time.time()
+                    c.execute(sql)
+                    elapsed = time.time() - t0
+                    if elapsed > 0.5:
+                        print(f"[warehouse] created {name} on {fond} in {elapsed:.1f}s")
+        except sqlite3.Error as e:
+            print(f"[warehouse] index bootstrap {fond} failed: {e}")
+
+
 # ─── MAIN ────────────────────────────────────────────────────────────
 
 def main():
+    _ensure_indexes()
     server = ThreadingHTTPServer(BIND, WarehouseHandler)
     print(f"[warehouse] bind={BIND[0]}:{BIND[1]} db_dir={DB_DIR} fonds={list(FONDS.keys())} codes={len(CODE_TO_LEGITEXT)}")
     try:

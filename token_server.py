@@ -171,6 +171,18 @@ class TokenHandler(BaseHTTPRequestHandler):
         m = re.match(r"^/sitemap-dila-(\d+)\.xml$", parsed.path)
         if m:
             return self._handle_sitemap_dila(int(m.group(1)))
+        m = re.match(r"^/sitemap-jade-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_jade(int(m.group(1)))
+        m = re.match(r"^/sitemap-legi-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_legi(int(m.group(1)))
+        # Article de loi : /loi/CASF/L262-8 ou /loi/CJA/R772-8
+        # Code: 1-15 caractères (CC, CASF, C.cons, L2005-102…)
+        # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
+        m = re.match(r"^/loi/([\w.\-]{1,15})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
+        if m:
+            return self._handle_ssr_law(m.group(1), m.group(2))
         if parsed.path in ("/api", "/api/"):
             return self._json_response(200, {
                 "service": "justicelibre public REST API",
@@ -447,6 +459,27 @@ class TokenHandler(BaseHTTPRequestHandler):
     def _handle_sitemap_dila(self, page: int):
         from ssr import render_sitemap_dila
         return self._xml_response(200, render_sitemap_dila(page), cache_seconds=86400)
+
+    def _handle_sitemap_jade(self, page: int):
+        from ssr import render_sitemap_jade
+        return self._xml_response(200, render_sitemap_jade(page), cache_seconds=86400)
+
+    def _handle_sitemap_legi(self, page: int):
+        from ssr import render_sitemap_legi
+        return self._xml_response(200, render_sitemap_legi(page), cache_seconds=86400)
+
+    def _handle_ssr_law(self, code: str, num: str):
+        """Render HTML SSR d'un article de loi."""
+        from ssr import render_law, render_law_404
+        from sources.warehouse import sync_get_law
+        try:
+            data = sync_get_law(code, num)
+        except Exception:
+            logger.exception('ssr law failed')
+            data = None
+        if not data:
+            return self._html_response(404, render_law_404(code, num))
+        return self._html_response(200, render_law(code, num, data), cache_seconds=86400)
 
     def _html_response(self, code: int, html: str, cache_seconds: int = 0):
         body = html.encode("utf-8")

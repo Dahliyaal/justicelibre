@@ -66,6 +66,23 @@ async def get_law_versions(code: str, num: str) -> list[dict]:
     return (data or {}).get("versions", [])
 
 
+def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
+    """Variant sync de get_law pour les handlers HTTPServer (SSR /loi/...)."""
+    if not _KEY:
+        return None
+    try:
+        params = {"code": code, "num": num}
+        if date:
+            params["date"] = date
+        r = httpx.get(f"{WAREHOUSE_URL}/v1/law", params=params,
+                      headers=_HEADERS, timeout=10.0)
+        if r.status_code == 404 or r.status_code != 200:
+            return None
+        return r.json()
+    except Exception:
+        return None
+
+
 async def get_laws_batch(refs: list[dict], date: str | None = None) -> list[dict]:
     """Bulk resolve articles in a single round-trip."""
     body = {"refs": refs}
@@ -99,6 +116,44 @@ async def search_fond(
 
 async def get_decision_remote(fond: str, decision_id: str) -> dict | None:
     return await _aget(f"/v1/decision/{fond}/{decision_id}")
+
+
+async def count_fond(fond: str) -> int:
+    """Total rows dans un fond (avec filtre VIGUEUR pour LEGI)."""
+    data = await _aget(f"/v1/count/{fond}")
+    return int((data or {}).get("total", 0)) if data else 0
+
+
+def sync_count_fond(fond: str) -> int:
+    """Variant sync pour les handlers HTTPServer."""
+    import httpx as _httpx
+    try:
+        r = _httpx.get(f"{WAREHOUSE_URL}/v1/count/{fond}",
+                       headers=_HEADERS, timeout=10.0)
+        if r.status_code != 200:
+            return 0
+        return int(r.json().get("total", 0))
+    except Exception:
+        return 0
+
+
+async def enumerate_fond(fond: str, offset: int = 0, limit: int = 1000) -> list[dict]:
+    """Liste paginée d'IDs (+ date / num) pour générer les sub-sitemaps."""
+    data = await _aget(f"/v1/enumerate/{fond}", offset=offset, limit=limit)
+    return (data or {}).get("results", []) if data else []
+
+
+def sync_enumerate_fond(fond: str, offset: int = 0, limit: int = 1000) -> list[dict]:
+    import httpx as _httpx
+    try:
+        r = _httpx.get(f"{WAREHOUSE_URL}/v1/enumerate/{fond}",
+                       params={"offset": offset, "limit": limit},
+                       headers=_HEADERS, timeout=15.0)
+        if r.status_code != 200:
+            return []
+        return r.json().get("results", [])
+    except Exception:
+        return []
 
 
 async def lookup_by_numero(fond: str, numero: str, juridiction: str | None = None) -> list[dict]:
