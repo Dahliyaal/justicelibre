@@ -76,7 +76,7 @@ GOOGLE_FONTS = (
 SHARED_CSS = """
 :root{
   --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
-  --gold:#c79e3a;
+  --gold:#b8932b;
   --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
   --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
   --display:"DM Serif Display",Georgia,serif;
@@ -85,7 +85,7 @@ SHARED_CSS = """
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
-body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--light);
+body{font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--light);
   -webkit-font-smoothing:antialiased;line-height:1.6;display:flex;flex-direction:column;min-height:100vh}
 a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
@@ -102,7 +102,8 @@ a:hover{text-decoration:underline}
 .logo-area .name .tld{color:var(--teal)}
 .proto-badge{display:inline-block;margin-left:.65rem;font-size:.58rem;font-weight:700;
   letter-spacing:.15em;text-transform:uppercase;padding:.18rem .45rem;
-  border:1px solid var(--gold);color:var(--gold);border-radius:2px;}
+  border:1px solid var(--gold);color:var(--gold);border-radius:2px;
+  vertical-align:middle;cursor:help;}
 nav.main-nav{display:flex;align-items:center;gap:2rem}
 nav.main-nav a{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
   color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent}
@@ -130,6 +131,7 @@ html[data-theme="dark"]{
   --ink:#e8e8e6;--body:#c4c4c0;--muted:#9a9a96;
   --light:#1e1e1c;--white:#2a2a28;--line:#3a3a36;
   --teal:#4ea0a0;--teal-l:#6bb5b5;--teal-xl:#1a3030;
+  --gold:#d4b050;
 }
 html[data-theme="dark"] body{background:var(--light)}
 html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
