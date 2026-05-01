@@ -201,6 +201,18 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
   border:1px solid var(--line);border-radius:3px;
 }
 .field input:focus,.field select:focus{outline:none;border-color:var(--teal)}
+.field .thes-toggle{
+  display:flex;align-items:center;gap:.5rem;
+  height:2.4rem;padding:0 .75rem;
+  background:var(--white);color:var(--ink);
+  border:1px solid var(--line);border-radius:3px;
+  font-size:.88rem;cursor:pointer;
+  user-select:none;
+}
+.field .thes-toggle input[type=checkbox]{
+  width:1rem;height:1rem;margin:0;cursor:pointer;
+  accent-color:var(--teal);
+}
 
 /* ─── EXPANSION SÉMANTIQUE (pills) ─── */
 .expansion-bar{
@@ -467,6 +479,15 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
   border-radius:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;
 }
 .text-viewer .actions a:hover{background:var(--teal);color:#fff;text-decoration:none}
+.text-viewer .source-cta-spa{display:flex;flex-direction:column;align-items:flex-start;
+  gap:.45rem;margin:0 0 1.8rem;padding:.9rem 1.1rem;background:var(--teal-xl);
+  border-left:3px solid var(--teal);border-radius:0 4px 4px 0}
+.text-viewer .btn-source-spa{
+  display:inline-flex;align-items:center;background:var(--teal);color:#fff!important;
+  padding:.55rem 1.1rem;border-radius:3px;font-weight:600;font-size:.85rem;
+  text-decoration:none;letter-spacing:.02em}
+.text-viewer .btn-source-spa:hover{background:var(--teal-l);text-decoration:none}
+.text-viewer .source-cta-spa small{font-size:.74rem;color:var(--muted);font-style:italic;line-height:1.4}
 .text-viewer .body{
   font-size:.98rem;line-height:1.7;color:var(--body);max-width:70ch;
 }
@@ -745,6 +766,14 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
           </div>
         </div>
         <input type="hidden" id="tri" value="pertinence">
+      </div>
+
+      <div class="field">
+        <label>Thésaurus</label>
+        <label class="thes-toggle">
+          <input type="checkbox" id="useThesaurus" checked>
+          <span>Recherche élargie</span>
+        </label>
       </div>
 
       <div class="sb-help" style="grid-column:1/-1">
@@ -1475,6 +1504,15 @@ async function loadDecision(source, id) {
     html.push(`<a href="#" class="action-copy-link" data-id="${escapeHtml(d.id)}" data-source="${escapeHtml(d.source)}">Copier lien</a>`);
     html.push(`<a href="#" class="action-download" data-title="${escapeHtml(d.title || 'decision')}">Télécharger .txt</a>`);
     html.push(`</div>`);
+    const officialSrc = officialSourceFromId(d.id, d.numero);
+    if (officialSrc) {
+      html.push(`<div class="source-cta-spa">`);
+      html.push(`<a class="btn-source-spa" href="${escapeHtml(officialSrc.url)}" target="_blank" rel="external noopener nofollow">`);
+      html.push(`Voir sur ${escapeHtml(officialSrc.label)} <span style="margin-left:.4em">→</span>`);
+      html.push(`</a>`);
+      html.push(`<small>Source publique officielle. JusticeLibre indexe une copie miroir pour les moteurs de recherche et les IA.</small>`);
+      html.push(`</div>`);
+    }
     html.push(`<h1>${escapeHtml(d.title || '(sans titre)')}</h1>`);
     html.push(`<div class="doc-meta">`);
     if (d.juridiction) html.push(`<span><strong>Juridiction :</strong> ${escapeHtml(d.juridiction)}</span>`);
@@ -1849,6 +1887,34 @@ document.getElementById('feedbackSend').addEventListener('click', async () => {
 });
 
 /**
+ * Résout un decision.id vers son URL source officielle (Légifrance / opendata
+ * justice administrative / HUDOC / EUR-Lex / ArianeWeb / Conseil constit).
+ * Retourne {label, url} ou null. Doit rester en sync avec ssr.py:
+ * _official_source_from_pattern().
+ */
+function officialSourceFromId(id, numero) {
+  if (!id) return null;
+  if (id.startsWith('CETATEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/ceta/id/${id}`};
+  if (id.startsWith('JURITEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/juri/id/${id}`};
+  if (id.startsWith('CONSTEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/jorf/id/${id}`};
+  if (/^(DCE_|DCAA_|DTA_)/.test(id)) return {label: 'opendata.justice-administrative.fr', url: `https://opendata.justice-administrative.fr/recherche/decision/${id}`};
+  if (id.startsWith('001-')) return {label: 'HUDOC (Cour EDH)', url: `https://hudoc.echr.coe.int/eng?i=${id}`};
+  if (id.startsWith('ECLI:EU:')) return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=${encodeURIComponent(id)}`};
+  if (id.includes('CELEX')) return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:${id}`};
+  // ArianeWeb : id type "/Ariane_Web/AW_DCE/|251127" — fallback sur search Légifrance par n° de pourvoi
+  const arianeM = id.match(/Ariane_Web.*?\|(\d{3,})$/);
+  if (arianeM) {
+    const num = arianeM[1];
+    return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${num}&fonds=cetat`};
+  }
+  // Numéro de pourvoi en fallback ultime
+  if (numero && /^\d{3,}/.test(numero)) {
+    return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${encodeURIComponent(numero)}`};
+  }
+  return null;
+}
+
+/**
  * Résout un résultat ArianeWeb vers un identifiant admin ES (DCE_*)
  * pour charger le texte intégral de manière transparente.
  * Retourne le nouveau id admin, ou null si échec.
@@ -1945,41 +2011,59 @@ function juridictionToScope(juri) {
 
 const EXPANSION_DISABLED_KEY = 'jl-expansion-disabled';
 
-function expansionDisabled() {
-  try { return localStorage.getItem(EXPANSION_DISABLED_KEY) === '1'; } catch { return false; }
+function expansionEnabled() {
+  // La checkbox UI est la source de vérité ; si elle n'existe pas (HTML pas
+  // encore prêt), on lit le localStorage en fallback.
+  const cb = document.getElementById('useThesaurus');
+  if (cb) return cb.checked;
+  try { return localStorage.getItem(EXPANSION_DISABLED_KEY) !== '1'; } catch { return true; }
+}
+
+function setExpansionEnabled(on) {
+  try { localStorage.setItem(EXPANSION_DISABLED_KEY, on ? '0' : '1'); } catch {}
+  const cb = document.getElementById('useThesaurus');
+  if (cb) cb.checked = on;
 }
 
 async function fetchExpansion(q, scope) {
   const bar = document.getElementById('expansionBar');
   const pills = document.getElementById('expPills');
   if (!bar || !pills) return;
-  if (expansionDisabled()) { bar.style.display = 'none'; return; }
+  if (!expansionEnabled()) { bar.style.display = 'none'; return; }
   try {
     const r = await fetch(`/api/expand?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope)}`);
     if (!r.ok) { bar.style.display = 'none'; return; }
     const data = await r.json();
     const trace = data.trace || [];
-    if (!trace.length) { bar.style.display = 'none'; return; }
     pills.innerHTML = '';
-    trace.forEach(t => {
-      (t.synonyms || []).forEach(syn => {
-        const pill = document.createElement('span');
-        pill.className = 'exp-pill';
-        pill.title = `Ajouté pour le terme « ${t.original} »`;
-        const txt = document.createTextNode(syn);
-        pill.appendChild(txt);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = '×';
-        btn.title = 'Retirer ce terme de la recherche';
-        btn.addEventListener('click', () => {
-          pill.classList.toggle('removed');
+    if (!trace.length) {
+      // État "rien trouvé" : on affiche quand même la barre pour donner du feedback
+      const empty = document.createElement('span');
+      empty.className = 'exp-empty';
+      empty.textContent = 'Aucun terme voisin pour cette requête.';
+      empty.style.cssText = 'color:var(--muted);font-style:italic;font-size:.78rem';
+      pills.appendChild(empty);
+    } else {
+      trace.forEach(t => {
+        (t.synonyms || []).forEach(syn => {
+          const pill = document.createElement('span');
+          pill.className = 'exp-pill';
+          pill.title = `Ajouté pour le terme « ${t.original} »`;
+          const txt = document.createTextNode(syn);
+          pill.appendChild(txt);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = '×';
+          btn.title = 'Retirer ce terme de la recherche';
+          btn.addEventListener('click', () => {
+            pill.classList.toggle('removed');
+          });
+          pill.appendChild(btn);
+          pills.appendChild(pill);
         });
-        pill.appendChild(btn);
-        pills.appendChild(pill);
       });
-    });
-    bar.style.display = pills.children.length ? '' : 'none';
+    }
+    bar.style.display = '';
   } catch (e) {
     console.warn('[expand]', e);
     bar.style.display = 'none';
@@ -1987,10 +2071,29 @@ async function fetchExpansion(q, scope) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Init checkbox depuis localStorage
+  const cb = document.getElementById('useThesaurus');
+  if (cb) {
+    try {
+      const stored = localStorage.getItem(EXPANSION_DISABLED_KEY);
+      if (stored === '1') cb.checked = false;
+    } catch {}
+    cb.addEventListener('change', () => {
+      setExpansionEnabled(cb.checked);
+      const bar = document.getElementById('expansionBar');
+      if (!cb.checked && bar) bar.style.display = 'none';
+      // Re-run la recherche si déjà eu un input
+      const q = document.getElementById('q')?.value?.trim();
+      if (q && q.length >= 3 && cb.checked) {
+        fetchExpansion(q, juridictionToScope(document.getElementById('juridiction').value));
+      }
+    });
+  }
+  // Bouton "Désactiver" inline dans la barre = équivalent uncheck
   const btn = document.getElementById('expDisable');
   if (btn) {
     btn.addEventListener('click', () => {
-      try { localStorage.setItem(EXPANSION_DISABLED_KEY, '1'); } catch {}
+      setExpansionEnabled(false);
       const bar = document.getElementById('expansionBar');
       if (bar) bar.style.display = 'none';
     });

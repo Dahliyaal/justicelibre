@@ -47,9 +47,68 @@ def _cached_law_url(code: str, num: str, date: str) -> str | None:
         return None
 
 
+def _official_source_button(decision_id: str) -> str:
+    """Génère le HTML du gros bouton CTA 'Voir sur source officielle'."""
+    pat = _official_source_from_pattern(decision_id)
+    if not pat:
+        return ""
+    label, url = pat
+    return (
+        '<div class="source-cta">'
+        '<a class="btn-source" href="' + url + '" target="_blank" rel="external noopener nofollow">'
+        '<span class="btn-source-label">Voir sur ' + label + '</span>'
+        '<span class="btn-source-arrow">→</span>'
+        '</a>'
+        '<small>Cette décision est aussi disponible sur la source publique officielle. '
+        'JusticeLibre est une copie miroir indexée pour les moteurs de recherche et les IA.</small>'
+        '</div>'
+    )
+
+
+def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
+    """Devine l'URL source officielle à partir du pattern de l'ID.
+
+    Retourne (label_court_pour_bouton, url) ou None si pattern non reconnu.
+
+    Patterns supportés (vérifiés en base) :
+      - CETATEXT*   → Légifrance/ceta (Conseil d'État + JADE)
+      - JURITEXT*   → Légifrance/juri (Cour de cassation)
+      - CONSTEXT*   → Légifrance/jorf (Conseil constitutionnel)
+      - DCE_/DCAA_/DTA_*  → opendata.justice-administrative.fr (admin récents)
+      - 001-*       → HUDOC (Cour EDH)
+      - ECLI:EU:* / *CELEX*  → EUR-Lex (CJUE)
+    """
+    if not decision_id:
+        return None
+    if decision_id.startswith("CETATEXT"):
+        return ("Légifrance", f"https://www.legifrance.gouv.fr/ceta/id/{decision_id}")
+    if decision_id.startswith("JURITEXT"):
+        return ("Légifrance", f"https://www.legifrance.gouv.fr/juri/id/{decision_id}")
+    if decision_id.startswith("CONSTEXT"):
+        return ("Légifrance", f"https://www.legifrance.gouv.fr/jorf/id/{decision_id}")
+    if decision_id.startswith(("DCE_", "DCAA_", "DTA_")):
+        return ("opendata.justice-administrative.fr",
+                f"https://opendata.justice-administrative.fr/recherche/decision/{decision_id}")
+    if decision_id.startswith("001-"):
+        return ("HUDOC -CEDH", f"https://hudoc.echr.coe.int/eng?i={decision_id}")
+    if decision_id.startswith("ECLI:EU:"):
+        return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri={decision_id}")
+    if "CELEX" in decision_id:
+        # CELEX en clair (62018CJ0123) ou avec préfixe
+        return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{decision_id}")
+    return None
+
+
 @lru_cache(maxsize=20000)
 def _cached_decision_url(decision_id: str, date: str) -> str | None:
-    """Idem pour la résolution decision_id → URL source officielle."""
+    """Résout decision_id → URL source officielle.
+
+    Stratégie : pattern local d'abord (rapide, jamais d'erreur réseau),
+    puis fallback warehouse si pattern non reconnu (cas exotique).
+    """
+    pat = _official_source_from_pattern(decision_id)
+    if pat:
+        return pat[1]
     try:
         return _wh.sync_build_url(decision_id, date=date or None)
     except Exception:
@@ -200,6 +259,17 @@ h1 em{color:var(--teal);font-style:italic}
 .meta-table tr:last-child th,.meta-table tr:last-child td{border-bottom:0}
 .meta-table .source-row{background:var(--teal-xl)}
 .meta-table .source-row a{font-weight:600}
+/* CTA Source officielle */
+.source-cta{display:flex;flex-direction:column;align-items:flex-start;gap:.5rem;
+  margin:1.5rem 0 0;padding:1.1rem 1.4rem;background:var(--teal-xl);
+  border-left:4px solid var(--teal);border-radius:0 6px 6px 0}
+.btn-source{display:inline-flex;align-items:center;gap:.6rem;
+  background:var(--teal);color:#fff!important;padding:.7rem 1.3rem;
+  border-radius:4px;font-weight:600;font-size:.95rem;text-decoration:none;
+  transition:background .15s ease}
+.btn-source:hover{background:var(--teal-l)}
+.btn-source-arrow{font-size:1.1em;line-height:1}
+.source-cta small{font-size:.78rem;color:var(--muted);line-height:1.45;font-style:italic}
 /* Article body */
 article{font-size:1rem;color:var(--body);background:var(--white);line-height:1.6;
   padding:2rem;border:1px solid var(--line);border-radius:6px}
@@ -441,6 +511,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
   <div class="kicker">{esc(juri or SOURCE_LABELS.get(source, ''))}</div>
   <h1>{title_h1}</h1>
   <p class="subline">Décision rendue par {esc(juri or 'la juridiction')}{', le ' + esc(_format_fr_date(date)) if date else ''}.</p>
+  {_official_source_button(decision_id)}
   <table class="meta-table">{meta_html}</table>
   <article>{text_html}</article>
   <footer class="page-footer">
