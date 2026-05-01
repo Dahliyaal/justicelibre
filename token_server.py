@@ -177,6 +177,9 @@ class TokenHandler(BaseHTTPRequestHandler):
         m = re.match(r"^/sitemap-legi-(\d+)\.xml$", parsed.path)
         if m:
             return self._handle_sitemap_legi(int(m.group(1)))
+        m = re.match(r"^/sitemap-(cedh|cjue|ariane|cnil)-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_extra(m.group(1), int(m.group(2)))
         # Article de loi : /loi/CASF/L262-8 ou /loi/CJA/R772-8
         # Code: 1-15 caractères (CC, CASF, C.cons, L2005-102…)
         # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
@@ -436,7 +439,7 @@ class TokenHandler(BaseHTTPRequestHandler):
     def _handle_ssr_decision(self, source: str, decision_id: str):
         """Render HTML SSR d'une décision (indexable par Google + LLM)."""
         from ssr import render_decision, render_decision_404, fetch_decision_sync
-        if source not in {"admin", "dila", "cedh", "cjue", "ariane"}:
+        if source not in {"admin", "dila", "cedh", "cjue", "ariane", "cnil"}:
             return self._html_response(404, render_decision_404(source, decision_id))
         try:
             data = fetch_decision_sync(source, decision_id)
@@ -467,6 +470,19 @@ class TokenHandler(BaseHTTPRequestHandler):
     def _handle_sitemap_legi(self, page: int):
         from ssr import render_sitemap_legi
         return self._xml_response(200, render_sitemap_legi(page), cache_seconds=86400)
+
+    def _handle_sitemap_extra(self, kind: str, page: int):
+        """Sub-sitemaps petits volumes (cedh/cjue/ariane/cnil)."""
+        from ssr import (render_sitemap_cedh, render_sitemap_cjue,
+                         render_sitemap_ariane, render_sitemap_cnil)
+        renderers = {
+            "cedh": render_sitemap_cedh, "cjue": render_sitemap_cjue,
+            "ariane": render_sitemap_ariane, "cnil": render_sitemap_cnil,
+        }
+        fn = renderers.get(kind)
+        if not fn:
+            return self._xml_response(404, "<error>unknown</error>", cache_seconds=60)
+        return self._xml_response(200, fn(page), cache_seconds=86400)
 
     def _handle_ssr_law(self, code: str, num: str):
         """Render HTML SSR d'un article de loi."""

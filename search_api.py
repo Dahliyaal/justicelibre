@@ -657,6 +657,24 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 }
             except Exception as e:
                 return {"error": str(e)}
+    if source == "cnil":
+        from sources import warehouse as wh
+        r = await wh.get_decision_remote("cnil", decision_id)
+        if not r:
+            return None
+        return {
+            "id": decision_id,
+            "source": "cnil",
+            "source_label": "CNIL",
+            "title": r.get("titre", ""),
+            "juridiction": "Commission Nationale de l'Informatique et des Libertés",
+            "date": r.get("date", ""),
+            "numero": r.get("numero", ""),
+            "formation": r.get("formation", ""),
+            "ecli": "",
+            "full_text": r.get("texte", "") or "",
+            "text_segments": [],
+        }
     if source == "ariane":
         async with httpx.AsyncClient(timeout=60.0, headers={
             "User-Agent": "justicelibre/1.0 (+https://justicelibre.org)",

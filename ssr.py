@@ -339,7 +339,7 @@ def render_sitemap_index() -> str:
             sub.append(f"{BASE_URL}/sitemap-dila-{i}.xml")
     except Exception:
         pass
-    # JADE distant warehouse
+    # JADE distant warehouse (CE + 9 CAA admin)
     try:
         total_jade = _wh.sync_count_fond("jade")
         if total_jade > 0:
@@ -348,7 +348,41 @@ def render_sitemap_index() -> str:
                 sub.append(f"{BASE_URL}/sitemap-jade-{i}.xml")
     except Exception:
         pass
-    # LEGI distant warehouse (uniquement articles VIGUEUR)
+    # CEDH local PROD (~76k, 1 page)
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            n = c.execute("SELECT COUNT(*) FROM cedh_decisions").fetchone()[0]
+        for i in range(1, (n // SITEMAP_PAGE_SIZE) + 2):
+            sub.append(f"{BASE_URL}/sitemap-cedh-{i}.xml")
+    except Exception:
+        pass
+    # CJUE local PROD (~44k, 1 page)
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            n = c.execute("SELECT COUNT(*) FROM cjue_decisions").fetchone()[0]
+        for i in range(1, (n // SITEMAP_PAGE_SIZE) + 2):
+            sub.append(f"{BASE_URL}/sitemap-cjue-{i}.xml")
+    except Exception:
+        pass
+    # ArianeWeb CE local PROD (~60k, 1-2 pages)
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            n = c.execute("SELECT COUNT(*) FROM ariane_decisions").fetchone()[0]
+        for i in range(1, (n // SITEMAP_PAGE_SIZE) + 2):
+            sub.append(f"{BASE_URL}/sitemap-ariane-{i}.xml")
+    except Exception:
+        pass
+    # CNIL délibérations al-uzza (~26k, 1 page)
+    try:
+        total_cnil = _wh.sync_count_fond("cnil")
+        if total_cnil > 0:
+            for i in range(1, (total_cnil // SITEMAP_PAGE_SIZE) + 2):
+                sub.append(f"{BASE_URL}/sitemap-cnil-{i}.xml")
+    except Exception:
+        pass
+    # LEGI distant warehouse (articles de loi VIGUEUR — laissés indexables
+    # même si moins prioritaires : permettent à Google de comprendre les
+    # citations internes des décisions et d'indexer les articles.
     try:
         total_legi = _wh.sync_count_fond("legi")
         if total_legi > 0:
@@ -373,6 +407,104 @@ def render_sitemap_jade(page: int, page_size: int = SITEMAP_PAGE_SIZE) -> str:
     rows = _wh.sync_enumerate_fond("jade", offset=offset, limit=page_size)
     items = "\n".join(
         f'  <url><loc>{BASE_URL}/decision/admin/{esc(r.get("id",""))}</loc>'
+        f'<lastmod>{esc(r.get("date") or "")}</lastmod></url>'
+        for r in rows if r.get("id")
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
+</urlset>"""
+
+
+def render_sitemap_cedh(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> str:
+    """Sub-sitemap CEDH (~76k). Lit la table cedh_decisions de PROD."""
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+    rows = []
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            rows = c.execute(
+                "SELECT itemid, date FROM cedh_decisions ORDER BY date DESC LIMIT ? OFFSET ?",
+                (page_size, offset),
+            ).fetchall()
+    except Exception:
+        pass
+    items = "\n".join(
+        f'  <url><loc>{BASE_URL}/decision/cedh/{esc(rid)}</loc>'
+        f'<lastmod>{esc(d) if d else ""}</lastmod></url>'
+        for rid, d in rows if rid
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
+</urlset>"""
+
+
+def render_sitemap_cjue(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> str:
+    """Sub-sitemap CJUE (~44k). Lit la table cjue_decisions de PROD."""
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+    rows = []
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            rows = c.execute(
+                "SELECT celex, date FROM cjue_decisions ORDER BY date DESC LIMIT ? OFFSET ?",
+                (page_size, offset),
+            ).fetchall()
+    except Exception:
+        pass
+    items = "\n".join(
+        f'  <url><loc>{BASE_URL}/decision/cjue/{esc(rid)}</loc>'
+        f'<lastmod>{esc(d) if d else ""}</lastmod></url>'
+        for rid, d in rows if rid
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
+</urlset>"""
+
+
+def render_sitemap_ariane(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> str:
+    """Sub-sitemap ArianeWeb CE (~60k). ariane_decisions n'a pas de date,
+    on utilise fetched_at comme proxy lastmod."""
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+    rows = []
+    try:
+        with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
+            rows = c.execute(
+                "SELECT ariane_id, fetched_at FROM ariane_decisions "
+                "ORDER BY ariane_num DESC LIMIT ? OFFSET ?",
+                (page_size, offset),
+            ).fetchall()
+    except Exception:
+        pass
+    items = []
+    for rid, ts in rows:
+        if not rid:
+            continue
+        # ariane_id ressemble à "/Ariane_Web/AW_DCE/|497566" — on URL-encode
+        # simplement le path tel qu'attendu par fetch_decision(source=ariane).
+        from urllib.parse import quote
+        slug = quote(rid, safe="")
+        lastmod = (ts or "")[:10] if ts else ""
+        items.append(
+            f'  <url><loc>{BASE_URL}/decision/ariane/{esc(slug)}</loc>'
+            f'<lastmod>{esc(lastmod)}</lastmod></url>'
+        )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{chr(10).join(items)}
+</urlset>"""
+
+
+def render_sitemap_cnil(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> str:
+    """Sub-sitemap CNIL délibérations (~26k). Via warehouse al-uzza."""
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+    rows = _wh.sync_enumerate_fond("cnil", offset=offset, limit=page_size)
+    items = "\n".join(
+        f'  <url><loc>{BASE_URL}/decision/cnil/{esc(r.get("id",""))}</loc>'
         f'<lastmod>{esc(r.get("date") or "")}</lastmod></url>'
         for r in rows if r.get("id")
     )
