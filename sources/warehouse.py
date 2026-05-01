@@ -66,6 +66,25 @@ async def get_law_versions(code: str, num: str) -> list[dict]:
     return (data or {}).get("versions", [])
 
 
+def sync_build_url(identifier: str, legitext: str | None = None, date: str | None = None) -> str | None:
+    """Variant sync de build_url. Utilisé par le SSR pour générer le lien
+    "Source officielle" sur les pages décision/loi.
+    """
+    if not _KEY:
+        return None
+    try:
+        params = {"id": identifier}
+        if legitext: params["legitext"] = legitext
+        if date: params["date"] = date
+        r = httpx.get(f"{WAREHOUSE_URL}/v1/url", params=params,
+                      headers=_HEADERS, timeout=10.0)
+        if r.status_code != 200:
+            return None
+        return r.json().get("source_url")
+    except Exception:
+        return None
+
+
 def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
     """Variant sync de get_law pour les handlers HTTPServer (SSR /loi/...)."""
     if not _KEY:

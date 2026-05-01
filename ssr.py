@@ -38,7 +38,127 @@ SOURCE_LABELS = {
     "cedh": "Cour européenne des droits de l'homme",
     "cjue": "Cour de justice de l'Union européenne",
     "ariane": "Conseil d'État (ArianeWeb)",
+    "cnil": "CNIL",
 }
+
+# ─── Composants partagés (reproduits du SPA pour cohérence visuelle) ───
+# Ces blocs HTML/CSS sont une copie simplifiée du <head> + topbar de
+# web/search.html. Toute mise à jour visuelle du SPA doit être répercutée
+# ici pour que les pages SSR ne dépareillent pas.
+
+GOOGLE_FONTS = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link href="https://fonts.googleapis.com/css2?'
+    'family=DM+Serif+Display:ital@0;1&'
+    'family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&'
+    'family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
+)
+
+SHARED_CSS = """
+:root{
+  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
+  --gold:#c79e3a;
+  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
+  --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
+  --display:"DM Serif Display",Georgia,serif;
+  --sans:"DM Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--light);
+  -webkit-font-smoothing:antialiased;line-height:1.6;display:flex;flex-direction:column;min-height:100vh}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--teal);color:#fff}
+/* Topbar (copié de search.html) */
+.topbar{
+  position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2.5rem;border-bottom:1px solid var(--line);
+}
+.logo-area{display:flex;align-items:center;gap:.8rem}
+.logo-area img{width:44px;height:44px}
+.logo-area .name{font-family:var(--display);font-size:1.1rem;color:var(--ink)}
+.logo-area .name .tld{color:var(--teal)}
+.proto-badge{display:inline-block;margin-left:.65rem;font-size:.58rem;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;padding:.18rem .45rem;
+  border:1px solid var(--gold);color:var(--gold);border-radius:2px;}
+nav.main-nav{display:flex;align-items:center;gap:2rem}
+nav.main-nav a{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent}
+nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
+@media(max-width:860px){nav.main-nav a:not(.active){display:none}}
+/* Conteneur principal */
+.wrap{max-width:820px;margin:0 auto;padding:2.5rem 1.5rem 5rem;flex:1;width:100%}
+/* Sub-bar (analogue de .searchbar du SPA, contient le fil d'ariane) */
+.page-subbar{
+  background:var(--white);border-bottom:1px solid var(--line);
+  padding:.85rem 2.5rem;display:flex;align-items:center;gap:1rem;justify-content:space-between;
+}
+.page-subbar .crumb{font-size:.75rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.12em;font-weight:600}
+.page-subbar .crumb a{color:var(--muted)}
+.page-subbar .crumb a:hover{color:var(--teal)}
+.page-subbar .return{font-size:.78rem;color:var(--teal);font-weight:600}
+.page-subbar .return:hover{text-decoration:underline}
+/* Title block */
+.kicker{font-size:.78rem;color:var(--teal);font-weight:600;text-transform:uppercase;
+  letter-spacing:.15em;margin-bottom:.6rem}
+h1{font-family:var(--display);font-size:2.2rem;line-height:1.15;color:var(--ink);
+  font-weight:400;margin-bottom:.3rem}
+h1 em{color:var(--teal);font-style:italic}
+.subline{color:var(--muted);font-size:.95rem;margin-bottom:2rem}
+/* Meta table */
+.meta-table{width:100%;border-collapse:collapse;font-size:.88rem;
+  margin:1.5rem 0 2.5rem;background:var(--white);border:1px solid var(--line);border-radius:6px}
+.meta-table th{text-align:left;color:var(--muted);font-weight:500;
+  padding:.55rem 1rem;width:30%;vertical-align:top;border-bottom:1px solid var(--line)}
+.meta-table td{padding:.55rem 1rem;vertical-align:top;color:var(--ink);border-bottom:1px solid var(--line)}
+.meta-table tr:last-child th,.meta-table tr:last-child td{border-bottom:0}
+.meta-table .source-row{background:var(--teal-xl)}
+.meta-table .source-row a{font-weight:600}
+/* Article body */
+article{font-size:1rem;color:var(--body);background:var(--white);
+  padding:2rem;border:1px solid var(--line);border-radius:6px}
+article p{margin:0 0 1em}
+article p:last-child{margin-bottom:0}
+.lawref{color:var(--teal);text-decoration:underline;text-decoration-color:rgba(26,78,78,.3);
+  text-underline-offset:.15em}
+.lawref:hover{text-decoration-color:var(--teal)}
+.lawref.external::after{content:" ↗";font-size:.8em;color:var(--muted)}
+/* Nota */
+.nota{font-size:.9rem;background:var(--teal-xl);padding:1rem 1.2rem;
+  border-left:3px solid var(--teal);margin:1.5rem 0;color:var(--ink)}
+.nota strong{color:var(--teal)}
+/* Footer */
+footer.page-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);
+  font-size:.85rem;color:var(--muted)}
+footer.page-footer a{color:var(--teal)}
+.cta-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+.cta{display:inline-block;padding:.6rem 1.2rem;background:var(--teal);color:#fff;
+  border-radius:4px;font-size:.85rem;text-decoration:none}
+.cta:hover{background:var(--teal-l);text-decoration:none}
+.cta.alt{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+.cta.alt:hover{background:var(--teal-xl)}
+"""
+
+TOPBAR_HTML = """
+<header class="topbar">
+  <a href="/" class="logo-area">
+    <img src="/logo.svg" alt="">
+    <span class="name">justicelibre<span class="tld">.org</span></span>
+    <span class="proto-badge" title="Version bêta">bêta</span>
+  </a>
+  <nav class="main-nav">
+    <a href="/">Accueil</a>
+    <a href="/search.html">Recherche</a>
+    <a href="/#connect">MCP</a>
+    <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
+  </nav>
+</header>
+"""
 
 # ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -64,7 +184,12 @@ def _canonical(source: str, decision_id: str) -> str:
 # ─── Decision page rendering ──────────────────────────────────────────
 
 def render_decision(source: str, decision_id: str, data: dict) -> str:
-    """Génère la page HTML SSR d'une décision."""
+    """Génère la page HTML SSR d'une décision (style cohérent avec le SPA).
+
+    Le résolveur de citations est optionnel mais activé par défaut : pour
+    chaque article cité dans le texte, on essaie de fetch l'URL Légifrance
+    dated/officielle (sync_get_law). Linkifiable en target=_blank.
+    """
     juri = data.get("juridiction", "")
     date = data.get("date", "")
     numero = data.get("numero") or data.get("numero_dossier") or ""
@@ -75,27 +200,35 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     solution = data.get("solution", "")
     nature = data.get("nature", "")
 
-    # Titre canonique : "TA Lyon — n° 2200433 — 14 février 2023"
-    parts = [p for p in [juri, f"n° {numero}" if numero else "", date] if p]
-    title_h1 = " — ".join(parts) or titre_brut or f"Décision {decision_id}"
-    title_seo = f"{title_h1} — {SITE_NAME}"
+    # Titre H1 : juridiction en kicker, le n° + date en gros
+    main_id = f"n° {numero}" if numero else titre_brut or f"Décision {decision_id}"
+    title_h1 = main_id
+    if date:
+        title_h1 = f"{main_id} <em>· {esc(_format_fr_date(date))}</em>"
+    title_h1_plain = f"{main_id} · {_format_fr_date(date)}" if date else main_id
+    title_seo = f"{juri or main_id}, {numero or ''} {(_format_fr_date(date) or '').strip()} — {SITE_NAME}".strip()
 
-    # Description = début du texte (pour <meta> et OG)
     desc = _strip(text, 200) or f"{SOURCE_LABELS.get(source, '')} — {juri}".strip(" — ")
-
     canonical = _canonical(source, decision_id)
-    # Maillage interne : transforme chaque "art. L.X-Y du code Z" en
-    # <a href="/loi/Z/LX-Y">. Crucial pour le crawl Google : les bots
-    # peuvent maintenant naviguer décision → article → autres décisions.
-    text_linked = _citations.linkify(text, esc)
+
+    # Source officielle de la décision (Légifrance, opendata, hudoc, eur-lex)
+    source_url = _wh.sync_build_url(decision_id, date=date) if decision_id else None
+
+    # Citations dans le texte → liens directs Légifrance dated
+    def _resolve(code: str, num: str) -> str | None:
+        try:
+            row = _wh.sync_get_law(code, num, date or None)
+            return row.get("source_url") if row else None
+        except Exception:
+            return None
+    text_linked = _citations.linkify(text, esc, url_resolver=_resolve)
     text_html = "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
 
-    # JSON-LD Schema.org : LegalCase / Article. Aide les LLM et rich snippets.
     jsonld = {
         "@context": "https://schema.org",
         "@type": ["LegalCase", "CreativeWork"],
-        "name": title_h1,
-        "headline": title_h1,
+        "name": title_h1_plain,
+        "headline": title_h1_plain,
         "url": canonical,
         "datePublished": date or None,
         "creator": {"@type": "GovernmentOrganization", "name": juri} if juri else None,
@@ -103,22 +236,29 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
         "inLanguage": "fr",
         "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence",
         "identifier": ecli or numero or decision_id,
+        "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
     import json as _json
     jsonld_str = esc(_json.dumps(jsonld_clean, ensure_ascii=False))
 
-    meta_rows = []
-    if juri: meta_rows.append(("Juridiction", esc(juri)))
-    if date: meta_rows.append(("Date", esc(date)))
-    if numero: meta_rows.append(("Numéro", esc(numero)))
-    if ecli: meta_rows.append(("ECLI", esc(ecli)))
-    if formation: meta_rows.append(("Formation", esc(formation)))
-    if nature: meta_rows.append(("Nature", esc(nature)))
-    if solution: meta_rows.append(("Solution", esc(solution)))
+    rows = []
+    if juri: rows.append(("Juridiction", esc(juri)))
+    if date: rows.append(("Date", esc(_format_fr_date(date))))
+    if numero: rows.append(("Numéro", esc(numero)))
+    if ecli: rows.append(("ECLI", f'<code>{esc(ecli)}</code>'))
+    if formation: rows.append(("Formation", esc(formation)))
+    if nature: rows.append(("Nature", esc(nature)))
+    if solution: rows.append(("Solution", esc(solution)))
     meta_html = "".join(
-        f'<tr><th>{k}</th><td>{v}</td></tr>' for k, v in meta_rows
+        f'<tr><th>{k}</th><td>{v}</td></tr>' for k, v in rows
     )
+    if source_url:
+        meta_html += (
+            f'<tr class="source-row"><th>Source officielle</th>'
+            f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
+            f'{_source_host(source_url)} ↗</a></td></tr>'
+        )
 
     return f"""<!doctype html>
 <html lang="fr">
@@ -130,48 +270,73 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 <link rel="canonical" href="{esc(canonical)}">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{esc(title_h1)}">
+<meta property="og:title" content="{esc(title_h1_plain)}">
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{esc(canonical)}">
 <meta property="og:site_name" content="{SITE_NAME}">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{esc(title_h1)}">
+<meta name="twitter:title" content="{esc(title_h1_plain)}">
 <meta name="twitter:description" content="{esc(desc)}">
 <script type="application/ld+json">{jsonld_str}</script>
-<style>
-body{{font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;max-width:780px;margin:0 auto;padding:2rem 1.2rem 4rem;color:#1a1a1a;line-height:1.6}}
-header{{border-bottom:1px solid #e0ddd6;padding-bottom:1rem;margin-bottom:1.5rem}}
-.crumb{{font-size:.85rem;color:#6b6b6b;margin-bottom:.5rem}}
-.crumb a{{color:#1a4e4e;text-decoration:none}}
-h1{{font-family:Georgia,serif;font-size:1.8rem;line-height:1.3;margin:.5rem 0}}
-.meta-table{{width:100%;border-collapse:collapse;font-size:.9rem;margin:1rem 0 2rem}}
-.meta-table th{{text-align:left;color:#6b6b6b;font-weight:500;padding:.3rem 1rem .3rem 0;width:30%;vertical-align:top}}
-.meta-table td{{padding:.3rem 0;vertical-align:top}}
-article{{font-size:1rem;color:#3a3a3a}}
-article p{{margin:0 0 1em}}
-footer{{margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e0ddd6;font-size:.85rem;color:#6b6b6b}}
-footer a{{color:#1a4e4e}}
-.cta{{display:inline-block;margin-top:1rem;padding:.6rem 1.2rem;background:#1a4e4e;color:#fff;text-decoration:none;border-radius:4px;font-size:.9rem}}
-</style>
+{GOOGLE_FONTS}
+<style>{SHARED_CSS}</style>
 </head>
 <body>
-<header>
-  <div class="crumb"><a href="/">JusticeLibre</a> &rsaquo; <a href="/search.html">Recherche</a> &rsaquo; {esc(SOURCE_LABELS.get(source, source))}</div>
-  <h1>{esc(title_h1)}</h1>
-</header>
-<table class="meta-table">{meta_html}</table>
-<article>{text_html}</article>
-<footer>
-  <p>Document publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence">Licence Ouverte 2.0</a> — accès libre via <a href="/">JusticeLibre</a>, alternative open source à Doctrine/Légifrance pour l'accès à la jurisprudence française et européenne.</p>
-  <p><a class="cta" href="/search.html">Rechercher d'autres décisions</a></p>
-</footer>
+{TOPBAR_HTML}
+<div class="page-subbar">
+  <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(SOURCE_LABELS.get(source, source))}</div>
+  <a class="return" href="/search.html">← Retour à la recherche</a>
+</div>
+<main class="wrap">
+  <div class="kicker">{esc(juri or SOURCE_LABELS.get(source, ''))}</div>
+  <h1>{title_h1}</h1>
+  <p class="subline">Décision rendue par {esc(juri or 'la juridiction')}{', le ' + esc(_format_fr_date(date)) if date else ''}.</p>
+  <table class="meta-table">{meta_html}</table>
+  <article>{text_html}</article>
+  <footer class="page-footer">
+    <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> — alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
+    <div class="cta-row">
+      <a class="cta" href="/search.html">Rechercher d'autres décisions</a>
+      {'<a class="cta alt" href="' + esc(source_url) + '" target="_blank" rel="external noopener">Voir la source officielle ↗</a>' if source_url else ''}
+    </div>
+  </footer>
+</main>
 </body>
 </html>"""
 
 
+def _format_fr_date(iso: str) -> str:
+    """`2023-02-14` → `14 février 2023`. Robuste à des formats variés."""
+    if not iso or len(iso) < 7:
+        return iso or ""
+    months_fr = ["janvier","février","mars","avril","mai","juin",
+                 "juillet","août","septembre","octobre","novembre","décembre"]
+    try:
+        y, m, *rest = iso.split("-")
+        d = rest[0] if rest else ""
+        mi = int(m) - 1
+        if 0 <= mi < 12:
+            return f"{int(d) if d else ''} {months_fr[mi]} {y}".strip()
+    except Exception:
+        pass
+    return iso
+
+
+def _source_host(url: str) -> str:
+    """Affiche un nom de domaine lisible pour le bouton source."""
+    if not url: return ""
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc
+        host = host.removeprefix("www.")
+        return host
+    except Exception:
+        return url[:30]
+
+
 def render_law(code: str, num: str, data: dict) -> str:
-    """Page HTML SSR d'un article de loi avec JSON-LD Legislation."""
+    """Page HTML SSR d'un article de loi (style cohérent avec le SPA)."""
     titre_section = data.get("titre_section", "")
     texte = data.get("texte", "") or ""
     etat = data.get("etat", "")
@@ -182,11 +347,10 @@ def render_law(code: str, num: str, data: dict) -> str:
     legitext = data.get("legitext", "")
     legiarti = data.get("legiarti", "")
 
-    # Titre canonique : "Article L262-8 du Code de l'action sociale et des familles"
-    h1 = f"Article {num} {('— ' + titre_section) if titre_section and titre_section != 'Code' else f'du {code}'}"
-    title_seo = f"Article {num} {code} — JusticeLibre"
-
-    desc = _strip(texte, 200) or f"Article {num} du {titre_section or code}"
+    code_label = titre_section or code
+    title_h1 = f"Article {num}"
+    title_seo = f"Article {num} — {code_label} — {SITE_NAME}"
+    desc = _strip(texte, 200) or f"Article {num} du {code_label}"
     canonical = f"{BASE_URL}/loi/{code}/{num}"
 
     text_html = "<p>" + esc(texte).replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
@@ -195,8 +359,8 @@ def render_law(code: str, num: str, data: dict) -> str:
     jsonld = {
         "@context": "https://schema.org",
         "@type": "Legislation",
-        "name": h1,
-        "headline": h1,
+        "name": f"{title_h1} — {code_label}",
+        "headline": title_h1,
         "url": canonical,
         "legislationIdentifier": legiarti or num,
         "legislationJurisdiction": "FR",
@@ -204,25 +368,29 @@ def render_law(code: str, num: str, data: dict) -> str:
         "expires": date_fin if date_fin and date_fin != "2999-01-01" else None,
         "inLanguage": "fr",
         "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence",
-        "isPartOf": {"@type": "Legislation", "name": titre_section or code},
+        "isPartOf": {"@type": "Legislation", "name": code_label},
         "publisher": {"@type": "Organization", "name": SITE_NAME, "url": BASE_URL},
         "legislationLegalForce": "InForce" if etat == "VIGUEUR" else "PartiallyInForce",
+        "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
     import json as _json
     jsonld_str = esc(_json.dumps(jsonld_clean, ensure_ascii=False))
 
-    meta_rows = [("État", esc(etat)), ("Code", esc(titre_section or code))]
-    if date_debut: meta_rows.append(("En vigueur depuis", esc(date_debut)))
-    if date_fin and date_fin != "2999-01-01": meta_rows.append(("Jusqu'au", esc(date_fin)))
+    rows = [("Code", esc(code_label)), ("État", esc(etat or "—"))]
+    if date_debut: rows.append(("En vigueur depuis", esc(_format_fr_date(date_debut))))
+    if date_fin and date_fin != "2999-01-01":
+        rows.append(("Jusqu'au", esc(_format_fr_date(date_fin))))
+    if legiarti: rows.append(("Identifiant", f'<code>{esc(legiarti)}</code>'))
     meta_html = "".join(
-        f'<tr><th>{k}</th><td>{v}</td></tr>' for k, v in meta_rows
+        f'<tr><th>{k}</th><td>{v}</td></tr>' for k, v in rows
     )
-
-    legifrance_btn = (
-        f'<a href="{esc(source_url)}" rel="external nofollow">Voir sur Légifrance</a>'
-        if source_url else ""
-    )
+    if source_url:
+        meta_html += (
+            f'<tr class="source-row"><th>Source officielle</th>'
+            f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
+            f'{_source_host(source_url)} ↗</a></td></tr>'
+        )
 
     return f"""<!doctype html>
 <html lang="fr">
@@ -234,48 +402,38 @@ def render_law(code: str, num: str, data: dict) -> str:
 <link rel="canonical" href="{esc(canonical)}">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{esc(h1)}">
+<meta property="og:title" content="{esc(title_h1 + ' — ' + code_label)}">
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{esc(canonical)}">
 <meta property="og:site_name" content="{SITE_NAME}">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{esc(h1)}">
+<meta name="twitter:title" content="{esc(title_h1 + ' — ' + code_label)}">
 <meta name="twitter:description" content="{esc(desc)}">
 <script type="application/ld+json">{jsonld_str}</script>
-<style>
-body{{font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;max-width:780px;margin:0 auto;padding:2rem 1.2rem 4rem;color:#1a1a1a;line-height:1.6}}
-header{{border-bottom:1px solid #e0ddd6;padding-bottom:1rem;margin-bottom:1.5rem}}
-.crumb{{font-size:.85rem;color:#6b6b6b;margin-bottom:.5rem}}
-.crumb a{{color:#1a4e4e;text-decoration:none}}
-h1{{font-family:Georgia,serif;font-size:1.6rem;line-height:1.3;margin:.5rem 0}}
-.meta-table{{width:100%;border-collapse:collapse;font-size:.9rem;margin:1rem 0 2rem}}
-.meta-table th{{text-align:left;color:#6b6b6b;font-weight:500;padding:.3rem 1rem .3rem 0;width:30%;vertical-align:top}}
-.meta-table td{{padding:.3rem 0;vertical-align:top}}
-article{{font-size:1rem;color:#3a3a3a}}
-article p{{margin:0 0 1em}}
-.nota{{font-size:.9rem;background:#f5f5f3;padding:1rem;border-left:3px solid #1a4e4e;margin:2rem 0}}
-footer{{margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e0ddd6;font-size:.85rem;color:#6b6b6b}}
-footer a{{color:#1a4e4e}}
-.cta{{display:inline-block;margin-top:1rem;padding:.6rem 1.2rem;background:#1a4e4e;color:#fff;text-decoration:none;border-radius:4px;font-size:.9rem;margin-right:.5rem}}
-.cta.alt{{background:transparent;color:#1a4e4e;border:1px solid #1a4e4e}}
-</style>
+{GOOGLE_FONTS}
+<style>{SHARED_CSS}</style>
 </head>
 <body>
-<header>
-  <div class="crumb"><a href="/">JusticeLibre</a> &rsaquo; <a href="/search.html">Lois et codes</a> &rsaquo; {esc(titre_section or code)}</div>
-  <h1>{esc(h1)}</h1>
-</header>
-<table class="meta-table">{meta_html}</table>
-<article>{text_html}{nota_html}</article>
-<footer>
-  <p>Article publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence">Licence Ouverte 2.0</a> via <a href="/">JusticeLibre</a> — accès libre au droit français.</p>
-  <p>
-    <a class="cta" href="/search.html?q={esc(num)}">Décisions citant cet article</a>
-    <a class="cta alt" href="/api/law/versions?code={esc(code)}&num={esc(num)}">Historique des versions</a>
-    {legifrance_btn}
-  </p>
-</footer>
+{TOPBAR_HTML}
+<div class="page-subbar">
+  <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/search.html">Recherche</a> &nbsp;›&nbsp; {esc(code_label)}</div>
+  <a class="return" href="/search.html">← Retour à la recherche</a>
+</div>
+<main class="wrap">
+  <div class="kicker">{esc(code_label)}</div>
+  <h1>Article <em>{esc(num)}</em></h1>
+  <p class="subline">Article{(' en vigueur depuis le ' + _format_fr_date(date_debut)) if date_debut else ''}.</p>
+  <table class="meta-table">{meta_html}</table>
+  <article>{text_html}{nota_html}</article>
+  <footer class="page-footer">
+    <p>Article de loi publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a> via <strong>JusticeLibre</strong>.</p>
+    <div class="cta-row">
+      <a class="cta" href="/search.html?q={esc(num)}">Décisions citant cet article</a>
+      {f'<a class="cta alt" href="{esc(source_url)}" target="_blank" rel="external noopener">Voir sur Légifrance ↗</a>' if source_url else ''}
+    </div>
+  </footer>
+</main>
 </body>
 </html>"""
 

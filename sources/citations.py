@@ -112,11 +112,17 @@ def detect_citations(text: str) -> list[tuple[str, str, tuple[int, int]]]:
     return out
 
 
-def linkify(text: str, esc) -> str:
-    """Transforme `text` (str brut) en HTML avec liens internes vers /loi/{code}/{num}.
+def linkify(text: str, esc, url_resolver=None) -> str:
+    """Transforme `text` (str brut) en HTML avec liens vers Légifrance.
 
-    `esc` = fonction d'échappement HTML (pour éviter d'échapper deux fois).
-    Les portions hors citation sont escapées normalement.
+    `esc` = fonction d'échappement HTML.
+    `url_resolver(code, num) -> str|None` : fonction optionnelle qui retourne
+        l'URL Légifrance dated/officielle. Si None ou retourne None, on
+        fallback sur la page interne `/loi/{code}/{num}` (toujours valide
+        pour le SEO + maillage interne).
+
+    Les liens externes (Légifrance) sont marqués `target="_blank"` pour
+    garder l'utilisateur sur JusticeLibre + signal "source officielle".
     """
     if not text:
         return ""
@@ -125,14 +131,27 @@ def linkify(text: str, esc) -> str:
         return esc(text)
     chunks: list[str] = []
     cursor = 0
+    seen_resolved: dict[tuple[str, str], str | None] = {}
     for code, num, (s, e) in hits:
         if s > cursor:
             chunks.append(esc(text[cursor:s]))
         raw = text[s:e]
-        href = f"/loi/{code}/{num}"
+        key = (code, num)
+        url = seen_resolved.get(key)
+        if key not in seen_resolved:
+            url = url_resolver(code, num) if url_resolver else None
+            seen_resolved[key] = url
+        if url:
+            href = url
+            attrs = 'target="_blank" rel="noopener external"'
+            extra_class = " external"
+        else:
+            href = f"/loi/{code}/{num}"
+            attrs = ""
+            extra_class = ""
         chunks.append(
-            f'<a href="{esc(href)}" class="lawref" '
-            f'title="{esc(code)} {esc(num)}">{esc(raw)}</a>'
+            f'<a href="{esc(href)}" class="lawref{extra_class}" '
+            f'{attrs} title="{esc(code)} {esc(num)} — Légifrance">{esc(raw)}</a>'
         )
         cursor = e
     if cursor < len(text):
