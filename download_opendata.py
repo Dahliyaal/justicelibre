@@ -186,15 +186,23 @@ def insert_decision(c: sqlite3.Connection, hit: dict, full_text: str | None):
 
 
 def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: bool = True) -> int:
-    """Crawl une partition (une juri + une query/year). Retourne nb décisions ingérées."""
+    """Crawl une partition (une juri + une query/year). Retourne nb décisions ingérées.
+
+    NOTE LIMITATION : l'API opendata.justice-administrative.fr cap à 10 000
+    résultats par appel et ne supporte pas la pagination cursor / scroll_id
+    sur l'endpoint `model_search_juri`. Quand une partition (juri × année)
+    dépasse 10k, les décisions au-delà sont inaccessibles en bulk —
+    seulement accessibles via search live MCP. Pas de fix possible côté
+    client. ~800k décisions en théorie atteignables sont skippées (les
+    grandes années des grosses TA : TA75, CE depuis 2020).
+    """
     hits_data = fetch_search(client, juri, query)
     if not hits_data:
         return 0
     hits = hits_data.get("hits", [])
     total = hits_data.get("total", {}).get("value", 0)
     if total > LIMIT_PER_CALL:
-        # Dépassement : caller doit re-partitionner
-        print(f"  ⚠ {juri}/{query}: {total} > {LIMIT_PER_CALL}, partition nécessaire")
+        print(f"  ⚠ {juri}/{query}: {total} > {LIMIT_PER_CALL}, perdu (API limit)")
         return -total
     n = 0
     with sqlite3.connect(str(DB_PATH), timeout=120.0) as c:
