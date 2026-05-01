@@ -86,7 +86,7 @@ SHARED_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
 body{font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--light);
-  -webkit-font-smoothing:antialiased;line-height:1.6;display:flex;flex-direction:column;min-height:100vh}
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
 a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
 ::selection{background:var(--teal);color:#fff}
@@ -174,10 +174,11 @@ h1 em{color:var(--teal);font-style:italic}
 .meta-table .source-row{background:var(--teal-xl)}
 .meta-table .source-row a{font-weight:600}
 /* Article body */
-article{font-size:1rem;color:var(--body);background:var(--white);
+article{font-size:1rem;color:var(--body);background:var(--white);line-height:1.6;
   padding:2rem;border:1px solid var(--line);border-radius:6px}
 article p{margin:0 0 1em}
 article p:last-child{margin-bottom:0}
+.wrap, .wrap p, .wrap .subline{line-height:1.5}
 .lawref{color:var(--teal);text-decoration:underline;text-decoration-color:rgba(26,78,78,.3);
   text-underline-offset:.15em}
 .lawref:hover{text-decoration-color:var(--teal)}
@@ -254,6 +255,7 @@ def get_topbar_html() -> str:
 # erreurs si le bouton n'existe pas (defensive null check).
 THEME_JS = """<script>
 (function(){
+  // Init: theme stocké, sinon hérite du système (sans set explicite)
   var saved = localStorage.getItem('jl-theme');
   if (saved) document.documentElement.dataset.theme = saved;
   var btn = document.getElementById('themeToggle');
@@ -261,14 +263,13 @@ THEME_JS = """<script>
   btn.addEventListener('click', function(){
     var h = document.documentElement;
     var cur = h.dataset.theme;
-    var sys = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    var nxt;
-    if (!cur) nxt = sys === 'dark' ? 'light' : 'dark';
-    else if (cur === 'dark' && sys === 'light') nxt = 'light';
-    else if (cur === 'light' && sys === 'dark') nxt = 'dark';
-    else nxt = '';
-    if (nxt) { h.dataset.theme = nxt; localStorage.setItem('jl-theme', nxt); }
-    else { delete h.dataset.theme; localStorage.removeItem('jl-theme'); }
+    if (!cur) {
+      // pas de choix explicite: bascule à l'opposé du système
+      cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    var nxt = cur === 'dark' ? 'light' : 'dark';
+    h.dataset.theme = nxt;
+    localStorage.setItem('jl-theme', nxt);
   });
 })();
 </script>"""

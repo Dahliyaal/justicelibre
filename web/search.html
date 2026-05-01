@@ -781,21 +781,18 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 </footer>
 
 <script>
-/* ─── Dark mode ─── */
+/* ─── Dark mode (toggle simple light/dark) ─── */
 const savedTheme = localStorage.getItem('jl-theme');
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
 document.getElementById('themeToggle').addEventListener('click', () => {
   const html = document.documentElement;
-  const current = html.dataset.theme;
-  const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  // Cycle : system → opposite → system
-  let next;
-  if (!current) next = system === 'dark' ? 'light' : 'dark';
-  else if (current === 'dark' && system === 'light') next = 'light';
-  else if (current === 'light' && system === 'dark') next = 'dark';
-  else next = ''; // retour auto
-  if (next) { html.dataset.theme = next; localStorage.setItem('jl-theme', next); }
-  else { delete html.dataset.theme; localStorage.removeItem('jl-theme'); }
+  let cur = html.dataset.theme;
+  if (!cur) {
+    cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  const next = cur === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('jl-theme', next);
 });
 
 const toggleBtn = document.getElementById('toggleAdv');
