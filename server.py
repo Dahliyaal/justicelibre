@@ -875,20 +875,33 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     d'appel (CAA), tribunaux administratifs (TA). Utilise un lookup SQL exact
     sur le champ `numero` — pas de FTS5, pas de faux positifs.
 
-    À utiliser quand on connaît le numéro précis (ex : lu dans une décision
-    qui cite "TA Paris n° 2116343"). Plus fiable que `search_admin` pour les
-    numéros courts qui peuvent ne pas être indexés en full-text.
+    ⚠️ **Désambiguïsation indispensable** : un même numéro à 7 chiffres
+    (ex: 2200433) est partagé par 24+ tribunaux administratifs différents
+    (chaque TA a sa propre série annuelle qui repart à 1). Sans `juridiction`,
+    tu obtiens un homonyme au hasard parmi 24 — souvent pas le bon. **Si tu
+    sais quelle juridiction a rendu la décision, passe-la TOUJOURS.**
 
     Args:
-        numero: numéro de requête (ex : "2116343", "358109", "497566")
-        juridiction: filtre optionnel sur la juridiction exacte
-            (ex : "Conseil d'Etat", "Cour Administrative d'Appel de Paris",
-            "Tribunal Administratif de Paris"). Laisser vide pour chercher
-            dans toutes les juridictions.
+        numero: numéro de requête (ex : "2200433", "2116343", "497566")
+        juridiction: identifiant de la juridiction. **Recommandé pour tout
+            numéro à 7 chiffres** (TA/CAA codifié). Deux formats acceptés
+            (mapping bidirectionnel automatique) :
+            - **Code court** (recommandé pour les LLMs) : "TA69" (Lyon),
+              "TA75" (Paris), "CAA69", "CE", "CE-CAA"
+            - **Nom long** : "Tribunal Administratif de Lyon", "Conseil d'Etat"
+              (avec ou sans accent), match insensible à la casse
+            Note : "Lyon" seul est ambigu (TA Lyon ou CAA Lyon) — préférer
+            le code court ou le nom complet pour éviter la collision.
 
     Returns:
         Décision avec métadonnées (id, juridiction, numero, date, titre),
         ou `{"error": "introuvable"}` si aucun résultat dans JADE.
+
+    Exemples :
+        get_admin_decision("2200433", juridiction="Tribunal Administratif de Lyon")
+            → DTA_2200433_20230214 (TA Lyon, 14 fév 2023, RSA dérogatoire)
+        get_admin_decision("473286")  # CE n'a pas de doublon, juridiction inutile
+            → DCE_473286_20231123 (CE, non-admission du pourvoi sur la précédente)
     """
     _record_call("get_admin_decision")
     result = await jade_remote.get_admin_decision(numero, juridiction or None)
@@ -1032,9 +1045,18 @@ async def search_admin(
     pertinence sémantique des mots-clés. Indispensable pour trouver LES
     bonnes décisions sur un sujet sans dépendre de l'ancienneté.
 
+    ⚠️ **Si tu cherches par numéro de requête (7 chiffres ex: 2200433)**,
+    utilise plutôt `get_admin_decision(numero, juridiction=...)` qui fait
+    un lookup SQL exact. La recherche FTS5 d'un numéro court ne le trouve
+    que dans les décisions qui le **citent** dans leur texte (ex: décision
+    de cassation), pas la décision identifiée par ce numéro.
+
     Args:
         query: mots-clés (opérateurs FTS5 : AND/OR/NOT, "phrase exacte", mot*)
-        juridiction: filtre optionnel sur un code (CE, CAA75, TA75...)
+        juridiction: filtre par fragment de nom de juridiction. Ex :
+            "Lyon" → toutes les décisions Lyon (TA + CAA), "Tribunal
+            Administratif de Lyon" → uniquement TA Lyon. Combiné en
+            FTS5 AND avec la query principale.
         sort: "relevance" (défaut, BM25) ou "date_desc" / "date_asc"
         date_min: limite inférieure ISO YYYY-MM-DD (optionnel)
         date_max: limite supérieure ISO YYYY-MM-DD (optionnel)

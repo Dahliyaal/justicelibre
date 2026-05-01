@@ -192,6 +192,20 @@ JURI_DISPATCH = {
     "cjue":    ["cjue"],
 }
 
+def _admin_juri_name(juri: str, lieu: str = "") -> str | None:
+    """Traduit (juri, lieu) en nom de juridiction long pour le filtre warehouse.
+    Ex: ('ta', 'TA69') → 'Tribunal Administratif de Lyon'.
+    Le warehouse fait un LIKE sur ce nom, donc utile pour désambiguïser
+    les numéros de TA partagés (ex: 2200433 partagé par 24+ TA).
+    """
+    code = lieu.upper() if lieu else ""
+    if code and code in juriadmin.VALID_JURI:
+        return juriadmin.VALID_JURI[code]
+    if juri == "ce":
+        return "Conseil d'Etat"
+    return None
+
+
 def _admin_juri_code(juri: str, lieu: str = "") -> str | None:
     """Traduit le filtre UI en code d'API admin ES."""
     if juri == "ce":
@@ -290,7 +304,11 @@ async def _dispatch_admin(
     if intent.kind == "dossier_admin":
         try:
             from sources import warehouse as wh
-            bulk_hits = await wh.lookup_by_numero("jade", intent.value)
+            # Désambiguïsation : un même numéro (ex: 2200433) est partagé par
+            # 24+ TA différents. On dérive un filtre juridiction depuis (juri, lieu)
+            # pour cibler le bon TA quand l'UI/MCP a fourni le contexte.
+            juri_filter = _admin_juri_name(juridiction, lieu)
+            bulk_hits = await wh.lookup_by_numero("jade", intent.value, juridiction=juri_filter)
             if bulk_hits:
                 # Filtrage local par date pour les lookups numéro
                 filtered = [h for h in bulk_hits if _date_in_range(h.get("date", ""), date_min, date_max)]

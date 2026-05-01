@@ -113,14 +113,25 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
     try:
         import httpx
         from . import juriadmin
-        # Choisir la cible : si juridiction fournie et ressemble à un code court connu, l'utiliser
-        juri_code = "CE-CAA"  # couvre CE + 9 CAA + 40 TA par défaut
+        # Choisir la cible : accepter à la fois le code court (TA69, CAA75, CE)
+        # ET le nom long ("Tribunal Administratif de Lyon", "Conseil d'Etat"...)
+        # via mapping inversé. Sans match, fanout par défaut sur CE+CAA+TA.
+        juri_code = "CE-CAA"
         if juridiction:
-            juri_up = juridiction.upper()
+            juri_in = juridiction.strip()
+            juri_up = juri_in.upper()
             if juri_up in juriadmin.VALID_JURI:
                 juri_code = juri_up
             elif "ETAT" in juri_up or juri_up == "CE":
                 juri_code = "CE"
+            else:
+                # Mapping nom long → code court (LIKE substring)
+                juri_norm = juri_in.lower().replace("é", "e").replace("è", "e")
+                for code, name in juriadmin.VALID_JURI.items():
+                    name_norm = name.lower().replace("é", "e").replace("è", "e")
+                    if juri_norm == name_norm or juri_norm in name_norm:
+                        juri_code = code
+                        break
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             data = await juriadmin.search(client, query=num_clean, juridiction=juri_code, limit=10)
         hits = data.get("decisions", [])

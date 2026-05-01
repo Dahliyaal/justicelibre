@@ -160,6 +160,17 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._handle_law(qs)
         if parsed.path == "/api/law/versions":
             return self._handle_law_versions(qs)
+        # SSR routes pour Google + LLM (HTML indexable)
+        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.]{4,128})$", parsed.path)
+        if m:
+            return self._handle_ssr_decision(m.group(1), m.group(2))
+        if parsed.path == "/sitemap.xml":
+            return self._handle_sitemap_index()
+        if parsed.path == "/sitemap-static.xml":
+            return self._handle_sitemap_static()
+        m = re.match(r"^/sitemap-dila-(\d+)\.xml$", parsed.path)
+        if m:
+            return self._handle_sitemap_dila(int(m.group(1)))
         if parsed.path in ("/api", "/api/"):
             return self._json_response(200, {
                 "service": "justicelibre public REST API",
@@ -409,6 +420,52 @@ class TokenHandler(BaseHTTPRequestHandler):
         except Exception:
             logger.exception('handler failed')
             return self._json_response(500, {"error": "Erreur entrepôt."})
+
+    def _handle_ssr_decision(self, source: str, decision_id: str):
+        """Render HTML SSR d'une décision (indexable par Google + LLM)."""
+        from ssr import render_decision, render_decision_404, fetch_decision_sync
+        if source not in {"admin", "dila", "cedh", "cjue", "ariane"}:
+            return self._html_response(404, render_decision_404(source, decision_id))
+        try:
+            data = fetch_decision_sync(source, decision_id)
+        except Exception:
+            logger.exception('ssr decision failed')
+            data = None
+        if not data:
+            return self._html_response(404, render_decision_404(source, decision_id))
+        html = render_decision(source, decision_id, data)
+        return self._html_response(200, html, cache_seconds=86400)
+
+    def _handle_sitemap_index(self):
+        from ssr import render_sitemap_index
+        return self._xml_response(200, render_sitemap_index(), cache_seconds=3600)
+
+    def _handle_sitemap_static(self):
+        from ssr import render_sitemap_static
+        return self._xml_response(200, render_sitemap_static(), cache_seconds=86400)
+
+    def _handle_sitemap_dila(self, page: int):
+        from ssr import render_sitemap_dila
+        return self._xml_response(200, render_sitemap_dila(page), cache_seconds=86400)
+
+    def _html_response(self, code: int, html: str, cache_seconds: int = 0):
+        body = html.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        if cache_seconds > 0:
+            self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _xml_response(self, code: int, xml: str, cache_seconds: int = 3600):
+        body = xml.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/xml; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
+        self.end_headers()
+        self.wfile.write(body)
 
     def _json_response(self, code: int, data: dict):
         body = json.dumps(data, ensure_ascii=False).encode()
