@@ -45,17 +45,17 @@ SOURCE_LABELS = {
 # montre d'où vient l'info (vs un site « AI slop » qui invente des décisions).
 # Affiché dans la meta-table sous "Source de l'archive".
 BULK_SOURCES = {
-    "admin":  ("DILA — bulk JADE",
+    "admin":  ("DILA -bulk JADE",
                "https://echanges.dila.gouv.fr/OPENDATA/JADE/"),
-    "dila":   ("DILA — bulks CASS / CAPP / CONSTIT",
+    "dila":   ("DILA -bulks CASS / CAPP / CONSTIT",
                "https://echanges.dila.gouv.fr/OPENDATA/CASS/"),
-    "cedh":   ("HUDOC — Cour européenne des droits de l'homme",
+    "cedh":   ("HUDOC -Cour européenne des droits de l'homme",
                "https://hudoc.echr.coe.int/"),
-    "cjue":   ("InforCuria — CJUE",
+    "cjue":   ("InforCuria -CJUE",
                "https://curia.europa.eu/jcms/jcms/j_6/fr/"),
-    "ariane": ("ArianeWeb — Conseil d'État",
+    "ariane": ("ArianeWeb -Conseil d'État",
                "https://www.conseil-etat.fr/arianeweb/"),
-    "cnil":   ("DILA — bulk CNIL délibérations",
+    "cnil":   ("DILA -bulk CNIL délibérations",
                "https://echanges.dila.gouv.fr/OPENDATA/CNIL/"),
 }
 
@@ -224,9 +224,9 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     if date:
         title_h1 = f"{main_id} <em>· {esc(_format_fr_date(date))}</em>"
     title_h1_plain = f"{main_id} · {_format_fr_date(date)}" if date else main_id
-    title_seo = f"{juri or main_id}, {numero or ''} {(_format_fr_date(date) or '').strip()} — {SITE_NAME}".strip()
+    title_seo = f"{juri or main_id}, {numero or ''} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
 
-    desc = _strip(text, 200) or f"{SOURCE_LABELS.get(source, '')} — {juri}".strip(" — ")
+    desc = _strip(text, 200) or f"{SOURCE_LABELS.get(source, '')} -{juri}".strip(" -")
     canonical = _canonical(source, decision_id)
 
     # Source officielle de la décision (Légifrance, opendata, hudoc, eur-lex)
@@ -319,7 +319,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
   <table class="meta-table">{meta_html}</table>
   <article>{text_html}</article>
   <footer class="page-footer">
-    <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> — alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
+    <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> -alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
   </footer>
 </main>
 </body>
@@ -369,7 +369,7 @@ def render_law(code: str, num: str, data: dict) -> str:
 
     code_label = titre_section or code
     title_h1 = f"Article {num}"
-    title_seo = f"Article {num} — {code_label} — {SITE_NAME}"
+    title_seo = f"Article {num} -{code_label} -{SITE_NAME}"
     desc = _strip(texte, 200) or f"Article {num} du {code_label}"
     canonical = f"{BASE_URL}/loi/{code}/{num}"
 
@@ -379,7 +379,7 @@ def render_law(code: str, num: str, data: dict) -> str:
     jsonld = {
         "@context": "https://schema.org",
         "@type": "Legislation",
-        "name": f"{title_h1} — {code_label}",
+        "name": f"{title_h1} -{code_label}",
         "headline": title_h1,
         "url": canonical,
         "legislationIdentifier": legiarti or num,
@@ -397,7 +397,7 @@ def render_law(code: str, num: str, data: dict) -> str:
     import json as _json
     jsonld_str = esc(_json.dumps(jsonld_clean, ensure_ascii=False))
 
-    rows = [("Code", esc(code_label)), ("État", esc(etat or "—"))]
+    rows = [("Code", esc(code_label)), ("État", esc(etat or "-"))]
     if date_debut: rows.append(("En vigueur depuis", esc(_format_fr_date(date_debut))))
     if date_fin and date_fin != "2999-01-01":
         rows.append(("Jusqu'au", esc(_format_fr_date(date_fin))))
@@ -416,7 +416,7 @@ def render_law(code: str, num: str, data: dict) -> str:
         '<tr class="source-row"><th>Source de l\'archive</th>'
         '<td><a href="https://echanges.dila.gouv.fr/OPENDATA/LEGI/" '
         'target="_blank" rel="external noopener">'
-        'DILA — bulk LEGI (codes consolidés) ↗</a></td></tr>'
+        'DILA -bulk LEGI (codes consolidés) ↗</a></td></tr>'
     )
 
     return f"""<!doctype html>
@@ -429,13 +429,13 @@ def render_law(code: str, num: str, data: dict) -> str:
 <link rel="canonical" href="{esc(canonical)}">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{esc(title_h1 + ' — ' + code_label)}">
+<meta property="og:title" content="{esc(title_h1 + ' -' + code_label)}">
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{esc(canonical)}">
 <meta property="og:site_name" content="{SITE_NAME}">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{esc(title_h1 + ' — ' + code_label)}">
+<meta name="twitter:title" content="{esc(title_h1 + ' -' + code_label)}">
 <meta name="twitter:description" content="{esc(desc)}">
 <script type="application/ld+json">{jsonld_str}</script>
 {GOOGLE_FONTS}
@@ -464,7 +464,7 @@ def render_law_404(code: str, num: str) -> str:
     return f"""<!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<title>Article {esc(code)} {esc(num)} introuvable — {SITE_NAME}</title>
+<title>Article {esc(code)} {esc(num)} introuvable -{SITE_NAME}</title>
 <meta name="robots" content="noindex">
 </head><body style="font-family:sans-serif;max-width:600px;margin:3rem auto;padding:1rem">
 <h1>Article introuvable</h1>
@@ -478,7 +478,7 @@ def render_decision_404(source: str, decision_id: str) -> str:
     return f"""<!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
-<title>Décision introuvable — {SITE_NAME}</title>
+<title>Décision introuvable -{SITE_NAME}</title>
 <meta name="robots" content="noindex">
 </head><body style="font-family:sans-serif;max-width:600px;margin:3rem auto;padding:1rem">
 <h1>Décision introuvable</h1>
@@ -560,7 +560,7 @@ def render_sitemap_index() -> str:
                 sub.append(f"{BASE_URL}/sitemap-cnil-{i}.xml")
     except Exception:
         pass
-    # LEGI distant warehouse (articles de loi VIGUEUR — laissés indexables
+    # LEGI distant warehouse (articles de loi VIGUEUR -laissés indexables
     # même si moins prioritaires : permettent à Google de comprendre les
     # citations internes des décisions et d'indexer les articles.
     try:
@@ -663,7 +663,7 @@ def render_sitemap_ariane(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> 
     for rid, ts in rows:
         if not rid:
             continue
-        # ariane_id ressemble à "/Ariane_Web/AW_DCE/|497566" — on URL-encode
+        # ariane_id ressemble à "/Ariane_Web/AW_DCE/|497566" -on URL-encode
         # simplement le path tel qu'attendu par fetch_decision(source=ariane).
         from urllib.parse import quote
         slug = quote(rid, safe="")
@@ -698,7 +698,7 @@ def render_sitemap_legi(page: int, page_size: int = SITEMAP_PAGE_SIZE) -> str:
     """Sub-sitemap LEGI (articles de loi VIGUEUR). URL = /loi/{code}/{num}.
 
     On utilise le LEGITEXT du parent comme pseudo-code si pas de mapping
-    inverse disponible — sinon Google va essayer d'indexer une URL invalide.
+    inverse disponible -sinon Google va essayer d'indexer une URL invalide.
     Pour LEGI, l'enumerate retourne (id=legiarti, legitext, num, date).
     On a besoin du code court (CC, CT, CASF…) pour matcher CODE_TO_LEGITEXT
     côté warehouse.
