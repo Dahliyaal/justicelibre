@@ -85,7 +85,7 @@ def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
     if decision_id.startswith("JURITEXT"):
         return ("Légifrance", f"https://www.legifrance.gouv.fr/juri/id/{decision_id}")
     if decision_id.startswith("CONSTEXT"):
-        return ("Légifrance", f"https://www.legifrance.gouv.fr/jorf/id/{decision_id}")
+        return ("Légifrance", f"https://www.legifrance.gouv.fr/cons/id/{decision_id}")
     if decision_id.startswith(("DCE_", "DCAA_", "DTA_")):
         return ("opendata.justice-administrative.fr",
                 f"https://opendata.justice-administrative.fr/recherche/decision/{decision_id}")
@@ -431,7 +431,16 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     # Source officielle de la décision (Légifrance, opendata, hudoc, eur-lex)
     source_url = _cached_decision_url(decision_id, date or "") if decision_id else None
 
-    # Citations dans le texte → liens directs Légifrance dated, cachés en mémoire
+    # Citations dans le texte → pré-fetch parallèle pour éviter timeout CloudFlare
+    # quand la décision cite 20+ articles (cas typique des grosses décisions Cass/Constit).
+    cited = _citations.detect_citations(text)  # [(code, num, span)]
+    if cited:
+        from concurrent.futures import ThreadPoolExecutor
+        unique_keys = {(c, n) for (c, n, _) in cited}
+        # parallélise jusqu'à 16 lookups simultanés (réseau bound, pas CPU)
+        with ThreadPoolExecutor(max_workers=min(16, len(unique_keys))) as ex:
+            list(ex.map(lambda kn: _cached_law_url(kn[0], kn[1], date or ""), unique_keys))
+    # Maintenant tout est en cache LRU mémoire → linkify est instantané
     def _resolve(code: str, num: str) -> str | None:
         return _cached_law_url(code, num, date or "")
     text_linked = _citations.linkify(text, esc, url_resolver=_resolve)

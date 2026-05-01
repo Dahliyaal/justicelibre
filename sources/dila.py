@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
+CONSTIT_DB = Path("/opt/justicelibre/dila/constit.db")
+CAPP_DB = Path("/opt/justicelibre/dila/capp.db")
 
 
 def _sanitize_fts5(q: str) -> str:
@@ -67,8 +69,29 @@ def search(
 
     conn = _get_conn()
     try:
-        # Build FTS5 query — sanitize to avoid SQLite SyntaxError on user input
-        fts_query = _sanitize_fts5(query)
+        # Détection pattern Constit "YYYY-NNN DC|QPC|L|..." : on extrait la nature
+        # comme filtre SQL séparé (la colonne `nature` n'est pas dans l'index FTS5).
+        # Accepte les 3 formes que peut prendre la query :
+        #   - brute : "2008-562 DC"
+        #   - normalisée par query_intent : '"2008 562" DC'
+        #   - tout en chiffres séparés : "2008 562 DC"
+        cc_nature_filter = None
+        cc_match = re.match(
+            r'^\s*"?(\d{4})[\s-]+(\d{1,4})"?\s+(QPC|DC|L|SEN|AN|PDR|ORGA|REF|ELEC|I)\s*$',
+            query.strip(), re.IGNORECASE,
+        )
+        if cc_match:
+            # Reconstruit la query FTS comme phrase exacte du numéro
+            query = f'"{cc_match.group(1)} {cc_match.group(2)}"'
+            cc_nature_filter = cc_match.group(3).upper()
+        # Build FTS5 query : on délègue au normalizer central (query_intent)
+        # qui wrap les tokens à tirets ("2008-562" → "2008 562" en phrase)
+        # car FTS5 par défaut interprète "-" comme NOT (exclusion).
+        try:
+            from query_intent import normalize_fts_query
+            fts_query = normalize_fts_query(query, expand=False)
+        except Exception:
+            fts_query = _sanitize_fts5(query)
         if not fts_query:
             return {"total": 0, "decisions": []}
 
@@ -85,8 +108,13 @@ def search(
         if date_max:
             where.append("d.date <= ?")
             params.append(date_max)
+        if cc_nature_filter:
+            where.append("d.nature = ?")
+            params.append(cc_nature_filter)
         where_sql = " AND ".join(where)
 
+        # ORDER BY rank (BM25) quand on a une query — sinon date DESC
+        # (rank est négatif, ASC = best score first)
         rows = conn.execute(
             f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
                        d.numero, d.formation, d.ecli, d.nature,
@@ -94,7 +122,7 @@ def search(
                 FROM decisions_fts f
                 JOIN decisions d ON d.rowid = f.rowid
                 WHERE {where_sql}
-                ORDER BY d.date DESC
+                ORDER BY rank
                 LIMIT ? OFFSET ?""",
             params + [int(limit), int(offset)],
         ).fetchall()
