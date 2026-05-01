@@ -108,6 +108,40 @@ nav.main-nav a{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-
   color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent}
 nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
 @media(max-width:860px){nav.main-nav a:not(.active){display:none}}
+/* Theme toggle button (synchronisé avec search.html) */
+.theme-toggle{
+  background:none;border:1px solid var(--line);
+  width:34px;height:34px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:color .2s,border-color .2s;
+}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
+.theme-toggle svg{width:16px;height:16px}
+html[data-theme="dark"] .theme-toggle .sun{display:block}
+html[data-theme="dark"] .theme-toggle .moon{display:none}
+html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
+html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
+  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
+}
+/* Dark mode pour le contenu SSR (synchronisé avec search.html) */
+html[data-theme="dark"]{
+  --ink:#e8e8e6;--body:#c4c4c0;--muted:#9a9a96;
+  --light:#1e1e1c;--white:#2a2a28;--line:#3a3a36;
+  --teal:#4ea0a0;--teal-l:#6bb5b5;--teal-xl:#1a3030;
+}
+html[data-theme="dark"] body{background:var(--light)}
+html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --ink:#e8e8e6;--body:#c4c4c0;--muted:#9a9a96;
+    --light:#1e1e1c;--white:#2a2a28;--line:#3a3a36;
+    --teal:#4ea0a0;--teal-l:#6bb5b5;--teal-xl:#1a3030;
+  }
+  html:not([data-theme="light"]) body{background:var(--light)}
+  html:not([data-theme="light"]) .topbar{background:rgba(30,30,28,.96)}
+}
 /* Conteneur principal */
 .wrap{max-width:820px;margin:0 auto;padding:2.5rem 1.5rem 5rem;flex:1;width:100%}
 /* Sub-bar (analogue de .searchbar du SPA, contient le fil d'ariane) */
@@ -211,6 +245,31 @@ def get_topbar_html() -> str:
     _TOPBAR_CACHE["html"] = html_str
     _TOPBAR_CACHE["loaded_at"] = now
     return html_str
+
+
+# Petit JS pour wire le bouton theme-toggle de la topbar (sync avec search.html).
+# Inline en bas des pages SSR pour éviter une round-trip + protéger des
+# erreurs si le bouton n'existe pas (defensive null check).
+THEME_JS = """<script>
+(function(){
+  var saved = localStorage.getItem('jl-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+  var btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var h = document.documentElement;
+    var cur = h.dataset.theme;
+    var sys = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var nxt;
+    if (!cur) nxt = sys === 'dark' ? 'light' : 'dark';
+    else if (cur === 'dark' && sys === 'light') nxt = 'light';
+    else if (cur === 'light' && sys === 'dark') nxt = 'dark';
+    else nxt = '';
+    if (nxt) { h.dataset.theme = nxt; localStorage.setItem('jl-theme', nxt); }
+    else { delete h.dataset.theme; localStorage.removeItem('jl-theme'); }
+  });
+})();
+</script>"""
 
 
 # Compat avec le code existant qui référence TOPBAR_HTML comme constante.
@@ -362,6 +421,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> -alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
   </footer>
 </main>
+{THEME_JS}
 </body>
 </html>"""
 
@@ -496,6 +556,7 @@ def render_law(code: str, num: str, data: dict) -> str:
     <p>Article de loi publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a> via <strong>JusticeLibre</strong>.</p>
   </footer>
 </main>
+{THEME_JS}
 </body>
 </html>"""
 
