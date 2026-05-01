@@ -170,18 +170,32 @@ def _load_thesaurus() -> dict[str, list[str]]:
     return _THESAURUS
 
 
-def expand_synonyms(q: str) -> str:
+def expand_synonyms(q: str, scope: str = "toutes") -> str:
     """Étend une query FTS5 en ajoutant les synonymes issus du thésaurus.
+
+    Si `thesaurus.db` est dispo (moteur unifié 19k+ concepts PCJA + EuroVoc +
+    Judilibre + vie-publique), utilise celui-là en priorité. Sinon fallback
+    sur l'ancien `thesaurus_fr.json`.
 
     Pour chaque expression du thésaurus trouvée dans la query hors phrases
     "...", remplace par `(expr OR syn1 OR syn2 ...)`. Les phrases explicites
-    entre guillemets sont préservées telles quelles.
+    entre guillemets et les termes négatifs `-mot` sont préservés.
 
-    Exemple : `harcèlement moral` → `(harcèlement moral OR "intimidation morale"
-    OR "vexation morale" OR "agissement répété" OR ...)`
+    Args:
+        q: query brute utilisateur
+        scope: "admin" / "judiciaire" / "europeen" / "lois" / "toutes" (défaut)
     """
     if not q:
         return q
+    # Tente d'abord le moteur SQLite unifié
+    try:
+        from thesaurus_engine import get_engine
+        engine = get_engine()
+        if engine._concepts:
+            expanded, _trace = engine.expand_query(q, scope=scope)
+            return expanded
+    except Exception:
+        pass  # fallback JSON
     th = _load_thesaurus()
     if not th:
         return q

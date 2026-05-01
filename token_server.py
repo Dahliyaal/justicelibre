@@ -172,6 +172,8 @@ class TokenHandler(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(parsed.query)
         if parsed.path == "/api/search":
             return self._handle_search(qs)
+        if parsed.path == "/api/expand":
+            return self._handle_expand(qs)
         if parsed.path == "/api/decision":
             return self._handle_decision(qs)
         if parsed.path == "/api/law":
@@ -218,6 +220,36 @@ class TokenHandler(BaseHTTPRequestHandler):
                 "docs": "https://justicelibre.org",
             })
         return self._json_response(404, {"error": f"Endpoint inconnu : {parsed.path}."})
+
+    def _handle_expand(self, qs: dict):
+        """Endpoint léger : retourne les termes étendus pour une query.
+
+        GET /api/expand?q=harcèlement+moral&scope=judiciaire
+        → {"q_original": ..., "q_expanded": ..., "trace": [{"original", "synonyms", "scope"}]}
+
+        L'UI utilise ça pour afficher les pills "termes ajoutés" sous la barre.
+        """
+        q = (qs.get("q", [""])[0] or "").strip()
+        scope = (qs.get("scope", ["toutes"])[0] or "toutes").strip().lower()
+        if scope not in {"admin", "judiciaire", "europeen", "lois", "toutes"}:
+            scope = "toutes"
+        if not q:
+            return self._json_response(400, {"error": "Paramètre `q` requis."})
+        if len(q) > 500:
+            return self._json_response(400, {"error": "Requête trop longue (max 500)."})
+        try:
+            from thesaurus_engine import get_engine
+            engine = get_engine()
+            expanded, trace = engine.expand_query(q, scope=scope)
+            return self._json_response(200, {
+                "q_original": q,
+                "q_expanded": expanded,
+                "scope": scope,
+                "trace": trace,
+            }, cache_seconds=300)
+        except Exception:
+            logger.exception("expand failed")
+            return self._json_response(500, {"error": "Erreur interne moteur thésaurus."})
 
     def _handle_law(self, qs: dict):
         code = (qs.get("code", [""])[0] or "").strip()
@@ -539,12 +571,14 @@ class TokenHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _json_response(self, code: int, data: dict):
+    def _json_response(self, code: int, data: dict, cache_seconds: int = 0):
         body = json.dumps(data, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Length", str(len(body)))
+        if cache_seconds > 0:
+            self.send_header("Cache-Control", f"public, max-age={cache_seconds}")
         self.end_headers()
         self.wfile.write(body)
 

@@ -202,6 +202,42 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
 }
 .field input:focus,.field select:focus{outline:none;border-color:var(--teal)}
 
+/* ─── EXPANSION SÉMANTIQUE (pills) ─── */
+.expansion-bar{
+  background:var(--cream);border-bottom:1px solid var(--line);
+  padding:.5rem 1.4rem;
+}
+.expansion-inner{
+  max-width:1400px;margin:0 auto;
+  display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;
+  font-size:.8rem;color:var(--muted);
+}
+.exp-label{font-style:italic;flex-shrink:0}
+.exp-pills{display:flex;flex-wrap:wrap;gap:.4rem;flex:1;min-width:0}
+.exp-pill{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.18rem .55rem;background:var(--white);
+  border:1px solid var(--line);border-radius:11px;
+  font-size:.78rem;color:var(--ink);
+  cursor:default;line-height:1.3;
+}
+.exp-pill .exp-pill-src{
+  font-size:.65rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.exp-pill button{
+  border:none;background:none;cursor:pointer;
+  color:var(--muted);font-size:.95rem;padding:0 .1rem;line-height:1;
+}
+.exp-pill button:hover{color:var(--ink)}
+.exp-pill.removed{opacity:.4;text-decoration:line-through}
+.exp-disable{
+  border:none;background:none;cursor:pointer;
+  color:var(--muted);font-size:.78rem;
+  text-decoration:underline;padding:0 .3rem;
+}
+.exp-disable:hover{color:var(--ink)}
+
 /* ─── Custom dropdown ─── */
 .cs-wrap{position:relative;width:100%}
 .cs-display{
@@ -721,6 +757,15 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
     </div>
 
+  </div>
+</div>
+
+<!-- ─── EXPANSION SÉMANTIQUE (pills) ─── -->
+<div class="expansion-bar" id="expansionBar" style="display:none">
+  <div class="expansion-inner">
+    <span class="exp-label">Recherche élargie aux termes voisins :</span>
+    <div class="exp-pills" id="expPills"></div>
+    <button class="exp-disable" id="expDisable" type="button" title="Désactiver l'expansion sémantique pour cette session">Désactiver</button>
   </div>
 </div>
 
@@ -1890,6 +1935,68 @@ function juridictionToSourceSet(juri) {
   return MAP[juri] || MAP[''];
 }
 
+function juridictionToScope(juri) {
+  if (!juri) return 'toutes';
+  if (['admin', 'ce', 'caa', 'ta'].includes(juri)) return 'admin';
+  if (['judic', 'cass', 'ca', 'constit'].includes(juri)) return 'judiciaire';
+  if (['europ', 'cedh', 'cjue'].includes(juri)) return 'europeen';
+  return 'toutes';
+}
+
+const EXPANSION_DISABLED_KEY = 'jl-expansion-disabled';
+
+function expansionDisabled() {
+  try { return localStorage.getItem(EXPANSION_DISABLED_KEY) === '1'; } catch { return false; }
+}
+
+async function fetchExpansion(q, scope) {
+  const bar = document.getElementById('expansionBar');
+  const pills = document.getElementById('expPills');
+  if (!bar || !pills) return;
+  if (expansionDisabled()) { bar.style.display = 'none'; return; }
+  try {
+    const r = await fetch(`/api/expand?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope)}`);
+    if (!r.ok) { bar.style.display = 'none'; return; }
+    const data = await r.json();
+    const trace = data.trace || [];
+    if (!trace.length) { bar.style.display = 'none'; return; }
+    pills.innerHTML = '';
+    trace.forEach(t => {
+      (t.synonyms || []).forEach(syn => {
+        const pill = document.createElement('span');
+        pill.className = 'exp-pill';
+        pill.title = `Ajouté pour le terme « ${t.original} »`;
+        const txt = document.createTextNode(syn);
+        pill.appendChild(txt);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '×';
+        btn.title = 'Retirer ce terme de la recherche';
+        btn.addEventListener('click', () => {
+          pill.classList.toggle('removed');
+        });
+        pill.appendChild(btn);
+        pills.appendChild(pill);
+      });
+    });
+    bar.style.display = pills.children.length ? '' : 'none';
+  } catch (e) {
+    console.warn('[expand]', e);
+    bar.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('expDisable');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem(EXPANSION_DISABLED_KEY, '1'); } catch {}
+      const bar = document.getElementById('expansionBar');
+      if (bar) bar.style.display = 'none';
+    });
+  }
+});
+
 async function runSearch(append = false) {
   const q = queryInput.value.trim();
   if (!q) return;
@@ -1898,6 +2005,8 @@ async function runSearch(append = false) {
     return;
   }
   const juri = document.getElementById('juridiction').value;
+  // Lance l'expansion sémantique en parallèle (non-bloquant)
+  fetchExpansion(q, juridictionToScope(juri));
   const lieu = document.getElementById('lieu').value;
   const dateMin = (document.getElementById('dateMin')?.value || '').trim();
   const dateMax = (document.getElementById('dateMax')?.value || '').trim();
