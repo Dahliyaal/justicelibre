@@ -149,6 +149,24 @@ class TokenHandler(BaseHTTPRequestHandler):
                 _save_sessions(sessions)
         return self._json_response(200, {"ok": True, "invalidated": bool(removed)})
 
+    def do_HEAD(self):
+        """HEAD = GET sans le body. Googlebot et certains crawlers l'utilisent
+        pour vérifier l'existence/validité d'une URL avant de la fetch.
+        Sans cette méthode, BaseHTTPRequestHandler renvoie 501 -> Google
+        considère l'URL comme non disponible. Solution : on délègue à do_GET
+        et on tronque le body via un buffer wrapper.
+        """
+        # Wrappe wfile pour ne pas écrire le body (juste les headers)
+        original_wfile = self.wfile
+        class _NullWriter:
+            def write(self, *a, **kw): pass
+            def flush(self, *a, **kw): pass
+        self.wfile = _NullWriter()  # pragma: no cover
+        try:
+            self.do_GET()
+        finally:
+            self.wfile = original_wfile
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
@@ -177,7 +195,7 @@ class TokenHandler(BaseHTTPRequestHandler):
         m = re.match(r"^/sitemap-legi-(\d+)\.xml$", parsed.path)
         if m:
             return self._handle_sitemap_legi(int(m.group(1)))
-        m = re.match(r"^/sitemap-(cedh|cjue|ariane|cnil)-(\d+)\.xml$", parsed.path)
+        m = re.match(r"^/sitemap-(cedh|cjue|ariane|cnil|opendata)-(\d+)\.xml$", parsed.path)
         if m:
             return self._handle_sitemap_extra(m.group(1), int(m.group(2)))
         # Article de loi : /loi/CASF/L262-8 ou /loi/CJA/R772-8
@@ -472,17 +490,22 @@ class TokenHandler(BaseHTTPRequestHandler):
         return self._xml_response(200, render_sitemap_legi(page), cache_seconds=86400)
 
     def _handle_sitemap_extra(self, kind: str, page: int):
-        """Sub-sitemaps petits volumes (cedh/cjue/ariane/cnil)."""
+        """Sub-sitemaps (cedh/cjue/ariane/cnil/opendata).
+        Opendata cache court (1h) car le DL est en cours et la liste grandit.
+        """
         from ssr import (render_sitemap_cedh, render_sitemap_cjue,
-                         render_sitemap_ariane, render_sitemap_cnil)
+                         render_sitemap_ariane, render_sitemap_cnil,
+                         render_sitemap_opendata)
         renderers = {
             "cedh": render_sitemap_cedh, "cjue": render_sitemap_cjue,
             "ariane": render_sitemap_ariane, "cnil": render_sitemap_cnil,
+            "opendata": render_sitemap_opendata,
         }
         fn = renderers.get(kind)
         if not fn:
             return self._xml_response(404, "<error>unknown</error>", cache_seconds=60)
-        return self._xml_response(200, fn(page), cache_seconds=86400)
+        cache = 3600 if kind == "opendata" else 86400
+        return self._xml_response(200, fn(page), cache_seconds=cache)
 
     def _handle_ssr_law(self, code: str, num: str):
         """Render HTML SSR d'un article de loi."""

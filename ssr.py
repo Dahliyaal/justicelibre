@@ -528,6 +528,15 @@ def render_sitemap_index() -> str:
                 sub.append(f"{BASE_URL}/sitemap-jade-{i}.xml")
     except Exception:
         pass
+    # Opendata progressivement crawlé (TAs + CAA + CE complets)
+    try:
+        total_od = _wh.sync_count_fond("opendata")
+        if total_od > 0:
+            n_pages = (total_od // SITEMAP_PAGE_SIZE) + 1
+            for i in range(1, n_pages + 1):
+                sub.append(f"{BASE_URL}/sitemap-opendata-{i}.xml")
+    except Exception:
+        pass
     # CEDH local PROD (~76k, 1 page)
     try:
         with sqlite3.connect(f"file:{DILA_DB}?mode=ro", uri=True) as c:
@@ -675,6 +684,25 @@ def render_sitemap_ariane(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {chr(10).join(items)}
+</urlset>"""
+
+
+def render_sitemap_opendata(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> str:
+    """Sub-sitemap opendata.justice-administrative.fr (TAs + CAA + CE).
+    Le DL est progressif (cf download_opendata.py) : ce sub-sitemap reflète
+    l'état courant à chaque appel. Cache 1h pour suivre la croissance.
+    """
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+    rows = _wh.sync_enumerate_fond("opendata", offset=offset, limit=page_size)
+    items = "\n".join(
+        f'  <url><loc>{BASE_URL}/decision/admin/{esc(r.get("id",""))}</loc>'
+        f'<lastmod>{esc(r.get("date") or "")}</lastmod></url>'
+        for r in rows if r.get("id")
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
 </urlset>"""
 
 

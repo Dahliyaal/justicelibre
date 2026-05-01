@@ -182,6 +182,15 @@ FONDS: dict[str, dict] = {
         "decision_table": "cnil_deliberations",
         "id_col": "id",
     },
+    # opendata.justice-administrative.fr : crawl progressif (download_opendata.py)
+    # Couvre TAs (40) + CAA (9) + CE en complément du bulk JADE DILA. Croît
+    # pendant que le crawler tourne ; les sub-sitemaps reflètent l'état courant.
+    "opendata": {
+        "db": "opendata.db",
+        "fts": "opendata_fts",
+        "decision_table": "opendata_decisions",
+        "id_col": "id",
+    },
 }
 
 # ─── SQLITE CONNECTION POOL (thread-local, read-only) ────────────────
