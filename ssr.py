@@ -24,9 +24,36 @@ import sqlite3
 from pathlib import Path
 from typing import Iterable
 
+from functools import lru_cache
+
 from search_api import fetch_decision
 from sources import citations as _citations
 from sources import warehouse as _wh
+
+
+@lru_cache(maxsize=20000)
+def _cached_law_url(code: str, num: str, date: str) -> str | None:
+    """LRU cache mémoire des résolutions article→URL Légifrance.
+
+    Les mêmes articles (L262-8 CASF, R411-1 CJA…) sont cités dans des
+    milliers de décisions. Sans cache : 1 lookup HTTP warehouse par article
+    par décision = 250-500ms cumulés → CloudFlare 502 quand >5s.
+    Avec cache : 1ère décision paye, les suivantes sont gratuites.
+    """
+    try:
+        row = _wh.sync_get_law(code, num, date or None)
+        return row.get("source_url") if row else None
+    except Exception:
+        return None
+
+
+@lru_cache(maxsize=20000)
+def _cached_decision_url(decision_id: str, date: str) -> str | None:
+    """Idem pour la résolution decision_id → URL source officielle."""
+    try:
+        return _wh.sync_build_url(decision_id, date=date or None)
+    except Exception:
+        return None
 
 BASE_URL = "https://justicelibre.org"
 SITE_NAME = "JusticeLibre"
@@ -332,15 +359,11 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     canonical = _canonical(source, decision_id)
 
     # Source officielle de la décision (Légifrance, opendata, hudoc, eur-lex)
-    source_url = _wh.sync_build_url(decision_id, date=date) if decision_id else None
+    source_url = _cached_decision_url(decision_id, date or "") if decision_id else None
 
-    # Citations dans le texte → liens directs Légifrance dated
+    # Citations dans le texte → liens directs Légifrance dated, cachés en mémoire
     def _resolve(code: str, num: str) -> str | None:
-        try:
-            row = _wh.sync_get_law(code, num, date or None)
-            return row.get("source_url") if row else None
-        except Exception:
-            return None
+        return _cached_law_url(code, num, date or "")
     text_linked = _citations.linkify(text, esc, url_resolver=_resolve)
     text_html = "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
 
