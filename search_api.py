@@ -711,6 +711,7 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 return {
                     **_norm_jade_bulk(r),
                     "full_text": r.get("texte", "") or "",
+                    "sommaire": r.get("sommaire", "") or "",  # analyses PCJA + résumé
                     "text_segments": [],
                 }
             except Exception as e:

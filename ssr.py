@@ -47,6 +47,105 @@ def _cached_law_url(code: str, num: str, date: str) -> str | None:
         return None
 
 
+_PCJA_CODE_RE = __import__('re').compile(r'\b(\d{1,3}(?:-\d{1,3}){2,5})(?:,\s*(RJ\d+|FXH))?\s+', flags=__import__('re').UNICODE)
+_RENVOIS_RE = __import__('re').compile(r'(?:^|\s)(\d+\.\s+(?:Cf\.|Rappr\.|Comp\.|V\.\s+aussi|Voir))', flags=__import__('re').UNICODE)
+
+
+def _clean_dila_text(t: str) -> str:
+    """Nettoie le texte stocké en DB des artefacts XML/HTML résiduels.
+
+    Le parser DILA laisse parfois passer des `<br/>`, `&amp;`, etc. Si on
+    laisse, le navigateur affiche la balise littérale après html.escape.
+    On les remplace par des séparateurs naturels en amont.
+    """
+    if not t:
+        return ""
+    import html as _html
+    # 1. Décoder les entités déjà présentes (au cas où double-encodées)
+    t = _html.unescape(t)
+    # 2. Remplacer les balises HTML résiduelles par des espaces/retours
+    t = __import__('re').sub(r'<\s*br\s*/?\s*>', '\n', t, flags=__import__('re').IGNORECASE)
+    t = __import__('re').sub(r'<\s*p\s*/?\s*>', '\n\n', t, flags=__import__('re').IGNORECASE)
+    t = __import__('re').sub(r'<[^>]+>', '', t)  # autres tags : strip
+    # 3. Collapse multiples retours
+    t = __import__('re').sub(r'\n{3,}', '\n\n', t)
+    return t.strip()
+
+
+def _render_legal_text(text: str, esc, resolve, sommaire: str = "") -> str:
+    """Rend le texte d'une décision en HTML structuré.
+
+    3 cas :
+      1. Sommaire séparé fourni + texte intégral → texte intégral en haut,
+         puis sections "Plan de classement / Résumé / Renvois" sous le texte.
+      2. Pas de sommaire séparé, texte court qui commence par code PCJA
+         (vieux arrêt pré-numérisation) → on splitte le texte en sections.
+      3. Texte intégral classique sans analyses → rendu paragraphes simple.
+    """
+    if not text and not sommaire:
+        return "<p><em>Texte indisponible.</em></p>"
+
+    # Détection « vieux arrêt » : texte court (<3000 ch) qui commence par un code PCJA
+    is_old_summary = (text and len(text) < 3000 and bool(_PCJA_CODE_RE.match(text)))
+
+    # Si text == sommaire (cas où DILA a juste recopié le sommaire dans la balise
+    # texte faute de texte intégral disponible) : on ne rend que la version
+    # structurée pour éviter le doublon.
+    if text and sommaire and (text.strip() == sommaire.strip() or text.strip() in sommaire.strip()):
+        return _split_sommaire_sections(sommaire, esc, resolve)
+
+    # Cas 1 : texte intégral + sommaire séparé fourni
+    if text and sommaire and not is_old_summary:
+        text_linked = _citations.linkify(text, esc, url_resolver=resolve)
+        body = "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
+        # Découpe le sommaire en abstrats / résumé / renvois (même logique que vieux arrêts)
+        sections_html = _split_sommaire_sections(sommaire, esc, resolve)
+        return body + sections_html
+
+    if is_old_summary:
+        return _split_sommaire_sections(text, esc, resolve)
+
+    # Cas 3 général (arrêt avec texte intégral seulement) : rendu paragraphes
+    text_linked = _citations.linkify(text, esc, url_resolver=resolve)
+    return "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
+
+
+def _split_sommaire_sections(text: str, esc, resolve) -> str:
+    """Découpe un sommaire/analyse en 3 sections : Plan de classement, Résumé, Renvois."""
+    parts = {"abstrats": "", "resume": "", "renvois": ""}
+    # Split sur "1. Cf." pour isoler les renvois jurisprudentiels
+    m_renvois = _RENVOIS_RE.search(text)
+    if m_renvois:
+        parts["renvois"] = text[m_renvois.start():].strip()
+        text = text[:m_renvois.start()].strip()
+    # Split sur premier passage en casse mixte (analyses MAJUSCULES → résumé Mixte)
+    import re as _re
+    m_resume = _re.search(r'(\d{1,3}(?:-\d{1,3}){2,5}(?:,\s*\d{1,3}(?:-\d{1,3}){2,5})*\s+)([A-ZÉÈÀÂÊÎÔÛÇ][a-zéèàâêîôûç])', text)
+    if m_resume:
+        parts["abstrats"] = text[:m_resume.start(2)].strip()
+        parts["resume"] = text[m_resume.start(2):].strip()
+    else:
+        parts["abstrats"] = text.strip()
+    out = []
+    if parts["abstrats"]:
+        out.append('<section class="legal-section">')
+        out.append('<h3>Plan de classement</h3>')
+        out.append(f'<div class="abstrats">{esc(parts["abstrats"])}</div>')
+        out.append('</section>')
+    if parts["resume"]:
+        text_resume_linked = _citations.linkify(parts["resume"], esc, url_resolver=resolve)
+        out.append('<section class="legal-section">')
+        out.append('<h3>Résumé</h3>')
+        out.append(f'<p>{text_resume_linked}</p>')
+        out.append('</section>')
+    if parts["renvois"]:
+        out.append('<section class="legal-section">')
+        out.append('<h3>Renvois jurisprudentiels</h3>')
+        out.append(f'<p>{esc(parts["renvois"])}</p>')
+        out.append('</section>')
+    return "\n".join(out)
+
+
 def _official_source_button(decision_id: str) -> str:
     """Génère le HTML du gros bouton CTA 'Voir sur source officielle'."""
     pat = _official_source_from_pattern(decision_id)
@@ -280,6 +379,15 @@ article{font-size:1rem;color:var(--body);background:var(--white);line-height:1.6
   padding:2rem;border:1px solid var(--line);border-radius:6px}
 article p{margin:0 0 1em}
 article p:last-child{margin-bottom:0}
+/* Sections analytiques (vieux arrêts pré-numérisation : abstrats + résumé + renvois) */
+.legal-section{margin:0 0 1.5em;padding:0}
+.legal-section + .legal-section{padding-top:1em;border-top:1px solid var(--line)}
+.legal-section h3{font-family:var(--display);font-size:1.05rem;font-weight:400;color:var(--teal);
+  margin:0 0 .6em;padding:0}
+.legal-section .abstrats{font-size:.88rem;line-height:1.55;color:var(--body);
+  background:var(--cream);padding:.9em 1.1em;border-left:2px solid var(--line);border-radius:0 4px 4px 0;
+  white-space:pre-wrap;font-family:var(--sans)}
+.legal-section p{margin:0}
 .wrap, .wrap p, .wrap .subline{line-height:1.5}
 .lawref{color:var(--teal);text-decoration:underline;text-decoration-color:rgba(26,78,78,.3);
   text-underline-offset:.15em}
@@ -417,6 +525,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     numero = data.get("numero") or data.get("numero_dossier") or ""
     titre_brut = data.get("titre") or data.get("title") or ""
     text = data.get("text") or data.get("full_text") or data.get("paragraph") or ""
+    sommaire = data.get("sommaire") or ""  # analyses PCJA + résumé (Lebon-style)
     ecli = data.get("ecli", "")
     formation = data.get("formation", "")
     solution = data.get("solution", "")
@@ -448,8 +557,16 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     # Maintenant tout est en cache LRU mémoire → linkify est instantané
     def _resolve(code: str, num: str) -> str | None:
         return _cached_law_url(code, num, date or "")
-    text_linked = _citations.linkify(text, esc, url_resolver=_resolve)
-    text_html = "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
+    # Nettoyage texte source : élimine les balises HTML brutes stockées en DB
+    # (artefact du parsing XML DILA qui laisse passer <br/>, &lt;br&gt; etc.)
+    # avant escape, sinon le navigateur affiche la balise littérale.
+    text = _clean_dila_text(text)
+    sommaire = _clean_dila_text(sommaire)
+    # Si on a déjà tout dans `text` (cas vieux arrêts pré-numérisation : text
+    # = analyses + résumé concaténés) : structurer le bloc.
+    # Si on a `text` ET `sommaire` séparés (cas standard JADE) : afficher
+    # les deux en sections distinctes.
+    text_html = _render_legal_text(text, esc, _resolve, sommaire=sommaire)
 
     jsonld = {
         "@context": "https://schema.org",

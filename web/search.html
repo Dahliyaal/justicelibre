@@ -369,6 +369,13 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
 .src-badge.cjue {background:var(--src-cjue)}
 .result-card .juri{color:var(--teal);font-weight:600}
 .result-card .date{font-variant-numeric:tabular-nums}
+.result-card .meta-line .num{font-variant-numeric:tabular-nums}
+.result-card .meta-line .ecli{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.68rem;color:var(--muted);
+}
+.result-card .meta-line .sep{color:var(--line);user-select:none}
+.result-card .meta-line .field-empty{color:var(--muted);opacity:.45}
 .result-card .title{
   font-family:var(--display);font-size:.98rem;line-height:1.3;color:var(--ink);
   margin-bottom:.3rem;
@@ -648,7 +655,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   <a href="/" class="logo-area">
     <img src="/logo.svg" alt="">
     <span class="name">justicelibre<span class="tld">.org</span></span>
-    <span class="proto-badge" title="Version bêta — moteur en rodage. Envoyer retour via GitHub ou Ko-fi.">bêta</span>
+    <span class="proto-badge" title="Version bêta - moteur en rodage. Envoyer retour via GitHub ou Ko-fi.">bêta</span>
   </a>
   <nav class="main-nav">
     <a href="/">Accueil</a>
@@ -720,6 +727,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
             </div>
             <div class="cs-item cs-sub" data-value="cass" data-label="Cour de cassation">Cour de cassation</div>
             <div class="cs-item cs-sub" data-value="ca" data-label="Cours d'appel">Cours d'appel</div>
+            <div class="cs-item cs-sub" data-value="tj" data-label="Tribunaux judiciaires">Tribunaux judiciaires <span class="hint">~2k, en cours</span></div>
             <div class="cs-item cs-sub" data-value="constit" data-label="Conseil constitutionnel">Conseil constitutionnel</div>
 
             <div class="cs-group" data-value="europ" data-label="Tout européen">
@@ -777,10 +785,10 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
       <div class="sb-help" style="grid-column:1/-1">
         <strong>Opérateurs acceptés · syntaxes multiples · espaces optionnels</strong>
-        <p><b>ET</b> : <code>AND</code> · <code>ET</code> · <code>&amp;</code> &nbsp;—&nbsp; <b>OU</b> : <code>OR</code> · <code>OU</code> · <code>|</code> &nbsp;—&nbsp; <b>SAUF</b> : <code>NOT</code> · <code>SAUF</code> · <code>-mot</code></p>
-        <p><b>Phrase exacte</b> : <code>"atteinte à la liberté"</code> &nbsp;—&nbsp; <b>Préfixe</b> : <code>signal*</code> (matche signaler, signalement, signalée…)</p>
+        <p><b>ET</b> : <code>AND</code> · <code>ET</code> · <code>&amp;</code> &nbsp;-&nbsp; <b>OU</b> : <code>OR</code> · <code>OU</code> · <code>|</code> &nbsp;-&nbsp; <b>SAUF</b> : <code>NOT</code> · <code>SAUF</code> · <code>-mot</code></p>
+        <p><b>Phrase exacte</b> : <code>"atteinte à la liberté"</code> &nbsp;-&nbsp; <b>Préfixe</b> : <code>signal*</code> (matche signaler, signalement, signalée…)</p>
         <p><b>Exemples valides</b> : <code>liberté &amp; signalement</code> · <code>liberté ET signalement</code> · <code>licenci* OU renvoi</code> · <code>"vie privée" SAUF médical</code></p>
-        <p><em>Note : le Conseil d'État (ArianeWeb) utilise un moteur sémantique distinct — les opérateurs sont normalisés côté serveur pour chaque source.</em></p>
+        <p><em>Note : le Conseil d'État (ArianeWeb) utilise un moteur sémantique distinct - les opérateurs sont normalisés côté serveur pour chaque source.</em></p>
       </div>
 
     </div>
@@ -820,7 +828,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 <aside class="law-viewer" id="lawViewer" aria-hidden="true">
   <div class="law-header">
     <button class="law-close" id="lawClose" aria-label="Fermer">×</button>
-    <h2 class="law-title" id="lawTitle">—</h2>
+    <h2 class="law-title" id="lawTitle">-</h2>
     <p class="law-meta" id="lawMeta"></p>
     <div class="law-note" id="lawNote" style="display:none"></div>
   </div>
@@ -840,7 +848,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
     <h3 style="font-family:var(--display);font-size:1.2rem;margin-bottom:.4rem">Signaler un problème</h3>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signalez-le ici. Pas de compte requis ; votre message arrive en append-only sur notre serveur.</p>
     <textarea id="feedbackMessage" placeholder="Décrivez brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
-    <input id="feedbackEmail" type="email" placeholder="Email (optionnel — pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
+    <input id="feedbackEmail" type="email" placeholder="Email (optionnel - pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
     <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end">
       <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Annuler</button>
       <button type="button" id="feedbackSend" style="padding:.55rem 1.1rem;background:var(--teal);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600">Envoyer</button>
@@ -955,7 +963,7 @@ const INSTANCES = {
   ],
 };
 
-/* ─── Custom dropdown logic — réutilisable ─── */
+/* ─── Custom dropdown logic - réutilisable ─── */
 function bindCs(wrapId, hiddenId) {
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
@@ -1286,7 +1294,7 @@ function highlightLawRefs(escapedHtml) {
   for (const item of CODES) {
     const codeAlts = item.patterns.join('|');
 
-    // 1a — avec préfixe "art."
+    // 1a - avec préfixe "art."
     const re_art = new RegExp(
       `(${ART_FULL})\\s+(?:du\\s+|de\\s+la\\s+)?(${codeAlts})\\b`,
       'gi'
@@ -1296,7 +1304,7 @@ function highlightLawRefs(escapedHtml) {
       return MARKER + makeWrap(item, art, code) + MARKER;
     });
 
-    // 1b — sans préfixe : "L. 521-1 du code Y" / "L. 521-1 CJA"
+    // 1b - sans préfixe : "L. 521-1 du code Y" / "L. 521-1 CJA"
     const re_letter = new RegExp(
       `(?<![\\w-])(${ART_LETTER}${ART_ALINEA})\\s+(?:du\\s+|de\\s+la\\s+)?(${codeAlts})\\b`,
       'gi'
@@ -1321,7 +1329,7 @@ function highlightLawRefs(escapedHtml) {
   }
 
   // 3) Règlements UE : "règlement (CE) n° 883/2004", "règlement (UE) 2016/679"
-  // Le "n°" est optionnel — fréquemment omis pour les actes post-2015.
+  // Le "n°" est optionnel - fréquemment omis pour les actes post-2015.
   result = result.replace(
     /\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+(?:n[°º]\s*)?\d+\/\d+)\b/gi,
     (m) => {
@@ -1388,12 +1396,25 @@ function highlightExtract(html, q) {
   const re = new RegExp('(' + tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
   return escaped.replace(re, '<em>$1</em>');
 }
-function fmtDate(d) {
+function fmtDate(d, opts) {
   if (!d) return '';
-  const [y, m, dd] = d.split('-');
-  if (!y) return d;
-  const months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-  return `${parseInt(dd)} ${months[parseInt(m) - 1] || ''} ${y}`;
+  // Accepte "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss", "YYYYMMDD"
+  let s = String(d).trim();
+  let y, m, dd;
+  if (/^\d{8}$/.test(s)) {
+    y = s.slice(0,4); m = s.slice(4,6); dd = s.slice(6,8);
+  } else {
+    s = s.split('T')[0];
+    [y, m, dd] = s.split('-');
+  }
+  if (!y || !m || !dd) return d;
+  const full = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const abbr = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  const months = (opts && opts.short) ? abbr : full;
+  const dayNum = parseInt(dd, 10);
+  const monIdx = parseInt(m, 10) - 1;
+  if (monIdx < 0 || monIdx > 11 || isNaN(dayNum)) return d;
+  return `${dayNum} ${months[monIdx]} ${y}`;
 }
 
 function renderResults(data, query) {
@@ -1421,14 +1442,14 @@ function renderResults(data, query) {
       : [];
     const slowLabels = slow.map(s => SOURCE_NAMES[s] || s).join(', ');
     if (retryingNow.length) {
-      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} lent — nouvelle tentative en cours (timeout 60 s) <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></div>`);
+      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} lent - nouvelle tentative en cours (timeout 60 s) <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></div>`);
     } else {
       parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} n'a pas répondu (12 s puis 60 s). Affinez la requête pour y accéder.</div>`);
     }
   }
   if (!results.length) {
     // N'affiche "Aucun résultat" QUE si toutes les sources ont fini (pendingSources vide).
-    // Sinon on affiche un loader propre — sinon on induit l'utilisateur en erreur
+    // Sinon on affiche un loader propre - sinon on induit l'utilisateur en erreur
     // pendant que la recherche est encore en cours.
     const stillPending = (lastSearchState?.pendingSources?.size || 0) > 0;
     if (stillPending) {
@@ -1445,17 +1466,66 @@ function renderResults(data, query) {
     resultCache.set(cacheKey(r.source, r.id), r);
     const badge = SRC_BADGES[r.source] || 'admin';
     parts.push(`<article class="result-card" data-source="${escapeHtml(r.source)}" data-id="${escapeHtml(r.id)}">`);
+
+    // Normalise les champs : "undefined" (string), null, "" → vide
+    const isEmpty = v => !v || v === 'undefined' || v === 'null' || (typeof v === 'string' && !v.trim());
+    const hasDate = !isEmpty(r.date);
+    const hasJuri = !isEmpty(r.juridiction);
+    const hasFormation = !isEmpty(r.formation);
+    const hasNumero = !isEmpty(r.numero);
+    const hasEcli = !isEmpty(r.ecli);
+
+    // Juridiction enrichie de la formation quand pertinent (ex : "Cour de cassation, soc")
+    let juriDisplay = hasJuri ? r.juridiction : '';
+    if (hasJuri && hasFormation) {
+      // n'ajoute la formation que si elle apporte de l'info utile (≠ codes opaques courts type HFJUD/JUDG sans intérêt user)
+      // mais on l'affiche quand même - l'utilisateur jugera
+      juriDisplay = `${r.juridiction}, ${r.formation}`;
+    }
+
     parts.push(`<div class="meta-line">`);
     parts.push(`<span class="src-badge ${badge}">${escapeHtml(r.source_label)}</span>`);
-    if (r.juridiction) parts.push(`<span class="juri">${escapeHtml(r.juridiction)}</span>`);
-    if (r.date) parts.push(`<span class="date">${escapeHtml(fmtDate(r.date))}</span>`);
+
+    // Juridiction (+ formation)
+    if (hasJuri) {
+      parts.push(`<span class="juri">${escapeHtml(juriDisplay)}</span>`);
+    } else {
+      parts.push(`<span class="juri field-empty">-</span>`);
+    }
+
+    parts.push(`<span class="sep">·</span>`);
+
+    // Date
+    if (hasDate) {
+      parts.push(`<span class="date">${escapeHtml(fmtDate(r.date))}</span>`);
+    } else {
+      parts.push(`<span class="date field-empty">-</span>`);
+    }
+
+    parts.push(`<span class="sep">·</span>`);
+
+    // Numéro
+    if (hasNumero) {
+      parts.push(`<span class="num">n°&nbsp;${escapeHtml(r.numero)}</span>`);
+    } else {
+      parts.push(`<span class="num field-empty">n°&nbsp;-</span>`);
+    }
+
+    parts.push(`<span class="sep">·</span>`);
+
+    // ECLI
+    if (hasEcli) {
+      parts.push(`<span class="ecli">${escapeHtml(r.ecli)}</span>`);
+    } else {
+      parts.push(`<span class="ecli field-empty">ECLI&nbsp;-</span>`);
+    }
+
     parts.push(`</div>`);
     parts.push(`<h3 class="title">${escapeHtml(r.title || '(sans titre)')}</h3>`);
     if (r.extract) parts.push(`<p class="extract">${highlightExtract(r.extract, query)}</p>`);
+
+    // Tags secondaires : seuls les champs spécifiques non déjà exposés en meta-line
     const tags = [];
-    if (r.formation) tags.push(r.formation);
-    if (r.numero) tags.push(`n° ${r.numero}`);
-    if (r.ecli) tags.push(r.ecli);
     if (r.article) tags.push(`art. ${r.article}`);
     if (tags.length) {
       parts.push(`<div class="tags">`);
@@ -1543,7 +1613,7 @@ async function loadDecision(source, id) {
       html.push(`<div class="source-cta-spa" style="border-left-color:var(--gold)">`);
       html.push(`<small style="font-style:normal">`);
       html.push(`<strong>Source : open data du Conseil d'État</strong> (loi pour une République numérique du 7 octobre 2016, art. 20-21).<br>`);
-      html.push(`Cette décision n'est pas publiée au Recueil Lebon — Légifrance ne l'indexe donc pas. JusticeLibre est la seule source web indexable pour cette décision.`);
+      html.push(`Cette décision n'est pas publiée au Recueil Lebon - Légifrance ne l'indexe donc pas. JusticeLibre est la seule source web indexable pour cette décision.`);
       html.push(`</small>`);
       html.push(`</div>`);
     }
@@ -1636,7 +1706,7 @@ function lawCacheSet(code, num, date, data) {
       for (let i = 0; i < 100; i++) localStorage.removeItem(entries[i][0]);
     }
     localStorage.setItem(lawCacheKey(code, num, date), JSON.stringify({t: Date.now(), d: data}));
-  } catch { /* quota exceeded — ignore */ }
+  } catch { /* quota exceeded - ignore */ }
 }
 
 async function scanCitedArticles(root, date) {
@@ -1669,7 +1739,7 @@ async function scanCitedArticles(root, date) {
           if (item.found) lawCacheSet(item.code, item.num, date, item);
         }
       }
-    } catch { /* silent — fallback sur fetch au click */ }
+    } catch { /* silent - fallback sur fetch au click */ }
   }
   // Attacher les handlers click sur les spans
   root.addEventListener('click', onLawRefClick);
@@ -1716,7 +1786,7 @@ function renderLawInto(container, code, num, data) {
   const etatCls = etat === 'VIGUEUR' ? 'law-etat-vigueur'
                  : (etat === 'ABROGE' ? 'law-etat-abroge' : 'law-etat-modifie');
   const range = data.date_debut
-    ? `Version du ${formatLawDate(data.date_debut)}${data.date_fin && data.date_fin !== '2999-01-01' ? ' au ' + formatLawDate(data.date_fin) : ' — en vigueur'}`
+    ? `Version du ${formatLawDate(data.date_debut)}${data.date_fin && data.date_fin !== '2999-01-01' ? ' au ' + formatLawDate(data.date_fin) : ' - en vigueur'}`
     : '';
   container.meta.innerHTML = `${range}${etat ? ` <span class="law-etat ${etatCls}">${etat}</span>` : ''}`;
   if (data.note) {
@@ -1842,7 +1912,7 @@ async function showLawVersions(code, num) {
     const vs = data.versions || [];
     if (!vs.length) { body.innerHTML = '<p class="law-error">Pas de versions trouvées.</p>'; return; }
     const html = vs.map(v => {
-      const range = `${formatLawDate(v.date_debut)} — ${v.date_fin && v.date_fin !== '2999-01-01' ? formatLawDate(v.date_fin) : 'en vigueur'}`;
+      const range = `${formatLawDate(v.date_debut)} - ${v.date_fin && v.date_fin !== '2999-01-01' ? formatLawDate(v.date_fin) : 'en vigueur'}`;
       const cls = v.etat === 'VIGUEUR' ? 'law-etat-vigueur' : (v.etat === 'ABROGE' ? 'law-etat-abroge' : 'law-etat-modifie');
       return `<div style="padding:.8rem 0;border-bottom:1px dashed var(--line)">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.3rem">${range} <span class="law-etat ${cls}">${v.etat}</span></div>
@@ -2001,7 +2071,7 @@ function renderAriane(data) {
     `<h1>${escapeHtml(data.title || 'Arrêt du Conseil d\'État')}</h1>`,
     `<div class="doc-meta">`,
     `<span><strong>Juridiction :</strong> Conseil d'État (via ArianeWeb)</span>`,
-    `<span><strong>Pertinence :</strong> ${data.relevance ?? '—'}</span>`,
+    `<span><strong>Pertinence :</strong> ${data.relevance ?? '-'}</span>`,
     `<span><strong>ID ArianeWeb :</strong> ${escapeHtml(data.id)}</span>`,
     `</div>`,
     `<p style="font-size:.78rem;color:var(--muted);font-style:italic;margin-bottom:1.2rem">Extrait indexé (ArianeWeb ne fournit pas le texte intégral). <a href="${official}" target="_blank" rel="noopener">Voir sur le site officiel</a>.</p>`,
