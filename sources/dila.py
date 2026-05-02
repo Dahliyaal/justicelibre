@@ -71,14 +71,19 @@ def search(
     try:
         # Détection pattern Constit "YYYY-NNN DC|QPC|L|..." : on extrait la nature
         # comme filtre SQL séparé (la colonne `nature` n'est pas dans l'index FTS5).
-        # Accepte les 3 formes que peut prendre la query :
-        #   - brute : "2008-562 DC"
-        #   - normalisée par query_intent : '"2008 562" DC'
-        #   - tout en chiffres séparés : "2008 562 DC"
+        # Accepte les formes possibles :
+        #   - brute : 2008-562 DC
+        #   - guillemets englobants : "2008-562 DC"
+        #   - normalisée par query_intent : "2008 562" DC
+        #   - mixte : "2008 562 DC" / 2008 562 DC
         cc_nature_filter = None
+        # Strip les guillemets englobants si présents (l'utilisateur protège tout)
+        cleaned = query.strip()
+        if cleaned.startswith('"') and cleaned.endswith('"') and cleaned.count('"') == 2:
+            cleaned = cleaned[1:-1].strip()
         cc_match = re.match(
             r'^\s*"?(\d{4})[\s-]+(\d{1,4})"?\s+(QPC|DC|L|SEN|AN|PDR|ORGA|REF|ELEC|I)\s*$',
-            query.strip(), re.IGNORECASE,
+            cleaned, re.IGNORECASE,
         )
         if cc_match:
             # Reconstruit la query FTS comme phrase exacte du numéro

@@ -147,7 +147,7 @@ nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
 }
 .searchbar-inner{max-width:1400px;margin:0 auto}
 .sb-primary{
-  display:grid;grid-template-columns:1fr 220px auto auto;gap:.5rem;
+  display:grid;grid-template-columns:1fr 180px 170px auto auto;gap:.5rem;
 }
 .sb-primary input[type=text],
 .sb-primary select{
@@ -668,7 +668,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 
     <!-- Ligne principale -->
     <div class="sb-primary">
-      <input type="text" id="q" placeholder="Rechercher une décision, un arrêt, un considérant…">
+      <input type="text" id="q" placeholder="Mots-clés, n° de décision, ECLI…">
 
       <div class="cs-wrap" id="sourceCs">
         <button type="button" class="cs-display"><span class="cs-display-text">Toutes juridictions</span><span class="chev">▾</span></button>
@@ -680,6 +680,15 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
         </div>
       </div>
       <input type="hidden" id="source" value="">
+
+      <div class="cs-wrap" id="triPrimaryCs">
+        <button type="button" class="cs-display"><span class="cs-display-text">Pertinence</span><span class="chev">▾</span></button>
+        <div class="cs-panel">
+          <div class="cs-item selected" data-value="pertinence" data-label="Pertinence">Pertinence</div>
+          <div class="cs-item" data-value="date_desc" data-label="Plus récent d'abord">Plus récent d'abord</div>
+          <div class="cs-item" data-value="date_asc" data-label="Plus ancien d'abord">Plus ancien d'abord</div>
+        </div>
+      </div>
 
       <button class="toggle-adv" id="toggleAdv">Filtres <span class="chev">▾</span></button>
       <button class="submit">Chercher</button>
@@ -750,23 +759,12 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
         <input type="date" id="dateMax">
       </div>
 
-      <div class="field">
-        <label>N° de pourvoi / dossier</label>
-        <input type="text" placeholder="ex : 19-19.122">
-      </div>
+      <!-- Champ "N° de pourvoi" supprimé : la barre principale détecte automatiquement
+           les numéros (Cass 19-19.122, RG 23/00456, Constit 2008-562, ECLI...) via
+           query_intent.detect_intent et les route correctement sans devoir choisir un fonds. -->
 
-      <div class="field">
-        <label>Tri des résultats</label>
-        <div class="cs-wrap" id="triCs">
-          <button type="button" class="cs-display"><span class="cs-display-text">Pertinence (si dispo)</span><span class="chev">▾</span></button>
-          <div class="cs-panel">
-            <div class="cs-item selected" data-value="pertinence" data-label="Pertinence (si dispo)">Pertinence (si dispo)</div>
-            <div class="cs-item" data-value="date_desc" data-label="Date — plus récent d'abord">Date — plus récent d'abord</div>
-            <div class="cs-item" data-value="date_asc" data-label="Date — plus ancien d'abord">Date — plus ancien d'abord</div>
-          </div>
-        </div>
-        <input type="hidden" id="tri" value="pertinence">
-      </div>
+      <!-- Tri retiré du panel avancé : déplacé dans la barre principale (cf. #triPrimaryCs) -->
+      <input type="hidden" id="tri" value="pertinence">
 
       <div class="field">
         <label>Thésaurus</label>
@@ -997,7 +995,7 @@ document.addEventListener('keydown', e => {
 
 bindCs('juriCs', 'juridiction');
 bindCs('sourceCs', 'source');
-bindCs('triCs', 'tri');
+bindCs('triPrimaryCs', 'tri');
 bindCs('formationCs', 'formation');
 bindCs('lieuCs', 'lieu');
 
@@ -1897,10 +1895,22 @@ function officialSourceFromId(id, numero) {
   if (id.startsWith('CETATEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/ceta/id/${id}`};
   if (id.startsWith('JURITEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/juri/id/${id}`};
   if (id.startsWith('CONSTEXT')) return {label: 'Légifrance', url: `https://www.legifrance.gouv.fr/cons/id/${id}`};
-  if (/^(DCE_|DCAA_|DTA_)/.test(id)) return {label: 'opendata.justice-administrative.fr', url: `https://opendata.justice-administrative.fr/recherche/decision/${id}`};
   if (id.startsWith('001-')) return {label: 'HUDOC (Cour EDH)', url: `https://hudoc.echr.coe.int/eng?i=${id}`};
+  // CELEX : ECLI:EU:* OU code brut "62025CC0121" / "62021TJ0109" (5 chiffres + 2 lettres + 4 chiffres)
   if (id.startsWith('ECLI:EU:')) return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=${encodeURIComponent(id)}`};
-  if (id.includes('CELEX')) return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:${id}`};
+  if (/^\d{4,5}[A-Z]{2}\d{4}$/.test(id) || id.includes('CELEX')) {
+    const celex = id.replace(/^CELEX:?/, '');
+    return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:${celex}`};
+  }
+  // TA / CAA / CE récents (opendata) : Légifrance peut avoir la décision si Lebon, sinon 0 résultat (honnête)
+  // Le deep-link opendata /recherche/decision/{id} ne marche pas (page JS shell vide).
+  if (/^(DCE_|DCAA_|DTA_|ORTA_)/.test(id)) {
+    const match = id.match(/^[A-Z]+_([0-9A-Z]+)_/);
+    const num = match ? match[1] : numero;
+    if (num) {
+      return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${encodeURIComponent(num)}&fonds=cetat`};
+    }
+  }
   // ArianeWeb : id type "/Ariane_Web/AW_DCE/|251127" — fallback sur search Légifrance par n° de pourvoi
   const arianeM = id.match(/Ariane_Web.*?\|(\d{3,})$/);
   if (arianeM) {

@@ -364,22 +364,27 @@ footer p{margin:.2rem 0}
 @media(max-width:640px){.footer-inner{grid-template-columns:1fr;gap:1.5rem}}
 
 /* ─── TIMELINE ─── */
+/* Alignement : barre verticale et dots centrés sur le même axe X (1.25rem du bord
+   gauche de .timeline). Utilisation de transform:translateX(-50%) pour centrer
+   sans dépendre des box-sizing/border subtilités. */
 .timeline{margin:2.5rem 0 0;position:relative;padding-left:2.5rem}
 .timeline::before{
-  content:"";position:absolute;left:5px;top:.5rem;bottom:.5rem;
+  content:"";position:absolute;
+  left:1.25rem;transform:translateX(-50%);
+  top:.5rem;bottom:.5rem;
   width:2px;background:var(--line)
 }
 .tl-item{position:relative;padding:0 0 2rem 1.5rem}
 .tl-item:last-child{padding-bottom:0}
 .tl-item::before{
   content:"";position:absolute;top:.35rem;
-  width:12px;height:12px;border-radius:50%;
+  width:14px;height:14px;border-radius:50%;
   border:2px solid var(--teal);background:var(--white);
+  box-sizing:border-box;
   z-index:1;
-  /* Centre cercle exactement sur la barre (.timeline::before left:5px width:2px → x=6px).
-     Avec timeline padding-left:2.5rem, left:-2.5rem positionne le cercle pile sur la barre.
-     Vérifié via Playwright BoundingClientRect : center à 6.0px = barre à 6.0px ✓ */
-  left:-2.5rem
+  /* left:-1.25rem par rapport au tl-item (qui commence à padding-left:2.5rem du timeline)
+     = position absolue à 1.25rem du timeline = pile sur la barre ✓ */
+  left:-1.25rem;transform:translateX(-50%)
 }
 .tl-item.done::before{background:var(--teal)}
 .tl-item.next::before{

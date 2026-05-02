@@ -578,6 +578,28 @@ async def search_federated(
 
     # Merge, tri : priorité Sinequa score si dispo, sinon date desc
     merged = [*ariane_r, *admin_r, *dila_r, *cedh_r, *cjue_r]
+
+    # BOOST : si la query contient un numéro de décision précis (Cass 19-19.122,
+    # RG 23/00456, Constit 2008-562...), on remonte en pos 1 les hits dont le
+    # `numero` matche EXACTEMENT. Sinon le ranking BM25/date noie la décision-cible
+    # parmi des décisions qui CITENT le numéro.
+    import re as _re
+    _exact_number_match = None
+    _candidates_for_exact = []
+    if intent.kind in ("fts", "phrase"):
+        # Extrait le 1er numéro distinctif de la query (Cass / RG / Constit / ECLI fragment)
+        # Format : 4-chiffres-3 (Constit), 2-chiffres-3à5 (Cass), 2/5 (RG)
+        for pat in [r'\b(\d{4}-\d{1,4})\b', r'\b(\d{2}-\d{2,3}\.?\d{2,4})\b', r'\b(\d{2}/\d{5,6})\b']:
+            m = _re.search(pat, intent.value or "")
+            if m:
+                _exact_number_match = m.group(1).replace('.', '').replace(' ', '')
+                break
+    if _exact_number_match:
+        for r in merged:
+            num = (r.get('numero') or '').replace('.', '').replace(' ', '')
+            if num and num == _exact_number_match:
+                _candidates_for_exact.append(r)
+
     def _sort_key(r):
         rel = r.get("relevance")
         if rel is not None:
@@ -588,7 +610,12 @@ async def search_federated(
     with_rel = [r for r in merged if r.get("relevance") is not None]
     without_rel = [r for r in merged if r.get("relevance") is None]
     without_rel.sort(key=lambda r: r.get("date", ""), reverse=True)
-    final = [*with_rel, *without_rel][:limit]
+    final = [*with_rel, *without_rel]
+    # Boost final : remonte en haut les hits avec numéro exact match
+    if _candidates_for_exact:
+        exact_ids = {r['id'] for r in _candidates_for_exact}
+        final = _candidates_for_exact + [r for r in final if r['id'] not in exact_ids]
+    final = final[:limit]
 
     return {
         "query_normalized": intent.fts_query,

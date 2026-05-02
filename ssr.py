@@ -86,16 +86,21 @@ def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
         return ("Légifrance", f"https://www.legifrance.gouv.fr/juri/id/{decision_id}")
     if decision_id.startswith("CONSTEXT"):
         return ("Légifrance", f"https://www.legifrance.gouv.fr/cons/id/{decision_id}")
-    if decision_id.startswith(("DCE_", "DCAA_", "DTA_")):
-        return ("opendata.justice-administrative.fr",
-                f"https://opendata.justice-administrative.fr/recherche/decision/{decision_id}")
     if decision_id.startswith("001-"):
         return ("HUDOC -CEDH", f"https://hudoc.echr.coe.int/eng?i={decision_id}")
     if decision_id.startswith("ECLI:EU:"):
         return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri={decision_id}")
-    if "CELEX" in decision_id:
-        # CELEX en clair (62018CJ0123) ou avec préfixe
-        return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{decision_id}")
+    # CELEX brut ou avec préfixe : 5 chiffres + 2 lettres + 4 chiffres (ex 62025CC0121, 62021TJ0109)
+    import re as _re
+    if _re.match(r"^\d{4,5}[A-Z]{2}\d{4}$", decision_id) or "CELEX" in decision_id:
+        celex = decision_id.replace("CELEX:", "").replace("CELEX", "")
+        return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{celex}")
+    # TA / CAA / CE récents : opendata deep-link ne fonctionne pas (page JS shell).
+    # Fallback search Légifrance par numéro (peut retourner la décision si Lebon).
+    m = _re.match(r"^(?:DCE|DCAA|DTA|ORTA)_([0-9A-Z]+)_", decision_id)
+    if m:
+        return ("Légifrance (recherche)",
+                f"https://www.legifrance.gouv.fr/search/all?query={m.group(1)}&fonds=cetat")
     return None
 
 
