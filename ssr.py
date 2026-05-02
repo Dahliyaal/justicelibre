@@ -458,7 +458,7 @@ _TOPBAR_FALLBACK = """<header class="topbar">
 </header>"""
 
 
-_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js?v=3")
+_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js")
 
 
 def get_topbar_html() -> str:
