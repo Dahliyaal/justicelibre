@@ -36,6 +36,14 @@ html[data-theme="dark"]{
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--cream);color:var(--ink)}
 body{font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* Scrollbar custom (synchronisée avec search.html) */
+html{scrollbar-color:var(--line) var(--cream);scrollbar-width:thin}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--cream)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-corner{background:var(--cream)}
 ::selection{background:var(--teal);color:#fff}
 a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
@@ -88,7 +96,7 @@ footer.foot{padding:2rem 2.5rem;background:var(--white);border-top:1px solid var
 footer.foot a{color:var(--muted)}
 footer.foot a:hover{color:var(--teal)}
 </style>
-<script defer src="/topbar.js?v=2"></script>
+<script defer src="/topbar.js?v=3"></script>
 </head>
 <body>
 

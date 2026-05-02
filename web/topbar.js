@@ -45,9 +45,10 @@
   display:flex;align-items:center;justify-content:space-between;
   padding:13px 40px;
   border-bottom:1px solid var(--line);
-  font-size:15px;
+  font-size:15px;line-height:normal;
   font-family:'DM Sans','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
+.topbar *{line-height:normal}
 html[data-theme="dark"] .topbar{background:rgba(34,34,34,.96)}
 @media(prefers-color-scheme:dark){html:not([data-theme="light"]) .topbar{background:rgba(34,34,34,.96)}}
 .topbar .logo-area{display:flex;align-items:center;gap:13px;color:var(--ink);text-decoration:none}

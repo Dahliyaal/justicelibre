@@ -340,9 +340,10 @@ a:hover{text-decoration:underline}
   position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
   display:flex;align-items:center;justify-content:space-between;
   padding:13px 40px;border-bottom:1px solid var(--line);
-  font-size:15px;
+  font-size:15px;line-height:normal;
   font-family:'DM Sans','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
+.topbar *{line-height:normal}
 .topbar .logo-area{display:flex;align-items:center;gap:13px;color:var(--ink);text-decoration:none}
 .topbar .logo-area img{width:44px;height:44px}
 .topbar .logo-area .name{font-family:'DM Serif Display',Georgia,serif;font-size:17px;color:var(--ink);font-weight:400}
@@ -490,11 +491,11 @@ _TOPBAR_FALLBACK = """<header class="topbar">
 </header>"""
 
 
-_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js?v=2")
+_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js?v=3")
 
 
 def get_topbar_html() -> str:
-    """Lit le HTML topbar depuis /web/topbar.js?v=2 (source unique du composant).
+    """Lit le HTML topbar depuis /web/topbar.js?v=3 (source unique du composant).
 
     Le composant `topbar.js` contient la const TOPBAR_HTML = `...`. On extrait
     son contenu via regex pour l'inliner dans le SSR (SEO + LLMs ont besoin
