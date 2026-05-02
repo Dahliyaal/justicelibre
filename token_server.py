@@ -323,6 +323,10 @@ class TokenHandler(BaseHTTPRequestHandler):
         date_max_raw = (qs.get("date_max", [""])[0] or "").strip()
         date_min = date_min_raw if date_re.match(date_min_raw) else None
         date_max = date_max_raw if date_re.match(date_max_raw) else None
+        # Tri : pertinence (défaut) / date_desc / date_asc
+        sort = (qs.get("sort", ["pertinence"])[0] or "pertinence").strip().lower()
+        if sort not in {"pertinence", "date_desc", "date_asc"}:
+            sort = "pertinence"
         # Si on interroge une seule source, limit_per_source = limit entier
         lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
         try:
@@ -333,6 +337,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                 sources_only=sources_only or None,
                 timeout_s=timeout_s,
                 date_min=date_min, date_max=date_max,
+                sort=sort,
             ))
             return self._json_response(200, data)
         except Exception as e:

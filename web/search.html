@@ -653,6 +653,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   <nav class="main-nav">
     <a href="/">Accueil</a>
     <a href="/search.html" class="active">Recherche</a>
+    <a href="/ressources.html">Ressources</a>
     <a href="/#connect">MCP</a>
     <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
     <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
@@ -998,6 +999,12 @@ bindCs('sourceCs', 'source');
 bindCs('triPrimaryCs', 'tri');
 bindCs('formationCs', 'formation');
 bindCs('lieuCs', 'lieu');
+
+// Re-déclenche la recherche quand le tri change (si une query est active)
+document.getElementById('tri').addEventListener('change', () => {
+  const q = document.getElementById('q')?.value?.trim();
+  if (q && q.length >= 3) runSearch(false);
+});
 
 const juriEl = document.getElementById('juridiction');
 const sourceEl = document.getElementById('source');
@@ -1390,10 +1397,20 @@ function fmtDate(d) {
 }
 
 function renderResults(data, query) {
-  const results = data.results || [];
+  let results = data.results || [];
   const perSource = data.per_source || {};
   const noResult = data.sources_no_result || [];
   const parts = [];
+
+  // Tri global côté client : le SPA fetch chaque source en parallèle, donc
+  // le merge perd l'ordre. On retrie ici selon le sort actif. Les résultats
+  // sans date partent en queue (date "0000" pour desc, "9999" pour asc).
+  const tri = document.getElementById('tri')?.value || 'pertinence';
+  if (tri === 'date_desc') {
+    results = [...results].sort((a, b) => (b.date || '0000-00-00').localeCompare(a.date || '0000-00-00'));
+  } else if (tri === 'date_asc') {
+    results = [...results].sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31'));
+  }
   // En-tête : on garde juste le placeholder, updateHeader() le remplit
   parts.push(`<div class="results-header" id="resultsHeader"></div>`);
   // Avertissement si des sources ont timeout
@@ -1410,7 +1427,17 @@ function renderResults(data, query) {
     }
   }
   if (!results.length) {
-    parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem">Aucun résultat. Essayez des mots-clés plus larges, ou enlevez certains filtres.</div>`);
+    // N'affiche "Aucun résultat" QUE si toutes les sources ont fini (pendingSources vide).
+    // Sinon on affiche un loader propre — sinon on induit l'utilisateur en erreur
+    // pendant que la recherche est encore en cours.
+    const stillPending = (lastSearchState?.pendingSources?.size || 0) > 0;
+    if (stillPending) {
+      parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem;display:flex;align-items:center;gap:.6rem">
+        Recherche en cours <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span>
+      </div>`);
+    } else {
+      parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem">Aucun résultat. Essayez des mots-clés plus larges, ou enlevez certains filtres.</div>`);
+    }
     resultsList.innerHTML = parts.join('');
     return;
   }
@@ -1509,6 +1536,15 @@ async function loadDecision(source, id) {
       html.push(`Voir sur ${escapeHtml(officialSrc.label)} <span style="margin-left:.4em">→</span>`);
       html.push(`</a>`);
       html.push(`<small>Source publique officielle. JusticeLibre indexe une copie miroir pour les moteurs de recherche et les IA.</small>`);
+      html.push(`</div>`);
+    } else if (/^(DCE_|DCAA_|DTA_|ORTA_)/.test(d.id || '')) {
+      // TAs/CAA opendata : pas de page individuelle indexée publiquement.
+      // On dit la vérité au lieu de mettre un bouton mensonger.
+      html.push(`<div class="source-cta-spa" style="border-left-color:var(--gold)">`);
+      html.push(`<small style="font-style:normal">`);
+      html.push(`<strong>Source : open data du Conseil d'État</strong> (loi pour une République numérique du 7 octobre 2016, art. 20-21).<br>`);
+      html.push(`Cette décision n'est pas publiée au Recueil Lebon — Légifrance ne l'indexe donc pas. JusticeLibre est la seule source web indexable pour cette décision.`);
+      html.push(`</small>`);
       html.push(`</div>`);
     }
     html.push(`<h1>${escapeHtml(d.title || '(sans titre)')}</h1>`);
@@ -1902,20 +1938,20 @@ function officialSourceFromId(id, numero) {
     const celex = id.replace(/^CELEX:?/, '');
     return {label: 'EUR-Lex (CJUE)', url: `https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:${celex}`};
   }
-  // TA / CAA / CE récents (opendata) : Légifrance peut avoir la décision si Lebon, sinon 0 résultat (honnête)
-  // Le deep-link opendata /recherche/decision/{id} ne marche pas (page JS shell vide).
+  // TA / CAA / CE opendata : la majorité des TAs ne sont JAMAIS sur Légifrance
+  // (uniquement les Lebon, ~5%). On retourne null → pas de bouton mensonger.
+  // Un texte alternatif sera affiché à la place (cf. renderResults).
   if (/^(DCE_|DCAA_|DTA_|ORTA_)/.test(id)) {
-    const match = id.match(/^[A-Z]+_([0-9A-Z]+)_/);
-    const num = match ? match[1] : numero;
-    if (num) {
-      return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${encodeURIComponent(num)}&fonds=cetat`};
-    }
+    return null;
   }
-  // ArianeWeb : id type "/Ariane_Web/AW_DCE/|251127" — fallback sur search Légifrance par n° de pourvoi
-  const arianeM = id.match(/Ariane_Web.*?\|(\d{3,})$/);
-  if (arianeM) {
-    const num = arianeM[1];
-    return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${num}&fonds=cetat`};
+  // ArianeWeb : l'ID après le `|` est l'ID INTERNE Sinequa, PAS le numéro de pourvoi.
+  // On utilise le `numero` extrait par _norm_ariane (regex sur le texte) si dispo.
+  if (id.includes('Ariane_Web')) {
+    if (numero && /^\d{3,}/.test(numero)) {
+      return {label: 'Légifrance (recherche)', url: `https://www.legifrance.gouv.fr/search/all?query=${encodeURIComponent(numero)}&fonds=cetat`};
+    }
+    // Sans numéro de pourvoi extrait, on n'a aucun moyen fiable → pas de bouton (évite faux résultat).
+    return null;
   }
   // Numéro de pourvoi en fallback ultime
   if (numero && /^\d{3,}/.test(numero)) {
@@ -2171,6 +2207,8 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
     if (lieu) params.set('lieu', lieu);
     if (dateMin) params.set('date_min', dateMin);
     if (dateMax) params.set('date_max', dateMax);
+    const tri = document.getElementById('tri')?.value || 'pertinence';
+    if (tri && tri !== 'pertinence') params.set('sort', tri);
     const r = await fetch('/api/search?' + params);
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error(`HTTP ${r.status}`);

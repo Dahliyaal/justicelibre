@@ -84,6 +84,34 @@ def _norm_dila(raw: dict) -> dict:
         "extract": raw.get("snippet", "") or "",
     }
 
+_FR_MONTHS = {"janvier":1,"février":2,"fevrier":2,"mars":3,"avril":4,"mai":5,"juin":6,
+              "juillet":7,"août":8,"aout":8,"septembre":9,"octobre":10,"novembre":11,"décembre":12,"decembre":12}
+_ARIANE_DATE_RE = re.compile(
+    r"(?:Lecture\s+du\s+\w+\s+|du\s+|le\s+)?(\d{1,2})\s+(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\s+(\d{4})",
+    re.IGNORECASE,
+)
+_ECLI_RE = re.compile(r"ECLI:[A-Z]{2}:[A-Z]+:(\d{4}):", re.IGNORECASE)
+_NUM_DEC_RE = re.compile(r"\bN[°o]\s*(\d{4,8})\b", re.IGNORECASE)
+
+
+def _ariane_date_from_text(*texts: str) -> str:
+    """Extrait une date ISO YYYY-MM-DD du texte d'un arrêt CE."""
+    for t in texts:
+        if not t:
+            continue
+        m = _ARIANE_DATE_RE.search(t)
+        if m:
+            day, month_fr, year = m.group(1), m.group(2).lower(), m.group(3)
+            mn = _FR_MONTHS.get(month_fr.replace("é", "e").replace("û", "u"))
+            if mn:
+                return f"{int(year):04d}-{mn:02d}-{int(day):02d}"
+        # Fallback : ECLI contient l'année
+        m2 = _ECLI_RE.search(t)
+        if m2:
+            return f"{m2.group(1)}-01-01"
+    return ""
+
+
 def _norm_ariane(raw: dict) -> dict:
     raw_title = (raw.get("title") or "").strip()
     extracts = raw.get("extracts", "") or ""
@@ -95,15 +123,19 @@ def _norm_ariane(raw: dict) -> dict:
             raw_title = first_chunk[:140]
         else:
             raw_title = "Arrêt du Conseil d'État"
+    # Extraction date + numéro depuis title et extracts (ArianeWeb ne les expose pas en champ direct)
+    date_iso = _ariane_date_from_text(raw_title, extracts)
+    num_match = _NUM_DEC_RE.search(extracts) or _NUM_DEC_RE.search(raw_title)
+    num = num_match.group(1) if num_match else ""
     return {
         "id": raw.get("id") or "",
         "source": "ariane",
         "source_label": SOURCE_LABELS["ariane"],
         "title": raw_title,
         "juridiction": "Conseil d'État",
-        "date": "",
+        "date": date_iso,
         "formation": "",
-        "numero": "",
+        "numero": num,
         "ecli": "",
         "extract": extracts,
         "relevance": raw.get("relevance"),
@@ -490,6 +522,7 @@ async def search_federated(
     timeout_s: float = 12.0,
     date_min: str | None = None,
     date_max: str | None = None,
+    sort: str = "pertinence",
 ) -> dict[str, Any]:
     """Interroge en parallèle les sources pertinentes, fusionne et trie.
 
@@ -600,17 +633,28 @@ async def search_federated(
             if num and num == _exact_number_match:
                 _candidates_for_exact.append(r)
 
-    def _sort_key(r):
-        rel = r.get("relevance")
-        if rel is not None:
-            return (0, -float(rel), r.get("date", ""))
-        return (1, r.get("date", "") or "0000-00-00",)
-    merged.sort(key=_sort_key, reverse=False)
-    # Invert date desc for items without relevance
-    with_rel = [r for r in merged if r.get("relevance") is not None]
-    without_rel = [r for r in merged if r.get("relevance") is None]
-    without_rel.sort(key=lambda r: r.get("date", ""), reverse=True)
-    final = [*with_rel, *without_rel]
+    # Tri selon le paramètre `sort` :
+    #   "pertinence"    → BM25 score (Sinequa relevance) puis date desc en tie-break
+    #   "date_desc"     → tout par date descendante (récent d'abord)
+    #   "date_asc"      → tout par date croissante (ancien d'abord)
+    if sort == "date_desc":
+        merged.sort(key=lambda r: r.get("date", "") or "0000-00-00", reverse=True)
+        final = list(merged)
+    elif sort == "date_asc":
+        merged.sort(key=lambda r: r.get("date", "") or "9999-12-31", reverse=False)
+        final = list(merged)
+    else:
+        # pertinence (défaut) — Sinequa score d'abord, sinon date desc
+        def _sort_key(r):
+            rel = r.get("relevance")
+            if rel is not None:
+                return (0, -float(rel), r.get("date", ""))
+            return (1, r.get("date", "") or "0000-00-00",)
+        merged.sort(key=_sort_key, reverse=False)
+        with_rel = [r for r in merged if r.get("relevance") is not None]
+        without_rel = [r for r in merged if r.get("relevance") is None]
+        without_rel.sort(key=lambda r: r.get("date", ""), reverse=True)
+        final = [*with_rel, *without_rel]
     # Boost final : remonte en haut les hits avec numéro exact match
     if _candidates_for_exact:
         exact_ids = {r['id'] for r in _candidates_for_exact}
