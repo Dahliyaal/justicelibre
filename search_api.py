@@ -682,6 +682,18 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
         return {
             **_norm_dila(r),
             "full_text": r.get("full_text", ""),
+            # Sections sémantiques DILA (vide si pré-enrich)
+            "sommaire": r.get("sommaire", "") or "",
+            "abstrats": r.get("abstrats", "") or "",
+            "resume": r.get("resume", "") or "",
+            "renvois": r.get("renvois", "") or "",
+            "rapporteur": r.get("rapporteur", "") or "",
+            "publi_bull": r.get("publi_bull", "") or "",
+            "publi_recueil": r.get("publi_recueil", "") or "",
+            "nature_qualifiee": r.get("nature_qualifiee", "") or "",
+            "saisines": r.get("saisines", "") or "",
+            "loi_def": r.get("loi_def", "") or "",
+            "liens_textes": r.get("liens_textes", "") or "",
         }
     if source == "cedh":
         r = european.get_cedh(decision_id)
@@ -711,7 +723,16 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 return {
                     **_norm_jade_bulk(r),
                     "full_text": r.get("texte", "") or "",
-                    "sommaire": r.get("sommaire", "") or "",  # analyses PCJA + résumé
+                    "sommaire": r.get("sommaire", "") or "",  # legacy concat (fallback)
+                    # Sections sémantiques séparées (issu de enrich_dila)
+                    "abstrats": r.get("abstrats", "") or "",
+                    "resume": r.get("resume", "") or "",
+                    "renvois": r.get("renvois", "") or "",
+                    "rapporteur": r.get("rapporteur", "") or "",
+                    "commissaire_gvt": r.get("commissaire_gvt", "") or "",
+                    "type_rec": r.get("type_rec", "") or "",
+                    "publi_recueil": r.get("publi_recueil", "") or "",
+                    "liens_textes": r.get("liens_textes", "") or "",
                     "text_segments": [],
                 }
             except Exception as e:

@@ -72,19 +72,43 @@ def _clean_dila_text(t: str) -> str:
     return t.strip()
 
 
-def _render_legal_text(text: str, esc, resolve, sommaire: str = "") -> str:
+def _render_legal_text(text: str, esc, resolve, sommaire: str = "",
+                       abstrats: str = "", resume: str = "",
+                       renvois: str = "") -> str:
     """Rend le texte d'une décision en HTML structuré.
 
-    3 cas :
+    Stratégie de priorité :
+      A. Si abstrats/resume/renvois sont fournis séparément (cas idéal,
+         post-enrich_dila), on les utilise directement → rendu propre,
+         pas de regex fragile.
+      B. Sinon (legacy), on retombe sur l'ancienne logique : sommaire
+         concaténé puis découpage par regex.
+
+    3 cas legacy :
       1. Sommaire séparé fourni + texte intégral → texte intégral en haut,
          puis sections "Plan de classement / Résumé / Renvois" sous le texte.
       2. Pas de sommaire séparé, texte court qui commence par code PCJA
          (vieux arrêt pré-numérisation) → on splitte le texte en sections.
       3. Texte intégral classique sans analyses → rendu paragraphes simple.
     """
-    if not text and not sommaire:
+    has_structured = bool(abstrats or resume or renvois)
+
+    if not text and not sommaire and not has_structured:
         return "<p><em>Texte indisponible.</em></p>"
 
+    # ── Cas A (préféré) : sections sémantiques pré-extraites ──
+    if has_structured:
+        if text:
+            text_linked = _citations.linkify(text, esc, url_resolver=resolve)
+            body = "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
+        else:
+            body = ""
+        sections_html = _render_structured_sections(
+            abstrats, resume, renvois, esc, resolve
+        )
+        return body + sections_html
+
+    # ── Fallback legacy ────────────────────────────────────────
     # Détection « vieux arrêt » : texte court (<3000 ch) qui commence par un code PCJA
     is_old_summary = (text and len(text) < 3000 and bool(_PCJA_CODE_RE.match(text)))
 
@@ -110,20 +134,51 @@ def _render_legal_text(text: str, esc, resolve, sommaire: str = "") -> str:
     return "<p>" + text_linked.replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
 
 
+def _render_structured_sections(abstrats: str, resume: str, renvois: str,
+                                esc, resolve) -> str:
+    """Rend directement les sections issues du XML DILA (pas de regex)."""
+    out = []
+    if abstrats and abstrats.strip():
+        out.append('<section class="legal-section">')
+        out.append('<h3>Plan de classement</h3>')
+        out.append(f'<div class="abstrats">{esc(abstrats.strip())}</div>')
+        out.append('</section>')
+    if resume and resume.strip():
+        resume_linked = _citations.linkify(resume.strip(), esc, url_resolver=resolve)
+        # Préserver les paragraphes (résumé peut contenir 1) 2) 3)…)
+        resume_html = resume_linked.replace("\n\n", "</p><p>").replace("\n", "<br>")
+        out.append('<section class="legal-section">')
+        out.append('<h3>Résumé</h3>')
+        out.append(f'<p>{resume_html}</p>')
+        out.append('</section>')
+    if renvois and renvois.strip():
+        renvois_linked = _citations.linkify(renvois.strip(), esc, url_resolver=resolve)
+        renvois_html = renvois_linked.replace("\n\n", "</p><p>").replace("\n", "<br>")
+        out.append('<section class="legal-section">')
+        out.append('<h3>Renvois jurisprudentiels</h3>')
+        out.append(f'<p>{renvois_html}</p>')
+        out.append('</section>')
+    return "\n".join(out)
+
+
 def _split_sommaire_sections(text: str, esc, resolve) -> str:
-    """Découpe un sommaire/analyse en 3 sections : Plan de classement, Résumé, Renvois."""
+    """Découpe un sommaire/analyse en 3 sections : Plan de classement (Abstrats), Résumé, Renvois."""
     parts = {"abstrats": "", "resume": "", "renvois": ""}
-    # Split sur "1. Cf." pour isoler les renvois jurisprudentiels
+    import re as _re
+    # 1. Isoler les renvois jurisprudentiels (commencent par "1. Cf.", "1. Comp.", etc.)
     m_renvois = _RENVOIS_RE.search(text)
     if m_renvois:
         parts["renvois"] = text[m_renvois.start():].strip()
         text = text[:m_renvois.start()].strip()
-    # Split sur premier passage en casse mixte (analyses MAJUSCULES → résumé Mixte)
-    import re as _re
-    m_resume = _re.search(r'(\d{1,3}(?:-\d{1,3}){2,5}(?:,\s*\d{1,3}(?:-\d{1,3}){2,5})*\s+)([A-ZÉÈÀÂÊÎÔÛÇ][a-zéèàâêîôûç])', text)
+    # 2. Splitter abstrats / résumé : le résumé commence typiquement par
+    #    `[code-PCJA] [Maj]...` après la fin de l'abstrat (qui finit par `.`)
+    #    Ex : `... [art. R.111-14-1].` puis `68-03-02-08 L'article R.111-14-1...`
+    #    On cherche : `.` + espace + nouveau code PCJA + espace + lettre majuscule
+    m_resume = _re.search(r'\.\s+(\d{1,3}(?:-\d{1,3}){2,5}(?:,\s*\d{1,3}(?:-\d{1,3}){2,5})*)\s+([A-ZÉÈÀÂÊÎÔÛÇŒÆ])', text)
     if m_resume:
-        parts["abstrats"] = text[:m_resume.start(2)].strip()
-        parts["resume"] = text[m_resume.start(2):].strip()
+        # Le résumé commence au code PCJA qui le préfixe
+        parts["abstrats"] = text[:m_resume.start(1)].rstrip(' .').strip()
+        parts["resume"] = text[m_resume.start(1):].strip()
     else:
         parts["abstrats"] = text.strip()
     out = []
@@ -432,11 +487,15 @@ _TOPBAR_FALLBACK = """<header class="topbar">
 </header>"""
 
 
-def get_topbar_html() -> str:
-    """Lit le <header class=\"topbar\">…</header> depuis search.html.
+_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js")
 
-    Cache 60s. Strip l'attribut `active` du lien Recherche (ne s'applique
-    pas aux pages SSR décision/loi).
+
+def get_topbar_html() -> str:
+    """Lit le HTML topbar depuis /web/topbar.js (source unique du composant).
+
+    Le composant `topbar.js` contient la const TOPBAR_HTML = `...`. On extrait
+    son contenu via regex pour l'inliner dans le SSR (SEO + LLMs ont besoin
+    du HTML servi initialement, pas du JS-rendered). Cache 60s.
     """
     import time as _time
     now = _time.time()
@@ -444,15 +503,19 @@ def get_topbar_html() -> str:
         return _TOPBAR_CACHE["html"]
     html_str = _TOPBAR_FALLBACK
     try:
-        if SEARCH_HTML_PATH.exists():
+        if _TOPBAR_JS_PATH.exists():
+            content = _TOPBAR_JS_PATH.read_text(encoding="utf-8")
+            # Extrait le contenu entre TOPBAR_HTML = ` et `;
+            m = re.search(r'const\s+TOPBAR_HTML\s*=\s*`(.*?)`\.trim\(\);',
+                          content, re.DOTALL)
+            if m:
+                html_str = m.group(1).strip()
+        elif SEARCH_HTML_PATH.exists():
+            # Fallback : lit search.html (legacy)
             content = SEARCH_HTML_PATH.read_text(encoding="utf-8")
             m = re.search(r'<header class="topbar">.*?</header>', content, re.DOTALL)
             if m:
-                extracted = m.group(0)
-                # Retire la class "active" (le lien est actif sur /search.html
-                # mais pas sur les pages décision/loi servies en SSR).
-                extracted = extracted.replace(' class="active"', '')
-                html_str = extracted
+                html_str = m.group(0).replace(' class="active"', '')
     except Exception:
         pass
     _TOPBAR_CACHE["html"] = html_str
@@ -525,11 +588,21 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     numero = data.get("numero") or data.get("numero_dossier") or ""
     titre_brut = data.get("titre") or data.get("title") or ""
     text = data.get("text") or data.get("full_text") or data.get("paragraph") or ""
-    sommaire = data.get("sommaire") or ""  # analyses PCJA + résumé (Lebon-style)
+    sommaire = data.get("sommaire") or ""  # legacy concat (fallback)
+    # Sections sémantiques séparées (issues du XML DILA, post-enrich_dila)
+    abstrats = data.get("abstrats") or ""
+    resume = data.get("resume") or ""
+    renvois = data.get("renvois") or ""
     ecli = data.get("ecli", "")
     formation = data.get("formation", "")
     solution = data.get("solution", "")
     nature = data.get("nature", "")
+    rapporteur = data.get("rapporteur", "")
+    commissaire_gvt = data.get("commissaire_gvt", "")
+    type_rec = data.get("type_rec", "")
+    publi_recueil = data.get("publi_recueil", "")
+    publi_bull = data.get("publi_bull", "")
+    nature_qualifiee = data.get("nature_qualifiee", "")
 
     # Titre H1 : juridiction en kicker, le n° + date en gros
     main_id = f"n° {numero}" if numero else titre_brut or f"Décision {decision_id}"
@@ -562,11 +635,15 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     # avant escape, sinon le navigateur affiche la balise littérale.
     text = _clean_dila_text(text)
     sommaire = _clean_dila_text(sommaire)
-    # Si on a déjà tout dans `text` (cas vieux arrêts pré-numérisation : text
-    # = analyses + résumé concaténés) : structurer le bloc.
-    # Si on a `text` ET `sommaire` séparés (cas standard JADE) : afficher
-    # les deux en sections distinctes.
-    text_html = _render_legal_text(text, esc, _resolve, sommaire=sommaire)
+    abstrats = _clean_dila_text(abstrats)
+    resume = _clean_dila_text(resume)
+    renvois = _clean_dila_text(renvois)
+    # Priorité : sections séparées (post-enrich_dila) ; sinon fallback regex sommaire.
+    text_html = _render_legal_text(
+        text, esc, _resolve,
+        sommaire=sommaire,
+        abstrats=abstrats, resume=resume, renvois=renvois,
+    )
 
     jsonld = {
         "@context": "https://schema.org",
@@ -592,8 +669,19 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     if numero: rows.append(("Numéro", esc(numero)))
     if ecli: rows.append(("ECLI", f'<code>{esc(ecli)}</code>'))
     if formation: rows.append(("Formation", esc(formation)))
-    if nature: rows.append(("Nature", esc(nature)))
+    if nature_qualifiee: rows.append(("Nature", esc(nature_qualifiee)))
+    elif nature: rows.append(("Nature", esc(nature)))
+    if type_rec: rows.append(("Type de recours", esc(type_rec)))
     if solution: rows.append(("Solution", esc(solution)))
+    if rapporteur: rows.append(("Rapporteur", esc(rapporteur)))
+    if commissaire_gvt: rows.append(("Rapporteur public", esc(commissaire_gvt)))
+    # Indicateurs de publication officielle (Lebon, Bulletin Cass)
+    if publi_recueil:
+        _label_lebon = {"A": "Recueil Lebon", "B": "Tables Lebon",
+                        "C": "Inédit"}.get(publi_recueil, publi_recueil)
+        rows.append(("Publication", esc(_label_lebon)))
+    elif publi_bull == "oui":
+        rows.append(("Publication", "Bulletin Cass."))
     meta_html = "".join(
         f'<tr><th>{k}</th><td>{v}</td></tr>' for k, v in rows
     )

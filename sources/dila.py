@@ -324,6 +324,12 @@ def get_decision(decision_id: str) -> dict[str, Any] | None:
         ).fetchone()
         if not row:
             return None
+        # Colonnes optionnelles ajoutées par enrich_dila (ALTER TABLE) :
+        # peuvent être absentes sur d'anciennes copies — `keys()` permet de
+        # rester compatible.
+        cols = set(row.keys()) if hasattr(row, "keys") else set()
+        def opt(name):
+            return (row[name] or "") if name in cols else ""
         return {
             "id": row["id"],
             "titre": row["titre"],
@@ -338,6 +344,20 @@ def get_decision(decision_id: str) -> dict[str, Any] | None:
             "avocats": row["avocats"],
             "full_text": row["text"],
             "source": "DILA (archives publiques, sans authentification)",
+            # Nouvelles sections sémantiques (DILA XML SCT/ANA/CITATION_JP)
+            "sommaire": opt("sommaire"),
+            "abstrats": opt("abstrats"),
+            "resume": opt("resume"),
+            "renvois": opt("renvois"),
+            "rapporteur": opt("rapporteur"),
+            "commissaire_gvt": opt("commissaire_gvt"),
+            "type_rec": opt("type_rec"),
+            "publi_recueil": opt("publi_recueil"),
+            "publi_bull": opt("publi_bull"),
+            "nature_qualifiee": opt("nature_qualifiee"),
+            "saisines": opt("saisines"),
+            "loi_def": opt("loi_def"),
+            "liens_textes": opt("liens_textes"),
         }
     finally:
         conn.close()
