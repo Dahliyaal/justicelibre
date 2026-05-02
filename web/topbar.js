@@ -35,32 +35,41 @@
 </header>`.trim();
 
   // ─── CSS du header ────────────────────────────────────────────────────
+  // Valeurs en pixels absolus (pas rem) pour rester pixel-identique entre les
+  // pages dont le `body` font-size diffère (search.html=15px, ressources=16px).
+  // Font-family forcée pour ne pas hériter (Inter vs DM Sans selon page).
   const TOPBAR_CSS = `
 .topbar{
   position:sticky;top:0;z-index:100;
   background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
   display:flex;align-items:center;justify-content:space-between;
-  padding:.85rem 2.5rem;
+  padding:13px 40px;
   border-bottom:1px solid var(--line);
+  font-size:15px;
+  font-family:'DM Sans','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 html[data-theme="dark"] .topbar{background:rgba(34,34,34,.96)}
 @media(prefers-color-scheme:dark){html:not([data-theme="light"]) .topbar{background:rgba(34,34,34,.96)}}
-.topbar .logo-area{display:flex;align-items:center;gap:.8rem;color:var(--ink)}
+.topbar .logo-area{display:flex;align-items:center;gap:13px;color:var(--ink);text-decoration:none}
 .topbar .logo-area:hover{text-decoration:none}
 .topbar .logo-area img,.topbar .logo-area svg{width:44px;height:44px}
-.topbar .logo-area .name{font-family:var(--display);font-size:1.1rem;color:var(--ink)}
+.topbar .logo-area .name{
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:17px;color:var(--ink);font-weight:400;
+}
 .topbar .logo-area .name .tld{color:var(--teal)}
 .topbar .proto-badge{
-  display:inline-block;margin-left:.65rem;
-  font-size:.58rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
-  padding:.18rem .45rem;border:1px solid var(--gold);color:var(--gold);
+  display:inline-block;margin-left:10px;
+  font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:3px 7px;border:1px solid var(--gold);color:var(--gold);
   border-radius:2px;vertical-align:middle;cursor:help;
+  font-family:'DM Sans','Inter',sans-serif;line-height:1.2;
 }
-.topbar nav.main-nav{display:flex;align-items:center;gap:2rem}
+.topbar nav.main-nav{display:flex;align-items:center;gap:32px}
 .topbar nav.main-nav a{
-  font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
-  color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent;
-  text-decoration:none;
+  font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--ink);padding-bottom:6px;border-bottom:3px solid transparent;
+  text-decoration:none;font-family:inherit;
 }
 .topbar nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
 .topbar nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}

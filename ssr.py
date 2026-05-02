@@ -335,25 +335,28 @@ body{font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--li
 a{color:var(--teal);text-decoration:none}
 a:hover{text-decoration:underline}
 ::selection{background:var(--teal);color:#fff}
-/* Topbar (copié de search.html) */
+/* Topbar (synchronisé avec /topbar.js — px absolus pour cohérence pixel) */
 .topbar{
   position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
   display:flex;align-items:center;justify-content:space-between;
-  padding:.85rem 2.5rem;border-bottom:1px solid var(--line);
+  padding:13px 40px;border-bottom:1px solid var(--line);
+  font-size:15px;
+  font-family:'DM Sans','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
-.logo-area{display:flex;align-items:center;gap:.8rem}
-.logo-area img{width:44px;height:44px}
-.logo-area .name{font-family:var(--display);font-size:1.1rem;color:var(--ink)}
-.logo-area .name .tld{color:var(--teal)}
-.proto-badge{display:inline-block;margin-left:.65rem;font-size:.58rem;font-weight:700;
-  letter-spacing:.15em;text-transform:uppercase;padding:.18rem .45rem;
+.topbar .logo-area{display:flex;align-items:center;gap:13px;color:var(--ink);text-decoration:none}
+.topbar .logo-area img{width:44px;height:44px}
+.topbar .logo-area .name{font-family:'DM Serif Display',Georgia,serif;font-size:17px;color:var(--ink);font-weight:400}
+.topbar .logo-area .name .tld{color:var(--teal)}
+.topbar .proto-badge{display:inline-block;margin-left:10px;font-size:9px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;padding:3px 7px;
   border:1px solid var(--gold);color:var(--gold);border-radius:2px;
-  vertical-align:middle;cursor:help;}
-nav.main-nav{display:flex;align-items:center;gap:2rem}
-nav.main-nav a{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
-  color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent}
-nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
-@media(max-width:860px){nav.main-nav a:not(.active){display:none}}
+  vertical-align:middle;cursor:help;font-family:'DM Sans','Inter',sans-serif;line-height:1.2;}
+.topbar nav.main-nav{display:flex;align-items:center;gap:32px}
+.topbar nav.main-nav a{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--ink);padding-bottom:6px;border-bottom:3px solid transparent;font-family:inherit}
+.topbar nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
+.topbar nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
+@media(max-width:860px){.topbar nav.main-nav a:not(.active){display:none}}
 /* Theme toggle button (synchronisé avec search.html) */
 .theme-toggle{
   background:none;border:1px solid var(--line);
@@ -487,11 +490,11 @@ _TOPBAR_FALLBACK = """<header class="topbar">
 </header>"""
 
 
-_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js")
+_TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js?v=2")
 
 
 def get_topbar_html() -> str:
-    """Lit le HTML topbar depuis /web/topbar.js (source unique du composant).
+    """Lit le HTML topbar depuis /web/topbar.js?v=2 (source unique du composant).
 
     Le composant `topbar.js` contient la const TOPBAR_HTML = `...`. On extrait
     son contenu via regex pour l'inliner dans le SSR (SEO + LLMs ont besoin
