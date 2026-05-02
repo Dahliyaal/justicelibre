@@ -1,0 +1,62 @@
+/*
+ * base.css - reset et helpers globaux JusticeLibre
+ *
+ * Inclus apres tokens.css. Definit le reset universel, les defaults body/links,
+ * la scrollbar custom, ::selection, et le bouton theme-toggle (utilise sur
+ * toutes les pages).
+ */
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font-sans);
+  color:var(--ink);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+img,svg{display:block;max-width:100%}
+button{font-family:inherit}
+
+::selection{background:var(--teal);color:#fff}
+html[data-theme="dark"] ::selection{background:var(--teal);color:var(--white)}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) ::selection{background:var(--teal);color:var(--white)}
+}
+
+/* Scrollbar custom (palette synchronisee avec --line / surface courante) */
+html{scrollbar-color:var(--line) var(--white);scrollbar-width:thin}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--white)}
+::-webkit-scrollbar-thumb{
+  background:var(--line);border-radius:5px;
+  border:2px solid var(--white);
+}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-corner{background:var(--white)}
+
+/* Variantes de scrollbar pour pages au fond cream/light (override local
+   en redefinissant juste le track). */
+.scroll-on-cream{scrollbar-color:var(--line) var(--cream)}
+.scroll-on-light{scrollbar-color:var(--line) var(--light)}
+
+/* Theme toggle - utilise par topbar (search/ressources) ET par index */
+.theme-toggle{
+  background:none;border:1px solid var(--line);
+  width:34px;height:34px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:color var(--t),border-color var(--t);
+  padding:0;
+}
+.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
+.theme-toggle svg{width:16px;height:16px}
+html[data-theme="dark"] .theme-toggle .sun{display:block}
+html[data-theme="dark"] .theme-toggle .moon{display:none}
+html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
+html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
+  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
+}

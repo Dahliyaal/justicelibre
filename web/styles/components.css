@@ -1,0 +1,152 @@
+/*
+ * components.css - composants atomiques JusticeLibre
+ *
+ * Inclus apres tokens.css + base.css. Prefixe .jl- pour eviter tout conflit
+ * avec les classes legacy (.btn, .card, .src-badge, .cs-wrap...) qui
+ * coexistent encore dans les pages non encore migrees.
+ *
+ * Composants exposes :
+ *  .jl-btn (+ --primary --secondary --ghost --pill --sm)
+ *  .jl-card (+ --hoverable --highlight --coming)
+ *  .jl-badge (+ --proto --gold --teal --neutral)
+ *  .jl-input
+ *  .jl-callout (variantes inline via classes utilitaires)
+ *  .jl-section + .jl-section__title + .jl-section__intro
+ */
+
+/* ─── BUTTON ───────────────────────────────────────────────────────────── */
+.jl-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);
+  padding:var(--space-3) var(--space-5);
+  background:var(--teal);color:#ffffff;
+  font-family:var(--font-sans);
+  font-size:var(--text-sm);font-weight:700;
+  text-transform:uppercase;letter-spacing:var(--ls-wider);
+  border:none;border-radius:var(--radius-md);
+  cursor:pointer;text-align:center;text-decoration:none;
+  transition:background var(--t), color var(--t), border-color var(--t);
+}
+.jl-btn:hover{background:var(--teal-l);color:#fff;text-decoration:none}
+
+.jl-btn--primary{background:var(--teal);color:#fff}
+.jl-btn--secondary{
+  background:var(--teal-xl);color:var(--teal);
+  font-weight:600;letter-spacing:normal;text-transform:none;
+}
+.jl-btn--secondary:hover{background:var(--teal);color:#fff}
+
+.jl-btn--ghost{
+  background:transparent;color:var(--teal);
+  border:1px solid var(--teal);
+}
+.jl-btn--ghost:hover{background:var(--teal);color:#fff}
+
+.jl-btn--sm{
+  padding:var(--space-2) var(--space-4);
+  font-size:var(--text-xs);
+}
+
+.jl-btn--pill{border-radius:var(--radius-pill)}
+
+.jl-btn[disabled],.jl-btn--disabled{
+  background:var(--muted);cursor:not-allowed;opacity:.6;
+}
+
+/* ─── CARD ─────────────────────────────────────────────────────────────── */
+.jl-card{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  padding:var(--space-5) var(--space-6);
+  display:flex;flex-direction:column;gap:var(--space-2);
+  transition:border-color var(--t-fast), box-shadow var(--t);
+}
+.jl-card--hoverable:hover{
+  border-color:var(--teal);
+  box-shadow:var(--shadow);
+}
+.jl-card--highlight{
+  background:var(--teal-xl);
+  border-color:var(--teal);
+}
+.jl-card--coming{opacity:.55;background:var(--cream);position:relative}
+.jl-card--coming::after{
+  content:"bientot";position:absolute;top:var(--space-3);right:var(--space-3);
+  font-size:var(--text-xs);text-transform:uppercase;letter-spacing:var(--ls-wide);
+  color:var(--gold);font-weight:600;
+}
+
+/* ─── BADGE ────────────────────────────────────────────────────────────── */
+.jl-badge{
+  display:inline-block;
+  padding:var(--space-1) var(--space-2);
+  font-family:var(--font-sans);
+  font-size:var(--text-xs);font-weight:600;
+  letter-spacing:var(--ls-wide);text-transform:uppercase;
+  border-radius:var(--radius-sm);
+  background:var(--teal-xl);color:var(--teal);
+  line-height:1.2;
+}
+.jl-badge--proto{
+  font-weight:700;letter-spacing:1.5px;
+  padding:3px 7px;font-size:9px;
+  background:transparent;color:var(--gold);
+  border:1px solid var(--gold);
+  cursor:help;
+}
+.jl-badge--gold{background:#fef9e8;color:var(--gold)}
+.jl-badge--neutral{background:var(--light);color:var(--muted)}
+.jl-badge--solid{background:var(--teal);color:#fff}
+
+/* ─── INPUT ────────────────────────────────────────────────────────────── */
+.jl-input,
+.jl-input--sm{
+  width:100%;
+  font-family:var(--font-sans);
+  font-size:var(--text-base);
+  padding:var(--space-3) var(--space-4);
+  background:var(--white);color:var(--ink);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  transition:border-color var(--t);
+}
+.jl-input:focus,.jl-input--sm:focus{outline:none;border-color:var(--teal)}
+.jl-input--sm{padding:var(--space-2) var(--space-3);font-size:var(--text-base)}
+
+/* ─── CALLOUT (encadre teal-xl, border-left teal) ──────────────────────── */
+.jl-callout{
+  background:var(--teal-xl);
+  border-left:4px solid var(--teal);
+  padding:var(--space-5) var(--space-6);
+  border-radius:0 var(--radius-lg) var(--radius-lg) 0;
+  margin:var(--space-5) 0;
+}
+.jl-callout p{font-size:var(--text-md);color:var(--ink);margin:0}
+.jl-callout p + p{margin-top:var(--space-2)}
+.jl-callout--gold{
+  background:rgba(184,147,43,.08);
+  border-left-color:var(--gold);
+}
+.jl-callout--solid{
+  background:var(--teal);color:#fff;border:none;border-radius:var(--radius-lg);
+}
+.jl-callout--solid p{color:rgba(255,255,255,.88)}
+
+/* ─── SECTION (titre H2 + intro) ───────────────────────────────────────── */
+.jl-section{margin:var(--space-9) 0}
+.jl-section__title{
+  font-family:var(--font-serif);
+  font-size:var(--text-2xl);font-weight:400;
+  color:var(--ink);line-height:var(--lh-tight);
+  margin-bottom:var(--space-2);
+  padding-bottom:var(--space-2);
+  border-bottom:2px solid var(--teal-xl);
+}
+.jl-section__title em{color:var(--teal);font-style:italic}
+.jl-section__intro{
+  color:var(--muted);
+  font-size:var(--text-md);
+  font-style:italic;
+  max-width:780px;
+  margin-bottom:var(--space-5);
+}

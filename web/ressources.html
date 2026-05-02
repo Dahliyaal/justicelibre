@@ -13,40 +13,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260501">
+<link rel="stylesheet" href="/styles/components.css?v=20260501">
 <style>
-:root{
-  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
-  --gold:#b8932b;--cream:#fdfcf8;--white:#fff;
-  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;--line:#e6e1d6;
-  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  --display:'DM Serif Display',serif;
-}
-html[data-theme="dark"]{
-  --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
-  --gold:#c79e3a;--cream:#1a1a1a;--white:#222;
-  --ink:#f0f0f0;--body:#d0d0d0;--muted:#9a9a9a;--line:#3a3a3a;
-}
-@media(prefers-color-scheme:dark){
-  html:not([data-theme="light"]){
-    --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
-    --gold:#c79e3a;--cream:#1a1a1a;--white:#222;
-    --ink:#f0f0f0;--body:#d0d0d0;--muted:#9a9a9a;--line:#3a3a3a;
-  }
-}
-*{box-sizing:border-box;margin:0;padding:0}
+/* Page-specific overrides : Inter pour le body, surface cream, body 16px */
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.6}
 html,body{background:var(--cream);color:var(--ink)}
-body{font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
-
-/* Scrollbar custom (synchronisée avec search.html) */
-html{scrollbar-color:var(--line) var(--cream);scrollbar-width:thin}
-::-webkit-scrollbar{width:10px;height:10px}
+html{scrollbar-color:var(--line) var(--cream)}
 ::-webkit-scrollbar-track{background:var(--cream)}
-::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--cream)}
-::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-thumb{border-color:var(--cream)}
 ::-webkit-scrollbar-corner{background:var(--cream)}
-::selection{background:var(--teal);color:#fff}
-a{color:var(--teal);text-decoration:none}
-a:hover{text-decoration:underline}
 
 /* TOPBAR : composant fourni par /topbar.js (HTML+CSS injectés au load) */
 

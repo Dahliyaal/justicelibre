@@ -1,0 +1,163 @@
+/*
+ * tokens.css - design tokens partages JusticeLibre
+ *
+ * Source de verite unique pour couleurs, typo, espacements, breakpoints.
+ * Toute valeur de design DOIT venir d'ici. Si une page redefinit une variable,
+ * c'est un bug a corriger.
+ *
+ * Conventions :
+ *  - Couleurs : palette teal (marque) + neutres + accents (gold, red)
+ *  - Spacing : echelle 4px (--space-1..--space-10)
+ *  - Typography : echelle modulaire t-shirt (xs sm base lg xl 2xl 3xl)
+ *  - Breakpoints : NE PAS faire @media custom queries, utiliser les --bp-* via JS si besoin
+ */
+
+:root {
+  /* Palette teal (marque) */
+  --teal:    #1a4e4e;
+  --teal-l:  #2a6b6b;
+  --teal-xl: #e8f0f0;
+
+  /* Neutres */
+  --ink:     #1a1a1a;
+  --body:    #3a3a3a;
+  --muted:   #6b6b6b;
+  --light:   #f5f5f3;
+  --white:   #ffffff;
+  --line:    #e0ddd6;
+
+  /* Accents */
+  --gold:    #b8932b;
+  --red:     #8a1f1f;
+  --green:   #1a7a3e;
+
+  /* Surface alternative chaude (utilisee par ressources.html) */
+  --cream:   #fdfcf8;
+
+  /* Badges par source (search.html) */
+  --src-ce:    #1a4e4e;
+  --src-admin: #2a6b6b;
+  --src-jud:   #5c3317;
+  --src-cedh:  #6b3d8a;
+  --src-cjue:  #8a5c2b;
+
+  /* Typography - familles */
+  --font-sans:    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif:   "DM Serif Display", Georgia, serif;
+  --font-mono:    "JetBrains Mono", Menlo, Consolas, monospace;
+  /* Aliases historiques (pour compatibilite avec le CSS existant - a deprecer plus tard) */
+  --display:      var(--font-serif);
+  --sans:         var(--font-sans);
+  --mono:         var(--font-mono);
+
+  /* Typography - tailles */
+  --text-xs:   0.72rem;   /* 11.5px */
+  --text-sm:   0.78rem;   /* 12.5px - meta, captions */
+  --text-base: 0.88rem;   /* 14px   - corps secondaire */
+  --text-md:   0.95rem;   /* 15px   - corps */
+  --text-lg:   1.05rem;   /* 17px   - sous-titres */
+  --text-xl:   1.25rem;   /* 20px   - h3 */
+  --text-2xl:  1.7rem;    /* 27px   - h2 */
+  --text-3xl:  2.2rem;    /* 35px   - h1 SSR */
+
+  /* Typography - line-heights */
+  --lh-tight:  1.15;
+  --lh-snug:   1.3;
+  --lh-normal: 1.5;
+  --lh-relaxed:1.7;
+
+  /* Typography - letter-spacing */
+  --ls-tight: -0.01em;
+  --ls-wide:   0.08em;
+  --ls-wider:  0.12em;
+
+  /* Spacing - echelle 4px */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+
+  /* Radii */
+  --radius-sm: 2px;
+  --radius:    3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow:    0 2px 12px rgba(26,78,78,.08);
+  --shadow-md: 0 6px 20px rgba(0,0,0,.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.3);
+
+  /* Transitions */
+  --t-fast: .12s;
+  --t:      .2s;
+  --t-slow: .25s;
+
+  /* Breakpoints (informatifs, a utiliser via @media classique) */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 860px;
+  --bp-xl: 1200px;
+}
+
+/* Dark mode - choix explicite par data-theme */
+html[data-theme="dark"] {
+  --teal:    #4ea0a0;
+  --teal-l:  #66baba;
+  --teal-xl: #1e3a3a;
+
+  --ink:     #e8e6df;
+  --body:    #c8c5bc;
+  --muted:   #8a867d;
+  --light:   #141413;
+  --white:   #1e1e1c;
+  --line:    #2a2a27;
+
+  --gold:    #d4b050;
+  --red:     #c85c5c;
+  --green:   #5cc88a;
+
+  --cream:   #1a1a1a;
+
+  --src-ce:    #4ea0a0;
+  --src-admin: #5cb4b4;
+  --src-jud:   #a07854;
+  --src-cedh:  #a77bc4;
+  --src-cjue:  #c49964;
+}
+
+/* Dark mode - automatique si pas de choix utilisateur */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --teal:    #4ea0a0;
+    --teal-l:  #66baba;
+    --teal-xl: #1e3a3a;
+
+    --ink:     #e8e6df;
+    --body:    #c8c5bc;
+    --muted:   #8a867d;
+    --light:   #141413;
+    --white:   #1e1e1c;
+    --line:    #2a2a27;
+
+    --gold:    #d4b050;
+    --red:     #c85c5c;
+    --green:   #5cc88a;
+
+    --cream:   #1a1a1a;
+
+    --src-ce:    #4ea0a0;
+    --src-admin: #5cb4b4;
+    --src-jud:   #a07854;
+    --src-cedh:  #a77bc4;
+    --src-cjue:  #c49964;
+  }
+}

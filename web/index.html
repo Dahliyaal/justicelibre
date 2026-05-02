@@ -23,85 +23,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260501">
 <style>
-:root {
-  --teal:    #1a4e4e;
-  --teal-l:  #2a6b6b;
-  --teal-xl: #e8f0f0;
-  --ink:     #1a1a1a;
-  --body:    #3a3a3a;
-  --muted:   #6b6b6b;
-  --light:   #f5f5f3;
-  --white:   #ffffff;
-  --line:    #e0ddd6;
-  --gold:    #b8932b;
-  --display: "DM Serif Display", Georgia, serif;
-  --sans:    "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --mono:    "JetBrains Mono", Menlo, Consolas, monospace;
-}
-/* ─── DARK MODE ─── */
-html[data-theme="dark"]{
-  --teal:    #4ea0a0;
-  --teal-l:  #66baba;
-  --teal-xl: #1e3a3a;
-  --ink:     #e8e6df;
-  --body:    #c8c5bc;
-  --muted:   #8a867d;
-  --light:   #141413;
-  --white:   #1e1e1c;
-  --line:    #2a2a27;
-  --gold:    #d4b050;
-}
+/* Page-specific : landing page (body 16px, surface white) */
+body{font-size:16px;background:var(--white)}
 html[data-theme="dark"] body{background:var(--white)}
 html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
-html[data-theme="dark"] ::selection{background:var(--teal);color:var(--white)}
 @media (prefers-color-scheme: dark){
-  html:not([data-theme="light"]){
-    --teal:    #4ea0a0;
-    --teal-l:  #66baba;
-    --teal-xl: #1e3a3a;
-    --ink:     #e8e6df;
-    --body:    #c8c5bc;
-    --muted:   #8a867d;
-    --light:   #141413;
-    --white:   #1e1e1c;
-    --line:    #2a2a27;
-    --gold:    #d4b050;
-  }
   html:not([data-theme="light"]) body{background:var(--white)}
   html:not([data-theme="light"]) .topbar{background:rgba(30,30,28,.96)}
-  html:not([data-theme="light"]) ::selection{background:var(--teal);color:var(--white)}
 }
-/* Toggle */
-.theme-toggle{
-  background:none;border:1px solid var(--line);
-  width:34px;height:34px;border-radius:50%;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--muted);transition:color .2s,border-color .2s;padding:0;
-}
-.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
-.theme-toggle svg{width:16px;height:16px}
-html[data-theme="dark"] .theme-toggle .sun{display:block}
-html[data-theme="dark"] .theme-toggle .moon{display:none}
-html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
-html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
-@media (prefers-color-scheme: dark){
-  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
-  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
-}
-/* Scrollbar */
-html{scrollbar-color:var(--line) var(--white);scrollbar-width:thin}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-track{background:var(--white)}
-::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--white)}
-::-webkit-scrollbar-thumb:hover{background:var(--muted)}
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
-body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white);-webkit-font-smoothing:antialiased}
-::selection{background:var(--teal);color:#fff}
-a{color:var(--teal);text-decoration:none}
-a:hover{text-decoration:underline}
-img,svg{display:block;max-width:100%}
 
 /* ─── TOPBAR ─── */
 .topbar{

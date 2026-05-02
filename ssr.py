@@ -318,23 +318,18 @@ GOOGLE_FONTS = (
     'family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
 )
 
+SHARED_STYLES_LINKS = (
+    '<link rel="stylesheet" href="/styles/tokens.css?v=20260501">'
+    '<link rel="stylesheet" href="/styles/base.css?v=20260501">'
+    '<link rel="stylesheet" href="/styles/components.css?v=20260501">'
+)
+
+# CSS specifique aux pages SSR (decision/loi). Les tokens/base/components
+# viennent via SHARED_STYLES_LINKS ci-dessus. Ce bloc ne contient plus que
+# le CSS unique des pages decision/loi (topbar, meta-table, article body...).
 SHARED_CSS = """
-:root{
-  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
-  --gold:#b8932b;
-  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
-  --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
-  --display:"DM Serif Display",Georgia,serif;
-  --sans:"DM Sans",-apple-system,BlinkMacSystemFont,sans-serif;
-  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
-body{font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--light);
-  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
-a{color:var(--teal);text-decoration:none}
-a:hover{text-decoration:underline}
-::selection{background:var(--teal);color:#fff}
+body{font-size:15px;background:var(--light);display:flex;flex-direction:column;min-height:100vh}
 /* Topbar (synchronisé avec /topbar.js — px absolus pour cohérence pixel) */
 .topbar{
   position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
@@ -358,38 +353,10 @@ a:hover{text-decoration:underline}
 .topbar nav.main-nav a:hover{border-bottom-color:var(--teal);text-decoration:none}
 .topbar nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
 @media(max-width:860px){.topbar nav.main-nav a:not(.active){display:none}}
-/* Theme toggle button (synchronisé avec search.html) */
-.theme-toggle{
-  background:none;border:1px solid var(--line);
-  width:34px;height:34px;border-radius:50%;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--muted);transition:color .2s,border-color .2s;
-}
-.theme-toggle:hover{color:var(--teal);border-color:var(--teal)}
-.theme-toggle svg{width:16px;height:16px}
-html[data-theme="dark"] .theme-toggle .sun{display:block}
-html[data-theme="dark"] .theme-toggle .moon{display:none}
-html:not([data-theme="dark"]) .theme-toggle .sun{display:none}
-html:not([data-theme="dark"]) .theme-toggle .moon{display:block}
-@media (prefers-color-scheme: dark){
-  html:not([data-theme="light"]) .theme-toggle .sun{display:block}
-  html:not([data-theme="light"]) .theme-toggle .moon{display:none}
-}
-/* Dark mode pour le contenu SSR (synchronisé avec search.html) */
-html[data-theme="dark"]{
-  --ink:#e8e8e6;--body:#c4c4c0;--muted:#9a9a96;
-  --light:#1e1e1c;--white:#2a2a28;--line:#3a3a36;
-  --teal:#4ea0a0;--teal-l:#6bb5b5;--teal-xl:#1a3030;
-  --gold:#d4b050;
-}
+/* Dark mode SSR : ajustements page-specifiques (theme-toggle vient de base.css) */
 html[data-theme="dark"] body{background:var(--light)}
 html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
 @media (prefers-color-scheme: dark){
-  html:not([data-theme="light"]){
-    --ink:#e8e8e6;--body:#c4c4c0;--muted:#9a9a96;
-    --light:#1e1e1c;--white:#2a2a28;--line:#3a3a36;
-    --teal:#4ea0a0;--teal-l:#6bb5b5;--teal-xl:#1a3030;
-  }
   html:not([data-theme="light"]) body{background:var(--light)}
   html:not([data-theme="light"]) .topbar{background:rgba(30,30,28,.96)}
 }
@@ -723,6 +690,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 <meta name="twitter:description" content="{esc(desc)}">
 <script type="application/ld+json">{jsonld_str}</script>
 {GOOGLE_FONTS}
+{SHARED_STYLES_LINKS}
 <style>{SHARED_CSS}</style>
 </head>
 <body>
@@ -859,6 +827,7 @@ def render_law(code: str, num: str, data: dict) -> str:
 <meta name="twitter:description" content="{esc(desc)}">
 <script type="application/ld+json">{jsonld_str}</script>
 {GOOGLE_FONTS}
+{SHARED_STYLES_LINKS}
 <style>{SHARED_CSS}</style>
 </head>
 <body>
