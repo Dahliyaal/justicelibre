@@ -57,19 +57,65 @@ def _clean_dila_text(t: str) -> str:
     Le parser DILA laisse parfois passer des `<br/>`, `&amp;`, etc. Si on
     laisse, le navigateur affiche la balise littérale après html.escape.
     On les remplace par des séparateurs naturels en amont.
+
+    Bonus : si le texte n'a AUCUN retour à la ligne (cas Cass moderne où le
+    parser a tout concaténé), on insère des paragraphes intelligents pour
+    éviter le rendu en gros bloc dégueulasse.
     """
     if not t:
         return ""
     import html as _html
+    import re as _re
     # 1. Décoder les entités déjà présentes (au cas où double-encodées)
     t = _html.unescape(t)
     # 2. Remplacer les balises HTML résiduelles par des espaces/retours
-    t = __import__('re').sub(r'<\s*br\s*/?\s*>', '\n', t, flags=__import__('re').IGNORECASE)
-    t = __import__('re').sub(r'<\s*p\s*/?\s*>', '\n\n', t, flags=__import__('re').IGNORECASE)
-    t = __import__('re').sub(r'<[^>]+>', '', t)  # autres tags : strip
+    t = _re.sub(r'<\s*br\s*/?\s*>', '\n', t, flags=_re.IGNORECASE)
+    t = _re.sub(r'<\s*p\s*/?\s*>', '\n\n', t, flags=_re.IGNORECASE)
+    t = _re.sub(r'<[^>]+>', '', t)  # autres tags : strip
     # 3. Collapse multiples retours
-    t = __import__('re').sub(r'\n{3,}', '\n\n', t)
-    return t.strip()
+    t = _re.sub(r'\n{3,}', '\n\n', t)
+    t = t.strip()
+    # 4. Bonus : si pas de \n du tout et texte > 500 ch, on essaie de splitter
+    #    par patterns juridiques (Sur le moyen, Considérant, Vu, EN CONSÉQUENCE...).
+    if t and '\n' not in t and len(t) > 500:
+        t = _smart_paragraph_split(t)
+    return t
+
+
+def _smart_paragraph_split(t: str) -> str:
+    """Insère des sauts de paragraphe intelligents dans un texte juridique
+    qui a perdu ses retours à la ligne (parser DILA qui concatène tout).
+
+    Pattern : insère \\n\\n AVANT les marqueurs juridiques courants.
+    """
+    import re as _re
+    # Marqueurs juridiques qui démarrent un nouveau paragraphe
+    markers = [
+        r'(?<=[\.;])\s+(?=Sur (?:le|les|ce) (?:premier|second|deuxième|troisième|quatrième|cinquième|sixième|moyen))',
+        r'(?<=[\.;])\s+(?=Mais sur le)',
+        r'(?<=[\.;])\s+(?=Et sur le)',
+        r'(?<=[\.;])\s+(?=Considérant (?:que|qu\'|ce qui))',
+        r'(?<=[\.;])\s+(?=Vu (?:la|le|les|l\')(?:\s+\w+){1,3}\s)',
+        r'(?<=[\.;])\s+(?=Attendu (?:que|qu\'))',
+        r'(?<=[\.;])\s+(?=PAR CES MOTIFS)',
+        r'(?<=[\.;])\s+(?=EN CONSÉQUENCE)',
+        r'(?<=[\.;])\s+(?=DÉCIDE\s*:)',
+        r'(?<=[\.;])\s+(?=DECIDE\s*:)',
+        r'(?<=[\.;])\s+(?=ARTICLE\s+\d)',
+        r'(?<=[\.;])\s+(?=Article\s+\d)',
+        r'(?<=[\.;])\s+(?=Le moyen pris)',
+        r'(?<=[\.;])\s+(?=La cour)',
+        r'(?<=[\.;])\s+(?=Le tribunal)',
+        r'(?<=[\.;])\s+(?=DÉCISION DE)',
+        r'(?<=[\.;])\s+(?=R [ÉE] P U B L I Q U E)',
+        # Numérotation paragraphes type "1.", "2." en début de phrase juridique
+        r'(?<=[\.;])\s+(?=\d{1,2}\.\s+[A-ZÉÈÀÂÊÎÔÛÇ])',
+    ]
+    for pat in markers:
+        t = _re.sub(pat, '\n\n', t)
+    # Nettoie les multi-retours créés
+    t = _re.sub(r'\n{3,}', '\n\n', t)
+    return t
 
 
 def _render_legal_text(text: str, esc, resolve, sommaire: str = "",
@@ -202,7 +248,23 @@ def _split_sommaire_sections(text: str, esc, resolve) -> str:
 
 
 def _official_source_button(decision_id: str) -> str:
-    """Génère le HTML du gros bouton CTA 'Voir sur source officielle'."""
+    """Génère le HTML du gros bouton CTA 'Voir sur source officielle'.
+
+    Pour les DTA/CAA récents : pas de bouton, mais un encadré honnête
+    (la décision n'est PAS sur Légifrance, uniquement open data CE).
+    """
+    import re as _re
+    if decision_id and _re.match(r"^(?:DCE|DCAA|DTA|ORTA)_", decision_id):
+        return (
+            '<div class="source-cta" style="border-left-color:var(--gold)">'
+            '<small style="font-style:normal">'
+            '<strong>Source : open data du Conseil d\'État</strong> '
+            '(loi pour une République numérique du 7 octobre 2016, art. 20-21).<br>'
+            'Cette décision n\'est pas publiée au Recueil Lebon - Légifrance ne l\'indexe donc pas. '
+            'JusticeLibre est la seule source web indexable pour cette décision.'
+            '</small>'
+            '</div>'
+        )
     pat = _official_source_from_pattern(decision_id)
     if not pat:
         return ""
@@ -241,7 +303,8 @@ def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
     if decision_id.startswith("CONSTEXT"):
         return ("Légifrance", f"https://www.legifrance.gouv.fr/cons/id/{decision_id}")
     if decision_id.startswith("001-"):
-        return ("HUDOC -CEDH", f"https://hudoc.echr.coe.int/eng?i={decision_id}")
+        # /fre = version française par défaut quand dispo (sinon HUDOC fallback EN)
+        return ("HUDOC -CEDH", f"https://hudoc.echr.coe.int/fre?i={decision_id}")
     if decision_id.startswith("ECLI:EU:"):
         return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri={decision_id}")
     # CELEX brut ou avec préfixe : 5 chiffres + 2 lettres + 4 chiffres (ex 62025CC0121, 62021TJ0109)
@@ -249,12 +312,11 @@ def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
     if _re.match(r"^\d{4,5}[A-Z]{2}\d{4}$", decision_id) or "CELEX" in decision_id:
         celex = decision_id.replace("CELEX:", "").replace("CELEX", "")
         return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{celex}")
-    # TA / CAA / CE récents : opendata deep-link ne fonctionne pas (page JS shell).
-    # Fallback search Légifrance par numéro (peut retourner la décision si Lebon).
-    m = _re.match(r"^(?:DCE|DCAA|DTA|ORTA)_([0-9A-Z]+)_", decision_id)
-    if m:
-        return ("Légifrance (recherche)",
-                f"https://www.legifrance.gouv.fr/search/all?query={m.group(1)}&fonds=cetat")
+    # TA / CAA / CE opendata : la majorité des TAs ne sont JAMAIS sur Légifrance
+    # (uniquement les Lebon, ~5%). On retourne None → pas de bouton mensonger.
+    # Le SSR affichera à la place un encadré "open data CE" honnête (cf. render_decision).
+    if _re.match(r"^(?:DCE|DCAA|DTA|ORTA)_", decision_id):
+        return None
     return None
 
 
