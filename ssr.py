@@ -247,6 +247,45 @@ def _split_sommaire_sections(text: str, esc, resolve) -> str:
     return "\n".join(out)
 
 
+_LANG_NAMES = {
+    "fr": "français", "en": "anglais", "de": "allemand", "es": "espagnol",
+    "it": "italien", "pt": "portugais", "nl": "néerlandais", "ro": "roumain",
+    "pl": "polonais", "cs": "tchèque", "el": "grec", "hu": "hongrois",
+    "sv": "suédois", "da": "danois", "fi": "finnois", "bg": "bulgare",
+    "hr": "croate", "et": "estonien", "lv": "letton", "lt": "lituanien",
+    "mt": "maltais", "sk": "slovaque", "sl": "slovène", "ga": "irlandais",
+    "tr": "turc", "ru": "russe", "uk": "ukrainien", "no": "norvégien",
+    "sq": "albanais", "mk": "macédonien", "sr": "serbe", "bs": "bosniaque",
+    "az": "azéri", "hy": "arménien", "ka": "géorgien",
+}
+
+
+def _lang_warning(text_lang: str, decision_id: str, source: str) -> str:
+    """Bandeau honnête quand le texte n'est pas en français.
+
+    Pour les arrêts CEDH/CJUE où la version FR n'existe pas (cas fréquent
+    pour CEDH : seulement EN ou autre langue officielle), on prévient le
+    lecteur clairement et on lui propose un lien externe vers DeepL.
+    Pas de traduction automatique stockée chez nous (risque d'erreur juridique).
+    """
+    lang = (text_lang or "fr").lower()
+    if lang == "fr" or not lang:
+        return ""
+    lang_name = _LANG_NAMES.get(lang, lang)
+    deepl_url = f"https://www.deepl.com/translator#{lang}/fr/"
+    return (
+        '<div class="lang-warning">'
+        '<div class="lang-warning__inner">'
+        f'<strong>Texte original en {esc(lang_name)}.</strong> '
+        f"La version française de cette décision n'a pas été publiée. "
+        "Vous pouvez le traduire via un service externe : "
+        f'<a href="{deepl_url}" target="_blank" rel="external noopener">DeepL ↗</a> '
+        "(coller le texte ci-dessous)."
+        '</div>'
+        '</div>'
+    )
+
+
 def _official_source_button(decision_id: str) -> str:
     """Génère le HTML du gros bouton CTA 'Voir sur source officielle'.
 
@@ -462,6 +501,12 @@ h1 em{color:var(--teal);font-style:italic}
 .btn-source:hover{background:var(--teal-l)}
 .btn-source-arrow{font-size:1.1em;line-height:1}
 .source-cta small{font-size:.78rem;color:var(--muted);line-height:1.45;font-style:italic}
+/* Bandeau langue (CEDH/CJUE quand version FR pas dispo) */
+.lang-warning{margin:1.5rem 0 1rem}
+.lang-warning__inner{background:#fff8e6;border:1px solid var(--gold);border-left:4px solid var(--gold);
+  padding:.85rem 1.1rem;border-radius:0 4px 4px 0;font-size:.88rem;color:var(--ink);line-height:1.5}
+.lang-warning__inner strong{color:var(--gold)}
+.lang-warning__inner a{font-weight:600}
 /* Article body */
 article{font-size:1rem;color:var(--body);background:var(--white);line-height:1.6;
   padding:2rem;border:1px solid var(--line);border-radius:6px}
@@ -636,6 +681,8 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     publi_recueil = data.get("publi_recueil", "")
     publi_bull = data.get("publi_bull", "")
     nature_qualifiee = data.get("nature_qualifiee", "")
+    # Langue du texte (cas CEDH/CJUE : FR pas toujours dispo)
+    text_lang = (data.get("text_lang") or "fr").lower()
 
     # Titre H1 : juridiction en kicker, le n° + date en gros
     main_id = f"n° {numero}" if numero else titre_brut or f"Décision {decision_id}"
@@ -766,6 +813,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
   <p class="subline">Décision rendue par {esc(juri or 'la juridiction')}{', le ' + esc(_format_fr_date(date)) if date else ''}.</p>
   {_official_source_button(decision_id)}
   <table class="meta-table">{meta_html}</table>
+  {_lang_warning(text_lang, decision_id, source)}
   <article>{text_html}</article>
   <footer class="page-footer">
     <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> -alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>
