@@ -1,17 +1,32 @@
 # JusticeLibre
 
+> 🌐 **Site officiel : [https://justicelibre.org](https://justicelibre.org/)**
+> 📡 **Endpoint MCP : [`https://justicelibre.org/mcp`](https://justicelibre.org/mcp)** (Streamable HTTP, sans clé)
+
 > **L'accès libre à la jurisprudence française et européenne. Alternative open source à Doctrine, Lexis et Légifrance.**
 
-[![MCP Server](https://img.shields.io/badge/MCP-Streamable_HTTP-1a4e4e)](https://justicelibre.org/mcp)
-[![Décisions](https://img.shields.io/badge/Décisions-2_M%2B-1a4e4e)](https://justicelibre.org)
-[![Articles de loi](https://img.shields.io/badge/Articles_de_loi-1.5_M%2B-1a4e4e)](https://justicelibre.org)
-[![Licence](https://img.shields.io/badge/Licence-MIT-c79e3a)](LICENSE)
+[![Site](https://img.shields.io/badge/site-justicelibre.org-1a4e4e?style=flat-square)](https://justicelibre.org/)
+[![MCP Server](https://img.shields.io/badge/MCP-Streamable_HTTP-1a4e4e?style=flat-square)](https://justicelibre.org/mcp)
+[![Décisions](https://img.shields.io/badge/Décisions-~3.3_M-1a4e4e?style=flat-square)](https://justicelibre.org)
+[![Articles de loi](https://img.shields.io/badge/Articles_de_loi-1.5_M%2B-1a4e4e?style=flat-square)](https://justicelibre.org)
+[![Licence](https://img.shields.io/badge/Licence-MIT-c79e3a?style=flat-square)](LICENSE)
 
-Serveur **Model Context Protocol** (MCP) qui expose **~2 M décisions de justice** + **~1,5 M articles de loi consolidés** de la France, de l'UE et du Conseil de l'Europe — gratuit, sans authentification, indexé sur Google.
+Serveur **Model Context Protocol** (MCP) qui expose **~3,3 M décisions de justice** + **~1,5 M articles de loi consolidés** + ~700 k textes annexes (KALI/JORF/CNIL) de la France, de l'UE et du Conseil de l'Europe — gratuit, sans authentification, indexé sur Google.
 
-**Endpoint public** : `https://justicelibre.org/mcp` (Streamable HTTP, sans clé)
-
-**Site web** : [justicelibre.org](https://justicelibre.org)
+| Source | Volume | Couverture |
+|---|---:|---|
+| Cour de cassation + cours d'appel + Conseil constitutionnel | 1 169 102 | DILA bulks + Judilibre PISTE |
+| Conseil d'État + 9 CAA + 40 TA (JADE bulk) | 552 576 | DILA bulk |
+| Open data justice administrative (CE/CAA/TA récents) | 985 996 | API justice-administrative.fr |
+| ArianeWeb (Conseil d'État) | 70 396 | scrape Sinequa |
+| Cour Européenne des Droits de l'Homme | 76 051 | HUDOC (FR + fallback EN) |
+| Cour de Justice de l'Union Européenne | 44 270 | EUR-Lex / Cellar |
+| INCA (jurisprudence judiciaire ancienne) | 382 480 | DILA bulk |
+| **TOTAL décisions** | **~3,28 M** | |
+| Articles de loi en vigueur (LEGI) | 1 481 309 | DILA bulk |
+| Conventions collectives (KALI) | 286 732 | DILA bulk |
+| JO (textes non codifiés) | 409 564 | DILA bulk |
+| Délibérations CNIL | 8 126 | DILA bulk |
 
 ---
 
