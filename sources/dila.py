@@ -56,16 +56,66 @@ def _get_conn() -> sqlite3.Connection:
     return conn
 
 
+def _normalize_rg(rg: str) -> str:
+    """21/05835 → '21/05835', '21-05835' ou '2105835' acceptés en entrée.
+    Retourne format canonique '21/05835'."""
+    rg = rg.strip()
+    m = re.match(r"^(\d{2,4})[/\-\s]?(\d{4,7})$", rg)
+    if not m:
+        return rg
+    return f"{m.group(1)}/{m.group(2)}"
+
+
 def search(
-    query: str,
+    query: str = "",
     juridiction: str | None = None,
+    numero_rg: str | None = None,
     date_min: str | None = None,
     date_max: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
-    if not query.strip():
-        raise ValueError("query must be non-empty")
+    # Lookup direct par numero_rg si fourni : court-circuite FTS
+    if numero_rg:
+        canonical = _normalize_rg(numero_rg)
+        # Match toutes les variantes via numero_rg_norm qui contient "21/05835 21-05835 2105835"
+        # ET fallback sur numero (au cas où)
+        conn = _get_conn()
+        try:
+            rows = conn.execute(
+                """SELECT id, titre, date, juridiction, solution, numero,
+                          formation, ecli, nature
+                   FROM decisions
+                   WHERE numero_rg_norm LIKE ? OR numero = ?
+                   ORDER BY date DESC LIMIT ?""",
+                (f"%{canonical}%", canonical, int(limit))
+            ).fetchall()
+            total = len(rows)
+            return {
+                "total": total,
+                "returned": total,
+                "source": "DILA (lookup par n° RG)",
+                "decisions": [
+                    {
+                        "id": r["id"], "titre": r["titre"], "date": r["date"],
+                        "juridiction": r["juridiction"], "solution": r["solution"],
+                        "numero": r["numero"], "formation": r["formation"],
+                        "ecli": r["ecli"], "nature": r["nature"], "snippet": "",
+                    }
+                    for r in rows
+                ],
+                "note": (
+                    "Lookup direct par n° RG (variantes 21/05835, 21-05835, 2105835). "
+                    "Si 0 résultat : l'arrêt n'est pas dans le bulk DILA libre "
+                    "(couverture partielle des CA). Tenter via PISTE (search_judiciaire) "
+                    "ou Légifrance directement." if total == 0 else None
+                ),
+            }
+        finally:
+            conn.close()
+
+    if not query or not query.strip():
+        raise ValueError("query ou numero_rg doit être fourni")
 
     conn = _get_conn()
     try:

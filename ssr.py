@@ -975,16 +975,66 @@ def render_law_404(code: str, num: str) -> str:
 
 
 def render_decision_404(source: str, decision_id: str) -> str:
+    """Page 404 cohérente avec la charte JusticeLibre.
+
+    Réutilise topbar + fonts + SHARED_CSS pour que l'utilisateur reste dans
+    l'écosystème du site même quand on lui sert une 404.
+    """
+    src_label = SOURCE_LABELS.get(source, source)
+    archive = BULK_SOURCES.get(source, ("Source officielle", "https://www.legifrance.gouv.fr/"))[0]
+    archive_url = BULK_SOURCES.get(source, ("", "https://www.legifrance.gouv.fr/"))[1]
     return f"""<!doctype html>
-<html lang="fr"><head>
+<html lang="fr">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Décision introuvable -{SITE_NAME}</title>
 <meta name="robots" content="noindex">
-</head><body style="font-family:sans-serif;max-width:600px;margin:3rem auto;padding:1rem">
-<h1>Décision introuvable</h1>
-<p>Aucune décision avec l'identifiant <code>{esc(decision_id)}</code> dans la source <code>{esc(source)}</code>.</p>
-<p><a href="/search.html">Rechercher dans la base</a></p>
-</body></html>"""
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+{GOOGLE_FONTS}
+{SHARED_STYLES_LINKS}
+<style>{SHARED_CSS}
+.notfound-wrap{{max-width:680px;margin:0 auto;padding:80px 24px 120px;text-align:left}}
+.notfound-kicker{{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:24px}}
+.notfound-h1{{font-family:'DM Serif Display',Georgia,serif;font-size:42px;line-height:1.15;color:var(--ink);margin:0 0 16px}}
+.notfound-sub{{font-size:17px;line-height:1.6;color:var(--muted);margin:0 0 28px}}
+.notfound-id{{display:inline-block;padding:8px 14px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;background:var(--cream);border:1px solid var(--line);border-radius:3px;color:var(--ink);word-break:break-all}}
+.notfound-actions{{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}}
+.notfound-actions a{{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border:1px solid var(--line);border-radius:3px;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink);text-decoration:none;transition:all .2s}}
+.notfound-actions a:hover{{border-color:var(--teal);color:var(--teal);text-decoration:none}}
+.notfound-actions a.primary{{background:var(--teal);color:#fff;border-color:var(--teal)}}
+.notfound-actions a.primary:hover{{background:transparent;color:var(--teal)}}
+.notfound-help{{margin-top:48px;padding-top:32px;border-top:1px solid var(--line);font-size:14px;line-height:1.7;color:var(--muted)}}
+.notfound-help strong{{color:var(--ink)}}
+.notfound-help ul{{margin:12px 0 0;padding-left:20px}}
+.notfound-help li{{margin-bottom:6px}}
+</style>
+</head>
+<body>
+{get_topbar_html()}
+<main class="notfound-wrap">
+  <div class="notfound-kicker">Erreur 404 · {esc(src_label)}</div>
+  <h1 class="notfound-h1">Cette décision n'existe pas dans la base.</h1>
+  <p class="notfound-sub">Aucun document ne correspond à l'identifiant suivant&nbsp;:</p>
+  <div class="notfound-id">{esc(decision_id)}</div>
+
+  <div class="notfound-actions">
+    <a href="/search.html" class="primary">Rechercher dans la base →</a>
+    <a href="{esc(archive_url)}" target="_blank" rel="external noopener">Vérifier sur {esc(archive)} ↗</a>
+  </div>
+
+  <div class="notfound-help">
+    <strong>Causes possibles&nbsp;:</strong>
+    <ul>
+      <li>L'identifiant est mal recopié (vérifie les caractères, majuscules, tirets).</li>
+      <li>La décision existe à la source officielle mais n'a pas encore été indexée chez nous.</li>
+      <li>Le document a été retiré ou anonymisé après publication.</li>
+    </ul>
+  </div>
+</main>
+{THEME_JS}
+</body>
+</html>"""
 
 
 # ─── Sitemap generation ───────────────────────────────────────────────
@@ -1069,17 +1119,10 @@ def render_sitemap_index() -> str:
                 sub.append(f"{BASE_URL}/sitemap-cnil-{i}.xml")
     except Exception:
         pass
-    # LEGI distant warehouse (articles de loi VIGUEUR -laissés indexables
-    # même si moins prioritaires : permettent à Google de comprendre les
-    # citations internes des décisions et d'indexer les articles.
-    try:
-        total_legi = _wh.sync_count_fond("legi")
-        if total_legi > 0:
-            n_pages = (total_legi // SITEMAP_PAGE_SIZE) + 1
-            for i in range(1, n_pages + 1):
-                sub.append(f"{BASE_URL}/sitemap-legi-{i}.xml")
-    except Exception:
-        pass
+    # LEGI : articles de loi NON indexés (le site cible la jurisprudence,
+    # pas Légifrance bis). Les pages /loi/ restent accessibles pour le
+    # cross-linking depuis les décisions, mais hors sitemap → Google ne
+    # les découvrira plus comme cibles d'indexation.
 
     items = "\n".join(f"  <sitemap><loc>{u}</loc></sitemap>" for u in sub)
     return f"""<?xml version="1.0" encoding="UTF-8"?>

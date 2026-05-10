@@ -553,8 +553,11 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
 
 @mcp.tool()
 async def search_judiciaire_libre(
-    query: str,
+    query: str = "",
     juridiction: str = "",
+    numero_rg: str = "",
+    date_min: str = "",
+    date_max: str = "",
     limit: int = 20,
 ) -> dict[str, Any]:
     """Recherche plein texte dans la jurisprudence judiciaire, exécutée
@@ -564,25 +567,41 @@ async def search_judiciaire_libre(
     Exploite l'index FTS5 des archives publiques DILA (~620 000 décisions :
     Cour de cassation, 36 cours d'appel, Conseil constitutionnel). Scoring
     BM25 disponible mais tri appliqué par ordre chronologique décroissant.
-    Pour cibler une jurisprudence spécifique plutôt que récente, restreindre
-    `limit` et privilégier des mots-clés distinctifs.
+
+    **Couverture connue** : la base contient un sous-ensemble des arrêts
+    publiés par les CA en open data DILA (~73 000 arrêts CA, principalement
+    depuis 2007). Tous les arrêts ne sont PAS dans la base ; un faux négatif
+    n'implique donc pas que l'arrêt n'existe pas. En cas de bredouille,
+    suggérer à l'utilisateur de chercher sur Légifrance ou via PISTE
+    (`search_judiciaire`).
+
+    **Recherche par numéro de RG** : pour les arrêts CA, utiliser le param
+    `numero_rg` (lookup direct, normalise les variantes 21/05835, 21-05835,
+    2105835). Pour les pourvois Cass, utiliser `query` avec le numéro
+    (ex: query="21-12.345").
 
     Les identifiants retournés (format `JURITEXT*` pour Cass / cours
     d'appel, `CONSTEXT*` pour Conseil constitutionnel) sont compatibles
     avec `get_decision_judiciaire_libre`.
 
     Args:
-        query: mots-clés (ex : "licenciement abusif", "garde enfant"). FTS5
-            supporte les opérateurs : `"phrase exacte"`, `mot1 AND mot2`,
-            `mot1 OR mot2`, `mot*` (préfixe).
-        juridiction: filtre optionnel : "cassation" (Cour de cassation) ou
-            "appel" (cours d'appel). Vide = toutes juridictions.
+        query: mots-clés (ex : "licenciement abusif"). FTS5 supporte
+            `"phrase exacte"`, `mot1 AND mot2`, `mot*` (préfixe). Optionnel
+            si `numero_rg` est fourni.
+        juridiction: filtre optionnel : "cassation" / "appel" / "constit".
+        numero_rg: numéro RG d'un arrêt CA (ex: "21/05835"). Lookup direct
+            qui matche toutes les variantes typographiques.
+        date_min: date min ISO (YYYY-MM-DD), optionnel
+        date_max: date max ISO (YYYY-MM-DD), optionnel
         limit: nombre maximum de résultats (défaut 20)
     """
     _record_call("search_judiciaire_libre")
     return dila.search(
         query=query,
         juridiction=juridiction or None,
+        numero_rg=numero_rg or None,
+        date_min=date_min or None,
+        date_max=date_max or None,
         limit=limit,
     )
 

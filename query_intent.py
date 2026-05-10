@@ -41,6 +41,14 @@ class QueryIntent:
 _RE_ARIANE_ID = re.compile(r"^\d{5,7}$")
 # n° de pourvoi Cass : 2 chiffres — 4 à 6 chiffres avec . optionnel (14-80854, 14-80.854)
 _RE_POURVOI = re.compile(r"^\d{2}-\d{2,3}\.?\d{2,4}$")
+
+
+def _insert_pourvoi_dot(raw: str) -> str:
+    """19-14001 → 19-14.001 (pour générer la variante avec point)."""
+    m = re.match(r"^(\d{2})-(\d{2,3})(\d{2,4})$", raw)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}.{m.group(3)}"
+    return raw
 # n° RG (Cour d'appel) : YY/NNNNN
 _RE_RG = re.compile(r"^\d{2}/\d{5,6}$")
 # CELEX européen : 6NNNNTTNNNN
@@ -264,6 +272,13 @@ def normalize_fts_query(q: str, expand: bool = False) -> str:
     if not q:
         return ""
     q = q.strip()
+    # Pré-normalisation espaces dans les n° composés (typos copier-coller fréquents)
+    # Ex: "07- 19.841" → "07-19.841", "21/ 05835" → "21/05835", "C- 72/24" → "C-72/24"
+    # Pattern : un séparateur (- / :) suivi d'espaces puis chiffres/lettres → on colle
+    q = re.sub(r"(\w)([-/:])\s+(\w)", r"\1\2\3", q)
+    # Pareil dans l'autre sens : chiffres puis espace puis . puis chiffres = numéro pourvoi cassé
+    # Ex: "19 .841" → "19.841"
+    q = re.sub(r"(\d)\s+\.(\d)", r"\1.\2", q)
     # Expansion des synonymes (thésaurus) avant les opérateurs
     if expand:
         q = expand_synonyms(q)
@@ -280,10 +295,11 @@ def normalize_fts_query(q: str, expand: bool = False) -> str:
     q = re.sub(r"\s*\|\s*", " OR ", q)
     # Exclusion (-mot en début ou après espace)
     q = re.sub(r"(^|\s)-(\w+\*?)", r"\1NOT \2", q)
-    # Tokens composés : wrapper en phrase
+    # Tokens composés : wrapper en phrase. Inclut "." pour les n° de pourvoi Cass
+    # type "07-19.841" et autres références juridiques.
     def _quote_compound(m):
-        return '"' + re.sub(r"[-/:]+", " ", m.group(0)) + '"'
-    q = re.sub(r"\b\w+(?:[-/:]\w+)+\b", _quote_compound, q)
+        return '"' + re.sub(r"[-/:.]+", " ", m.group(0)) + '"'
+    q = re.sub(r"\b\w+(?:[-/:.]\w+)+\b", _quote_compound, q)
     # Keywords français
     q = re.sub(r"\bET\b", "AND", q, flags=re.IGNORECASE)
     q = re.sub(r"\bOU\b", "OR", q, flags=re.IGNORECASE)
@@ -320,11 +336,21 @@ def detect_intent(q: str) -> QueryIntent:
     if _RE_CELEX.match(raw):
         return QueryIntent(kind="celex", value=raw.upper(), fts_query=normalize_fts_query(raw))
     if _RE_POURVOI.match(raw):
-        # Normaliser : enlever le point éventuel pour matcher "14-80854" ou "14-80.854"
+        # Les n° de pourvoi sont stockés en 2 formats :
+        #   - DILA bulk : "19-14001" (sans point)
+        #   - PISTE     : "19-14.001" (avec point)
+        # On génère les 2 variantes FTS et on les OR-combine pour matcher les deux.
         canonical = raw.replace(".", "")
+        with_dot = raw if "." in raw else _insert_pourvoi_dot(raw)
+        fts_no_dot = normalize_fts_query(canonical)         # "19 14001"
+        fts_dot    = normalize_fts_query(with_dot or canonical)  # "19 14 001"
+        if fts_no_dot != fts_dot:
+            fts = f"({fts_no_dot} OR {fts_dot})"
+        else:
+            fts = fts_no_dot
         return QueryIntent(
             kind="pourvoi", value=canonical,
-            fts_query=normalize_fts_query(canonical),
+            fts_query=fts,
             extra={"original": raw},
         )
     if _RE_RG.match(raw):

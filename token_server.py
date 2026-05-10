@@ -170,6 +170,17 @@ class TokenHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
+        # Redirect /search.html?id=X&source=Y → /decision/{source}/{id} (URL canonique SSR)
+        # Permet aux LLM/crawlers qui reçoivent l'URL de fetch directement le contenu
+        if parsed.path == "/search.html" and qs.get("id") and qs.get("source"):
+            sid = qs["id"][0]
+            src = qs["source"][0]
+            if re.match(r"^[a-z]+$", src) and re.match(r"^[A-Za-z0-9_\-:.]{4,128}$", sid):
+                self.send_response(302)
+                self.send_header("Location", f"/decision/{src}/{sid}")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                return
         if parsed.path == "/api/search":
             return self._handle_search(qs)
         if parsed.path == "/api/expand":
