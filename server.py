@@ -496,7 +496,6 @@ async def search_admin_recent_all_caa(
     return result
 
 
-@mcp.tool()
 def _parse_ariane_header(text: str) -> dict[str, str]:
     """Extrait numéro de requête, ECLI et date ISO depuis l'en-tête d'un
     arrêt ArianeWeb (texte brut renvoyé par le plugin Sinequa)."""
@@ -514,6 +513,7 @@ def _parse_ariane_header(text: str) -> dict[str, str]:
     return out
 
 
+@mcp.tool()
 async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision relevant de l'ordre
     administratif (Conseil d'État, TA, CAA).
