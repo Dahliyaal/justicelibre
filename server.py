@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import time
 from datetime import datetime, timezone, timedelta
@@ -496,18 +497,35 @@ async def search_admin_recent_all_caa(
 
 
 @mcp.tool()
+def _parse_ariane_header(text: str) -> dict[str, str]:
+    """Extrait numéro de requête, ECLI et date ISO depuis l'en-tête d'un
+    arrêt ArianeWeb (texte brut renvoyé par le plugin Sinequa)."""
+    out: dict[str, str] = {}
+    m = re.search(r"N°\s*([\dA-Z]+)", text)
+    if m:
+        out["numero"] = m.group(1)
+    m = re.search(r"(ECLI:FR:[A-Z0-9:.]+)", text)
+    if m:
+        ecli = m.group(1).rstrip(".")
+        out["ecli"] = ecli
+        dm = re.search(r"\.(\d{4})(\d{2})(\d{2})\b", ecli)
+        if dm:
+            out["date"] = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    return out
+
+
 async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision relevant de l'ordre
     administratif (Conseil d'État, TA, CAA).
 
-    Usage strictement réservé aux identifiants normés issus des recherches
-    administratives : `DCE_XXX_YYYYMMDD` (Conseil d'État),
-    `DTA_XXX_YYYYMMDD` (TA), `DCAA_XXX_YYYYMMDD` (CAA).
+    Identifiants acceptés :
+    - `DCE_XXX_YYYYMMDD` (CE), `DTA_XXX_YYYYMMDD` (TA),
+      `DCAA_XXX_YYYYMMDD` (CAA) — extraction depuis le bulk JADE local.
+    - `/Ariane_Web/AW_DCE/|XXXXXX` (ou abrégé `|XXXXXX`) — récupération EN
+      DIRECT du texte intégral via le plugin Sinequa du Conseil d'État.
+      Fonctionne pour toute décision ArianeWeb, y compris hors bulk JADE.
 
     INCOMPATIBILITÉS MAJEURES :
-    - Identifiants ArianeWeb `/Ariane_Web/AW_DCE/|XXXXXX` — procéder à une
-      ré-indexation via `search_admin` pour obtenir un identifiant
-      compatible.
     - Identifiants JURITEXT — rediriger vers `get_decision_judiciaire_libre`
       ou `get_decision_judiciaire`.
     - Identifiants CELEX `6XXXXCJXXXX` — rediriger vers `get_decision_cjue`.
@@ -522,14 +540,35 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         la décision est introuvable.
     """
     _record_call("get_decision_text")
-    # Detect wrong-format IDs and redirect
+    # ArianeWeb (Conseil d'État, index Sinequa) : récupération du texte
+    # intégral EN DIRECT via le plugin downloadFilePagePlugin. Couvre TOUTES
+    # les décisions — y compris celles absentes du bulk JADE et au-dessus du
+    # plafond du scrape (ID interne > 235000). Accepte l'ID complet
+    # (`/Ariane_Web/AW_DCE/|461534`) ou abrégé (`|461534`).
     if decision_id.startswith("/Ariane_Web/") or decision_id.startswith("|"):
-        return {"error": (
-            f"L'identifiant fourni ({decision_id!r}) relève du format ArianeWeb et n'est pas "
-            "exploitable par cet outil. Procéder à une ré-indexation via `search_admin` "
-            "(juridiction=\"CE\") assortie de mots-clés distinctifs ; un identifiant "
-            "compatible au format `DCE_XXX_YYYYMMDD` sera alors disponible."
-        )}
+        aid = (
+            decision_id if decision_id.startswith("/Ariane_Web/")
+            else f"/Ariane_Web/AW_DCE/{decision_id}"
+        )
+        async with _client() as client:
+            text = await ariane.fetch_full_text(client, aid)
+        if not text:
+            return {"error": (
+                f"Décision ArianeWeb {aid!r} introuvable ou texte indisponible "
+                "(plugin Sinequa muet). Vérifier l'identifiant via "
+                "`search_conseil_etat`."
+            )}
+        meta = _parse_ariane_header(text)
+        return {
+            "id": aid,
+            "source": "arianeweb",
+            "juridiction": "Conseil d'État",
+            "numero": meta.get("numero", ""),
+            "ecli": meta.get("ecli", ""),
+            "date": meta.get("date", ""),
+            "text_segments": [s for s in text.split("\n\n") if s.strip()],
+            "full_text": text,
+        }
     if decision_id.startswith("JURITEXT") or decision_id.startswith("JURI"):
         return {"error": (
             f"L'identifiant fourni ({decision_id!r}) relève du format JURITEXT (ordre judiciaire). "

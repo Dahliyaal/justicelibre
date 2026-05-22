@@ -28,10 +28,13 @@ MAX_CONSECUTIVE_ERRORS = 30    # circuit breaker (erreurs réseau/500)
 #   id=50000    → 404
 #   id=100000   → 200
 #   id=219809   → 200
-#   id=250000   → 404
-# On balaie 95000 → 235000 avec tolérance aux gros trous (5000 404 consécutifs)
+#   id=239895   → 200  (CE 19/05/2022 n°461534 — au-dessus de l'ancien plafond 235k)
+# Le plafond 235000 était trop bas : les décisions 2022+ ont des IDs internes
+# plus élevés. On pousse à 300000 ; le circuit breaker 404 (5000 consécutifs)
+# stoppe naturellement au vrai plafond. Reprise via checkpoint.
+# On balaie 95000 → 300000 avec tolérance aux gros trous (5000 404 consécutifs)
 START_ID = 95_000
-END_ID = 235_000
+END_ID = 300_000
 MAX_CONSECUTIVE_404 = 5_000    # on tolère de gros trous dans la numérotation
 
 CHECKPOINT_FILE = "/tmp/scrape_ariane.checkpoint"
