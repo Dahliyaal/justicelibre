@@ -446,8 +446,12 @@ def _fts_query(q: str) -> str:
         # Remplace séparateurs par espaces et enveloppe en phrase
         return '"' + re.sub(r"[-/:]+", " ", m.group(0)) + '"'
     q = re.sub(r"\b\w+(?:[-/:]\w+)+\b", _quote_compound, q)
-    # 3. Strip chars restants que FTS5 n'aime pas
-    q = re.sub(r"[^\w\s\"*()]", " ", q, flags=re.UNICODE)
+    # 3. Strip chars restants que FTS5 n'aime pas.
+    #    IMPORTANT : préserver le sentinel \x01 des phrases protégées (étape 1),
+    #    sinon le marqueur \x01<index>\x01 est détruit et seul l'index numérique
+    #    survit → la query devient "(0 OR 1) AND (2)" et matche les chiffres au
+    #    lieu des phrases (faux positifs massifs, total = fond entier).
+    q = re.sub(r"[^\w\s\"*()\x01]", " ", q, flags=re.UNICODE)
     # 4. Restaurer les phrases utilisateur
     for i, p in enumerate(phrases):
         q = q.replace(f"\x01{i}\x01", p)

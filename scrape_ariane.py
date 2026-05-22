@@ -8,6 +8,7 @@ de 1 à START_MAX, fetch le texte pour chaque, skip ceux déjà en DB.
 Circuit breaker : si N erreurs consécutives, on stoppe le script.
 """
 import html as _html
+import itertools
 import os
 import re
 import sqlite3
@@ -29,13 +30,14 @@ MAX_CONSECUTIVE_ERRORS = 30    # circuit breaker (erreurs réseau/500)
 #   id=100000   → 200
 #   id=219809   → 200
 #   id=239895   → 200  (CE 19/05/2022 n°461534 — au-dessus de l'ancien plafond 235k)
-# Le plafond 235000 était trop bas : les décisions 2022+ ont des IDs internes
-# plus élevés. On pousse à 300000 ; le circuit breaker 404 (5000 consécutifs)
-# stoppe naturellement au vrai plafond. Reprise via checkpoint.
-# On balaie 95000 → 300000 avec tolérance aux gros trous (5000 404 consécutifs)
+# PAS DE PLAFOND HAUT : tout END_ID fixe finit par devenir trop bas (le CE
+# produit des décisions en continu, les IDs internes montent indéfiniment).
+# La boucle balaie depuis START_ID sans borne ; le SEUL juge de la fin est le
+# circuit breaker 404 (MAX_CONSECUTIVE_404 vides consécutifs = vrai plafond du
+# jour). Chaque run re-détecte donc automatiquement le sommet courant.
+# Reprise via checkpoint.
 START_ID = 95_000
-END_ID = 300_000
-MAX_CONSECUTIVE_404 = 5_000    # on tolère de gros trous dans la numérotation
+MAX_CONSECUTIVE_404 = 5_000    # tolère les trous; détecte la fin réelle du corpus
 
 CHECKPOINT_FILE = "/tmp/scrape_ariane.checkpoint"
 
@@ -129,7 +131,7 @@ def main():
     added_session = 0
     start_t = time.time()
 
-    for num in range(start_at, END_ID + 1):
+    for num in itertools.count(start_at):
         # Skip si déjà en DB
         existing_row = conn.execute(
             "SELECT length(text) FROM ariane_decisions WHERE ariane_num=?", (num,)
