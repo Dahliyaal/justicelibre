@@ -188,6 +188,11 @@ def _build_source_url(identifier: str, legitext: str = "", at_date: str | None =
         return f"https://www.legifrance.gouv.fr/juri/id/{idp}"
     if idp.startswith("CETATEXT"):
         return f"https://www.legifrance.gouv.fr/ceta/id/{idp}"
+    # Décisions admin au format bulk (DCE_/DTA_/DCAA_/DCA_) : pas des ids
+    # Légifrance → router vers opendata.justice-administrative.fr (vérifié 200,
+    # récupéré depuis l'historique de conversation après écrasement accidentel).
+    if re.match(r"^(DCE_|DTA_|DCAA_|DCA_)", idp):
+        return f"https://opendata.justice-administrative.fr/recherche/decision/{idp}"
     # CELEX (CJUE) : 6XXXXCJXXXX ou 6XXXXCC0XXX
     if re.match(r"^6\d{4}[A-Z]{2}\d{4}$", idp):
         return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{idp}"
