@@ -700,9 +700,26 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             sql = f"SELECT * FROM {cfg['decision_table']} WHERE numero = ?"
             params = [numero]
             if juridiction:
-                # Match juridiction avec tolérance sur les accents (Conseil d'Etat vs d'État)
-                sql += " AND (juridiction = ? OR juridiction LIKE ?)"
-                params.extend([juridiction, f"%{juridiction.replace('État', 'Etat')}%"])
+                # Tolérance : la forme stockée ("CAA de PARIS") diffère souvent
+                # du nom canonique passé par les LLM ("Cour administrative
+                # d'appel de Paris"). On matche sur (exact) OU (accent-insensible)
+                # OU (ville extraite). Sans ça, le nom long renvoyait 0 résultat
+                # → faux "introuvable" trompeur.
+                jn = juridiction.replace("État", "Etat")
+                conds = ["juridiction = ?", "juridiction LIKE ?"]
+                vals = [juridiction, f"%{jn}%"]
+                # Extraire la ville : retirer les mots de type juridictionnel
+                city = re.sub(
+                    r"(?i)\b(cour|administrative|administratif|d['’]appel|appel|"
+                    r"tribunal|conseil|de|du|des|la|le|d['’]etat|caa|ta|ce)\b",
+                    " ", jn,
+                )
+                city = re.sub(r"\s+", " ", city).strip()
+                if len(city) >= 3:
+                    conds.append("juridiction LIKE ?")
+                    vals.append(f"%{city}%")
+                sql += " AND (" + " OR ".join(conds) + ")"
+                params.extend(vals)
             sql += " LIMIT 5"
             rows = c.execute(sql, params).fetchall()
             if not rows:
