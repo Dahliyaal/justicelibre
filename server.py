@@ -50,9 +50,17 @@ SOURCES DE JURISPRUDENCE (pertinence BM25) :
 • `search_cedh` — 76 k décisions Cour EDH
 • `search_cjue` — 44 k arrêts CJUE + Tribunal UE
 
-EXTRACTION TEXTE INTÉGRAL : `get_decision_text` (admin DCE_*/DTA_*/DCAA_*),
-`get_decision_judiciaire_libre` (JURITEXT*/CONSTEXT*), `get_decision_cedh`
-(001-*), `get_decision_cjue` (CELEX/ECLI).
+EXTRACTION TEXTE INTÉGRAL — ⚠️ RÈGLE IMPÉRATIVE : les tools `search_*` ne
+renvoient qu'un EXTRAIT tronqué (~28 mots autour du match), JAMAIS le texte
+complet. Pour lire une décision en entier, TOUJOURS enchaîner avec le tool
+d'extraction correspondant à l'id renvoyé. Ne JAMAIS conclure « texte
+indisponible / pas dans la base » à partir d'un snippet seul, ni rediriger
+l'utilisateur vers Légifrance sans avoir tenté l'extraction. Ces tools
+peuvent être "deferred" (absents de la liste visible) → les charger via
+tool_search avant de les appeler.
+• `get_decision_text` (admin : DCE_*/DTA_*/DCAA_*/CETATEXT*/Ariane_Web)
+• `get_decision_judiciaire_libre` (judiciaire : JURITEXT*/CONSTEXT*)
+• `get_decision_cedh` (001-*)   • `get_decision_cjue` (CELEX/ECLI)
 
 ARTICLES DE LOI (killer feature unique à justicelibre) :
 • `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
@@ -645,9 +653,11 @@ async def search_judiciaire_libre(
     2105835). Pour les pourvois Cass, utiliser `query` avec le numéro
     (ex: query="21-12.345").
 
-    Les identifiants retournés (format `JURITEXT*` pour Cass / cours
-    d'appel, `CONSTEXT*` pour Conseil constitutionnel) sont compatibles
-    avec `get_decision_judiciaire_libre`.
+    ⚠️ Les résultats ne contiennent qu'un SNIPPET tronqué (`snippet`), pas
+    le texte intégral. Pour lire une décision en entier, appeler
+    `get_decision_judiciaire_libre(id)` avec l'id retourné (format
+    `JURITEXT*` Cass / cours d'appel, `CONSTEXT*` Conseil constitutionnel).
+    Ne pas se fier au snippet seul pour conclure sur le contenu.
 
     Args:
         query: mots-clés (ex : "licenciement abusif"). FTS5 supporte
