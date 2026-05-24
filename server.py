@@ -521,6 +521,8 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     Identifiants acceptés :
     - `DCE_XXX_YYYYMMDD` (CE), `DTA_XXX_YYYYMMDD` (TA),
       `DCAA_XXX_YYYYMMDD` (CAA) — extraction depuis le bulk JADE local.
+    - `CETATEXT…` (id Légifrance/CETA renvoyé par `search_admin`) — lookup
+      direct dans le bulk JADE local, texte intégral inclus.
     - `/Ariane_Web/AW_DCE/|XXXXXX` (ou abrégé `|XXXXXX`) — récupération EN
       DIRECT du texte intégral via le plugin Sinequa du Conseil d'État.
       Fonctionne pour toute décision ArianeWeb, y compris hors bulk JADE.
@@ -584,6 +586,30 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
             f"L'identifiant fourni ({decision_id!r}) correspond à un itemid HUDOC (Cour EDH). "
             "Recourir à `get_decision_cedh(decision_id)` en remplacement."
         )}
+    # JADE bulk local : les id CETATEXT… (renvoyés par search_admin) sont la clé
+    # primaire de jade_decisions, texte intégral inclus. Lookup direct dans le
+    # bulk — l'API elastic externe ci-dessous ne connaît pas ce format d'id et
+    # renvoyait null, alors que le texte est déjà chez nous.
+    if re.match(r"^CETATEXT\d+$", decision_id):
+        from sources import warehouse as wh
+        row = await wh.get_decision_remote("jade", decision_id)
+        if row and (row.get("texte") or "").strip():
+            text = row["texte"]
+            segs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()] \
+                or [l for l in text.split("\n") if l.strip()]
+            return {
+                "id": row.get("id"),
+                "source": "jade_bulk",
+                "juridiction": row.get("juridiction"),
+                "numero": row.get("numero"),
+                "ecli": row.get("ecli"),
+                "date": row.get("date"),
+                "titre": row.get("titre"),
+                "sommaire": row.get("sommaire") or "",
+                "text_segments": segs,
+                "full_text": text,
+            }
+        # absent du bulk → on tente quand même l'API externe ci-dessous
     async with _client() as client:
         return await juriadmin.get_decision(client, decision_id=decision_id)
 
