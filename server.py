@@ -58,7 +58,7 @@ ARTICLES DE LOI (killer feature unique à justicelibre) :
 • `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
   Ex : art. 1128 CC en 1992 → texte napoléonien, pas la réforme 2016.
 • `get_law_versions(code, num)` — timeline complète historique.
-• `search_legi` — 1,5 M articles des 22 codes consolidés.
+• `search_legi` — 1,75 M articles des 72 codes consolidés.
 • `search_decisions_citing(code, num)` — cross-référence inverse.
 
 DROIT POSITIF COMPLÉMENTAIRE :
@@ -78,9 +78,9 @@ justicelibre.org/tutoriel-piste.html.
 
 PROTOCOLE D'USAGE : pour tout doute, commencer par `about_justicelibre`
 qui détaille la cartographie. Sinon : `search_all(query)` couvre 90% des
-besoins. Pour les 22 codes de loi consolidés : CC, CP, CPC, CPP, CT, CSP,
-CJA, CGCT, CRPA, CPI, CASF, CMF, C.com, C.cons, C.éduc, CU, C.env, CR,
-CGI, CESEDA, CSS, CCH.
+besoins. 72 codes de loi consolidés supportés (CC, CP, CPC, CPP, CT, CSP,
+CJA, CGI, LPF, COJ, CGFP, CESEDA, CCP… liste complète via
+`about_justicelibre` ou `search_legi`).
 """,
 )
 
@@ -1565,10 +1565,13 @@ async def search_all(
     for src, total, hits in results_raw:
         per_source[src] = total
         boost = AUTHORITY.get(src, 1.0)
-        for h in hits:
+        for rank, h in enumerate(hits):
             if "error" in h:
                 continue
-            h["score"] = h.get("score", 1.0) * boost
+            # -rank*0.001 préserve l'ordre BM25 interne à chaque source : une
+            # décision classée avant une autre par sa source le reste à boost
+            # égal (évite qu'une décision citante passe devant la vraie).
+            h["score"] = h.get("score", 1.0) * boost - rank * 0.001
             merged.append(h)
     # Tri global par score desc (BM25 côté chaque source déjà appliqué,
     # le boost d'autorité discrimine entre sources de même pertinence)

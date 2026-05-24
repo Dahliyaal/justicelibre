@@ -56,32 +56,85 @@ if _KEY_MODE & 0o077:
         f"Run: chmod 600 {KEY_FILE}"
     )
 
-# ─── CODE → LEGITEXT MAPPING (22 codes supportés) ────────────────────
+# ─── CODE → LEGITEXT MAPPING (72 codes + textes non codifiés) ────────
+# IMPORTANT : doit rester synchronisé avec SUPPORTED_CODES_LEGITEXT de
+# sources/legi.py. Source de vérité de cette liste = legi.py (prod).
+# CGI = code PRINCIPAL (...577), PAS l'annexe II — les annexes sont des
+# codes distincts (CGIANI/ANII/ANIII/ANIV).
 
 CODE_TO_LEGITEXT: dict[str, str] = {
-    # ─── 22 codes consolidés (LEGITEXT stables) ─────────────────
-    "CC":      "LEGITEXT000006070721",  # Code civil
-    "CP":      "LEGITEXT000006070719",  # Code pénal
-    "CPC":     "LEGITEXT000006070716",  # Code de procédure civile
-    "CPP":     "LEGITEXT000006071154",  # Code de procédure pénale
-    "CT":      "LEGITEXT000006072050",  # Code du travail
-    "CSP":     "LEGITEXT000006072665",  # Code de la santé publique
-    "CJA":     "LEGITEXT000006070933",  # Code de justice administrative
-    "CGCT":    "LEGITEXT000006070633",  # Code général des collectivités territoriales
-    "CRPA":    "LEGITEXT000031366350",  # Code des relations entre le public et l'administration
-    "CPI":     "LEGITEXT000006069414",  # Code de la propriété intellectuelle
-    "CASF":    "LEGITEXT000006074069",  # Code de l'action sociale et des familles
-    "CMF":     "LEGITEXT000006072026",  # Code monétaire et financier
-    "C.com":   "LEGITEXT000005634379",  # Code de commerce
-    "C.cons":  "LEGITEXT000006069565",  # Code de la consommation
-    "C.éduc":  "LEGITEXT000006071191",  # Code de l'éducation
-    "CU":      "LEGITEXT000006074075",  # Code de l'urbanisme
-    "C.env":   "LEGITEXT000006074220",  # Code de l'environnement
-    "CR":      "LEGITEXT000006071367",  # Code rural et de la pêche maritime
-    "CGI":     "LEGITEXT000006069569",  # Code général des impôts (annexe II)
-    "CESEDA":  "LEGITEXT000006070158",  # Code de l'entrée et du séjour des étrangers
-    "CSS":     "LEGITEXT000006073189",  # Code de la sécurité sociale
-    "CCH":     "LEGITEXT000006074096",  # Code de la construction et de l'habitation
+    "CC":         "LEGITEXT000006070721",  # Code civil
+    "CP":         "LEGITEXT000006070719",  # Code pénal
+    "CPC":        "LEGITEXT000006070716",  # Code de procédure civile
+    "CPP":        "LEGITEXT000006071154",  # Code de procédure pénale
+    "CT":         "LEGITEXT000006072050",  # Code du travail
+    "CSP":        "LEGITEXT000006072665",  # Code de la santé publique
+    "CJA":        "LEGITEXT000006070933",  # Code de justice administrative
+    "CGCT":       "LEGITEXT000006070633",  # Code général des collectivités territoriales
+    "CRPA":       "LEGITEXT000031366350",  # Relations public-administration
+    "CPI":        "LEGITEXT000006069414",  # Propriété intellectuelle
+    "CASF":       "LEGITEXT000006074069",  # Action sociale et familles
+    "CMF":        "LEGITEXT000006072026",  # Monétaire et financier
+    "C.com":      "LEGITEXT000005634379",  # Commerce
+    "C.cons":     "LEGITEXT000006069565",  # Consommation
+    "C.éduc":     "LEGITEXT000006071191",  # Éducation
+    "CU":         "LEGITEXT000006074075",  # Urbanisme
+    "C.env":      "LEGITEXT000006074220",  # Environnement
+    "CR":         "LEGITEXT000006071367",  # Rural et pêche maritime
+    "CGI":        "LEGITEXT000006069577",  # Code général des impôts (PRINCIPAL)
+    "CESEDA":     "LEGITEXT000006070158",  # Entrée/séjour étrangers
+    "CSS":        "LEGITEXT000006073189",  # Sécurité sociale
+    "CCH":        "LEGITEXT000006074096",  # Construction et habitation
+    "CTransp":    "LEGITEXT000023086525",  # Transports
+    "CAss":       "LEGITEXT000006073984",  # Assurances
+    "CDef":       "LEGITEXT000006071307",  # Défense
+    "CSI":        "LEGITEXT000025503132",  # Sécurité intérieure
+    "CEner":      "LEGITEXT000023983208",  # Énergie
+    "CCiné":      "LEGITEXT000020908868",  # Cinéma et image animée
+    "CSport":     "LEGITEXT000006071318",  # Sport
+    "CJF":        "LEGITEXT000006070249",  # Juridictions financières
+    "COJ":        "LEGITEXT000006071164",  # Organisation judiciaire
+    "CPCE":       "LEGITEXT000006070987",  # Postes et communications électroniques
+    "CElec":      "LEGITEXT000006070239",  # Électoral
+    "CGFP":       "LEGITEXT000044416551",  # Général de la fonction publique
+    "LPF":        "LEGITEXT000006069583",  # Livre des procédures fiscales
+    "CRoute":     "LEGITEXT000006074228",  # Route
+    "CPatr":      "LEGITEXT000006074236",  # Patrimoine
+    "CMut":       "LEGITEXT000006074067",  # Mutualité
+    "CPénit":     "LEGITEXT000045476241",  # Pénitentiaire
+    "CCP":        "LEGITEXT000037701019",  # Commande publique
+    "CAvCiv":     "LEGITEXT000006074234",  # Aviation civile
+    "CIBS":       "LEGITEXT000044595989",  # Impositions des biens et services
+    "CDouanes":   "LEGITEXT000006071570",  # Douanes
+    "CTou":       "LEGITEXT000006074073",  # Tourisme
+    "CSN":        "LEGITEXT000006071335",  # Service national
+    "CRech":      "LEGITEXT000006071190",  # Recherche
+    "CPortM":     "LEGITEXT000006074233",  # Ports maritimes
+    "CDE":        "LEGITEXT000006070208",  # Domaine de l'État
+    "CMin":       "LEGITEXT000023501962",  # Minier
+    "CJM":        "LEGITEXT000006071360",  # Justice militaire
+    "CExpr":      "LEGITEXT000006074224",  # Expropriation
+    "CVoir":      "LEGITEXT000006070667",  # Voirie routière
+    "CJPM":       "LEGITEXT000039086952",  # Justice pénale des mineurs
+    "CArt":       "LEGITEXT000006075116",  # Artisanat
+    "CPCMR":      "LEGITEXT000006070302",  # Pensions civiles et militaires de retraite
+    "CPCEx":      "LEGITEXT000025024948",  # Procédures civiles d'exécution
+    "CGIANII":    "LEGITEXT000006069569",  # CGI annexe II
+    "CGIANI":     "LEGITEXT000006069568",  # CGI annexe I
+    "CGIANIII":   "LEGITEXT000006069574",  # CGI annexe III
+    "CGIANIV":    "LEGITEXT000006069576",  # CGI annexe IV
+    "CRurA":      "LEGITEXT000006071366",  # Rural (ancien)
+    "CCNC":       "LEGITEXT000006070300",  # Communes de la Nouvelle-Calédonie
+    "CMinA":      "LEGITEXT000006071785",  # Minier (ancien)
+    "CFAS":       "LEGITEXT000006072637",  # Famille et aide sociale (ancien)
+    "CDouMay":    "LEGITEXT000006071645",  # Douanes de Mayotte
+    "CDPFNav":    "LEGITEXT000006074237",  # Domaine public fluvial et navigation
+    "CTravM":     "LEGITEXT000006072051",  # Travail maritime
+    "CDPMM":      "LEGITEXT000006071188",  # Disciplinaire et pénal de la marine marchande
+    "CPRM":       "LEGITEXT000006074066",  # Pensions de retraite des marins
+    "CDEMay":     "LEGITEXT000006074235",  # Domaine de l'État à Mayotte
+    "CIMM":       "LEGITEXT000006070666",  # Instruments monétaires et médailles
+    "CDA":        "LEGITEXT000006074232",  # Domaine de l'État (collectivités d'outre-mer)
     # ─── Constitution ───────────────────────────────────────────
     # La Constitution du 4 octobre 1958 est indexée en LEGI via JORFTEXT
     # (publication au JO, pas un code consolidé). Articles numérotés "1", "66"…
@@ -138,8 +191,19 @@ def _build_source_url(identifier: str, legitext: str = "", at_date: str | None =
     # CELEX (CJUE) : 6XXXXCJXXXX ou 6XXXXCC0XXX
     if re.match(r"^6\d{4}[A-Z]{2}\d{4}$", idp):
         return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{idp}"
-    # ECLI
-    if idp.upper().startswith("ECLI:"):
+    # ECLI : router selon l'émetteur. NE PAS envoyer les ECLI français vers
+    # eur-lex (bug). Les juridictions FR n'ont pas de deeplink Légifrance
+    # fiable depuis l'ECLI seul (il faut l'id natif CETATEXT/JURITEXT/CONSTEXT)
+    # → on ne renvoie pas de lien plutôt qu'un lien faux ; le texte reste
+    # accessible via get_decision_*.
+    up = idp.upper()
+    if up.startswith("ECLI:EU:"):
+        return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=ecli:{idp}"
+    if up.startswith("ECLI:CE:ECHR"):
+        return f"https://hudoc.echr.coe.int/fre?i={idp}"
+    if up.startswith("ECLI:FR:"):
+        return None
+    if up.startswith("ECLI:"):
         return f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=ecli:{idp}"
     # HUDOC itemid (001-XXXXXX)
     if re.match(r"^\d{3}-\d+$", idp):
