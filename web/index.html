@@ -462,7 +462,7 @@ footer p{margin:.2rem 0}
   <h2>Installation en <em>trois étapes</em></h2>
   <p>Le serveur utilise le protocole Streamable HTTP. L'URL est permanente et ne nécessite aucune inscription.</p>
   <div class="connect-box">
-    <h3>Endpoint MCP <span style="font-style:italic;font-weight:400;color:#8a8f98;font-size:.7em">— MàJ 24 mai 2026</span></h3>
+    <h3>Endpoint MCP <span id="mcp-maj" style="font-style:italic;font-weight:400;color:#8a8f98;font-size:.7em"></span></h3>
     <code class="connect-url">https://justicelibre.org/mcp</code>
     <ol class="steps">
       <li><strong>Configurez votre client</strong> : ouvrez les paramètres de votre client MCP (Claude, ChatGPT, Cursor, Zed, Continue, ou tout autre client compatible).</li>
@@ -789,6 +789,17 @@ footer p{margin:.2rem 0}
     try { localStorage.setItem(KEY, next); } catch (e) {}
   });
 })();
+</script>
+<script>
+// Badge "MàJ" auto : lit web/version.json (stampé au déploiement avec la date
+// du dernier commit git) et l'affiche en français. Pas de date en dur.
+fetch('/version.json', {cache: 'no-store'}).then(r => r.json()).then(d => {
+  if (!d.updated) return;
+  const dt = new Date(d.updated + 'T00:00:00');
+  const s = dt.toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'});
+  const el = document.getElementById('mcp-maj');
+  if (el) el.textContent = '— MàJ ' + s;
+}).catch(() => {});
 </script>
 </body>
 </html>

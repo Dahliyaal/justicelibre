@@ -44,8 +44,8 @@ TOOL D'ENTRÉE : `search_all` — recherche fédérée fan-out avec ranking BM25
 requête floue ou multi-source.
 
 SOURCES DE JURISPRUDENCE (pertinence BM25) :
-• `search_admin` — 4 M+ décisions JADE (CE + 9 CAA + 40 TA) full text
-• `search_judiciaire_libre` — 620 k+ Cass + 36 CA + Conseil constitutionnel
+• `search_admin` — ~550 k décisions JADE (CE + CAA, TA partiels) full text
+• `search_judiciaire_libre` — ~1,17 M (Cass + CA + Conseil constitutionnel)
 • `search_conseil_etat` — 270 k+ CE via Sinequa (moteur sémantique natif)
 • `search_cedh` — 76 k décisions Cour EDH
 • `search_cjue` — 44 k arrêts CJUE + Tribunal UE
@@ -1134,7 +1134,7 @@ async def search_admin(
     """Recherche pondérée par pertinence BM25 sur la jurisprudence
     administrative complète (Conseil d'État + 9 CAA + 40 TA).
 
-    Source : bulk JADE DILA (~4M décisions full text). Contrairement aux
+    Source : bulk JADE DILA (~550 k décisions full text). Contrairement aux
     outils `search_admin_recent*` qui trient par date, celui-ci classe par
     pertinence sémantique des mots-clés. Indispensable pour trouver LES
     bonnes décisions sur un sujet sans dépendre de l'ancienneté.
