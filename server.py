@@ -374,12 +374,16 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
     (Sinequa) avec extraction de contexte. À privilégier systématiquement
     pour le droit public.
 
-    ATTENTION : les identifiants retournés (format
-    `/Ariane_Web/AW_DCE/|XXXXXX`) sont inopérants pour l'extraction de
-    texte. Pour récupérer l'intégralité d'un arrêt, ré-indexer la recherche
-    via `search_admin` (paramètre `juridiction="CE"` et un extrait de
-    la requête) afin d'obtenir un identifiant compatible
-    (`DCE_XXX_YYYYMMDD`).
+    EXTRACTION DU TEXTE : les ids retournés (`/Ariane_Web/AW_DCE/|XXXXXX`)
+    sont DÉSORMAIS exploitables directement par `get_decision_text(id)`
+    (récupération live via le plugin Sinequa).
+
+    ⚠️ COUVERTURE : cet index ArianeWeb (Sinequa) couvre MAL les arrêts
+    anciens/fondateurs (avant ~1990). Si une recherche ici renvoie 0, NE PAS
+    conclure que l'arrêt est absent de JusticeLibre : le bulk JADE
+    (`search_admin`) couvre le CE depuis 1873 (Trompier-Gravier 1944, PGD,
+    etc. inclus). Et si tu connais déjà l'id Légifrance `CETATEXT…` d'un
+    arrêt, `get_decision_text("CETATEXT…")` le sort directement du bulk.
 
     Consigne de recherche : limiter les requêtes à 2-5 mots-clés
     distinctifs ; les requêtes en phrase complète retournent généralement
