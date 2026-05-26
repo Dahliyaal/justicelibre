@@ -333,7 +333,10 @@ async def _dispatch_admin(
     # 1bis) Si l'intent est dossier_admin (TA Paris 21XXXXX ou CAA codifié
     # XXNCXXXXX, XXDAXXXXX, XXPAXXXXX…) → lookup SQL exact dans JADE bulk.
     # JADE couvre les anciens numéros que l'API live opendata (post-2022) rate.
-    if intent.kind == "dossier_admin":
+    # ariane_id inclus : un numéro nu (ex: 61958) est aussi un n° de requête CE
+    # (CE 1965 n°61958 = CETATEXT000007637315). Sans ce lookup, la recherche
+    # tombe en FTS sur le texte et rate l'arrêt, alors qu'il est dans le bulk.
+    if intent.kind in ("dossier_admin", "ariane_id"):
         try:
             from sources import warehouse as wh
             # Désambiguïsation : un même numéro (ex: 2200433) est partagé par
