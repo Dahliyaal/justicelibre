@@ -9,6 +9,7 @@ immutable per (code, num, date) so this is safe.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -35,22 +36,38 @@ def _raise_if_no_key():
 
 # ─── Async client (used by token_server.py async handlers) ────────────
 
-async def _aget(path: str, **params) -> dict | None:
+async def _request(method: str, path: str, *, params=None, body=None) -> dict | None:
+    """Appel warehouse avec 1 retry sur erreur transitoire (timeout, 5xx,
+    blip réseau). Sans retry, un blip remontait une exception nue jusqu'au
+    MCP et l'instance LLM concluait à tort à une 'API dégradée'."""
     _raise_if_no_key()
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
-        r = await client.get(f"{WAREHOUSE_URL}{path}", params=params)
-        if r.status_code == 404:
-            return None
-        r.raise_for_status()
-        return r.json()
+    last_exc: Exception | None = None
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
+                if method == "GET":
+                    r = await client.get(f"{WAREHOUSE_URL}{path}", params=params or {})
+                else:
+                    r = await client.post(f"{WAREHOUSE_URL}{path}", json=body or {})
+                if r.status_code == 404:
+                    return None
+                r.raise_for_status()
+                return r.json()
+        except (httpx.HTTPError, asyncio.TimeoutError) as e:
+            last_exc = e
+            if attempt == 0:
+                await asyncio.sleep(0.3)
+                continue
+            raise
+    raise last_exc  # unreachable but satisfies type-checkers
+
+
+async def _aget(path: str, **params) -> dict | None:
+    return await _request("GET", path, params=params)
 
 
 async def _apost(path: str, body: dict) -> dict:
-    _raise_if_no_key()
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
-        r = await client.post(f"{WAREHOUSE_URL}{path}", json=body)
-        r.raise_for_status()
-        return r.json()
+    return await _request("POST", path, body=body)
 
 
 async def get_law(code: str, num: str, date: str | None = None) -> dict | None:
