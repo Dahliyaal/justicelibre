@@ -70,24 +70,29 @@ def piste_get(client: httpx.Client, path: str, **params) -> dict:
             raise
 
 
-def search_rg_to_id(
+def search_rg_to_ids(
     client: httpx.Client,
     rg: str,
     jurisdictions: tuple[str, ...] = ("cc", "ca", "tj"),
-) -> str | None:
-    """Cherche un RG sur Judilibre /search et renvoie l'id hex de la
-    décision dont le `number` correspond EXACTEMENT (ou figure dans `numbers`).
-    Le tri par juridictions permet de viser la bonne base : on essaie cc, ca,
-    puis tj. Sur match exact, on s'arrête."""
+) -> list[str]:
+    """Cherche un RG sur Judilibre /search dans cc, ca, tj et renvoie la
+    liste de TOUS les ids hex dont le `number` correspond EXACTEMENT (ou
+    figure dans `numbers`). Un même RG peut désigner plusieurs décisions
+    (différentes CA/TJ partagent le numérotage)."""
+    ids: list[str] = []
+    seen: set[str] = set()
     for juri in jurisdictions:
         try:
             data = piste_get(client, "/search", query=rg, jurisdiction=juri, page_size=50)
         except Exception:
             continue
         for r in data.get("results") or []:
-            if r.get("number") == rg or rg in (r.get("numbers") or []):
-                return r.get("id")
-    return None
+            if (r.get("number") == rg or rg in (r.get("numbers") or [])):
+                jid = r.get("id")
+                if jid and jid not in seen:
+                    seen.add(jid)
+                    ids.append(jid)
+    return ids
 
 
 def fetch_decision(client: httpx.Client, decision_id: str) -> dict | None:
@@ -113,7 +118,14 @@ def map_to_row(d: dict, conn: sqlite3.Connection, force_id: str | None = None) -
     juri_map = {"cc": "Cour de cassation", "ca": "Cour d'appel", "tj": "Tribunal judiciaire"}
     juri_base = juri_map.get(d.get("jurisdiction", ""), d.get("jurisdiction", ""))
     location = d.get("location", "") or ""
-    juridiction = f"{juri_base} de {location}" if location and juri_base else juri_base or location
+    # Nettoyage des codes location Judilibre : "ca_bordeaux" -> "Bordeaux",
+    # "tj75056" -> "75056" (INSEE, pas idéal mais lisible).
+    loc_display = location
+    if location.startswith(("ca_", "tj_", "cc_")):
+        loc_display = location[3:].replace("_", " ").title()
+    elif location.startswith("tj") and location[2:].isdigit():
+        loc_display = location[2:]  # INSEE
+    juridiction = f"{juri_base} de {loc_display}" if loc_display and juri_base else juri_base or loc_display
     numero = d.get("number") or d.get("numbers", [""])[0] if d.get("numbers") else d.get("number", "")
     date = d.get("decision_date") or ""
     titre = f"{juridiction}, {date}, n° {numero}"
@@ -188,28 +200,33 @@ def mode_rgs(conn: sqlite3.Connection, client: httpx.Client, rgs: list[str]) -> 
         if not rg:
             continue
         existing_id = find_existing_id_by_rg(conn, rg)
-        # 1) chercher l'id Judilibre pour ce RG
+        # 1) chercher TOUS les ids Judilibre pour ce RG (plusieurs cours peuvent
+        # partager un même numérotage : CA Bordeaux 21/05835 et CA Versailles
+        # 21/05835 sont 2 décisions distinctes).
         try:
-            jid = search_rg_to_id(client, rg)
+            jids = search_rg_to_ids(client, rg)
         except Exception as e:
             print(f"  [RG {rg}] search err: {e}")
             continue
-        if not jid:
+        if not jids:
             print(f"  [RG {rg}] introuvable sur Judilibre")
             continue
-        # 2) fetch la décision
-        try:
-            d = fetch_decision(client, jid)
-        except Exception as e:
-            print(f"  [RG {rg}] decision fetch err: {e}")
-            continue
-        if not d:
-            print(f"  [RG {rg}] /decision = 404")
-            continue
-        force_id = existing_id  # conserve JURITEXT* historique si présent
-        _, row = map_to_row(d, conn, force_id=force_id)
-        action = upsert(conn, row)
-        print(f"  [RG {rg}] {action} (id={row['id']}, text_len={len(row['text'])})")
+        for i, jid in enumerate(jids):
+            try:
+                d = fetch_decision(client, jid)
+            except Exception as e:
+                print(f"  [RG {rg} #{i+1}/{len(jids)}] fetch err: {e}")
+                continue
+            if not d:
+                continue
+            # On ne réutilise existing_id QUE pour le 1er match (cas où on
+            # rafraîchit une décision déjà ingérée). Les autres prennent leur id
+            # hex Judilibre. Évite d'écraser un existing avec un autre arrêt.
+            force_id = existing_id if i == 0 else None
+            _, row = map_to_row(d, conn, force_id=force_id)
+            action = upsert(conn, row)
+            juri = row.get("juridiction", "?")
+            print(f"  [RG {rg} #{i+1}/{len(jids)}] {action} ({juri}, {row.get('date','')}, len={len(row['text'])})")
 
 
 def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: int) -> None:
