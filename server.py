@@ -982,14 +982,16 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     Args:
         numero: numéro de requête (ex : "2200433", "2116343", "497566")
         juridiction: identifiant de la juridiction. **Recommandé pour tout
-            numéro à 7 chiffres** (TA/CAA codifié). Deux formats acceptés
-            (mapping bidirectionnel automatique) :
-            - **Code court** (recommandé pour les LLMs) : "TA69" (Lyon),
-              "TA75" (Paris), "CAA69", "CE", "CE-CAA"
-            - **Nom long** : "Tribunal Administratif de Lyon", "Conseil d'Etat"
-              (avec ou sans accent), match insensible à la casse
-            Note : "Lyon" seul est ambigu (TA Lyon ou CAA Lyon) — préférer
-            le code court ou le nom complet pour éviter la collision.
+            numéro à 7 chiffres** (TA/CAA codifié). Formats acceptés :
+            - **Nom long (recommandé)** : "Cour administrative d'appel de Lyon",
+              "Tribunal administratif de Paris", "Conseil d'État" (avec ou sans
+              accent, casse libre). Matching tolérant via extraction de ville.
+            - **Code court** : "TA69", "TA75", "CAA69", "CE", "CE-CAA".
+              ⚠️ Les codes courts peuvent rater les arrêts anciens (id
+              CETATEXT* historiques) pour lesquels le mapping interne échoue.
+              Si tu sais le nom long, préfère-le.
+            Note : "Lyon" seul est ambigu (TA Lyon ou CAA Lyon) — préférer le
+            nom complet pour éviter la collision.
 
     Returns:
         Décision avec métadonnées (id, juridiction, numero, date, titre),
@@ -1522,77 +1524,91 @@ async def search_all(
         "legi": 0.80,  # articles de loi (pertinents mais on veut des décisions)
     }
 
-    async def _search_one(src: str):
-        try:
-            if src == "dila":
-                d = dila.search(query=q_expanded, juridiction="", limit=limit)
-                hits = [{"source": "dila", "id": h.get("id"),
-                         "juridiction": h.get("juridiction"),
-                         "date": h.get("date"), "title": h.get("title"),
-                         "extract": h.get("extract"),
-                         "score": 1.0} for h in d.get("decisions", [])]
-                return src, d.get("total", 0), hits
-            if src == "jade":
-                d = await jade_remote.search(query=q_expanded, sort=sort,
-                    date_min=date_min or None, date_max=date_max or None, limit=limit)
-                hits = [{"source": "jade", "id": h.get("id"),
-                         "juridiction": h.get("juridiction"),
-                         "date": h.get("date"), "title": h.get("titre"),
-                         "extract": h.get("extract"),
-                         "score": 1.0} for h in d.get("decisions", [])]
-                return src, d.get("total", 0), hits
-            if src == "legi":
-                from sources import warehouse as wh
-                d = await wh.search_fond("legi", q_expanded, limit=limit,
-                    sort=sort, date_min=date_min or None, date_max=date_max or None)
-                hits = [{"source": "legi", "id": h.get("id"),
-                         "juridiction": "Articles de loi",
-                         "date": h.get("date"), "title": f"Article {h.get('num')} — {h.get('titre')}",
-                         "extract": h.get("extract"),
-                         "score": 1.0} for h in d.get("results", [])]
-                return src, d.get("total", 0), hits
-            if src == "cedh":
-                d = european.search_cedh(query=q_expanded, limit=limit)
-                hits = [{"source": "cedh", "id": h.get("id"),
-                         "juridiction": "Cour EDH",
-                         "date": h.get("date"), "title": h.get("title"),
-                         "extract": h.get("extract"),
-                         "score": 1.0} for h in d.get("decisions", [])]
-                return src, d.get("total", 0), hits
-            if src == "cjue":
-                d = european.search_cjue(query=q_expanded, limit=limit)
-                hits = [{"source": "cjue", "id": h.get("id"),
-                         "juridiction": "CJUE",
-                         "date": h.get("date"), "title": h.get("title"),
-                         "extract": h.get("extract"),
-                         "score": 1.0} for h in d.get("decisions", [])]
-                return src, d.get("total", 0), hits
-        except Exception as e:
-            return src, 0, [{"source": src, "error": str(e)}]
-        return src, 0, []
-
     import asyncio
-    tasks = [_search_one(s) for s in allowed]
-    results_raw = await asyncio.gather(*tasks)
-    per_source = {}
-    merged = []
-    for src, total, hits in results_raw:
-        per_source[src] = total
-        boost = AUTHORITY.get(src, 1.0)
-        for rank, h in enumerate(hits):
-            if "error" in h:
-                continue
-            # -rank*0.001 préserve l'ordre BM25 interne à chaque source : une
-            # décision classée avant une autre par sa source le reste à boost
-            # égal (évite qu'une décision citante passe devant la vraie).
-            h["score"] = h.get("score", 1.0) * boost - rank * 0.001
-            merged.append(h)
-    # Tri global par score desc (BM25 côté chaque source déjà appliqué,
-    # le boost d'autorité discrimine entre sources de même pertinence)
-    merged.sort(key=lambda h: h.get("score", 0), reverse=True)
+
+    async def _run(q: str) -> tuple[dict[str, int], list[dict]]:
+        async def _search_one(src: str):
+            try:
+                if src == "dila":
+                    d = dila.search(query=q, juridiction="", limit=limit)
+                    hits = [{"source": "dila", "id": h.get("id"),
+                             "juridiction": h.get("juridiction"),
+                             "date": h.get("date"), "title": h.get("title"),
+                             "extract": h.get("extract"),
+                             "score": 1.0} for h in d.get("decisions", [])]
+                    return src, d.get("total", 0), hits
+                if src == "jade":
+                    d = await jade_remote.search(query=q, sort=sort,
+                        date_min=date_min or None, date_max=date_max or None, limit=limit)
+                    hits = [{"source": "jade", "id": h.get("id"),
+                             "juridiction": h.get("juridiction"),
+                             "date": h.get("date"), "title": h.get("titre"),
+                             "extract": h.get("extract"),
+                             "score": 1.0} for h in d.get("decisions", [])]
+                    return src, d.get("total", 0), hits
+                if src == "legi":
+                    from sources import warehouse as wh
+                    d = await wh.search_fond("legi", q, limit=limit,
+                        sort=sort, date_min=date_min or None, date_max=date_max or None)
+                    hits = [{"source": "legi", "id": h.get("id"),
+                             "juridiction": "Articles de loi",
+                             "date": h.get("date"), "title": f"Article {h.get('num')} — {h.get('titre')}",
+                             "extract": h.get("extract"),
+                             "score": 1.0} for h in d.get("results", [])]
+                    return src, d.get("total", 0), hits
+                if src == "cedh":
+                    d = european.search_cedh(query=q, limit=limit)
+                    hits = [{"source": "cedh", "id": h.get("id"),
+                             "juridiction": "Cour EDH",
+                             "date": h.get("date"), "title": h.get("title"),
+                             "extract": h.get("extract"),
+                             "score": 1.0} for h in d.get("decisions", [])]
+                    return src, d.get("total", 0), hits
+                if src == "cjue":
+                    d = european.search_cjue(query=q, limit=limit)
+                    hits = [{"source": "cjue", "id": h.get("id"),
+                             "juridiction": "CJUE",
+                             "date": h.get("date"), "title": h.get("title"),
+                             "extract": h.get("extract"),
+                             "score": 1.0} for h in d.get("decisions", [])]
+                    return src, d.get("total", 0), hits
+            except Exception as e:
+                return src, 0, [{"source": src, "error": str(e)}]
+            return src, 0, []
+
+        tasks = [_search_one(s) for s in allowed]
+        results_raw = await asyncio.gather(*tasks)
+        ps: dict[str, int] = {}
+        merged_local: list[dict] = []
+        for src, total, hits in results_raw:
+            ps[src] = total
+            boost = AUTHORITY.get(src, 1.0)
+            for rank, h in enumerate(hits):
+                if "error" in h:
+                    continue
+                # -rank*0.001 préserve l'ordre BM25 interne à chaque source : une
+                # décision classée avant une autre par sa source le reste à boost
+                # égal (évite qu'une décision citante passe devant la vraie).
+                h["score"] = h.get("score", 1.0) * boost - rank * 0.001
+                merged_local.append(h)
+        merged_local.sort(key=lambda h: h.get("score", 0), reverse=True)
+        return ps, merged_local
+
+    # 1er essai (avec expansion si demandée)
+    per_source, merged = await _run(q_expanded)
+    fallback_used = False
+    # Fallback : si l'expansion thésaurus a tué tous les résultats (cas
+    # fréquent quand la requête a beaucoup de termes libres, le AND implicite
+    # FTS5 vide l'intersection), retomber sur la query nue. Évite de répondre
+    # 0 résultats alors que la version sans expansion en aurait des dizaines.
+    if not merged and q_expanded != query:
+        per_source, merged = await _run(query)
+        fallback_used = True
+
     return {
         "query": query,
         "query_expanded": q_expanded if q_expanded != query else None,
+        "fallback_no_expand": fallback_used,
         "per_source_counts": per_source,
         "total_returned": len(merged[:limit]),
         "results": merged[:limit],
