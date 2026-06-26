@@ -229,7 +229,9 @@ def mode_rgs(conn: sqlite3.Connection, client: httpx.Client, rgs: list[str]) -> 
             print(f"  [RG {rg} #{i+1}/{len(jids)}] {action} ({juri}, {row.get('date','')}, len={len(row['text'])})")
 
 
-def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: int) -> None:
+def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: int) -> int:
+    """Retourne 0 si succès, 1 si l'appel à /transactionalHistory échoue.
+    Permet au wrapper shell de logger correctement OK vs error."""
     since = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
     print(f"[history] depuis {since}")
     params = {"date": since}
@@ -239,7 +241,7 @@ def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: in
             data = piste_get(client, "/transactionalHistory", **params)
         except Exception as e:
             print(f"[history] err: {e}")
-            return
+            return 1
         txs = data.get("transactions") or []
         for tx in txs:
             seen += 1
@@ -272,9 +274,10 @@ def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: in
         from urllib.parse import parse_qs
         params = {k: v[0] for k, v in parse_qs(next_page.lstrip("?")).items()}
     print(f"[history] {seen} tx, {ok} ok, {fail} err")
+    return 1 if fail and not ok else 0
 
 
-def main():
+def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--rgs", help="RG list (comma-separated)")
     p.add_argument("--history", action="store_true")
@@ -286,12 +289,14 @@ def main():
     conn.execute("PRAGMA journal_mode=WAL")
     token = get_token()
     headers = {"Authorization": f"Bearer {token}"}
+    rc = 0
     with httpx.Client(headers=headers) as client:
         if args.rgs:
             mode_rgs(conn, client, args.rgs.split(","))
         if args.history:
-            mode_history(conn, client, args.since_hours)
+            rc = mode_history(conn, client, args.since_hours) or 0
+    return rc
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
