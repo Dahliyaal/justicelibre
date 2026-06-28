@@ -525,6 +525,35 @@ def _parse_ariane_header(text: str) -> dict[str, str]:
     return out
 
 
+# Cache TTL+LRU pour les textes de décision : élimine la majorité des
+# timeouts côté client MCP, parce qu'un retry est désormais servi depuis la
+# RAM en quelques ms au lieu de retaper la DB / l'API externe. TTL 1h
+# (assez court pour absorber un refetch après ré-anonymisation).
+_DEC_CACHE: dict[str, tuple[float, Any]] = {}
+_DEC_CACHE_TTL = 3600.0
+_DEC_CACHE_MAX = 1000
+
+
+def _dec_cache_get(key: str) -> Any | None:
+    e = _DEC_CACHE.get(key)
+    if not e:
+        return None
+    ts, val = e
+    if time.time() - ts > _DEC_CACHE_TTL:
+        _DEC_CACHE.pop(key, None)
+        return None
+    return val
+
+
+def _dec_cache_put(key: str, val: Any) -> None:
+    if val is None or (isinstance(val, dict) and "error" in val):
+        return  # ne cache pas les erreurs
+    if len(_DEC_CACHE) >= _DEC_CACHE_MAX:
+        oldest_key = min(_DEC_CACHE, key=lambda k: _DEC_CACHE[k][0])
+        _DEC_CACHE.pop(oldest_key, None)
+    _DEC_CACHE[key] = (time.time(), val)
+
+
 @mcp.tool()
 async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision relevant de l'ordre
@@ -554,6 +583,9 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         la décision est introuvable.
     """
     _record_call("get_decision_text")
+    cached = _dec_cache_get(f"text:{decision_id}")
+    if cached is not None:
+        return cached
     # ArianeWeb (Conseil d'État, index Sinequa) : récupération du texte
     # intégral EN DIRECT via le plugin downloadFilePagePlugin. Couvre TOUTES
     # les décisions — y compris celles absentes du bulk JADE et au-dessus du
@@ -573,7 +605,7 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
                 "`search_conseil_etat`."
             )}
         meta = _parse_ariane_header(text)
-        return {
+        result = {
             "id": aid,
             "source": "arianeweb",
             "juridiction": "Conseil d'État",
@@ -583,6 +615,8 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
             "text_segments": [s for s in text.split("\n\n") if s.strip()],
             "full_text": text,
         }
+        _dec_cache_put(f"text:{decision_id}", result)
+        return result
     if decision_id.startswith("JURITEXT") or decision_id.startswith("JURI"):
         return {"error": (
             f"L'identifiant fourni ({decision_id!r}) relève du format JURITEXT (ordre judiciaire). "
@@ -609,7 +643,7 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
             text = row["texte"]
             segs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()] \
                 or [l for l in text.split("\n") if l.strip()]
-            return {
+            result = {
                 "id": row.get("id"),
                 "source": "jade_bulk",
                 "juridiction": row.get("juridiction"),
@@ -621,9 +655,13 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
                 "text_segments": segs,
                 "full_text": text,
             }
+            _dec_cache_put(f"text:{decision_id}", result)
+            return result
         # absent du bulk → on tente quand même l'API externe ci-dessous
     async with _client() as client:
-        return await juriadmin.get_decision(client, decision_id=decision_id)
+        result = await juriadmin.get_decision(client, decision_id=decision_id)
+    _dec_cache_put(f"text:{decision_id}", result)
+    return result
 
 
 # ─── JUSTICE JUDICIAIRE - DILA (sans auth, index local) ──────────
@@ -704,12 +742,17 @@ async def get_decision_judiciaire_libre(
         decision_id: identifiant JURITEXT/JURI/CONSTEXT de la décision
     """
     _record_call("get_decision_judiciaire_libre")
+    cached = _dec_cache_get(f"judi:{decision_id}")
+    if cached is not None:
+        return cached
     if decision_id.startswith(("DCE_", "DTA_", "DCAA_")) or decision_id.startswith("/Ariane_Web/"):
         return {"error": (
             f"L'identifiant fourni ({decision_id!r}) relève de l'ordre administratif. "
             "Recourir à `get_decision_text(decision_id)` en remplacement."
         )}
-    return dila.get_decision(decision_id)
+    result = dila.get_decision(decision_id)
+    _dec_cache_put(f"judi:{decision_id}", result)
+    return result
 
 
 # ─── JUSTICE JUDICIAIRE - BYOK PISTE OAuth2 ──────────────────────
