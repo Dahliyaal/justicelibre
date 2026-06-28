@@ -4,7 +4,7 @@
 Deux modes :
 - `--rgs RG1,RG2,...` : refetch ponctuel d'une liste de numéros RG (ex après
   réception d'un mail de notification de ré-anonymisation).
-- `--history --since-hours N` : pagine /transactionalHistory depuis N heures
+- `--history --since-hours N` : pagine /transactionalhistory depuis N heures
   en arrière et refetch chaque id ayant subi une création/modification.
 
 Pour chaque décision récupérée via /decision?id=<hex> :
@@ -230,7 +230,7 @@ def mode_rgs(conn: sqlite3.Connection, client: httpx.Client, rgs: list[str]) -> 
 
 
 def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: int) -> int:
-    """Retourne 0 si succès, 1 si l'appel à /transactionalHistory échoue.
+    """Retourne 0 si succès, 1 si l'appel à /transactionalhistory échoue.
     Permet au wrapper shell de logger correctement OK vs error."""
     since = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
     print(f"[history] depuis {since}")
@@ -238,7 +238,7 @@ def mode_history(conn: sqlite3.Connection, client: httpx.Client, since_hours: in
     seen, ok, fail = 0, 0, 0
     while True:
         try:
-            data = piste_get(client, "/transactionalHistory", **params)
+            data = piste_get(client, "/transactionalhistory", **params)
         except Exception as e:
             print(f"[history] err: {e}")
             return 1
