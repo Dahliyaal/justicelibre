@@ -13,8 +13,10 @@ LOG=/var/log/justicelibre/dila_update.log
 WORK=/opt/justicelibre/dila_bulk
 mkdir -p "$WORK" /var/log/justicelibre
 
-# Fonds à mettre à jour (skip CASS/CAPP/CONSTIT — vivent dans judiciaire.db)
-FUNDS=(legi jorf jade kali cnil)
+# Fonds à mettre à jour : TOUS les bulks DILA que ce serveur héberge.
+# NB: judiciaire.db (côté PROD) a son propre cron via Judilibre PISTE, il
+# ne dépend pas de ces bulks pour rester frais.
+FUNDS=(legi jorf jade kali cnil cass capp constit inca)
 
 # Delta d'hier (DILA publie en soirée, cron à 04h → J-1)
 YESTERDAY=$(date -u -d "yesterday" +%Y%m%d)

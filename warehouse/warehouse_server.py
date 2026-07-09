@@ -684,7 +684,22 @@ class WarehouseHandler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
 
         if path == "/v1/health":
-            return self._json(200, {"status": "ok", "fonds": list(FONDS.keys()), "codes": list(CODE_TO_LEGITEXT.keys())})
+            # Expose la fraîcheur de chaque fond (mtime du .db) → utilisé par
+            # les tools MCP pour renvoyer db_last_updated à l'utilisateur.
+            freshness = {}
+            for name, cfg in FONDS.items():
+                p = DB_DIR / cfg["db"]
+                if p.exists():
+                    from datetime import datetime, timezone
+                    freshness[name] = datetime.fromtimestamp(
+                        p.stat().st_mtime, tz=timezone.utc
+                    ).isoformat()
+            return self._json(200, {
+                "status": "ok",
+                "fonds": list(FONDS.keys()),
+                "codes": list(CODE_TO_LEGITEXT.keys()),
+                "last_updated": freshness,
+            })
 
         if path == "/v1/url":
             # Build source URL from an arbitrary identifier

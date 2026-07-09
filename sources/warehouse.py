@@ -70,6 +70,26 @@ async def _apost(path: str, body: dict) -> dict:
     return await _request("POST", path, body=body)
 
 
+# Cache /v1/health (mtime des .db) — appelé souvent (chaque get_law_article),
+# mais la fraîcheur ne change que quand un tarball est appliqué (donc rare).
+_HEALTH_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
+_HEALTH_TTL = 300.0  # 5 min
+
+
+async def get_freshness(fond: str) -> str | None:
+    """Renvoie l'ISO du mtime du .db pour un fond (via /v1/health, cached)."""
+    import time as _t
+    now = _t.monotonic()
+    if now - _HEALTH_CACHE["ts"] > _HEALTH_TTL or _HEALTH_CACHE["data"] is None:
+        try:
+            data = await _aget("/v1/health")
+            _HEALTH_CACHE["data"] = data
+            _HEALTH_CACHE["ts"] = now
+        except Exception:
+            return None
+    return (_HEALTH_CACHE["data"] or {}).get("last_updated", {}).get(fond)
+
+
 async def get_law(code: str, num: str, date: str | None = None) -> dict | None:
     """Fetch an article at a given date. Returns None if not found."""
     params = {"code": code, "num": num}

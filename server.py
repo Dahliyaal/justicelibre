@@ -1372,7 +1372,11 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
         un champ `note` si la version retournée n'est pas celle demandée.
     """
     _record_call("get_law_article")
-    return await legi.get_article(code, num, date or None)
+    result = await legi.get_article(code, num, date or None)
+    if isinstance(result, dict) and "error" not in result:
+        from sources import warehouse as _wh
+        result["db_last_updated"] = await _wh.get_freshness("legi")
+    return result
 
 
 @mcp.tool()
@@ -1393,7 +1397,11 @@ async def get_law_versions(code: str, num: str) -> dict[str, Any]:
         (liste ordonnée par `date_debut` ascendante).
     """
     _record_call("get_law_versions")
-    return await legi.get_versions(code, num)
+    result = await legi.get_versions(code, num)
+    if isinstance(result, dict) and "error" not in result:
+        from sources import warehouse as _wh
+        result["db_last_updated"] = await _wh.get_freshness("legi")
+    return result
 
 
 @mcp.tool()
