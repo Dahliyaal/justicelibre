@@ -532,6 +532,13 @@ def parse_kali():
                 meta_k = root.find(".//META_TEXTE_KALI") or root.find(".//META_CONVENTION_COLLECTIVE")
                 if meta is None:
                     continue
+                # Skip proprement : les KALI publient aussi des KALICONT
+                # (conteneurs IDCC, META_CONTENEUR) et des KALIARTI (articles,
+                # META_ARTICLE) qui n'ont pas META_TEXTE_KALI. Sans skip on
+                # insérait des lignes fantômes avec juste l'ID et tout le reste
+                # vide.
+                if meta_k is None:
+                    continue
                 kid = xml_text(meta.find("ID"))
                 nature = xml_text(meta.find("NATURE"))
                 idcc = titre = etat = date_publi = date_debut = date_fin = ""
@@ -607,7 +614,13 @@ def parse_cnil():
                 did = xml_text(meta.find("ID"))
                 numero = xml_text(root.find(".//NUMERO"))
                 titre = xml_text(root.find(".//TITRE"))
-                date = xml_text(root.find(".//DATE_DEC") or root.find(".//DATE"))
+                # DATE_DEC = décisions jurisprudentielles ; DATE_TEXTE = date de la
+                # délibération CNIL ; DATE_PUBLI = date de publication. On tente les
+                # 4 en cascade pour couvrir tous les formats DILA.
+                date = (xml_text(root.find(".//DATE_DEC"))
+                        or xml_text(root.find(".//DATE_TEXTE"))
+                        or xml_text(root.find(".//DATE_PUBLI"))
+                        or xml_text(root.find(".//DATE")))
                 formation = xml_text(root.find(".//FORMATION"))
                 content = root.find(".//CONTENU") or root.find(".//TEXTE")
                 texte = strip_html(ET.tostring(content, encoding="unicode")) if content is not None else ""
