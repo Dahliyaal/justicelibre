@@ -393,8 +393,20 @@ def parse_juris(fund: str):
         nonlocal batch
         if not batch:
             return
+        # Colonnes nommées explicitement : les tables *_decisions ont été
+        # étendues avec abstrats/resume/renvois/commissaire_gvt/type_rec/
+        # publi_recueil/publi_bull/nature_qualifiee/saisines/loi_def/
+        # liens_textes après création. Un VALUES(?×15) sur une table à 26
+        # colonnes fait planter SQLite silencieusement (l'exception est
+        # rattrapée par le try du membre → n_errors++ mais batch pas vidé,
+        # donc s'accumule sans jamais insérer). On nomme les 15 colonnes
+        # remplies ; les 11 autres restent NULL sur nouvelle ligne.
         conn.executemany(
-            f"INSERT OR REPLACE INTO {fund}_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            f"INSERT OR REPLACE INTO {fund}_decisions "
+            "(id, ecli, juridiction, formation, date, numero, solution, "
+            "nature, president, rapporteur, avocat_general, avocats, "
+            "titre, sommaire, texte) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             batch,
         )
         conn.commit()
@@ -644,10 +656,11 @@ def parse_cnil():
 PARSERS = {
     "legi":    parse_legi,
     "jorf":    lambda: parse_jorf_like("jorf"),
-    "inca":    lambda: parse_jorf_like("inca"),
+    "inca":    lambda: parse_juris("inca"),
     "jade":    lambda: parse_juris("jade"),
     "capp":    lambda: parse_juris("capp"),
     "constit": lambda: parse_juris("constit"),
+    "cass":    lambda: parse_juris("cass"),
     "kali":    parse_kali,
     "cnil":    parse_cnil,
 }
