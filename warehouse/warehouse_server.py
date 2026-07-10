@@ -806,7 +806,7 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 city = re.sub(
                     r"(?i)\b(cour|administrative|administratif|d['’]appel|appel|"
                     r"tribunal|conseil|de|du|des|la|le|d['’]etat|caa|ta|ce)\b",
-                    " ", jn,
+                    " ", jn_noacc,
                 )
                 city = re.sub(r"\s+", " ", city).strip()
                 if len(city) >= 3:
