@@ -18,6 +18,7 @@ run tests/test_search.py
 run tests/test_v2.py
 run tests/test_source_url.py
 run tests/test_citations.py
+run tests/test_annotations.py
 
 if [[ $INCLUDE_LIVE -eq 1 ]]; then
     echo "(les tests live sont déjà inclus dans test_search.py et test_v2.py)"

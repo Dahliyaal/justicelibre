@@ -28,6 +28,7 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from sources import (
     ariane, dila, european, judilibre, juriadmin, legi,
@@ -222,7 +223,8 @@ def _client() -> httpx.AsyncClient:
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="À propos de JusticeLibre", readOnlyHint=True))
 async def about_justicelibre() -> dict[str, Any]:
     """Vue d'ensemble du protocole JusticeLibre : cartographie des sources
     et règles d'acheminement.
@@ -341,7 +343,8 @@ async def about_justicelibre() -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Liste des juridictions couvertes", readOnlyHint=True))
 async def list_juridictions() -> dict[str, Any]:
     """Référentiel exhaustif des codes juridictionnels.
 
@@ -365,7 +368,8 @@ async def list_juridictions() -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche Conseil d'État (ArianeWeb)", readOnlyHint=True))
 async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
     """Recherche sémantique ciblée sur la jurisprudence du Conseil d'État
     (base ArianeWeb, ~270 000 décisions).
@@ -400,7 +404,8 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
         return await ariane.search(client, query=query, limit=limit, skip=offset)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décisions administratives récentes", readOnlyHint=True))
 async def search_admin_recent(
     query: str,
     juridiction: str = "CE",
@@ -438,7 +443,8 @@ async def search_admin_recent(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décisions récentes des 40 TA", readOnlyHint=True))
 async def search_admin_recent_all_ta(
     query: str,
     limit_per_court: int = 5,
@@ -478,7 +484,8 @@ async def search_admin_recent_all_ta(
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décisions récentes des 9 CAA", readOnlyHint=True))
 async def search_admin_recent_all_caa(
     query: str,
     limit_per_court: int = 5,
@@ -554,7 +561,8 @@ def _dec_cache_put(key: str, val: Any) -> None:
     _DEC_CACHE[key] = (time.time(), val)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Texte intégral d'une décision administrative", readOnlyHint=True))
 async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision relevant de l'ordre
     administratif (Conseil d'État, TA, CAA).
@@ -666,7 +674,8 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
 
 # ─── JUSTICE JUDICIAIRE - DILA (sans auth, index local) ──────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche judiciaire (bulk DILA, sans auth)", readOnlyHint=True))
 async def search_judiciaire_libre(
     query: str = "",
     juridiction: str = "",
@@ -723,7 +732,8 @@ async def search_judiciaire_libre(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Texte intégral d'une décision judiciaire (DILA)", readOnlyHint=True))
 async def get_decision_judiciaire_libre(
     decision_id: str,
 ) -> dict[str, Any] | None:
@@ -769,7 +779,8 @@ _NO_CREDS_MSG = (
 )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche judiciaire (PISTE Judilibre)", readOnlyHint=True))
 async def search_judiciaire(
     query: str,
     session_token: str = "",
@@ -842,7 +853,8 @@ async def search_judiciaire(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Texte intégral d'une décision (PISTE Judilibre)", readOnlyHint=True))
 async def get_decision_judiciaire(
     decision_id: str,
     session_token: str = "",
@@ -900,7 +912,8 @@ async def get_decision_judiciaire(
 
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Résolution d'un numéro de loi ou décret", readOnlyHint=True))
 async def resolve_law_number(numero: str) -> dict[str, Any]:
     """Résout un numéro de loi/ordonnance/décret vers son identifiant LEGITEXT
     ou JORFTEXT Légifrance.
@@ -928,7 +941,8 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
     return await legi.resolve_number(numero)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="URL Légifrance canonique", readOnlyHint=True))
 async def build_source_url(identifier: str, legitext: str = "", date: str = "") -> dict[str, Any]:
     """Construit l'URL canonique d'un document à partir de son identifiant.
 
@@ -969,7 +983,8 @@ async def build_source_url(identifier: str, legitext: str = "", date: str = "") 
     return {"id": identifier, "source_url": url}
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décision du Conseil constitutionnel par numéro", readOnlyHint=True))
 async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | None:
     """Récupère une décision du Conseil constitutionnel par son numéro.
 
@@ -988,7 +1003,8 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | Non
     return dila.get_cc_decision(numero, nature or None)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décision du Conseil d'État par numéro", readOnlyHint=True))
 async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     """Récupère une décision du Conseil d'État par son numéro de pourvoi.
 
@@ -1008,7 +1024,8 @@ async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     return await jade_remote.get_ce_decision(numero)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décision administrative par numéro de requête", readOnlyHint=True))
 async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, Any]:
     """Récupère une décision administrative par son **numéro de requête exact**.
 
@@ -1054,7 +1071,8 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche Conseil constitutionnel", readOnlyHint=True))
 async def search_cc(
     query: str,
     nature: str = "",
@@ -1103,7 +1121,8 @@ async def search_cc(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche Cour EDH", readOnlyHint=True))
 async def search_cedh(query: str, limit: int = 20) -> dict[str, Any]:
     """Recherche textuelle dans la jurisprudence de la Cour européenne des
     droits de l'homme.
@@ -1120,7 +1139,8 @@ async def search_cedh(query: str, limit: int = 20) -> dict[str, Any]:
     return european.search_cedh(query=query, limit=limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Texte intégral d'une décision CEDH", readOnlyHint=True))
 async def get_decision_cedh(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision de la Cour européenne des
     droits de l'homme sur la base de son identifiant système (itemid HUDOC).
@@ -1132,7 +1152,8 @@ async def get_decision_cedh(decision_id: str) -> dict[str, Any] | None:
     return european.get_cedh(decision_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche CJUE", readOnlyHint=True))
 async def search_cjue(query: str, limit: int = 20) -> dict[str, Any]:
     """Recherche textuelle dans la jurisprudence de la Cour de justice de
     l'Union européenne.
@@ -1149,7 +1170,8 @@ async def search_cjue(query: str, limit: int = 20) -> dict[str, Any]:
     return european.search_cjue(query=query, limit=limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Texte intégral d'un arrêt CJUE", readOnlyHint=True))
 async def get_decision_cjue(decision_id: str) -> dict[str, Any] | None:
     """Extraction du texte intégral d'une décision de la Cour de justice de
     l'Union européenne sur la base de son identifiant normalisé (CELEX).
@@ -1170,7 +1192,8 @@ async def get_decision_cjue(decision_id: str) -> dict[str, Any] | None:
 # par date. Préférer ces outils pour trouver la jurisprudence
 # pertinente sur un sujet.
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche administrative (JADE, BM25)", readOnlyHint=True))
 async def search_admin(
     query: str,
     juridiction: str = "",
@@ -1217,7 +1240,8 @@ async def search_admin(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche articles de loi (LEGI)", readOnlyHint=True))
 async def search_legi(
     query: str,
     code: str = "",
@@ -1267,7 +1291,8 @@ async def search_legi(
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche Journal officiel (JORF)", readOnlyHint=True))
 async def search_jorf(
     query: str,
     nature: str = "",
@@ -1298,7 +1323,8 @@ async def search_jorf(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche conventions collectives (KALI)", readOnlyHint=True))
 async def search_kali(
     query: str,
     idcc: str = "",
@@ -1323,7 +1349,8 @@ async def search_kali(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche délibérations CNIL", readOnlyHint=True))
 async def search_cnil(
     query: str,
     limit: int = 20,
@@ -1345,7 +1372,8 @@ async def search_cnil(
 # du Code civil en 1992 = texte napoléonien, pas la réforme 2016).
 # C'est le "killer feature" que Dalloz vend 200€/mois, exposé ici gratis.
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Article de loi à une date donnée", readOnlyHint=True))
 async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]:
     """Renvoie le texte d'un article de loi à une date donnée (ou version
     actuelle si `date` vide).
@@ -1379,7 +1407,8 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Versions historiques d'un article de loi", readOnlyHint=True))
 async def get_law_versions(code: str, num: str) -> dict[str, Any]:
     """Renvoie toutes les versions historiques d'un article de loi, du plus
     ancien au plus récent.
@@ -1404,7 +1433,8 @@ async def get_law_versions(code: str, num: str) -> dict[str, Any]:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Décisions citant un article de loi", readOnlyHint=True))
 async def search_decisions_citing(
     code: str,
     num: str,
@@ -1524,7 +1554,8 @@ async def search_decisions_citing(
 
 # ─── TOOL UNIFIÉ : search_all ──────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche fédérée toutes sources", readOnlyHint=True))
 async def search_all(
     query: str,
     sources: list[str] | None = None,
