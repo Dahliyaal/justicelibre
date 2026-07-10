@@ -789,9 +789,19 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 # d'appel de Paris"). On matche sur (exact) OU (accent-insensible)
                 # OU (ville extraite). Sans ça, le nom long renvoyait 0 résultat
                 # → faux "introuvable" trompeur.
-                jn = juridiction.replace("État", "Etat")
-                conds = ["juridiction = ?", "juridiction LIKE ?"]
-                vals = [juridiction, f"%{jn}%"]
+                # Matching accent-insensible bi-directionnel : la base contient
+                # à la fois "Conseil d'Etat" (113k) ET "Conseil d'État" (57k)
+                # pour la même juridiction. Il faut donc matcher les DEUX
+                # variantes, sinon "Conseil d'Etat" (sans accent) rate les
+                # 57k lignes avec accent (bug reproduit pour CE n°407974).
+                jn_noacc = juridiction.replace("État", "Etat").replace("é","e").replace("è","e").replace("ê","e")
+                jn_acc   = juridiction.replace("Etat", "État")
+                conds = [
+                    "juridiction = ?",
+                    "juridiction LIKE ?",  # accent-insensible via LIKE (SQLite non-strict)
+                    "juridiction LIKE ?",  # variante forcée avec accent
+                ]
+                vals = [juridiction, f"%{jn_noacc}%", f"%{jn_acc}%"]
                 # Extraire la ville : retirer les mots de type juridictionnel
                 city = re.sub(
                     r"(?i)\b(cour|administrative|administratif|d['’]appel|appel|"
