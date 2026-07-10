@@ -17,6 +17,7 @@ into Claude Desktop / Cursor / any MCP client.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -37,7 +38,7 @@ from sources import (
 
 mcp = FastMCP(
     "justicelibre",
-    instructions="""Protocole d'accès libre à la jurisprudence et au droit positif français + européen (24 tools).
+    instructions="""Protocole d'accès libre à la jurisprudence et au droit positif français + européen (30 tools).
 
 TOOL D'ENTRÉE : `search_all` — recherche fédérée fan-out avec ranking BM25
 + thésaurus juridique FR automatique (ex : "harcèlement" → aussi
@@ -57,8 +58,7 @@ complet. Pour lire une décision en entier, TOUJOURS enchaîner avec le tool
 d'extraction correspondant à l'id renvoyé. Ne JAMAIS conclure « texte
 indisponible / pas dans la base » à partir d'un snippet seul, ni rediriger
 l'utilisateur vers Légifrance sans avoir tenté l'extraction. Ces tools
-peuvent être "deferred" (absents de la liste visible) → les charger via
-tool_search avant de les appeler.
+peuvent être chargés à la demande par certains clients MCP.
 • `get_decision_text` (admin : DCE_*/DTA_*/DCAA_*/CETATEXT*/Ariane_Web)
 • `get_decision_judiciaire_libre` (judiciaire : JURITEXT*/CONSTEXT*)
 • `get_decision_cedh` (001-*)   • `get_decision_cjue` (CELEX/ECLI)
@@ -67,7 +67,8 @@ ARTICLES DE LOI (killer feature unique à justicelibre) :
 • `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
   Ex : art. 1128 CC en 1992 → texte napoléonien, pas la réforme 2016.
 • `get_law_versions(code, num)` — timeline complète historique.
-• `search_legi` — 1,75 M articles des 72 codes consolidés.
+• `search_legi` — ~1,5 M articles (22 codes consolidés + Constitution
+  + 3 lois non codifiées).
 • `search_decisions_citing(code, num)` — cross-référence inverse.
 
 DROIT POSITIF COMPLÉMENTAIRE :
@@ -87,9 +88,9 @@ justicelibre.org/tutoriel-piste.html.
 
 PROTOCOLE D'USAGE : pour tout doute, commencer par `about_justicelibre`
 qui détaille la cartographie. Sinon : `search_all(query)` couvre 90% des
-besoins. 72 codes de loi consolidés supportés (CC, CP, CPC, CPP, CT, CSP,
-CJA, CGI, LPF, COJ, CGFP, CESEDA, CCP… liste complète via
-`about_justicelibre` ou `search_legi`).
+besoins. 26 codes/textes supportés : 22 codes consolidés (CC, CP, CPC,
+CPP, CT, CSP, CJA, CGI, CESEDA…) + Constitution + 3 lois non codifiées
+(liste complète via `about_justicelibre` ou `search_legi`).
 """,
 )
 
@@ -223,6 +224,36 @@ def _client() -> httpx.AsyncClient:
     )
 
 
+def _tool_error(message, *, category, retryable=False, **extra):
+    """Réponse d'erreur uniforme : message actionnable + catégorie + retryable.
+
+    category : "validation" (paramètres invalides, ne pas retenter à l'identique),
+    "not_found" (résultat vide légitime, l'objet n'existe pas dans la base),
+    "upstream" (source de données en échec — timeout, 5xx : retenter peut réussir),
+    "auth" (jeton expiré/invalide).
+    """
+    out = {"error": message, "error_category": category, "retryable": retryable}
+    out.update(extra)
+    return out
+
+
+def _annotate_pagination(data, limit, offset, results_key):
+    """Annonce la troncature au modèle : si le total dépasse ce qui a été
+    renvoyé, ajoute `truncated` + `next_offset` pour signaler qu'il reste
+    des résultats à paginer (au lieu de laisser croire à une liste complète)."""
+    if not isinstance(data, dict):
+        return data
+    results = data.get(results_key)
+    if not isinstance(results, list):
+        return data
+    total = data.get("total", 0)
+    returned = len(results)
+    if isinstance(total, int) and total > offset + returned:
+        data["truncated"] = True
+        data["next_offset"] = offset + returned
+    return data
+
+
 @mcp.tool(annotations=ToolAnnotations(
     title="À propos de JusticeLibre", readOnlyHint=True))
 async def about_justicelibre() -> dict[str, Any]:
@@ -254,7 +285,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "2_admin_pertinence": {
                 "tools": ["search_admin", "list_juridictions"],
-                "volume": "~4M décisions JADE : CE + 9 CAA + 40 TA full text",
+                "volume": "~550 000 décisions JADE : CE + 9 CAA + 40 TA full text",
                 "strengths": "Ranking BM25 (vraie pertinence) + snippets + date range. REMPLACE les tools date-sorted pour trouver la jurisprudence pertinente.",
                 "id_format": "DCE_*, DTA_*, DCAA_*",
                 "id_compatible_with": "get_decision_text",
@@ -265,7 +296,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "3_dila_judiciaire": {
                 "tools": ["search_judiciaire_libre", "get_decision_judiciaire_libre"],
-                "volume": "~620 000 décisions : Cour de cassation + 36 Cours d'appel + Conseil constitutionnel (archives DILA locales)",
+                "volume": "~1,17 M décisions : Cour de cassation + 36 Cours d'appel + Conseil constitutionnel (archives DILA locales)",
                 "strengths": "Index local FTS5, aucune auth. Opérateurs FTS5 (phrase exacte, AND, OR, préfixe*).",
                 "id_format": "JURITEXT*, CONSTEXT*, JURI*",
                 "id_compatible_with": "get_decision_judiciaire_libre",
@@ -293,7 +324,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "7_articles_loi": {
                 "tools": ["get_law_article", "get_law_versions", "search_legi", "search_decisions_citing"],
-                "volume": "~3,6 Go bulk LEGI : 22 codes consolidés (CC, CP, CT, etc.) AVEC toutes les versions historiques",
+                "volume": "~3,6 Go bulk LEGI : 26 codes/textes (22 codes consolidés — CC, CP, CT, etc. — + Constitution + 3 lois non codifiées) AVEC toutes les versions historiques",
                 "strengths": "**Killer feature** : récupérer un article à sa version en vigueur à une date précise. Ex: art. 1128 CC en 1992 → texte napoléonien ; en 2024 → texte réforme 2016. Ce que Dalloz facture 200€/mois.",
                 "id_format": "LEGIARTI*",
                 "id_compatible_with": "get_law_article / get_law_versions",
@@ -311,7 +342,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "10_cnil": {
                 "tools": ["search_cnil"],
-                "volume": "~26 000 délibérations CNIL",
+                "volume": "~8 000 délibérations CNIL",
                 "strengths": "Droit des données personnelles (RGPD).",
             },
         },
@@ -400,8 +431,15 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
             offset=40, etc. pour obtenir les pages suivantes.
     """
     _record_call("search_conseil_etat")
+    if not query.strip():
+        return _tool_error(
+            "Le paramètre query est requis (2-5 mots-clés distinctifs, ex : "
+            "\"référé liberté\").",
+            category="validation",
+        )
     async with _client() as client:
-        return await ariane.search(client, query=query, limit=limit, skip=offset)
+        result = await ariane.search(client, query=query, limit=limit, skip=offset)
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -448,7 +486,7 @@ async def search_admin_recent(
 async def search_admin_recent_all_ta(
     query: str,
     limit_per_court: int = 5,
-    total_limit: int = 0,
+    total_limit: int = 60,
 ) -> dict[str, Any]:
     """Requête simultanée de l'ensemble des 40 Tribunaux Administratifs.
 
@@ -460,10 +498,10 @@ async def search_admin_recent_all_ta(
     Args:
         query: mots-clés de recherche
         limit_per_court: nombre de résultats par tribunal (défaut 5, soit
-            jusqu'à 200 résultats totaux en l'absence de `total_limit`)
-        total_limit: plafond global après fusion (0 = aucun plafond). Si
-            positif, tronque la liste fusionnée aux N entrées les plus
-            récentes.
+            jusqu'à 200 résultats totaux avant application de `total_limit`)
+        total_limit: plafond global après fusion (défaut 60 ; 0 = aucun
+            plafond). Si positif, tronque la liste fusionnée aux N entrées
+            les plus récentes.
 
     Returns:
         Dict comportant `per_court_totals` (nombre de hits par TA),
@@ -563,7 +601,7 @@ def _dec_cache_put(key: str, val: Any) -> None:
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision administrative", readOnlyHint=True))
-async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
+async def get_decision_text(decision_id: str) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision relevant de l'ordre
     administratif (Conseil d'État, TA, CAA).
 
@@ -586,9 +624,10 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         decision_id: identifiant de la décision (avec ou sans suffixe .xml)
 
     Returns:
-        Dict comportant les métadonnées complètes, `text_segments` (liste
-        des paragraphes) et `full_text` (texte intégral joint), ou None si
-        la décision est introuvable.
+        Dict comportant les métadonnées complètes et `full_text` (texte
+        intégral). Si la décision est introuvable, dict d'erreur structuré
+        `{error, error_category: "not_found", retryable}` avec les tools
+        alternatifs à essayer.
     """
     _record_call("get_decision_text")
     cached = _dec_cache_get(f"text:{decision_id}")
@@ -607,11 +646,12 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         async with _client() as client:
             text = await ariane.fetch_full_text(client, aid)
         if not text:
-            return {"error": (
+            return _tool_error(
                 f"Décision ArianeWeb {aid!r} introuvable ou texte indisponible "
                 "(plugin Sinequa muet). Vérifier l'identifiant via "
-                "`search_conseil_etat`."
-            )}
+                "`search_conseil_etat`.",
+                category="not_found",
+            )
         meta = _parse_ariane_header(text)
         result = {
             "id": aid,
@@ -620,26 +660,28 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
             "numero": meta.get("numero", ""),
             "ecli": meta.get("ecli", ""),
             "date": meta.get("date", ""),
-            "text_segments": [s for s in text.split("\n\n") if s.strip()],
             "full_text": text,
         }
         _dec_cache_put(f"text:{decision_id}", result)
         return result
     if decision_id.startswith("JURITEXT") or decision_id.startswith("JURI"):
-        return {"error": (
+        return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) relève du format JURITEXT (ordre judiciaire). "
-            "Recourir à `get_decision_judiciaire_libre(decision_id)` en remplacement."
-        )}
+            "Recourir à `get_decision_judiciaire_libre(decision_id)` en remplacement.",
+            category="validation",
+        )
     if decision_id.startswith(("6", "7", "8", "9")) and any(x in decision_id for x in ("CJ", "TJ", "CO", "CC")):
-        return {"error": (
+        return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) correspond à un CELEX européen. "
-            "Recourir à `get_decision_cjue(decision_id)` en remplacement."
-        )}
+            "Recourir à `get_decision_cjue(decision_id)` en remplacement.",
+            category="validation",
+        )
     if decision_id.startswith("001-") or decision_id.startswith("002-") or decision_id.startswith("003-"):
-        return {"error": (
+        return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) correspond à un itemid HUDOC (Cour EDH). "
-            "Recourir à `get_decision_cedh(decision_id)` en remplacement."
-        )}
+            "Recourir à `get_decision_cedh(decision_id)` en remplacement.",
+            category="validation",
+        )
     # JADE bulk local : les id CETATEXT… (renvoyés par search_admin) sont la clé
     # primaire de jade_decisions, texte intégral inclus. Lookup direct dans le
     # bulk — l'API elastic externe ci-dessous ne connaît pas ce format d'id et
@@ -649,8 +691,6 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         row = await wh.get_decision_remote("jade", decision_id)
         if row and (row.get("texte") or "").strip():
             text = row["texte"]
-            segs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()] \
-                or [l for l in text.split("\n") if l.strip()]
             result = {
                 "id": row.get("id"),
                 "source": "jade_bulk",
@@ -660,7 +700,6 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
                 "date": row.get("date"),
                 "titre": row.get("titre"),
                 "sommaire": row.get("sommaire") or "",
-                "text_segments": segs,
                 "full_text": text,
             }
             _dec_cache_put(f"text:{decision_id}", result)
@@ -668,6 +707,19 @@ async def get_decision_text(decision_id: str) -> dict[str, Any] | None:
         # absent du bulk → on tente quand même l'API externe ci-dessous
     async with _client() as client:
         result = await juriadmin.get_decision(client, decision_id=decision_id)
+    if result is None:
+        return _tool_error(
+            f"Décision {decision_id!r} introuvable (bulk JADE local + API "
+            "opendata). Vérifier l'identifiant via `search_admin` (BM25) ou "
+            "`get_admin_decision(numero)` pour un lookup par numéro de "
+            "requête ; pour un arrêt CE d'intérêt jurisprudentiel, tenter "
+            "`search_conseil_etat` (ArianeWeb).",
+            category="not_found",
+        )
+    # La couche juriadmin renvoie text_segments + full_text (2x le même
+    # texte) : on ne garde que full_text pour économiser les tokens.
+    if isinstance(result, dict) and result.get("full_text"):
+        result.pop("text_segments", None)
     _dec_cache_put(f"text:{decision_id}", result)
     return result
 
@@ -683,12 +735,13 @@ async def search_judiciaire_libre(
     date_min: str = "",
     date_max: str = "",
     limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """Recherche plein texte dans la jurisprudence judiciaire, exécutée
     localement et affranchie de toute obligation d'authentification
     gouvernementale.
 
-    Exploite l'index FTS5 des archives publiques DILA (~620 000 décisions :
+    Exploite l'index FTS5 des archives publiques DILA (~1,17 M décisions :
     Cour de cassation, 36 cours d'appel, Conseil constitutionnel). Scoring
     BM25 disponible mais tri appliqué par ordre chronologique décroissant.
 
@@ -719,24 +772,36 @@ async def search_judiciaire_libre(
             qui matche toutes les variantes typographiques.
         date_min: date min ISO (YYYY-MM-DD), optionnel
         date_max: date max ISO (YYYY-MM-DD), optionnel
-        limit: nombre maximum de résultats (défaut 20)
+        limit: nombre maximum de résultats (défaut 20, max 50)
+        offset: décalage pour paginer (défaut 0). Si la réponse contient
+            `truncated: true`, réitérer avec `next_offset` pour la suite.
     """
     _record_call("search_judiciaire_libre")
-    return dila.search(
+    if not query.strip() and not numero_rg.strip():
+        return _tool_error(
+            "Fournir query (mots-clés FTS5) ou numero_rg.",
+            category="validation",
+        )
+    offset = max(0, int(offset))
+    # SQLite synchrone → thread dédié pour ne pas bloquer l'event loop
+    result = await asyncio.to_thread(
+        dila.search,
         query=query,
         juridiction=juridiction or None,
         numero_rg=numero_rg or None,
         date_min=date_min or None,
         date_max=date_max or None,
         limit=limit,
+        offset=offset,
     )
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision judiciaire (DILA)", readOnlyHint=True))
 async def get_decision_judiciaire_libre(
     decision_id: str,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision judiciaire depuis l'index
     indépendant (sans authentification).
 
@@ -756,11 +821,21 @@ async def get_decision_judiciaire_libre(
     if cached is not None:
         return cached
     if decision_id.startswith(("DCE_", "DTA_", "DCAA_")) or decision_id.startswith("/Ariane_Web/"):
-        return {"error": (
+        return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) relève de l'ordre administratif. "
-            "Recourir à `get_decision_text(decision_id)` en remplacement."
-        )}
-    result = dila.get_decision(decision_id)
+            "Recourir à `get_decision_text(decision_id)` en remplacement.",
+            category="validation",
+        )
+    result = await asyncio.to_thread(dila.get_decision, decision_id)
+    if result is None:
+        return _tool_error(
+            f"Décision {decision_id!r} introuvable dans l'archive DILA "
+            "locale. La base ne contient qu'un sous-ensemble des arrêts "
+            "publiés : vérifier l'identifiant via `search_judiciaire_libre`, "
+            "ou tenter `get_decision_judiciaire` (API PISTE) si la décision "
+            "est récente.",
+            category="not_found",
+        )
     _dec_cache_put(f"judi:{decision_id}", result)
     return result
 
@@ -768,15 +843,44 @@ async def get_decision_judiciaire_libre(
 # ─── JUSTICE JUDICIAIRE - BYOK PISTE OAuth2 ──────────────────────
 
 _NO_CREDS_MSG = (
-    "L'accès via PISTE requiert des identifiants OAuth2 (gratuits). "
+    "L'accès via PISTE requiert une authentification OAuth2 (gratuite). "
     "Dans la majorité des cas, privilégier `search_judiciaire_libre` ou "
     "`get_decision_judiciaire_libre`, qui interrogent l'archive locale "
-    "DILA (~620 000 décisions, sans authentification). Ne recourir à "
+    "DILA (~1,17 M décisions, sans authentification). Ne recourir à "
     "l'API PISTE qu'en cas de besoin avéré des toutes dernières décisions "
-    "non encore archivées. Obtenir un Client ID et un Client Secret PISTE "
-    "via https://justicelibre.org/tutoriel-piste.html, puis les transmettre "
-    "en paramètres."
+    "non encore archivées. Deux méthodes : 1) obtenir un session token "
+    "temporaire sur https://justicelibre.org/tutoriel-piste.html et le "
+    "passer en `session_token` ; 2) en auto-hébergement, définir les "
+    "variables d'environnement PISTE_CLIENT_ID / PISTE_CLIENT_SECRET côté "
+    "serveur. Ne JAMAIS transmettre un Client Secret PISTE dans la "
+    "conversation."
 )
+
+
+def _piste_http_error(e: httpx.HTTPStatusError) -> dict[str, Any]:
+    """Traduit une erreur HTTP PISTE en erreur structurée actionnable."""
+    code = e.response.status_code
+    if code in (401, 403):
+        return _tool_error(
+            f"Jeton PISTE expiré ou invalide (HTTP {code}). Régénérer un "
+            "session token, ou vérifier les variables d'environnement "
+            "PISTE_CLIENT_ID / PISTE_CLIENT_SECRET en auto-hébergement.",
+            category="auth",
+            regenerate_token_url="https://justicelibre.org/tutoriel-piste.html",
+        )
+    if code == 429:
+        return _tool_error(
+            "Rate-limit PISTE atteint (HTTP 429). Retenter après quelques "
+            "secondes, ou basculer sur `search_judiciaire_libre` (archive "
+            "locale, sans quota).",
+            category="upstream", retryable=True,
+        )
+    return _tool_error(
+        f"L'API PISTE a renvoyé HTTP {code}. Basculer sur "
+        "`search_judiciaire_libre` / `get_decision_judiciaire_libre` "
+        "(archive locale DILA) si la décision a plus de ~2 ans.",
+        category="upstream",
+    )
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -784,8 +888,6 @@ _NO_CREDS_MSG = (
 async def search_judiciaire(
     query: str,
     session_token: str = "",
-    client_id: str = "",
-    client_secret: str = "",
     juridiction: str = "",
     limit: int = 20,
 ) -> dict[str, Any]:
@@ -797,19 +899,17 @@ async def search_judiciaire(
     décisions récentes absentes de la base libre DILA, compte tenu de
     l'entrave technique imposée par la Cour de cassation.
 
-    Deux méthodes d'authentification disponibles :
+    Authentification (les identifiants PISTE ne transitent JAMAIS par la
+    conversation) :
     1. `session_token` : jeton temporaire obtenu sur
-       justicelibre.org/tutoriel-piste.html (procédé recommandé, préserve
-       la confidentialité des identifiants).
-    2. `client_id` + `client_secret` : identifiants PISTE directs
-       (transmission en chat déconseillée).
+       justicelibre.org/tutoriel-piste.html (procédé recommandé).
+    2. Auto-hébergement : variables d'environnement PISTE_CLIENT_ID et
+       PISTE_CLIENT_SECRET définies côté serveur.
 
     Args:
         query: mots-clés de recherche
         session_token: jeton justicelibre temporaire (obtenu via le
             formulaire du site)
-        client_id: Client ID PISTE (alternative au session_token)
-        client_secret: Client Secret PISTE (alternative au session_token)
         juridiction: filtre optionnel — "cc" (Cour de cassation), "ca"
             (cours d'appel), "tj" (tribunaux judiciaires), "tcom"
             (tribunaux de commerce). Vide = toutes juridictions.
@@ -821,6 +921,8 @@ async def search_judiciaire(
         if not bearer:
             return {
                 "error": "Jeton de session expiré ou invalide.",
+                "error_category": "auth",
+                "retryable": False,
                 "fallback": "Si la décision recherchée a plus de ~2 ans, utiliser `search_judiciaire_libre` (base DILA locale, sans authentification) avant de tenter de régénérer un token.",
                 "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
             }
@@ -830,8 +932,17 @@ async def search_judiciaire(
             params: dict[str, Any] = {"query": query, "page_size": min(int(limit), 50)}
             if juridiction and juridiction in judilibre.JURIDICTIONS:
                 params["jurisdiction"] = juridiction
-            r = await client.get(f"{judilibre.BASE}/search", headers=headers, params=params)
-            r.raise_for_status()
+            try:
+                r = await client.get(f"{judilibre.BASE}/search", headers=headers, params=params)
+                r.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                return _piste_http_error(e)
+            except httpx.HTTPError as e:
+                return _tool_error(
+                    f"Erreur réseau vers l'API PISTE : {e}. Retenter, ou "
+                    "basculer sur `search_judiciaire_libre` (archive locale).",
+                    category="upstream", retryable=True,
+                )
             data = r.json()
             results = data.get("results", [])
             return {
@@ -840,17 +951,26 @@ async def search_judiciaire(
                 "decisions": [judilibre._normalize_decision(d) for d in results],
             }
 
-    # Method 2: direct credentials (fallback)
-    cid = client_id or os.environ.get("PISTE_CLIENT_ID", "")
-    csec = client_secret or os.environ.get("PISTE_CLIENT_SECRET", "")
+    # Method 2: credentials serveur (env vars, auto-hébergement uniquement)
+    cid = os.environ.get("PISTE_CLIENT_ID", "")
+    csec = os.environ.get("PISTE_CLIENT_SECRET", "")
     if not cid or not csec:
-        return {"error": _NO_CREDS_MSG}
+        return _tool_error(_NO_CREDS_MSG, category="auth")
     _record_call("search_judiciaire")
     async with _client() as client:
-        return await judilibre.search(
-            client, client_id=cid, client_secret=csec, query=query,
-            juridiction=juridiction or None, limit=limit,
-        )
+        try:
+            return await judilibre.search(
+                client, client_id=cid, client_secret=csec, query=query,
+                juridiction=juridiction or None, limit=limit,
+            )
+        except httpx.HTTPStatusError as e:
+            return _piste_http_error(e)
+        except httpx.HTTPError as e:
+            return _tool_error(
+                f"Erreur réseau vers l'API PISTE : {e}. Retenter, ou "
+                "basculer sur `search_judiciaire_libre` (archive locale).",
+                category="upstream", retryable=True,
+            )
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -858,9 +978,7 @@ async def search_judiciaire(
 async def get_decision_judiciaire(
     decision_id: str,
     session_token: str = "",
-    client_id: str = "",
-    client_secret: str = "",
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision judiciaire via l'API
     restreinte PISTE (authentification OAuth2 requise).
 
@@ -870,44 +988,84 @@ async def get_decision_judiciaire(
     Outil formellement inopérant pour les décisions relevant de l'ordre
     administratif (formats `DCE_*`, `DTA_*`, `DCAA_*`, `/Ariane_Web/...`).
 
+    Authentification (les identifiants PISTE ne transitent JAMAIS par la
+    conversation) : `session_token` obtenu sur
+    justicelibre.org/tutoriel-piste.html, ou variables d'environnement
+    PISTE_CLIENT_ID / PISTE_CLIENT_SECRET côté serveur (auto-hébergement).
+
     Args:
         decision_id: identifiant Judilibre de la décision
         session_token: jeton justicelibre temporaire (recommandé)
-        client_id: Client ID PISTE (alternative)
-        client_secret: Client Secret PISTE (alternative)
     """
     if decision_id.startswith(("DCE_", "DTA_", "DCAA_")) or decision_id.startswith("/Ariane_Web/"):
-        return {"error": (
+        return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) relève de l'ordre administratif. "
-            "Recourir à `get_decision_text(decision_id)` en remplacement."
-        )}
+            "Recourir à `get_decision_text(decision_id)` en remplacement.",
+            category="validation",
+        )
+    _not_found = _tool_error(
+        f"Décision {decision_id!r} introuvable via l'API PISTE. Vérifier "
+        "l'identifiant via `search_judiciaire`, ou tenter "
+        "`get_decision_judiciaire_libre` si la décision figure dans les "
+        "archives DILA.",
+        category="not_found",
+    )
     # Method 1: session token
     if session_token:
         bearer = _resolve_session(session_token)
         if not bearer:
             return {
                 "error": "Jeton de session expiré ou invalide.",
+                "error_category": "auth",
+                "retryable": False,
                 "fallback": "Tenter `get_decision_judiciaire_libre` avec le même ID si la décision existe dans les archives DILA.",
                 "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
             }
         _record_call("get_decision_judiciaire")
         async with _client() as client:
             headers = {"Authorization": f"Bearer {bearer}"}
-            r = await client.get(f"{judilibre.BASE}/decision", headers=headers, params={"id": decision_id})
-            r.raise_for_status()
+            try:
+                r = await client.get(f"{judilibre.BASE}/decision", headers=headers, params={"id": decision_id})
+                r.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    return _not_found
+                return _piste_http_error(e)
+            except httpx.HTTPError as e:
+                return _tool_error(
+                    f"Erreur réseau vers l'API PISTE : {e}. Retenter, ou "
+                    "basculer sur `get_decision_judiciaire_libre`.",
+                    category="upstream", retryable=True,
+                )
             data = r.json()
             if not data:
-                return None
+                return _not_found
             return judilibre._normalize_decision(data)
 
-    # Method 2: direct credentials
-    cid = client_id or os.environ.get("PISTE_CLIENT_ID", "")
-    csec = client_secret or os.environ.get("PISTE_CLIENT_SECRET", "")
+    # Method 2: credentials serveur (env vars, auto-hébergement uniquement)
+    cid = os.environ.get("PISTE_CLIENT_ID", "")
+    csec = os.environ.get("PISTE_CLIENT_SECRET", "")
     if not cid or not csec:
-        return {"error": _NO_CREDS_MSG}
+        return _tool_error(_NO_CREDS_MSG, category="auth")
     _record_call("get_decision_judiciaire")
     async with _client() as client:
-        return await judilibre.get_decision(client, client_id=cid, client_secret=csec, decision_id=decision_id)
+        try:
+            result = await judilibre.get_decision(
+                client, client_id=cid, client_secret=csec, decision_id=decision_id
+            )
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return _not_found
+            return _piste_http_error(e)
+        except httpx.HTTPError as e:
+            return _tool_error(
+                f"Erreur réseau vers l'API PISTE : {e}. Retenter, ou "
+                "basculer sur `get_decision_judiciaire_libre`.",
+                category="upstream", retryable=True,
+            )
+    if result is None:
+        return _not_found
+    return result
 
 
 # ─── COURS EUROPÉENNES (CJUE + CEDH) — index local, sans auth ────
@@ -919,7 +1077,7 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
     ou JORFTEXT Légifrance.
 
     Utile pour les textes non codifiés (lois, ordonnances, décrets) qui ne
-    sont pas dans la whitelist des 25 codes courts (CC, CP, LIL, LO58, etc.).
+    sont pas dans la whitelist des 26 codes courts (CC, CP, LIL, LO58, etc.).
     Une fois le LEGITEXT/JORFTEXT résolu, on peut l'utiliser avec
     `get_law_article(code=<LEGITEXT>, num=<N>)` pour récupérer un article
     spécifique.
@@ -975,17 +1133,23 @@ async def build_source_url(identifier: str, legitext: str = "", date: str = "") 
     """
     _record_call("build_source_url")
     if not identifier.strip():
-        return {"error": "identifier requis"}
+        return _tool_error("identifier requis", category="validation")
     from sources import warehouse as wh
     url = await wh.build_url(identifier, legitext or None, date or None)
     if not url:
-        return {"error": f"format d'identifiant non reconnu : {identifier!r}"}
+        return _tool_error(
+            f"format d'identifiant non reconnu : {identifier!r}. Formats "
+            "acceptés : LEGIARTI*, LEGITEXT*, JORFTEXT*, JURITEXT*, "
+            "CONSTEXT*, CETATEXT*, CELEX, ECLI:*, itemid HUDOC (001-*), "
+            "ArianeWeb.",
+            category="validation",
+        )
     return {"id": identifier, "source_url": url}
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Décision du Conseil constitutionnel par numéro", readOnlyHint=True))
-async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | None:
+async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any]:
     """Récupère une décision du Conseil constitutionnel par son numéro.
 
     Format attendu : "AA-NNN NATURE" ou juste "AA-NNN" (ex : "79-105 DC",
@@ -997,15 +1161,25 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any] | Non
         nature: filtre optionnel (QPC, DC, L, etc.) — cf search_cc
 
     Returns:
-        `{id, titre, date, juridiction, nature, ecli, text}` ou None.
+        `{id, titre, date, juridiction, nature, ecli, text}`, ou dict
+        d'erreur structuré `{error, error_category: "not_found"}` si
+        introuvable.
     """
     _record_call("get_cc_decision")
-    return dila.get_cc_decision(numero, nature or None)
+    result = await asyncio.to_thread(dila.get_cc_decision, numero, nature or None)
+    if result is None:
+        return _tool_error(
+            f"Décision du Conseil constitutionnel {numero!r} introuvable. "
+            "Vérifier le format du numéro ('AA-NNN' ou 'AA-NNN DC', ex : "
+            "'79-105 DC') ou chercher par mots-clés via `search_cc`.",
+            category="not_found",
+        )
+    return result
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Décision du Conseil d'État par numéro", readOnlyHint=True))
-async def get_ce_decision(numero: str) -> dict[str, Any] | None:
+async def get_ce_decision(numero: str) -> dict[str, Any]:
     """Récupère une décision du Conseil d'État par son numéro de pourvoi.
 
     Essaie d'abord le bulk JADE DILA (lookup SQL exact), puis si introuvable
@@ -1018,10 +1192,21 @@ async def get_ce_decision(numero: str) -> dict[str, Any] | None:
         numero: numéro de pourvoi (ex : "497566", "358109")
 
     Returns:
-        Décision avec métadonnées, ou None si introuvable dans les deux bases.
+        Décision avec métadonnées, ou dict d'erreur structuré
+        `{error, error_category: "not_found"}` si introuvable dans les
+        deux bases.
     """
     _record_call("get_ce_decision")
-    return await jade_remote.get_ce_decision(numero)
+    result = await jade_remote.get_ce_decision(numero)
+    if result is None:
+        return _tool_error(
+            f"Décision CE n° {numero} introuvable (bulk JADE + ArianeWeb). "
+            "Essayer `search_admin(query=numero)` (recherche full text), ou "
+            "`get_decision_text` si l'identifiant Légifrance CETATEXT est "
+            "connu.",
+            category="not_found",
+        )
+    return result
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -1066,8 +1251,11 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     _record_call("get_admin_decision")
     result = await jade_remote.get_admin_decision(numero, juridiction or None)
     if result is None:
-        return {"error": f"Décision n° {numero} introuvable dans JADE (bulk DILA). "
-                         f"Si la décision est récente (< 3 mois), essayer `search_admin_recent`."}
+        return _tool_error(
+            f"Décision n° {numero} introuvable dans JADE (bulk DILA). "
+            "Si la décision est récente (< 3 mois), essayer `search_admin_recent`.",
+            category="not_found",
+        )
     return result
 
 
@@ -1112,18 +1300,26 @@ async def search_cc(
         `{"total", "returned", "nature_filter", "decisions": [...]}`
     """
     _record_call("search_cc")
-    return dila.search_cc(
+    if not query.strip():
+        return _tool_error(
+            "Le paramètre query est requis (mots-clés FTS5, ex : "
+            "\"proportionnalité\").",
+            category="validation",
+        )
+    result = await asyncio.to_thread(
+        dila.search_cc,
         query=query,
         nature=nature or None,
         date_min=date_min or None,
         date_max=date_max or None,
         limit=limit, offset=offset,
     )
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Recherche Cour EDH", readOnlyHint=True))
-async def search_cedh(query: str, limit: int = 20) -> dict[str, Any]:
+async def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
     """Recherche textuelle dans la jurisprudence de la Cour européenne des
     droits de l'homme.
 
@@ -1133,28 +1329,52 @@ async def search_cedh(query: str, limit: int = 20) -> dict[str, Any]:
 
     Args:
         query: mots-clés (ex : "article 8 vie familiale", "garde à vue")
-        limit: nombre maximum de résultats (défaut 20)
+        limit: nombre maximum de résultats (défaut 20, max 50)
+        offset: décalage pour paginer (défaut 0). Si la réponse contient
+            `truncated: true`, réitérer avec `next_offset` pour la suite.
     """
     _record_call("search_cedh")
-    return european.search_cedh(query=query, limit=limit)
+    if not query.strip():
+        return _tool_error(
+            "Le paramètre query est requis (mots-clés, ex : \"article 8 "
+            "vie familiale\").",
+            category="validation",
+        )
+    offset = max(0, int(offset))
+    result = await asyncio.to_thread(
+        european.search_cedh, query=query, limit=limit, offset=offset
+    )
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision CEDH", readOnlyHint=True))
-async def get_decision_cedh(decision_id: str) -> dict[str, Any] | None:
+async def get_decision_cedh(decision_id: str) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision de la Cour européenne des
     droits de l'homme sur la base de son identifiant système (itemid HUDOC).
 
     Args:
         decision_id: itemid HUDOC (ex : "001-249914")
+
+    Returns:
+        Décision avec `full_text`, ou dict d'erreur structuré
+        `{error, error_category: "not_found"}` si l'itemid est inconnu.
     """
     _record_call("get_decision_cedh")
-    return european.get_cedh(decision_id)
+    result = await asyncio.to_thread(european.get_cedh, decision_id)
+    if result is None:
+        return _tool_error(
+            f"Itemid HUDOC {decision_id!r} introuvable dans l'index CEDH "
+            "local. Vérifier l'identifiant (format 001-XXXXXX) via "
+            "`search_cedh`.",
+            category="not_found",
+        )
+    return result
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Recherche CJUE", readOnlyHint=True))
-async def search_cjue(query: str, limit: int = 20) -> dict[str, Any]:
+async def search_cjue(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
     """Recherche textuelle dans la jurisprudence de la Cour de justice de
     l'Union européenne.
 
@@ -1164,28 +1384,56 @@ async def search_cjue(query: str, limit: int = 20) -> dict[str, Any]:
 
     Args:
         query: mots-clés (ex : "libre circulation capitaux", "CJUE C-72/24")
-        limit: nombre maximum de résultats (défaut 20)
+        limit: nombre maximum de résultats (défaut 20, max 50)
+        offset: décalage pour paginer (défaut 0). Si la réponse contient
+            `truncated: true`, réitérer avec `next_offset` pour la suite.
     """
     _record_call("search_cjue")
-    return european.search_cjue(query=query, limit=limit)
+    if not query.strip():
+        return _tool_error(
+            "Le paramètre query est requis (mots-clés, ex : \"libre "
+            "circulation capitaux\").",
+            category="validation",
+        )
+    offset = max(0, int(offset))
+    result = await asyncio.to_thread(
+        european.search_cjue, query=query, limit=limit, offset=offset
+    )
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'un arrêt CJUE", readOnlyHint=True))
-async def get_decision_cjue(decision_id: str) -> dict[str, Any] | None:
+async def get_decision_cjue(decision_id: str) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision de la Cour de justice de
     l'Union européenne sur la base de son identifiant normalisé (CELEX).
 
+    Seuls les identifiants CELEX sont acceptés — un ECLI seul ne suffit
+    pas : retrouver d'abord le CELEX correspondant via `search_cjue`.
+
     Args:
-        decision_id: identifiant CELEX (ex : "62024CJ0072") ou ECLI
+        decision_id: identifiant CELEX (ex : "62024CJ0072")
+
+    Returns:
+        Décision avec `full_text`, ou dict d'erreur structuré
+        `{error, error_category: "not_found"}` si le CELEX est inconnu.
     """
     _record_call("get_decision_cjue")
-    return european.get_cjue(decision_id)
+    result = await asyncio.to_thread(european.get_cjue, decision_id)
+    if result is None:
+        return _tool_error(
+            f"Identifiant {decision_id!r} introuvable dans l'index CJUE "
+            "local. Seuls les CELEX sont acceptés (ex : '62024CJ0072') — "
+            "pour un ECLI ou un n° d'affaire (C-72/24), retrouver le CELEX "
+            "via `search_cjue`.",
+            category="not_found",
+        )
+    return result
 
 
 # ─── BULKS DILA — RECHERCHE BM25 SUR ARCHIVES COMPLÈTES ────────────
 # Ces outils exploitent les bulks DILA ingérés en local sur al-uzza :
-# jade (4M décisions admin), legi (codes+lois consolidés), jorf (JO
+# jade (~550 k décisions admin), legi (codes+lois consolidés), jorf (JO
 # post-1990), kali (conventions collectives), cnil (délibérations).
 # Tous avec ranking BM25 (vraie pertinence) + snippet + date range.
 # Différence-clé avec les tools `*_recent` : tri par pertinence, pas
@@ -1233,11 +1481,12 @@ async def search_admin(
         {"total", "returned", "decisions": [...]} avec extracts BM25.
     """
     _record_call("search_admin")
-    return await jade_remote.search(
+    result = await jade_remote.search(
         query=query, juridiction=juridiction or None, sort=sort,
         date_min=date_min or None, date_max=date_max or None,
         limit=limit, offset=offset,
     )
+    return _annotate_pagination(result, limit, offset, "decisions")
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -1272,7 +1521,7 @@ async def search_legi(
         date_min=date_min or None, date_max=date_max or None,
         code=code or None,
     )
-    return {
+    result = {
         "total": data.get("total", 0),
         "returned": data.get("returned", 0),
         "limit": limit, "offset": offset,
@@ -1289,6 +1538,7 @@ async def search_legi(
             for h in data.get("results", [])
         ],
     }
+    return _annotate_pagination(result, limit, offset, "articles")
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -1316,11 +1566,12 @@ async def search_jorf(
         {"total", "returned", "textes": [...]}
     """
     _record_call("search_jorf")
-    return await jorf_remote.search(
+    result = await jorf_remote.search(
         query=query, nature=nature or None,
         date_min=date_min or None, date_max=date_max or None,
         limit=limit, offset=offset,
     )
+    return _annotate_pagination(result, limit, offset, "textes")
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -1343,10 +1594,11 @@ async def search_kali(
         limit: max 50
     """
     _record_call("search_kali")
-    return await kali_remote.search(
+    result = await kali_remote.search(
         query=query, idcc=idcc or None,
         limit=limit, offset=offset,
     )
+    return _annotate_pagination(result, limit, offset, "textes")
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -1358,11 +1610,12 @@ async def search_cnil(
 ) -> dict[str, Any]:
     """Recherche dans les délibérations de la CNIL.
 
-    Source : bulk CNIL (109 Mo, ~26k délibérations). Utile pour le droit
+    Source : bulk CNIL (109 Mo, ~8 000 délibérations). Utile pour le droit
     des données personnelles, RGPD, traitements algorithmiques.
     """
     _record_call("search_cnil")
-    return await cnil_remote.search(query=query, limit=limit, offset=offset)
+    result = await cnil_remote.search(query=query, limit=limit, offset=offset)
+    return _annotate_pagination(result, limit, offset, "deliberations")
 
 
 # ─── ARTICLES DE LOI (codes consolidés, versions historiques) ───────
@@ -1383,9 +1636,10 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
     2016. Avec ce tool on récupère le texte **tel qu'il existait en 1992**
     (l'ancienne version napoléonienne), pas le texte actuel.
 
-    Codes supportés (22) : CC, CP, CPC, CPP, CT, CSP, CJA, CGCT, CRPA,
-    CPI, CASF, CMF, C.com, C.cons, C.éduc, CU, C.env, CR, CGI, CESEDA,
-    CSS, CCH.
+    Codes/textes supportés (26) : 22 codes consolidés — CC, CP, CPC, CPP,
+    CT, CSP, CJA, CGCT, CRPA, CPI, CASF, CMF, C.com, C.cons, C.éduc, CU,
+    C.env, CR, CGI, CESEDA, CSS, CCH — + 4 textes non codifiés : CONST
+    (Constitution), LIL, LO58, L2005-102.
 
     Args:
         code: code court (ex : "CC" pour Code civil, "CT" pour Code du travail)
@@ -1418,7 +1672,8 @@ async def get_law_versions(code: str, num: str) -> dict[str, Any]:
     avec `date_debut`, `date_fin`, `etat`, `texte` distincts).
 
     Args:
-        code: code court (voir get_law_article pour la liste des 22 codes)
+        code: code court (voir get_law_article pour la liste des 26
+            codes/textes)
         num: numéro de l'article
 
     Returns:
@@ -1466,12 +1721,17 @@ async def search_decisions_citing(
 
     Returns:
         dict `{"code", "num", "total", "per_source": {source: count},
-        "decisions": [{source, id, juridiction, date, title, extract}]}`
+        "decisions": [{source, id, juridiction, date, title, extract}]}`.
+        Si une source est en panne, elle est absente de `per_source` et
+        détaillée dans `source_errors` (résultats alors incomplets).
     """
     _record_call("search_decisions_citing")
     if not legi.is_supported(code):
-        return {"error": f"Code inconnu: {code!r}",
-                "supported_codes": list(legi.SUPPORTED_CODES.keys())}
+        return _tool_error(
+            f"Code inconnu: {code!r}",
+            category="validation",
+            supported_codes=list(legi.SUPPORTED_CODES.keys()),
+        )
     code_long = legi.SUPPORTED_CODES[code]
     limit = max(1, min(int(limit), 50))
     # Construire une query FTS5 couvrant les formulations habituelles.
@@ -1486,10 +1746,23 @@ async def search_decisions_citing(
     allowed = set(sources) if sources else {"dila", "jade", "cedh", "cjue"}
     results = []
     per_source: dict[str, int] = {}
+    # Pannes séparées des comptages : per_source ne contient QUE des int,
+    # les erreurs vont dans source_errors (structuré, retryable).
+    source_errors: dict[str, dict[str, Any]] = {}
+
+    def _record_error(src: str, e: Exception) -> None:
+        source_errors[src] = {
+            "error": f"Source {src} en échec : {e}",
+            "error_category": "upstream",
+            "retryable": True,
+        }
+
     # DILA (local FTS5)
     if "dila" in allowed:
         try:
-            d = dila.search(query=query, juridiction="", limit=limit)
+            d = await asyncio.to_thread(
+                dila.search, query=query, juridiction="", limit=limit
+            )
             for h in d.get("decisions", []):
                 results.append({
                     "source": "dila", "id": h.get("id"),
@@ -1499,7 +1772,7 @@ async def search_decisions_citing(
                 })
             per_source["dila"] = d.get("total", 0)
         except Exception as e:
-            per_source["dila"] = f"error: {e}"
+            _record_error("dila", e)
     # JADE (via warehouse)
     if "jade" in allowed:
         try:
@@ -1514,11 +1787,13 @@ async def search_decisions_citing(
                 })
             per_source["jade"] = d.get("total", 0)
         except Exception as e:
-            per_source["jade"] = f"error: {e}"
+            _record_error("jade", e)
     # CEDH
     if "cedh" in allowed:
         try:
-            d = european.search_cedh(query=query, limit=limit)
+            d = await asyncio.to_thread(
+                european.search_cedh, query=query, limit=limit
+            )
             for h in d.get("decisions", []):
                 results.append({
                     "source": "cedh", "id": h.get("id"),
@@ -1528,11 +1803,13 @@ async def search_decisions_citing(
                 })
             per_source["cedh"] = d.get("total", 0)
         except Exception as e:
-            per_source["cedh"] = f"error: {e}"
+            _record_error("cedh", e)
     # CJUE
     if "cjue" in allowed:
         try:
-            d = european.search_cjue(query=query, limit=limit)
+            d = await asyncio.to_thread(
+                european.search_cjue, query=query, limit=limit
+            )
             for h in d.get("decisions", []):
                 results.append({
                     "source": "cjue", "id": h.get("id"),
@@ -1542,14 +1819,22 @@ async def search_decisions_citing(
                 })
             per_source["cjue"] = d.get("total", 0)
         except Exception as e:
-            per_source["cjue"] = f"error: {e}"
-    return {
+            _record_error("cjue", e)
+    out = {
         "code": code, "num": num,
         "query_built": query,
         "total": len(results),
         "per_source": per_source,
         "decisions": results[:limit * len(allowed)],
     }
+    if source_errors:
+        out["source_errors"] = source_errors
+        out["warning"] = (
+            f"{len(source_errors)} source(s) en échec — résultats "
+            "potentiellement incomplets, retenter ou interroger la source "
+            "directement."
+        )
+    return out
 
 
 # ─── TOOL UNIFIÉ : search_all ──────────────────────────────────────
@@ -1581,11 +1866,16 @@ async def search_all(
             "cjue"]. None = toutes.
         sort: "relevance" (défaut) ou "date_desc"
         date_min, date_max: ISO YYYY-MM-DD
-        limit: nombre de résultats fusionnés (défaut 30, max 100)
+        limit: nombre de résultats fusionnés (défaut 30, max 100 ; chaque
+            source locale plafonne à 50 résultats par appel)
         expand_synonyms: active le thésaurus (défaut True)
 
     Returns:
-        dict {"query_expanded", "per_source_counts", "results": [...]}
+        dict {"query_expanded", "per_source_counts", "results": [...]}.
+        `per_source_counts` ne compte que les sources ayant répondu ; si
+        une source est en panne, elle est détaillée dans `source_errors`
+        et un `warning` signale des résultats potentiellement incomplets.
+        `truncated: true` + `note` signalent que la fusion dépasse `limit`.
     """
     _record_call("search_all")
     limit = max(1, min(int(limit), 100))
@@ -1606,13 +1896,19 @@ async def search_all(
         "legi": 0.80,  # articles de loi (pertinents mais on veut des décisions)
     }
 
-    import asyncio
+    async def _run(q: str) -> tuple[dict[str, int], list[dict], dict[str, dict]]:
+        # Pannes visibles : une source en échec ne doit PAS apparaître comme
+        # "0 résultat" (le modèle conclurait à tort qu'il n'y a pas de
+        # jurisprudence). errors est partagé, _search_one retourne None
+        # comme total en cas d'échec.
+        errors: dict[str, dict[str, Any]] = {}
 
-    async def _run(q: str) -> tuple[dict[str, int], list[dict]]:
         async def _search_one(src: str):
             try:
                 if src == "dila":
-                    d = dila.search(query=q, juridiction="", limit=limit)
+                    # SQLite synchrone → thread pour ne pas bloquer l'event loop
+                    d = await asyncio.to_thread(
+                        dila.search, query=q, juridiction="", limit=limit)
                     hits = [{"source": "dila", "id": h.get("id"),
                              "juridiction": h.get("juridiction"),
                              "date": h.get("date"), "title": h.get("title"),
@@ -1639,7 +1935,8 @@ async def search_all(
                              "score": 1.0} for h in d.get("results", [])]
                     return src, d.get("total", 0), hits
                 if src == "cedh":
-                    d = european.search_cedh(query=q, limit=limit)
+                    d = await asyncio.to_thread(
+                        european.search_cedh, query=q, limit=limit)
                     hits = [{"source": "cedh", "id": h.get("id"),
                              "juridiction": "Cour EDH",
                              "date": h.get("date"), "title": h.get("title"),
@@ -1647,7 +1944,8 @@ async def search_all(
                              "score": 1.0} for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "cjue":
-                    d = european.search_cjue(query=q, limit=limit)
+                    d = await asyncio.to_thread(
+                        european.search_cjue, query=q, limit=limit)
                     hits = [{"source": "cjue", "id": h.get("id"),
                              "juridiction": "CJUE",
                              "date": h.get("date"), "title": h.get("title"),
@@ -1655,7 +1953,12 @@ async def search_all(
                              "score": 1.0} for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
             except Exception as e:
-                return src, 0, [{"source": src, "error": str(e)}]
+                errors[src] = {
+                    "error": f"Source {src} en échec : {e}",
+                    "error_category": "upstream",
+                    "retryable": True,
+                }
+                return src, None, []
             return src, 0, []
 
         tasks = [_search_one(s) for s in allowed]
@@ -1663,31 +1966,31 @@ async def search_all(
         ps: dict[str, int] = {}
         merged_local: list[dict] = []
         for src, total, hits in results_raw:
+            if total is None:
+                continue  # source en panne → détaillée dans errors
             ps[src] = total
             boost = AUTHORITY.get(src, 1.0)
             for rank, h in enumerate(hits):
-                if "error" in h:
-                    continue
                 # -rank*0.001 préserve l'ordre BM25 interne à chaque source : une
                 # décision classée avant une autre par sa source le reste à boost
                 # égal (évite qu'une décision citante passe devant la vraie).
                 h["score"] = h.get("score", 1.0) * boost - rank * 0.001
                 merged_local.append(h)
         merged_local.sort(key=lambda h: h.get("score", 0), reverse=True)
-        return ps, merged_local
+        return ps, merged_local, errors
 
     # 1er essai (avec expansion si demandée)
-    per_source, merged = await _run(q_expanded)
+    per_source, merged, source_errors = await _run(q_expanded)
     fallback_used = False
     # Fallback : si l'expansion thésaurus a tué tous les résultats (cas
     # fréquent quand la requête a beaucoup de termes libres, le AND implicite
     # FTS5 vide l'intersection), retomber sur la query nue. Évite de répondre
     # 0 résultats alors que la version sans expansion en aurait des dizaines.
     if not merged and q_expanded != query:
-        per_source, merged = await _run(query)
+        per_source, merged, source_errors = await _run(query)
         fallback_used = True
 
-    return {
+    out = {
         "query": query,
         "query_expanded": q_expanded if q_expanded != query else None,
         "fallback_no_expand": fallback_used,
@@ -1695,6 +1998,21 @@ async def search_all(
         "total_returned": len(merged[:limit]),
         "results": merged[:limit],
     }
+    if source_errors:
+        out["source_errors"] = source_errors
+        out["warning"] = (
+            f"{len(source_errors)} source(s) en échec — résultats "
+            "potentiellement incomplets, retenter ou interroger la source "
+            "directement."
+        )
+    if len(merged) > limit:
+        out["truncated"] = True
+        out["note"] = (
+            f"{len(merged)} résultats fusionnés, seuls les {limit} premiers "
+            "sont renvoyés — affiner la query ou augmenter `limit` "
+            "(max 100) pour en voir davantage."
+        )
+    return out
 
 
 if __name__ == "__main__":
