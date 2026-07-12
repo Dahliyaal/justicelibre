@@ -17,7 +17,7 @@ sys.stdout.reconfigure(line_buffering=True)
 DB_PATH = "/opt/justicelibre/dila/judiciaire.db"
 BASE = "https://hudoc.echr.coe.int"
 BATCH = 500  # list-only batch, pas de fetch_text dans la boucle de listing
-USER_AGENT = "justicelibre.org/1.0 (gap-filler)"
+USER_AGENT = "justicelibre.org/1.0 (open data scraper, contact: dahliyaal@justicelibre.org)"
 QUERY_BASE = (
     'contentsitename=ECHR AND '
     '(NOT (doctype=PR OR doctype=HFCOMOLD OR doctype=HECOMOLD)) AND '
