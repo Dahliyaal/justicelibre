@@ -59,6 +59,16 @@ def ensure_schema(conn):
         INSERT INTO ariane_fts(rowid, ariane_id, text)
         VALUES (new.rowid, new.ariane_id, new.text);
     END;
+    CREATE TRIGGER IF NOT EXISTS ariane_ad AFTER DELETE ON ariane_decisions BEGIN
+        INSERT INTO ariane_fts(ariane_fts, rowid, ariane_id, text)
+        VALUES ('delete', old.rowid, old.ariane_id, old.text);
+    END;
+    CREATE TRIGGER IF NOT EXISTS ariane_au AFTER UPDATE ON ariane_decisions BEGIN
+        INSERT INTO ariane_fts(ariane_fts, rowid, ariane_id, text)
+        VALUES ('delete', old.rowid, old.ariane_id, old.text);
+        INSERT INTO ariane_fts(rowid, ariane_id, text)
+        VALUES (new.rowid, new.ariane_id, new.text);
+    END;
     """)
     conn.commit()
 
@@ -114,6 +124,7 @@ def main():
     print(f"[ariane] start ; UA = {USER_AGENT}")
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
     conn.execute("PRAGMA cache_size=-32000")
     ensure_schema(conn)

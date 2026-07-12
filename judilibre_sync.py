@@ -287,6 +287,7 @@ def main() -> int:
         p.error("--rgs ou --history requis")
     conn = sqlite3.connect(DB, timeout=300)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     token = get_token()
     headers = {"Authorization": f"Bearer {token}"}
     rc = 0

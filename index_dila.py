@@ -177,6 +177,7 @@ ALL_COLS = BASE_COLS + EXTRA_COLS
 def create_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA synchronous=NORMAL")
 
     # Table de base avec les 12 colonnes historiques
@@ -219,6 +220,22 @@ def create_db(db_path: str) -> sqlite3.Connection:
 
     conn.execute("""
         CREATE TRIGGER IF NOT EXISTS decisions_ai AFTER INSERT ON decisions BEGIN
+            INSERT INTO decisions_fts(rowid, id, titre, juridiction, solution, numero, formation, text)
+            VALUES (new.rowid, new.id, new.titre, new.juridiction, new.solution, new.numero, new.formation, new.text);
+        END
+    """)
+
+    conn.execute("""
+        CREATE TRIGGER IF NOT EXISTS decisions_ad AFTER DELETE ON decisions BEGIN
+            INSERT INTO decisions_fts(decisions_fts, rowid, id, titre, juridiction, solution, numero, formation, text)
+            VALUES ('delete', old.rowid, old.id, old.titre, old.juridiction, old.solution, old.numero, old.formation, old.text);
+        END
+    """)
+
+    conn.execute("""
+        CREATE TRIGGER IF NOT EXISTS decisions_au AFTER UPDATE ON decisions BEGIN
+            INSERT INTO decisions_fts(decisions_fts, rowid, id, titre, juridiction, solution, numero, formation, text)
+            VALUES ('delete', old.rowid, old.id, old.titre, old.juridiction, old.solution, old.numero, old.formation, old.text);
             INSERT INTO decisions_fts(rowid, id, titre, juridiction, solution, numero, formation, text)
             VALUES (new.rowid, new.id, new.titre, new.juridiction, new.solution, new.numero, new.formation, new.text);
         END

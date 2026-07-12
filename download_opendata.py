@@ -171,6 +171,20 @@ def insert_decision(c: sqlite3.Connection, hit: dict, full_text: str | None):
         return False
     # last_modified est plus fiable que Date_Lecture pour le tri/lastmod sitemap
     date_for_sitemap = src.get("Date_Lecture") or src.get("lastModified", "")[:10]
+    # opendata_fts est contentless (content='') et maintenu à la main : le
+    # INSERT OR REPLACE ci-dessous réassigne un nouveau rowid à la décision,
+    # laissant l'ancienne entrée FTS orpheline (recherche corrompue à la
+    # ré-importation). On purge donc l'ancienne entrée AVANT le REPLACE, avec
+    # ses valeurs exactes (contentless exige la commande 'delete' + valeurs).
+    old = c.execute(
+        "SELECT rowid, id, juridiction_name, numero_dossier, texte "
+        "FROM opendata_decisions WHERE id = ?", (decision_id,)
+    ).fetchone()
+    if old and old[4]:  # ancienne entrée FTS présente seulement si texte non vide
+        c.execute(
+            "INSERT INTO opendata_fts(opendata_fts, rowid, id, juridiction, "
+            "numero_dossier, texte) VALUES ('delete', ?, ?, ?, ?, ?)", old
+        )
     c.execute("""
         INSERT OR REPLACE INTO opendata_decisions
         (id, juridiction_code, juridiction_name, date, numero_dossier, ecli,

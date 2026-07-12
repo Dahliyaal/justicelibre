@@ -56,6 +56,16 @@ def ensure_schema(conn):
         INSERT INTO cjue_fts(rowid, celex, ecli, title, text)
         VALUES (new.rowid, new.celex, new.ecli, new.title, new.text);
     END;
+    CREATE TRIGGER IF NOT EXISTS cjue_ad AFTER DELETE ON cjue_decisions BEGIN
+        INSERT INTO cjue_fts(cjue_fts, rowid, celex, ecli, title, text)
+        VALUES ('delete', old.rowid, old.celex, old.ecli, old.title, old.text);
+    END;
+    CREATE TRIGGER IF NOT EXISTS cjue_au AFTER UPDATE ON cjue_decisions BEGIN
+        INSERT INTO cjue_fts(cjue_fts, rowid, celex, ecli, title, text)
+        VALUES ('delete', old.rowid, old.celex, old.ecli, old.title, old.text);
+        INSERT INTO cjue_fts(rowid, celex, ecli, title, text)
+        VALUES (new.rowid, new.celex, new.ecli, new.title, new.text);
+    END;
     """)
     conn.commit()
 
@@ -117,6 +127,7 @@ def celex_to_ecli(celex):
 def main():
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
     conn.execute("PRAGMA cache_size=-8000")
     ensure_schema(conn)

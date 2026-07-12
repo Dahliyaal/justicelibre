@@ -153,6 +153,7 @@ def find_text_with_fallback(client, itemid, ecli):
 def main():
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
 
     rows = conn.execute(

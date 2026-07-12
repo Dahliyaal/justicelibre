@@ -89,6 +89,7 @@ def list_all_itemids_for_year(client, year):
 def main():
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
 
     existing = conn.execute("SELECT COUNT(*) FROM cedh_decisions").fetchone()[0]
