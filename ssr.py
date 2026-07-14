@@ -272,14 +272,17 @@ def _lang_warning(text_lang: str, decision_id: str, source: str) -> str:
     if lang == "fr" or not lang:
         return ""
     lang_name = _LANG_NAMES.get(lang, lang)
-    deepl_url = f"https://www.deepl.com/translator#{lang}/fr/"
+    # lang vient de la DB (HUDOC/curia), non validé : on ne l'injecte dans l'URL
+    # que s'il est whitelisté, sinon fallback 'en' — et on esc() par sécurité.
+    deepl_lang = lang if lang in _LANG_NAMES else "en"
+    deepl_url = f"https://www.deepl.com/translator#{deepl_lang}/fr/"
     return (
         '<div class="lang-warning">'
         '<div class="lang-warning__inner">'
         f'<strong>Texte original en {esc(lang_name)}.</strong> '
         f"La version française de cette décision n'a pas été publiée. "
         "Vous pouvez le traduire via un service externe : "
-        f'<a href="{deepl_url}" target="_blank" rel="external noopener">DeepL ↗</a> '
+        f'<a href="{esc(deepl_url)}" target="_blank" rel="external noopener">DeepL ↗</a> '
         "(coller le texte ci-dessous)."
         '</div>'
         '</div>'
@@ -310,7 +313,7 @@ def _official_source_button(decision_id: str) -> str:
     label, url = pat
     return (
         '<div class="source-cta">'
-        '<a class="btn-source" href="' + url + '" target="_blank" rel="external noopener nofollow">'
+        '<a class="btn-source" href="' + esc(url) + '" target="_blank" rel="external noopener nofollow">'
         '<span class="btn-source-label">Voir sur ' + label + '</span>'
         '<span class="btn-source-arrow">→</span>'
         '</a>'
@@ -638,6 +641,23 @@ def esc(s: str) -> str:
     return html.escape(s or "", quote=True)
 
 
+def _jsonld_embed(obj) -> str:
+    """Sérialise un objet en JSON valide et sûr pour <script type="application/ld+json">.
+
+    Contexte <script> = raw text : html.escape() y produirait &quot; etc. que le
+    parseur JSON de Google ne décode pas (structured data ignorée). On échappe
+    donc <, > et & en séquences unicode JSON (\\u003c ...) : JSON valide ET aucun
+    </script> ne peut fermer la balise.
+    """
+    import json as _json
+    return (
+        _json.dumps(obj, ensure_ascii=False)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+
+
 def _strip(text: str, n: int = 200) -> str:
     """Premiers `n` caractères de texte propre pour <meta description>."""
     if not text:
@@ -686,9 +706,11 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 
     # Titre H1 : juridiction en kicker, le n° + date en gros
     main_id = f"n° {numero}" if numero else titre_brut or f"Décision {decision_id}"
-    title_h1 = main_id
+    # main_id = numero / titre_brut / decision_id BRUTS (DB) → esc() obligatoire en H1.
+    main_id_html = f"n° {esc(numero)}" if numero else esc(titre_brut) or f"Décision {esc(decision_id)}"
+    title_h1 = main_id_html
     if date:
-        title_h1 = f"{main_id} <em>· {esc(_format_fr_date(date))}</em>"
+        title_h1 = f"{main_id_html} <em>· {esc(_format_fr_date(date))}</em>"
     title_h1_plain = f"{main_id} · {_format_fr_date(date)}" if date else main_id
     title_seo = f"{juri or main_id}, {numero or ''} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
 
@@ -740,8 +762,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
         "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
-    import json as _json
-    jsonld_str = esc(_json.dumps(jsonld_clean, ensure_ascii=False))
+    jsonld_str = _jsonld_embed(jsonld_clean)
 
     rows = []
     if juri: rows.append(("Juridiction", esc(juri)))
@@ -769,7 +790,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
         meta_html += (
             f'<tr class="source-row"><th>Source officielle</th>'
             f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
-            f'{_source_host(source_url)} ↗</a></td></tr>'
+            f'{esc(_source_host(source_url))} ↗</a></td></tr>'
         )
     bulk_label, bulk_url = BULK_SOURCES.get(source, ("", ""))
     if bulk_url:
@@ -892,8 +913,7 @@ def render_law(code: str, num: str, data: dict) -> str:
         "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
-    import json as _json
-    jsonld_str = esc(_json.dumps(jsonld_clean, ensure_ascii=False))
+    jsonld_str = _jsonld_embed(jsonld_clean)
 
     rows = [("Code", esc(code_label)), ("État", esc(etat or "-"))]
     if date_debut: rows.append(("En vigueur depuis", esc(_format_fr_date(date_debut))))
@@ -907,7 +927,7 @@ def render_law(code: str, num: str, data: dict) -> str:
         meta_html += (
             f'<tr class="source-row"><th>Source officielle</th>'
             f'<td><a href="{esc(source_url)}" target="_blank" rel="external noopener">'
-            f'{_source_host(source_url)} ↗</a></td></tr>'
+            f'{esc(_source_host(source_url))} ↗</a></td></tr>'
         )
     # Bulk LEGI pour les articles de loi (toujours pareil)
     meta_html += (
@@ -948,7 +968,7 @@ def render_law(code: str, num: str, data: dict) -> str:
 <main class="wrap">
   <div class="kicker">{esc(code_label)}</div>
   <h1>Article <em>{esc(num)}</em></h1>
-  <p class="subline">Article{(' en vigueur depuis le ' + _format_fr_date(date_debut)) if date_debut else ''}.</p>
+  <p class="subline">Article{(' en vigueur depuis le ' + esc(_format_fr_date(date_debut))) if date_debut else ''}.</p>
   <table class="meta-table">{meta_html}</table>
   <article>{text_html}{nota_html}</article>
   <footer class="page-footer">
