@@ -74,7 +74,8 @@ juri_rows.sort(key=lambda r: (type_rank.get(r["type"], 99), r["nom"]))
 )
 
 # ─── PRADA (sans nom par défaut, colonne 'prada' omise) ────────────
-INCLUDE_NAMES = False  # flip à True pour publier les noms de personnes physiques
+INCLUDE_NAMES = True  # l'art. L.330-1 CRPA impose de "désigner" la PRADA ;
+                       # publier le nom fait partie de l'obligation légale
 prada_rows = []
 prada_with_mail = 0
 with (SRC / "prada_full.csv").open(encoding="utf-8") as f:
