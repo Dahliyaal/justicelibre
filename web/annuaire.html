@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Annuaire des juridictions et PRADA — JusticeLibre</title>
+<meta name="description" content="Adresses électroniques fonctionnelles des juridictions françaises et des personnes responsables de l'accès aux documents administratifs (PRADA). Sources : DILA + CADA.">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta property="og:title" content="Annuaire des juridictions et PRADA — JusticeLibre">
+<meta property="og:description" content="1 711 juridictions + 2 247 PRADA. Sources officielles DILA + CADA, avec les trous chiffrés.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://justicelibre.org/annuaire.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260501">
+<link rel="stylesheet" href="/styles/components.css?v=20260501">
+<style>
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.6}
+html,body{background:var(--cream);color:var(--ink)}
+html{scrollbar-color:var(--line) var(--cream)}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{border-color:var(--cream)}
+::-webkit-scrollbar-corner{background:var(--cream)}
+
+.hero{padding:4rem 2.5rem 2rem;text-align:center;max-width:900px;margin:0 auto}
+.hero h1{font-family:var(--display);font-size:clamp(2.2rem,5vw,3.6rem);font-weight:400;line-height:1.15;color:var(--ink);margin-bottom:1.2rem}
+.hero h1 em{color:var(--teal);font-style:italic}
+.hero p{font-size:1.1rem;color:var(--body);max-width:680px;margin:0 auto 1rem;line-height:1.7}
+.hero .sources{font-size:.85rem;color:var(--muted);margin-top:.8rem}
+.hero .sources code{background:var(--teal-xl);color:var(--teal);padding:.05rem .3rem;border-radius:2px;font-size:.85em}
+
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem 2.5rem 4rem}
+section.block{margin:3rem 0}
+section.block > h2{font-family:var(--display);font-size:1.8rem;font-weight:400;color:var(--ink);margin-bottom:.4rem;
+  padding-bottom:.6rem;border-bottom:2px solid var(--teal-xl)}
+section.block > p.intro{color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;font-style:italic;max-width:820px}
+
+/* Stat tiles */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;margin:1.5rem 0 2rem}
+.stat{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:1rem 1.2rem}
+.stat .n{font-family:var(--display);font-size:2rem;color:var(--teal);line-height:1}
+.stat .l{font-size:.78rem;color:var(--muted);margin-top:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.stat.warn .n{color:var(--gold)}
+
+/* Coverage table (les trous chiffrés) */
+.coverage{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--white);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.coverage th,.coverage td{padding:.55rem .8rem;text-align:left;border-bottom:1px solid var(--line)}
+.coverage th{background:var(--teal-xl);color:var(--teal);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+.coverage tr:last-child td{border-bottom:0}
+.coverage .rate{font-weight:600;font-variant-numeric:tabular-nums}
+.coverage .rate.bad{color:#c1440e}
+.coverage .rate.warn{color:var(--gold)}
+.coverage .rate.ok{color:var(--teal)}
+.coverage .bar{display:inline-block;height:6px;background:var(--teal-xl);border-radius:3px;vertical-align:middle;margin-left:.4rem;min-width:60px;position:relative}
+.coverage .bar::before{content:"";position:absolute;left:0;top:0;bottom:0;background:currentColor;border-radius:3px;width:var(--w,0%)}
+
+/* Filters bar */
+.filters{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:.8rem 1rem;margin-bottom:1rem}
+.filters input[type=text], .filters select{border:1px solid var(--line);border-radius:4px;padding:.4rem .6rem;font-size:.9rem;background:var(--cream);font-family:inherit;color:var(--ink)}
+.filters input[type=text]{flex:1;min-width:220px}
+.filters label{font-size:.85rem;color:var(--body);display:flex;align-items:center;gap:.4rem;cursor:pointer;user-select:none}
+.filters .count{margin-left:auto;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Data table */
+.wrap-tbl{background:var(--white);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tbl-scroll{overflow-x:auto;max-height:70vh;overflow-y:auto}
+table.data{width:100%;border-collapse:collapse;font-size:.88rem}
+table.data th{position:sticky;top:0;background:var(--teal-xl);color:var(--teal);font-weight:600;
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:.6rem .8rem;
+  border-bottom:1px solid var(--line);z-index:2;white-space:nowrap;cursor:pointer;user-select:none}
+table.data th.no-sort{cursor:default}
+table.data th .arr{opacity:.4;margin-left:.2rem;font-size:.7em}
+table.data th.sorted .arr{opacity:1}
+table.data td{padding:.5rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+table.data td.type{font-size:.75rem;color:var(--muted);white-space:nowrap}
+table.data td.nom{font-weight:500;color:var(--ink)}
+table.data td.mail{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;font-size:.82rem;word-break:break-all}
+table.data td.mail a{color:var(--teal);text-decoration:none}
+table.data td.mail a:hover{text-decoration:underline}
+table.data td.no-mail{color:#c1440e;font-style:italic;font-size:.8rem}
+table.data td.action{white-space:nowrap;text-align:right}
+table.data tr.empty td{text-align:center;padding:2rem;color:var(--muted);font-style:italic}
+table.data .signal{background:none;border:1px solid var(--line);color:var(--muted);
+  padding:.2rem .5rem;border-radius:3px;cursor:pointer;font-size:.72rem;text-decoration:none}
+table.data .signal:hover{background:var(--teal-xl);border-color:var(--teal);color:var(--teal)}
+
+/* Tabs */
+.tabs{display:flex;gap:.5rem;margin-bottom:1.2rem;border-bottom:2px solid var(--teal-xl)}
+.tabs button{background:none;border:0;padding:.7rem 1.2rem;font-size:.95rem;font-family:inherit;font-weight:500;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:color .15s,border-color .15s}
+.tabs button:hover{color:var(--ink)}
+.tabs button.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+.download-row{display:flex;gap:.6rem;flex-wrap:wrap;margin:.8rem 0 1.5rem}
+.download-row a{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:4px;
+  background:var(--teal-xl);color:var(--teal);text-decoration:none;font-size:.85rem;font-weight:500}
+.download-row a:hover{background:var(--teal);color:#fff}
+.download-row .kbd{background:var(--white);border:1px solid var(--line);color:var(--muted);
+  font-size:.75rem;padding:.4rem .7rem;border-radius:4px}
+
+.infobox{background:var(--teal-xl);border-left:4px solid var(--teal);padding:1.2rem 1.4rem;border-radius:0 6px 6px 0;margin:1.5rem 0}
+.infobox p{font-size:.92rem;color:var(--ink);margin:0}
+.infobox p + p{margin-top:.6rem}
+.infobox.warn{background:#fef9e8;border-left-color:var(--gold)}
+
+footer.foot{padding:2rem 2.5rem;background:var(--white);border-top:1px solid var(--line);text-align:center;font-size:.78rem;color:var(--muted)}
+footer.foot a{color:var(--muted)}
+footer.foot a:hover{color:var(--teal)}
+
+[hidden]{display:none!important}
+</style>
+<script defer src="/topbar.js?v=4"></script>
+</head>
+<body>
+
+<div data-topbar-mount></div>
+
+<section class="hero">
+  <h1>Annuaire des <em>juridictions</em> et PRADA.</h1>
+  <p>Adresses électroniques fonctionnelles des tribunaux, cours d'appel, conseils de prud'hommes, SPIP, ordres d'avocats — et personnes responsables de l'accès aux documents administratifs (article L. 330-1 du CRPA). Agrégé depuis les sources officielles, avec les trous mesurés.</p>
+  <p class="sources">Sources : dump quotidien <code>DILA</code> + <code>api-lannuaire.service-public.fr</code> (Premier ministre) + annuaire des PRADA <code>CADA</code>.
+  <br><span id="meta-date">Chargement…</span></p>
+</section>
+
+<main class="wrap">
+
+<!-- BANDEAU : LES TROUS CHIFFRÉS -->
+<section class="block">
+  <h2>Complétude par type de juridiction</h2>
+  <p class="intro">Taux de publication d'une adresse électronique fonctionnelle par catégorie. Les 10 cours d'appel qui publient un mail n'ont aucun pattern commun (<code>ca-caen@</code>, <code>accueil.ca-limoges@</code>, <code>accueil-besancon@</code>…) : une adresse non publiée est indevinable.</p>
+  <div id="coverage-tiles" class="stats"></div>
+  <div style="overflow-x:auto"><table class="coverage" id="coverage-table"><thead><tr><th>Type</th><th>Total</th><th>Avec mail</th><th style="width:35%">Taux</th></tr></thead><tbody></tbody></table></div>
+  <div class="infobox warn" style="margin-top:1.5rem">
+    <p><strong>Cour de cassation, greffe de la Cour de cassation, secrétariat général du ministère de la Justice</strong> — services nationaux, tous à <code>adresse_courriel: null</code> dans l'API officielle. Autrement dit, l'entité qui détient l'annuaire interne des greffes n'a elle-même aucune adresse publiée.</p>
+    <p>Adresses connues par d'autres canaux (à titre indicatif, opposables car publiées par l'État) : <code>sg.pp.courdecassation@justice.fr</code> (Première présidence), <code>sec.pg.courdecassation@justice.fr</code> (Parquet général), <code>cada.sdajgc-sem-sg@justice.gouv.fr</code> (PRADA ministère de la Justice).</p>
+  </div>
+</section>
+
+<!-- ANNUAIRE INTERACTIF -->
+<section class="block">
+  <h2>Annuaire interactif</h2>
+  <p class="intro">Filtrable par type et par mot-clé. Tri au clic sur une colonne. Un mailto pré-rempli permet de signaler une adresse périmée ou non fonctionnelle.</p>
+
+  <div class="tabs">
+    <button class="active" data-tab="juri">Juridictions <span id="tab-juri-n"></span></button>
+    <button data-tab="prada">PRADA <span id="tab-prada-n"></span></button>
+  </div>
+
+  <div class="download-row">
+    <a id="dl-csv" href="#" download>⤓ CSV brut</a>
+    <a id="dl-json" href="#" download>⤓ JSON</a>
+    <span class="kbd">Réutilisable — Licence Ouverte 2.0 (Etalab)</span>
+  </div>
+
+  <div class="filters">
+    <input type="text" id="q" placeholder="Rechercher nom, ville, mail, organisme…" autocomplete="off">
+    <select id="ftype"><option value="">Tous les types</option></select>
+    <label><input type="checkbox" id="fnomail"> Sans mail uniquement</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="wrap-tbl">
+    <div class="tbl-scroll">
+      <table class="data" id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <h2>Méthodologie et fraîcheur</h2>
+  <div class="infobox">
+    <p><strong>Dump DILA</strong> : régénéré quotidiennement par la Direction de l'information légale et administrative (Premier ministre). Ne contient que les services locaux — les services nationaux (Cour de cassation, cabinets ministériels) sont dans l'API <code>api-lannuaire.service-public.fr</code>, interrogée en complément.</p>
+    <p><strong>Annuaire PRADA</strong> : la CADA publie cette liste sur son site sous forme de formulaire web sans export. JusticeLibre en propose la première version librement téléchargeable, scrapée intégralement (250 pages, 2 247 personnes responsables).</p>
+    <p><strong>Fréquence de mise à jour</strong> : mensuelle, via un script automatisé (voir <a href="https://github.com/Dahliyaal/justicelibre/blob/main/annuaire/build_annuaire.py">build_annuaire.py</a>). Chaque enregistrement porte la date de la source d'où il provient.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  justicelibre.org · <a href="/">Accueil</a> · <a href="/search.html">Recherche</a> · <a href="/ressources.html">Ressources</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Contenus sous Licence Ouverte 2.0 (Etalab).
+</footer>
+
+<script>
+// ─── Theme toggle (cohérent avec les autres pages) ─────────────────
+(function(){
+  const KEY='jl-theme',html=document.documentElement;
+  try{const s=localStorage.getItem(KEY);if(s==='light'||s==='dark')html.setAttribute('data-theme',s)}catch{}
+  const btn=document.getElementById('themeToggle');
+  if(btn)btn.addEventListener('click',()=>{
+    const isDark=html.getAttribute('data-theme')==='dark'||(!html.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=isDark?'light':'dark';html.setAttribute('data-theme',next);try{localStorage.setItem(KEY,next)}catch{}
+  });
+})();
+
+// ─── Annuaire : chargement + rendu ────────────────────────────────
+const STATE = {tab:'juri', data:{juri:null, prada:null}, meta:null, filtered:[], sort:{col:'nom',dir:1}};
+
+const TAB_CFG = {
+  juri: {
+    file: '/data/annuaire_juridictions.json',
+    csv: '/data/annuaire_juridictions.csv',
+    cols: [
+      {k:'type', label:'Type', cls:'type', fmt: (v,r) => STATE.data.juri.type_labels[v]||v},
+      {k:'nom', label:'Nom', cls:'nom'},
+      {k:'mails', label:'Adresse électronique', cls:'mail', fmt: (v,r) => v && v.length
+        ? v.map(m=>`<a href="mailto:${m}">${m}</a>`).join('<br>')
+        : '<span class="no-mail">— non publié —</span>'},
+      {k:'_action', label:'', cls:'action', nosort:true, fmt:(v,r) => r.mails && r.mails.length
+        ? `<a class="signal" href="mailto:contact@justicelibre.org?subject=${encodeURIComponent('Signaler adresse périmée — '+r.nom)}&body=${encodeURIComponent('Fiche : '+r.nom+' (id '+r.id+')\\n\\nAdresse(s) signalée(s) : '+r.mails.join(', ')+'\\n\\nMotif (retour NDR, changement d\\'organisation, autre) :\\n')}">Signaler</a>`
+        : ''},
+    ],
+    types_key: (r) => r.type,
+  },
+  prada: {
+    file: '/data/annuaire_prada.json',
+    csv: '/data/annuaire_prada.csv',
+    cols: [
+      {k:'organisme', label:'Organisme', cls:'nom'},
+      {k:'courriel', label:'Courriel PRADA', cls:'mail', fmt:(v)=>v?`<a href="mailto:${v}">${v}</a>`:'<span class="no-mail">— non publié —</span>'},
+      {k:'adresse', label:'Adresse postale', cls:'', fmt:(v)=>v?v.split(' | ').join('<br>'):''},
+      {k:'_action', label:'', cls:'action', nosort:true, fmt:(v,r)=>r.courriel
+        ? `<a class="signal" href="mailto:contact@justicelibre.org?subject=${encodeURIComponent('Signaler PRADA périmé — '+r.organisme)}&body=${encodeURIComponent('Organisme : '+r.organisme+'\\nCourriel signalé : '+r.courriel+'\\n\\nMotif :\\n')}">Signaler</a>`
+        : ''},
+    ],
+    types_key: null,
+  },
+};
+
+async function loadTab(tab){
+  if (STATE.data[tab]) return STATE.data[tab];
+  const r = await fetch(TAB_CFG[tab].file, {cache:'default'});
+  STATE.data[tab] = await r.json();
+  return STATE.data[tab];
+}
+
+async function init(){
+  // meta d'abord
+  try {
+    STATE.meta = await (await fetch('/data/annuaire_meta.json')).json();
+    document.getElementById('meta-date').textContent =
+      'Dernière génération : ' + new Date(STATE.meta.generated_at).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})
+      + ' · ' + STATE.meta.counts.juridictions_total.toLocaleString('fr-FR') + ' juridictions · '
+      + STATE.meta.counts.prada_total.toLocaleString('fr-FR') + ' PRADA';
+    renderCoverage();
+  } catch(e){ console.warn('meta:', e); }
+
+  // Juridictions par défaut
+  await loadTab('juri');
+  populateTypes();
+  renderTable();
+  bindFilters();
+  bindTabs();
+  bindSort();
+}
+
+function renderCoverage(){
+  const cov = STATE.meta.coverage_by_type;
+  const highlights = [
+    {t:'tribunal_judiciaire', label:'Tribunal judiciaire'},
+    {t:'cour_appel', label:"Cour d'appel"},
+    {t:'tribunal_commerce', label:'Tribunal de commerce'},
+    {t:'te', label:'Tribunal pour enfants'},
+  ];
+  // Stat tiles pour les 4 catégories phares
+  const tiles = document.getElementById('coverage-tiles');
+  const items = [
+    {label:'Juridictions référencées', n: STATE.meta.counts.juridictions_total},
+    {label:'Avec adresse mail', n: STATE.meta.counts.juridictions_with_mail},
+    {label:'PRADA référencés', n: STATE.meta.counts.prada_total},
+    {label:'Cour de cassation', n: '0', warn: true, sub: 'adresse publiée : néant'},
+  ];
+  tiles.innerHTML = items.map(i=>`<div class="stat${i.warn?' warn':''}"><div class="n">${(typeof i.n==='number'?i.n.toLocaleString('fr-FR'):i.n)}</div><div class="l">${i.label}${i.sub?' — '+i.sub:''}</div></div>`).join('');
+
+  // Table complète, triée par taux asc (les pires en haut)
+  const rows = Object.entries(cov).map(([t,s])=>({t,...s})).sort((a,b)=>a.rate-b.rate);
+  const tb = document.querySelector('#coverage-table tbody');
+  tb.innerHTML = rows.map(r=>{
+    const cls = r.rate < 30 ? 'bad' : (r.rate < 70 ? 'warn' : 'ok');
+    return `<tr>
+      <td>${r.label}</td>
+      <td class="rate">${r.total}</td>
+      <td class="rate">${r.with_mail}</td>
+      <td><span class="rate ${cls}">${r.rate.toFixed(0)} %</span><span class="bar ${cls}" style="--w:${r.rate}%;color:${cls==='bad'?'#c1440e':cls==='warn'?'#b8932b':'#1a4e4e'}"></span></td>
+    </tr>`;
+  }).join('');
+}
+
+function populateTypes(){
+  const sel = document.getElementById('ftype');
+  sel.innerHTML = '<option value="">Tous les types</option>';
+  if (STATE.tab !== 'juri') { sel.disabled = true; return; }
+  sel.disabled = false;
+  const d = STATE.data.juri;
+  const counts = {};
+  d.rows.forEach(r=>counts[r.type]=(counts[r.type]||0)+1);
+  Object.entries(counts).sort((a,b)=>b[1]-a[1]).forEach(([t,n])=>{
+    sel.insertAdjacentHTML('beforeend', `<option value="${t}">${d.type_labels[t]||t} (${n})</option>`);
+  });
+}
+
+function currentRows(){
+  const d = STATE.data[STATE.tab];
+  if (!d) return [];
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const ftype = document.getElementById('ftype').value;
+  const nomail = document.getElementById('fnomail').checked;
+  return d.rows.filter(r=>{
+    if (STATE.tab==='juri' && ftype && r.type !== ftype) return false;
+    if (nomail) {
+      const hasMail = STATE.tab==='juri' ? (r.mails && r.mails.length) : !!r.courriel;
+      if (hasMail) return false;
+    }
+    if (!q) return true;
+    // recherche naïve dans toutes les colonnes texte
+    const hay = JSON.stringify(r).toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function renderTable(){
+  const rows = currentRows();
+  const cfg = TAB_CFG[STATE.tab];
+  // sort
+  rows.sort((a,b)=>{
+    const va = a[STATE.sort.col], vb = b[STATE.sort.col];
+    const sa = Array.isArray(va) ? (va[0]||'') : (va||'');
+    const sb = Array.isArray(vb) ? (vb[0]||'') : (vb||'');
+    return sa < sb ? -STATE.sort.dir : sa > sb ? STATE.sort.dir : 0;
+  });
+  STATE.filtered = rows;
+
+  document.getElementById('count').textContent = rows.length.toLocaleString('fr-FR') + ' / ' + STATE.data[STATE.tab].rows.length.toLocaleString('fr-FR') + ' fiches';
+
+  // thead
+  document.getElementById('thead').innerHTML = '<tr>' + cfg.cols.map(c=>{
+    const sortMark = (!c.nosort && STATE.sort.col===c.k) ? ' sorted' : '';
+    const arr = c.nosort ? '' : `<span class="arr">${STATE.sort.col===c.k?(STATE.sort.dir>0?'▲':'▼'):'▲▼'}</span>`;
+    return `<th class="${c.nosort?'no-sort':''}${sortMark}" data-col="${c.k}">${c.label}${arr}</th>`;
+  }).join('') + '</tr>';
+
+  // tbody (max 500 lignes pour éviter de bloquer le browser)
+  const MAX = 500;
+  const shown = rows.slice(0, MAX);
+  if (!shown.length) {
+    document.getElementById('tbody').innerHTML = `<tr class="empty"><td colspan="${cfg.cols.length}">Aucun résultat pour ces filtres.</td></tr>`;
+    return;
+  }
+  const html = shown.map(r=>{
+    return '<tr>' + cfg.cols.map(c=>{
+      const v = r[c.k];
+      const cls = c.cls + (STATE.tab==='juri' && c.k==='mails' && (!v||!v.length) ? ' no-mail-wrap' : '');
+      return `<td class="${cls}">${c.fmt?c.fmt(v,r):(v??'')}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+  document.getElementById('tbody').innerHTML = html
+    + (rows.length > MAX ? `<tr class="empty"><td colspan="${cfg.cols.length}">+ ${(rows.length-MAX).toLocaleString('fr-FR')} autres résultats — affinez les filtres ou téléchargez le CSV.</td></tr>` : '');
+
+  // Download links
+  document.getElementById('dl-csv').href = cfg.csv;
+  document.getElementById('dl-json').href = cfg.file;
+}
+
+function bindFilters(){
+  const q = document.getElementById('q');
+  let t;
+  q.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(renderTable, 150); });
+  document.getElementById('ftype').addEventListener('change', renderTable);
+  document.getElementById('fnomail').addEventListener('change', renderTable);
+}
+function bindTabs(){
+  document.querySelectorAll('.tabs button').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      STATE.tab = b.dataset.tab;
+      STATE.sort = {col: STATE.tab==='juri' ? 'nom' : 'organisme', dir: 1};
+      await loadTab(STATE.tab);
+      populateTypes();
+      renderTable();
+    });
+  });
+}
+function bindSort(){
+  document.getElementById('thead').addEventListener('click', (e)=>{
+    const th = e.target.closest('th');
+    if (!th || th.classList.contains('no-sort')) return;
+    const col = th.dataset.col;
+    STATE.sort = {col, dir: STATE.sort.col===col ? -STATE.sort.dir : 1};
+    renderTable();
+  });
+}
+
+// Tab counts (chargés paresseusement mais on préfetch juri.rows.length depuis meta)
+document.getElementById('tab-juri-n').textContent  = '';
+document.getElementById('tab-prada-n').textContent = '';
+
+init();
+</script>
+</body>
+</html>
