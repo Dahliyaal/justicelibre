@@ -1666,6 +1666,157 @@ async def search_all(
     }
 
 
+# ─── Annuaire administratif français (alpha) ─────────────────────────
+_ANNUAIRE_DATA_DIR = "/var/www/justicelibre/data"
+_annuaire_rows: list[dict] | None = None
+_annuaire_lock = threading.Lock()
+
+
+def _load_annuaire() -> list[dict]:
+    """Charge en RAM les 3 sources annuaire (DILA/API + PRADA + PDF scrapés),
+    normalise en une liste homogène. Idempotent, thread-safe."""
+    global _annuaire_rows
+    if _annuaire_rows is not None:
+        return _annuaire_rows
+    with _annuaire_lock:
+        if _annuaire_rows is not None:
+            return _annuaire_rows
+        rows: list[dict] = []
+        try:
+            with open(f"{_ANNUAIRE_DATA_DIR}/annuaire_juridictions.json", encoding="utf-8") as f:
+                d = json.load(f)
+            labels = d.get("type_labels", {})
+            for r in d.get("rows", []):
+                for m in (r.get("mails") or []):
+                    rows.append({
+                        "mail": m,
+                        "organisme": r.get("nom", ""),
+                        "service": "",
+                        "categorie": labels.get(r.get("type", ""), r.get("type", "")),
+                        "categorie_slug": r.get("type", ""),
+                        "source": r.get("source", "dila"),
+                        "tel": r.get("tel", ""),
+                        "site": r.get("site", ""),
+                        "adresse": r.get("adresse_postale", ""),
+                        "date_source": "",
+                        "url_page": "https://justicelibre.org/annuaire.html",
+                    })
+        except Exception:
+            pass
+        try:
+            with open(f"{_ANNUAIRE_DATA_DIR}/annuaire_prada.json", encoding="utf-8") as f:
+                d = json.load(f)
+            for r in d.get("rows", []):
+                if r.get("courriel"):
+                    rows.append({
+                        "mail": r["courriel"],
+                        "organisme": r.get("organisme", ""),
+                        "service": r.get("prada", ""),
+                        "categorie": "PRADA (personne responsable de l'accès aux documents administratifs)",
+                        "categorie_slug": "prada",
+                        "source": "prada",
+                        "tel": "",
+                        "site": "",
+                        "adresse": r.get("adresse", ""),
+                        "date_source": "",
+                        "url_page": "https://justicelibre.org/annuaire.html",
+                    })
+        except Exception:
+            pass
+        try:
+            import csv as _csv
+            with open(f"{_ANNUAIRE_DATA_DIR}/pdf_findings.csv", encoding="utf-8") as f:
+                for r in _csv.DictReader(f, delimiter=";"):
+                    if r.get("mail"):
+                        rows.append({
+                            "mail": r["mail"],
+                            "organisme": r.get("organisme", ""),
+                            "service": r.get("service", ""),
+                            "categorie": r.get("category", ""),
+                            "categorie_slug": r.get("category", ""),
+                            "source": "pdf",
+                            "tel": r.get("tel", ""),
+                            "site": r.get("site_web", ""),
+                            "adresse": r.get("adresse_postale", ""),
+                            "date_source": r.get("date_source", ""),
+                            "url_page": "https://justicelibre.org/inedits.html",
+                        })
+        except Exception:
+            pass
+        _annuaire_rows = rows
+        return rows
+
+
+@mcp.tool()
+async def search_annuaire(
+    query: str,
+    category: str | None = None,
+    source: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Recherche dans l'annuaire agrégé des adresses électroniques publiques
+    des juridictions et administrations françaises.
+
+    Agrège 3 sources hébergées sur justicelibre.org (~75 000 adresses
+    fonctionnelles publiques, sous Licence Ouverte 2.0) :
+      - dump quotidien DILA (services locaux : juridictions, mairies, sous-préf, etc.)
+      - API `api-lannuaire.service-public.fr` (administrations centrales)
+      - annuaire CADA (PRADA - personnes responsables L. 330-1 CRPA)
+      - PDFs gouvernementaux scrapés (adresses inédites : bureaux internes,
+        cabinets, écoles, DASEN, etc. absents des annuaires officiels)
+
+    Recherche : substring case-insensitive sur mail, organisme et service.
+    Cette version alpha ne fait pas de BM25 : classement par pertinence
+    simple (match mail > organisme > service).
+
+    Args:
+        query: mots-clés (ex : "mairie strasbourg", "dsden nord", "dacs-c3",
+               "greffe caa douai", "prada culture")
+        category: filtre catégorie (ex : "mairie", "bav", "ecole", "cour_appel",
+               "dacs", "prada", "administration_centrale")
+        source: filtre origine ("dila", "api", "prada", "pdf", "manuel")
+        limit: nombre maximum de résultats (défaut 20, max 200)
+
+    Returns:
+        dict avec `total` (matches totaux), `returned`, `results` (liste de
+        dicts {mail, organisme, service, categorie, source, tel, site,
+        adresse, date_source, url_page}).
+    """
+    _record_call("search_annuaire")
+    rows = _load_annuaire()
+    q = (query or "").strip().lower()
+    if not q:
+        return {"total": 0, "returned": 0, "results": [], "note": "query vide"}
+    cat_f = (category or "").strip().lower() or None
+    src_f = (source or "").strip().lower() or None
+    limit = max(1, min(limit or 20, 200))
+
+    matches: list[tuple[int, dict]] = []
+    for r in rows:
+        if cat_f and cat_f not in (r["categorie_slug"] or "").lower() and cat_f not in (r["categorie"] or "").lower():
+            continue
+        if src_f and src_f != (r["source"] or "").lower():
+            continue
+        mail_l = r["mail"].lower()
+        org_l = (r["organisme"] or "").lower()
+        svc_l = (r["service"] or "").lower()
+        if q in mail_l:
+            score = 3
+        elif q in org_l:
+            score = 2
+        elif q in svc_l:
+            score = 1
+        else:
+            continue
+        matches.append((score, r))
+    matches.sort(key=lambda x: -x[0])
+    return {
+        "total": len(matches),
+        "returned": min(len(matches), limit),
+        "results": [m[1] for m in matches[:limit]],
+    }
+
+
 if __name__ == "__main__":
     import sys
 
