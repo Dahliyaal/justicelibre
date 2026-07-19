@@ -721,6 +721,7 @@ footer p{margin:.2rem 0}
       <h4>Contact</h4>
       <p>Questions, suggestions, contributions :</p>
       <p><a href="https://github.com/Dahliyaal/justicelibre/issues">GitHub Issues</a></p>
+      <p><a href="#" class="mail-r" data-u="contact" data-d="justicelibre" data-t="org" title="Cliquer pour afficher l'adresse">✉ afficher l'adresse e-mail</a></p>
     </div>
   </div>
   <p class="footer-bottom">
@@ -803,6 +804,14 @@ fetch('/version.json', {cache: 'no-store'}).then(r => r.json()).then(d => {
   const el = document.getElementById('mcp-maj');
   if (el) el.textContent = '— MàJ ' + s;
 }).catch(() => {});
+</script>
+<script>
+/* Anti-scrape : le mail n'existe pas dans le HTML, il est assemblé au clic. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.mail-r'); if(!a) return;
+  var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+  if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
+});
 </script>
 </body>
 </html>

@@ -54,7 +54,7 @@ html:not([data-theme="light"]) .theme-toggle .moon{display:none}}
 
 <h2>Éditeur du site</h2>
 <p>justicelibre.org est un projet open-source bénévole, non commercial, à vocation citoyenne. Il est maintenu par une personne physique agissant à titre individuel.</p>
-<p><strong>Responsable de la publication</strong> : Maroussia (contact : <a href="mailto:contact@justicelibre.org">contact@justicelibre.org</a>).</p>
+<p><strong>Responsable de la publication</strong> : Maroussia (contact : <a href="#" class="mail-r" data-u="contact" data-d="justicelibre" data-t="org" title="Cliquer pour afficher l'adresse">✉ afficher l'adresse e-mail</a>).</p>
 <p>Projet indépendant non affilié au Conseil d'État, à la Cour de cassation, à la DILA ou à toute autre administration publique française.</p>
 
 <h2>Hébergement</h2>
@@ -68,7 +68,7 @@ Industriestr. 25, 91710 Gunzenhausen, Allemagne<br>
 <p>Le code source du serveur MCP, de l'API REST et du site web est publié sous licence <strong>MIT</strong> et disponible sur <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>. Toute contribution est bienvenue.</p>
 
 <h2>Contact</h2>
-<p>Pour toute question, signalement, demande relative aux données personnelles, ou suggestion : <a href="mailto:contact@justicelibre.org">contact@justicelibre.org</a>.</p>
+<p>Pour toute question, signalement, demande relative aux données personnelles, ou suggestion : <a href="#" class="mail-r" data-u="contact" data-d="justicelibre" data-t="org" title="Cliquer pour afficher l'adresse">✉ afficher l'adresse e-mail</a>.</p>
 <p>Un formulaire de signalement est également disponible dans le panneau d'article de <a href="/search.html">la recherche</a>.</p>
 
 <h2>Voir aussi</h2>
@@ -87,6 +87,14 @@ var h=document.documentElement,c=h.dataset.theme,sy=matchMedia('(prefers-color-s
 if(!c)n=sy==='dark'?'light':'dark';else if(c==='dark'&&sy==='light')n='light';
 else if(c==='light'&&sy==='dark')n='dark';else n='';
 if(n){h.dataset.theme=n;localStorage.setItem('jl-theme',n)}else{delete h.dataset.theme;localStorage.removeItem('jl-theme')}});})();
+</script>
+<script>
+/* Anti-scrape : le mail n'existe pas dans le HTML, il est assemblé au clic. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.mail-r'); if(!a) return;
+  var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+  if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
+});
 </script>
 </body>
 </html>

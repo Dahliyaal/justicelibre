@@ -107,7 +107,7 @@ Ces données ne quittent jamais votre appareil. Vous pouvez les effacer à tout 
 <li><strong>Droit à la limitation</strong> : restreindre le traitement</li>
 <li><strong>Droit à la portabilité</strong> : recevoir vos données dans un format structuré</li>
 </ul>
-<p>Pour exercer ces droits, écrivez à <a href="mailto:contact@justicelibre.org">contact@justicelibre.org</a>. Réponse sous 1 mois maximum.</p>
+<p>Pour exercer ces droits, écrivez à <a href="#" class="mail-r" data-u="contact" data-d="justicelibre" data-t="org" title="Cliquer pour afficher l'adresse">✉ afficher l'adresse e-mail</a>. Réponse sous 1 mois maximum.</p>
 <p>En cas de désaccord, vous pouvez saisir la <strong>CNIL</strong> à l'adresse <a href="https://www.cnil.fr">cnil.fr</a>.</p>
 
 <h2>Sous-traitants & transferts de données</h2>
@@ -130,6 +130,14 @@ var h=document.documentElement,c=h.dataset.theme,sy=matchMedia('(prefers-color-s
 if(!c)n=sy==='dark'?'light':'dark';else if(c==='dark'&&sy==='light')n='light';
 else if(c==='light'&&sy==='dark')n='dark';else n='';
 if(n){h.dataset.theme=n;localStorage.setItem('jl-theme',n)}else{delete h.dataset.theme;localStorage.removeItem('jl-theme')}});})();
+</script>
+<script>
+/* Anti-scrape : le mail n'existe pas dans le HTML, il est assemblé au clic. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.mail-r'); if(!a) return;
+  var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+  if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
+});
 </script>
 </body>
 </html>
