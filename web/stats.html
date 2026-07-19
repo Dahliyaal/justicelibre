@@ -153,7 +153,7 @@ h2 em{font-style:italic;color:var(--teal)}
     </select>
   </div>
   <div id="daily-chart" class="daily-chart"></div>
-  <p id="daily-note" class="refresh" style="display:none">L'historique est conservé depuis le 20 juillet 2026 — le graphique se remplit jour après jour.</p>
+  <p id="daily-note" class="refresh">Le 20 juillet 2026, le serveur MCP passait le cap des 50 000 requêtes. Pour marquer le coup, cette page a été mise à niveau : l'historique est désormais conservé jour par jour, à vie, et chaque outil est suivi individuellement. Les graphiques se remplissent à partir de cette date.</p>
 
   <h2>Outils <em>les plus utilisés</em></h2>
   <div id="tools-list"></div>
@@ -215,7 +215,6 @@ var _range = '30d';
 function renderChart(){
   if (!_stats) return;
   var box = document.getElementById('daily-chart');
-  var note = document.getElementById('daily-note');
   var tool = document.getElementById('toolSel').value;
   var days, hours;
   if (tool){
@@ -256,7 +255,6 @@ function renderChart(){
       values.push(days[localKey(dt2)] || 0);
     }
   }
-  note.style.display = (Object.keys(days).length < 7 && _range !== 'today') ? 'block' : 'none';
 
   var W = 900, H = 180, padL = 40, padB = 20, padT = 12;
   var plotW = W - padL - 8, plotH = H - padT - padB;
