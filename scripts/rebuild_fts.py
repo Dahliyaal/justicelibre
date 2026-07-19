@@ -34,9 +34,8 @@ FONDS = {
     "kali.db":       ["kali_fts"],
     "cnil.db":       ["cnil_fts"],
     "jade.db":       ["jade_fts"],
-    "judiciaire.db": ["decisions_fts", "cedh_fts", "cjue_fts", "ariane_fts"],
+    "judiciaire.db": ["decisions_fts", "cedh_fts", "cjue_fts", "ariane_fts", "articles_fts"],
     "opendata.db":   ["opendata_fts"],
-    "legifrance.db": ["articles_fts"],
 }
 
 
