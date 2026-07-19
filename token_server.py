@@ -194,7 +194,8 @@ class TokenHandler(BaseHTTPRequestHandler):
         # SSR routes pour Google + LLM (HTML indexable)
         # Le %-encodé est nécessaire pour les ids ArianeWeb ("/Ariane_Web/AW_DCE/|209395")
         # que les sitemaps publient URL-encodés — sans ça, 113k pages sitemap → 404.
-        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.%]{4,160})$", parsed.path)
+        # Le | brut est aussi accepté : Google normalise parfois %7C → | dans ses crawls.
+        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.%|]{4,160})$", parsed.path)
         if m:
             from urllib.parse import unquote
             return self._handle_ssr_decision(m.group(1), unquote(m.group(2)))
@@ -215,9 +216,11 @@ class TokenHandler(BaseHTTPRequestHandler):
         if m:
             return self._handle_sitemap_extra(m.group(1), int(m.group(2)))
         # Article de loi : /loi/CASF/L262-8 ou /loi/CJA/R772-8
-        # Code: 1-15 caractères (CC, CASF, C.cons, L2005-102…)
+        # Code: 1-20 caractères — codes courts (CC, CASF, C.cons…) mais aussi
+        # LEGITEXT*/JORFTEXT* (20 chars) que le sitemap legi émet en fallback
+        # et que le warehouse accepte en entrée.
         # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
-        m = re.match(r"^/loi/([\w.\-]{1,15})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
+        m = re.match(r"^/loi/([\w.\-]{1,20})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
         if m:
             return self._handle_ssr_law(m.group(1), m.group(2))
         if parsed.path in ("/api", "/api/"):
