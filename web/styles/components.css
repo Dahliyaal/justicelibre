@@ -150,3 +150,12 @@
   max-width:780px;
   margin-bottom:var(--space-5);
 }
+
+/* ─── Fil d'ariane (page-subbar) — même composant que les pages décision SSR ─── */
+.page-subbar{background:var(--white);border-bottom:1px solid var(--line);
+  padding:.85rem 2.5rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
+.page-subbar .crumb{font-size:.75rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.12em;font-weight:600}
+.page-subbar .crumb a{color:var(--muted);text-decoration:none}
+.page-subbar .crumb a:hover{color:var(--teal)}
+@media(max-width:700px){.page-subbar{padding:.7rem 1.2rem}}
