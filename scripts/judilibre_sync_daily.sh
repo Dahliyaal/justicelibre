@@ -11,6 +11,9 @@
 # (4h30 UTC, juste avant scrape_increments_daily.sh à 5h pour cohérence.)
 
 set -e
+# Charge les credentials PISTE (judilibre_sync.py les lit via os.environ
+# depuis le retrait des secrets hardcodés — 19 juillet 2026).
+set -a; source /opt/justicelibre/.env; set +a
 LOG=/var/log/justicelibre/judilibre_sync.log
 mkdir -p /var/log/justicelibre
 
