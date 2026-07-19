@@ -1,0 +1,5 @@
+# JusticeLibre — dépendances du serveur MCP (server.py) et des serveurs
+# annexes (token_server.py, ssr.py, search_api.py : stdlib + httpx).
+# Python >= 3.10 requis par le SDK mcp.
+mcp>=1.8
+httpx>=0.27
