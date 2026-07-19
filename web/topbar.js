@@ -175,6 +175,16 @@ html[data-theme="dark"] .topbar-drawer-close:hover{background:#333}
       document.body.insertAdjacentHTML('afterbegin', TOPBAR_HTML);
     }
 
+    // Publie la hauteur réelle de la topbar → --topbar-h, pour que le
+    // fil d'ariane (.page-subbar sticky) colle exactement dessous.
+    const tbEl = document.querySelector('.topbar');
+    if (tbEl) {
+      const setTopbarH = () =>
+        document.documentElement.style.setProperty('--topbar-h', tbEl.offsetHeight + 'px');
+      setTopbarH();
+      window.addEventListener('resize', setTopbarH);
+    }
+
     // Active la nav courante (sur la nav du header ET le drawer mobile)
     const path = location.pathname;
     document.querySelectorAll('header.topbar nav.main-nav a[data-route], .topbar-drawer a[data-route]').forEach(a => {

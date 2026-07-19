@@ -466,10 +466,13 @@ html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
 }
 /* Conteneur principal */
 .wrap{max-width:820px;margin:0 auto;padding:2.5rem 1.5rem 5rem;flex:1;width:100%}
-/* Sub-bar (analogue de .searchbar du SPA, contient le fil d'ariane) */
+/* Sub-bar (analogue de .searchbar du SPA, contient le fil d'ariane).
+   sticky sous la topbar : --topbar-h est mesurée par le script _SUBBAR_STICKY_JS
+   (fallback 48px si JS coupé). */
 .page-subbar{
   background:var(--white);border-bottom:1px solid var(--line);
   padding:.85rem 2.5rem;display:flex;align-items:center;gap:1rem;justify-content:space-between;
+  position:sticky;top:var(--topbar-h,48px);z-index:90;
 }
 .page-subbar .crumb{font-size:.75rem;color:var(--muted);text-transform:uppercase;
   letter-spacing:.12em;font-weight:600}
@@ -649,6 +652,17 @@ THEME_JS = """<script>
     h.dataset.theme = nxt;
     localStorage.setItem('jl-theme', nxt);
   });
+})();
+(function(){
+  // Mesure la hauteur réelle de la topbar → --topbar-h, pour que le
+  // fil d'ariane (.page-subbar sticky) colle exactement dessous.
+  var tb = document.querySelector('.topbar');
+  if (!tb) return;
+  var setH = function(){
+    document.documentElement.style.setProperty('--topbar-h', tb.offsetHeight + 'px');
+  };
+  setH();
+  addEventListener('resize', setH);
 })();
 </script>"""
 
