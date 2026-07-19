@@ -1091,6 +1091,36 @@ STATIC_PAGES = [
     ("/search.html", "0.9", "weekly"),
     ("/tutoriel-piste.html", "0.6", "monthly"),
     ("/stats.html", "0.4", "weekly"),
+    ("/ressources.html", "0.6", "monthly"),
+    # Annuaire d'adresses administratives (HTML statique, indexable —
+    # objectif : qu'une recherche Google sur un de ces mails tombe ici).
+    ("/annuaire.html", "0.9", "weekly"),
+    ("/annuaire/accueil-numerique.html", "0.7", "monthly"),
+    ("/annuaire/autres.html", "0.7", "monthly"),
+    ("/annuaire/ccas.html", "0.7", "monthly"),
+    ("/annuaire/cci.html", "0.7", "monthly"),
+    ("/annuaire/cij.html", "0.7", "monthly"),
+    ("/annuaire/cio.html", "0.7", "monthly"),
+    ("/annuaire/clic.html", "0.7", "monthly"),
+    ("/annuaire/france-renov.html", "0.7", "monthly"),
+    ("/annuaire/france-services.html", "0.7", "monthly"),
+    ("/annuaire/intercommunalites.html", "0.7", "monthly"),
+    ("/annuaire/mairies.html", "0.7", "monthly"),
+    ("/annuaire/mda.html", "0.7", "monthly"),
+    ("/annuaire/missions-locales.html", "0.7", "monthly"),
+    ("/annuaire/pcb.html", "0.7", "monthly"),
+    ("/annuaire/pif.html", "0.7", "monthly"),
+    ("/annuaire/pmi.html", "0.7", "monthly"),
+    ("/annuaire/point-justice.html", "0.7", "monthly"),
+    ("/annuaire/police-municipale.html", "0.7", "monthly"),
+    ("/annuaire/sous-prefectures.html", "0.7", "monthly"),
+    ("/annuaire/tresoreries.html", "0.7", "monthly"),
+    # Adresses inédites (emails admin extraits du corpus)
+    ("/inedits.html", "0.8", "weekly"),
+    ("/inedits/administrations-centrales.html", "0.7", "monthly"),
+    ("/inedits/autres.html", "0.7", "monthly"),
+    ("/inedits/ecoles.html", "0.7", "monthly"),
+    ("/inedits/prefectures.html", "0.7", "monthly"),
 ]
 
 

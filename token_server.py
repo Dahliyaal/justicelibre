@@ -192,9 +192,12 @@ class TokenHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/law/versions":
             return self._handle_law_versions(qs)
         # SSR routes pour Google + LLM (HTML indexable)
-        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.]{4,128})$", parsed.path)
+        # Le %-encodé est nécessaire pour les ids ArianeWeb ("/Ariane_Web/AW_DCE/|209395")
+        # que les sitemaps publient URL-encodés — sans ça, 113k pages sitemap → 404.
+        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.%]{4,160})$", parsed.path)
         if m:
-            return self._handle_ssr_decision(m.group(1), m.group(2))
+            from urllib.parse import unquote
+            return self._handle_ssr_decision(m.group(1), unquote(m.group(2)))
         if parsed.path == "/sitemap.xml":
             return self._handle_sitemap_index()
         if parsed.path == "/sitemap-static.xml":
