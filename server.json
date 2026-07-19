@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Dahliyaal/justicelibre",
-  "description": "Free access to ~3.3M French and European court decisions + 1.5M consolidated law articles (with historical versioning) via MCP — 31 read-only tools, by the JUSTICE LIBRE nonprofit",
+  "description": "Free access to 3.3M French & EU court decisions + 1.5M law articles w/ history. 31 read-only tools",
   "version": "1.1.0",
   "remotes": [
     {
@@ -14,36 +14,129 @@
     "source": "github"
   },
   "tools": [
-    {"name": "search_all", "description": "Recherche fédérée sur toutes les sources (BM25 + thésaurus juridique FR + bonus autorité)"},
-    {"name": "search_annuaire", "description": "Annuaire d'adresses email publiques des juridictions et administrations (~75 000 adresses, avec source officielle et preuve PDF archivée)"},
-    {"name": "about_justicelibre", "description": "Cartographie des sources, hiérarchie d'autorité et workflow recommandé"},
-    {"name": "search_judiciaire_libre", "description": "Recherche dans 1,17 M décisions judiciaires (Cass + CA + Conseil constit.) — bulk DILA, sans auth"},
-    {"name": "get_decision_judiciaire_libre", "description": "Texte intégral d'une décision judiciaire via id JURITEXT/CONSTEXT"},
-    {"name": "search_judiciaire", "description": "Recherche live PISTE Judilibre (OAuth2 requis)"},
-    {"name": "get_decision_judiciaire", "description": "Texte intégral d'une décision via PISTE Judilibre"},
-    {"name": "search_cc", "description": "Recherche dédiée Conseil constitutionnel (filtre QPC/DC/L/SEN/AN/PDR)"},
-    {"name": "get_cc_decision", "description": "Décision du Conseil constitutionnel par numéro (ex : 2023-1048 QPC)"},
-    {"name": "search_admin", "description": "Recherche BM25 dans 552 k décisions administratives (bulk JADE : CE + CAA + TA)"},
-    {"name": "get_admin_decision", "description": "Décision administrative par numéro de requête, désambiguïsation par juridiction"},
-    {"name": "get_ce_decision", "description": "Décision du Conseil d'État par numéro (fallback ArianeWeb)"},
-    {"name": "search_conseil_etat", "description": "Recherche dans ~270 000 décisions du Conseil d'État via ArianeWeb (Sinequa)"},
-    {"name": "get_decision_text", "description": "Texte intégral d'une décision administrative (id DCE/DTA/DCAA/CETATEXT/ArianeWeb)"},
-    {"name": "search_admin_recent", "description": "Décisions administratives récentes d'une juridiction (tri date desc)"},
-    {"name": "search_admin_recent_all_ta", "description": "Décisions récentes des 40 tribunaux administratifs en parallèle"},
-    {"name": "search_admin_recent_all_caa", "description": "Décisions récentes des 9 cours administratives d'appel en parallèle"},
-    {"name": "list_juridictions", "description": "Liste les 51 juridictions couvertes avec leur code et nom"},
-    {"name": "search_cedh", "description": "Recherche dans 76 k décisions de la Cour européenne des droits de l'homme"},
-    {"name": "get_decision_cedh", "description": "Texte intégral d'une décision CEDH via itemid HUDOC (ex : 001-249914)"},
-    {"name": "search_cjue", "description": "Recherche dans 44 k arrêts CJUE + Tribunal UE"},
-    {"name": "get_decision_cjue", "description": "Texte intégral d'un arrêt CJUE via CELEX ou ECLI"},
-    {"name": "get_law_article", "description": "Article de loi en vigueur à une date donnée (versions historiques depuis 1804)"},
-    {"name": "get_law_versions", "description": "Timeline complète des versions d'un article de loi"},
-    {"name": "search_legi", "description": "Recherche BM25 dans 1,5 M articles de loi consolidés (72 codes + Constitution + lois)"},
-    {"name": "search_decisions_citing", "description": "Cross-référence inverse : décisions citant un article de loi donné"},
-    {"name": "resolve_law_number", "description": "Numéro de loi/ordonnance/décret vers identifiant LEGITEXT/JORFTEXT"},
-    {"name": "build_source_url", "description": "URL Légifrance canonique pour un identifiant (LEGIARTI, JURITEXT, CETATEXT...)"},
-    {"name": "search_jorf", "description": "Recherche dans les textes du Journal officiel (lois, décrets, arrêtés post-1990)"},
-    {"name": "search_kali", "description": "Recherche conventions collectives et accords de branche (KALI)"},
-    {"name": "search_cnil", "description": "Recherche dans les délibérations CNIL (RGPD, données personnelles)"}
+    {
+      "name": "search_all",
+      "description": "Recherche fédérée sur toutes les sources (BM25 + thésaurus juridique FR + bonus autorité)"
+    },
+    {
+      "name": "search_annuaire",
+      "description": "Annuaire d'adresses email publiques des juridictions et administrations (~75 000 adresses, avec source officielle et preuve PDF archivée)"
+    },
+    {
+      "name": "about_justicelibre",
+      "description": "Cartographie des sources, hiérarchie d'autorité et workflow recommandé"
+    },
+    {
+      "name": "search_judiciaire_libre",
+      "description": "Recherche dans 1,17 M décisions judiciaires (Cass + CA + Conseil constit.) — bulk DILA, sans auth"
+    },
+    {
+      "name": "get_decision_judiciaire_libre",
+      "description": "Texte intégral d'une décision judiciaire via id JURITEXT/CONSTEXT"
+    },
+    {
+      "name": "search_judiciaire",
+      "description": "Recherche live PISTE Judilibre (OAuth2 requis)"
+    },
+    {
+      "name": "get_decision_judiciaire",
+      "description": "Texte intégral d'une décision via PISTE Judilibre"
+    },
+    {
+      "name": "search_cc",
+      "description": "Recherche dédiée Conseil constitutionnel (filtre QPC/DC/L/SEN/AN/PDR)"
+    },
+    {
+      "name": "get_cc_decision",
+      "description": "Décision du Conseil constitutionnel par numéro (ex : 2023-1048 QPC)"
+    },
+    {
+      "name": "search_admin",
+      "description": "Recherche BM25 dans 552 k décisions administratives (bulk JADE : CE + CAA + TA)"
+    },
+    {
+      "name": "get_admin_decision",
+      "description": "Décision administrative par numéro de requête, désambiguïsation par juridiction"
+    },
+    {
+      "name": "get_ce_decision",
+      "description": "Décision du Conseil d'État par numéro (fallback ArianeWeb)"
+    },
+    {
+      "name": "search_conseil_etat",
+      "description": "Recherche dans ~270 000 décisions du Conseil d'État via ArianeWeb (Sinequa)"
+    },
+    {
+      "name": "get_decision_text",
+      "description": "Texte intégral d'une décision administrative (id DCE/DTA/DCAA/CETATEXT/ArianeWeb)"
+    },
+    {
+      "name": "search_admin_recent",
+      "description": "Décisions administratives récentes d'une juridiction (tri date desc)"
+    },
+    {
+      "name": "search_admin_recent_all_ta",
+      "description": "Décisions récentes des 40 tribunaux administratifs en parallèle"
+    },
+    {
+      "name": "search_admin_recent_all_caa",
+      "description": "Décisions récentes des 9 cours administratives d'appel en parallèle"
+    },
+    {
+      "name": "list_juridictions",
+      "description": "Liste les 51 juridictions couvertes avec leur code et nom"
+    },
+    {
+      "name": "search_cedh",
+      "description": "Recherche dans 76 k décisions de la Cour européenne des droits de l'homme"
+    },
+    {
+      "name": "get_decision_cedh",
+      "description": "Texte intégral d'une décision CEDH via itemid HUDOC (ex : 001-249914)"
+    },
+    {
+      "name": "search_cjue",
+      "description": "Recherche dans 44 k arrêts CJUE + Tribunal UE"
+    },
+    {
+      "name": "get_decision_cjue",
+      "description": "Texte intégral d'un arrêt CJUE via CELEX ou ECLI"
+    },
+    {
+      "name": "get_law_article",
+      "description": "Article de loi en vigueur à une date donnée (versions historiques depuis 1804)"
+    },
+    {
+      "name": "get_law_versions",
+      "description": "Timeline complète des versions d'un article de loi"
+    },
+    {
+      "name": "search_legi",
+      "description": "Recherche BM25 dans 1,5 M articles de loi consolidés (72 codes + Constitution + lois)"
+    },
+    {
+      "name": "search_decisions_citing",
+      "description": "Cross-référence inverse : décisions citant un article de loi donné"
+    },
+    {
+      "name": "resolve_law_number",
+      "description": "Numéro de loi/ordonnance/décret vers identifiant LEGITEXT/JORFTEXT"
+    },
+    {
+      "name": "build_source_url",
+      "description": "URL Légifrance canonique pour un identifiant (LEGIARTI, JURITEXT, CETATEXT...)"
+    },
+    {
+      "name": "search_jorf",
+      "description": "Recherche dans les textes du Journal officiel (lois, décrets, arrêtés post-1990)"
+    },
+    {
+      "name": "search_kali",
+      "description": "Recherche conventions collectives et accords de branche (KALI)"
+    },
+    {
+      "name": "search_cnil",
+      "description": "Recherche dans les délibérations CNIL (RGPD, données personnelles)"
+    }
   ]
 }
