@@ -7,3 +7,4 @@ test_mcp_client.py
 web/logo-preview.html
 web/version.json
 .DS_Store
+web/stats.json
