@@ -571,37 +571,61 @@ _TOPBAR_FALLBACK = """<header class="topbar">
 _TOPBAR_JS_PATH = Path("/var/www/justicelibre/topbar.js")
 
 
-def get_topbar_html() -> str:
-    """Lit le HTML topbar depuis /web/topbar.js?v=3 (source unique du composant).
-
-    Le composant `topbar.js` contient la const TOPBAR_HTML = `...`. On extrait
-    son contenu via regex pour l'inliner dans le SSR (SEO + LLMs ont besoin
-    du HTML servi initialement, pas du JS-rendered). Cache 60s.
-    """
-    import time as _time
-    now = _time.time()
-    if _TOPBAR_CACHE["html"] and (now - _TOPBAR_CACHE["loaded_at"] < _TOPBAR_TTL):
-        return _TOPBAR_CACHE["html"]
+def _load_topbar_from_js() -> tuple[str, str]:
+    """Lit topbar.js et retourne (html, css). Cache externe géré par les wrappers."""
     html_str = _TOPBAR_FALLBACK
+    css_str = ""
     try:
         if _TOPBAR_JS_PATH.exists():
             content = _TOPBAR_JS_PATH.read_text(encoding="utf-8")
-            # Extrait le contenu entre TOPBAR_HTML = ` et `;
             m = re.search(r'const\s+TOPBAR_HTML\s*=\s*`(.*?)`\.trim\(\);',
                           content, re.DOTALL)
             if m:
                 html_str = m.group(1).strip()
+            mc = re.search(r'const\s+TOPBAR_CSS\s*=\s*`(.*?)`;',
+                           content, re.DOTALL)
+            if mc:
+                css_str = mc.group(1).strip()
         elif SEARCH_HTML_PATH.exists():
-            # Fallback : lit search.html (legacy)
+            # Fallback legacy
             content = SEARCH_HTML_PATH.read_text(encoding="utf-8")
             m = re.search(r'<header class="topbar">.*?</header>', content, re.DOTALL)
             if m:
                 html_str = m.group(0).replace(' class="active"', '')
     except Exception:
         pass
+    return html_str, css_str
+
+
+def get_topbar_html() -> str:
+    """Lit le HTML topbar depuis /web/topbar.js (source unique du composant).
+    Pour le CSS associé, voir get_topbar_css(). Cache 60s.
+    """
+    import time as _time
+    now = _time.time()
+    if _TOPBAR_CACHE["html"] and (now - _TOPBAR_CACHE["loaded_at"] < _TOPBAR_TTL):
+        return _TOPBAR_CACHE["html"]
+    html_str, css_str = _load_topbar_from_js()
     _TOPBAR_CACHE["html"] = html_str
+    _TOPBAR_CACHE["css"] = css_str
     _TOPBAR_CACHE["loaded_at"] = now
     return html_str
+
+
+def get_topbar_css() -> str:
+    """Retourne le CSS du composant topbar (incluant burger/drawer mobile).
+    Sans ce CSS, le drawer mobile s'affiche en bloc sur desktop.
+    """
+    import time as _time
+    now = _time.time()
+    if _TOPBAR_CACHE.get("css") and (now - _TOPBAR_CACHE["loaded_at"] < _TOPBAR_TTL):
+        return _TOPBAR_CACHE["css"]
+    # Force reload (peut update aussi le HTML cache)
+    html_str, css_str = _load_topbar_from_js()
+    _TOPBAR_CACHE["html"] = html_str
+    _TOPBAR_CACHE["css"] = css_str
+    _TOPBAR_CACHE["loaded_at"] = now
+    return css_str
 
 
 # Petit JS pour wire le bouton theme-toggle de la topbar (sync avec search.html).
@@ -821,7 +845,8 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 <script type="application/ld+json">{jsonld_str}</script>
 {GOOGLE_FONTS}
 {SHARED_STYLES_LINKS}
-<style>{SHARED_CSS}</style>
+<style>{SHARED_CSS}
+{get_topbar_css()}</style>
 </head>
 <body>
 {get_topbar_html()}
@@ -958,7 +983,8 @@ def render_law(code: str, num: str, data: dict) -> str:
 <script type="application/ld+json">{jsonld_str}</script>
 {GOOGLE_FONTS}
 {SHARED_STYLES_LINKS}
-<style>{SHARED_CSS}</style>
+<style>{SHARED_CSS}
+{get_topbar_css()}</style>
 </head>
 <body>
 {get_topbar_html()}
@@ -1014,6 +1040,7 @@ def render_decision_404(source: str, decision_id: str) -> str:
 {GOOGLE_FONTS}
 {SHARED_STYLES_LINKS}
 <style>{SHARED_CSS}
+{get_topbar_css()}
 .notfound-wrap{{max-width:680px;margin:0 auto;padding:80px 24px 120px;text-align:left}}
 .notfound-kicker{{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:24px}}
 .notfound-h1{{font-family:'DM Serif Display',Georgia,serif;font-size:42px;line-height:1.15;color:var(--ink);margin:0 0 16px}}

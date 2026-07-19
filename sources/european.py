@@ -38,6 +38,12 @@ def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
     """Search CEDH (Cour EDH) via local HUDOC index. limit clampé à [1, 50]."""
     if not query.strip():
         return _empty_query_result()
+    # Détecte un appno CEDH (format "12345/67") AVANT le nettoyage FTS5.
+    # Accepte aussi la version déjà normalisée FTS (quoted phrase: "6538 74")
+    # pour matcher quand search_all passe q_expanded plutôt que la query brute.
+    import re as _re
+    m = _re.search(r"\b(\d{1,5})[/\s]+(\d{2,4})\b", query)
+    appno_exact = f"{m.group(1)}/{m.group(2)}" if m else None
     # Nettoie les caractères qui font planter FTS5 (préserve ", *, (), - et
     # les opérateurs AND/OR/NOT — les queries construites par search_par_article
     # passent intactes).
@@ -50,6 +56,8 @@ def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
     try:
         # WHERE : exclut les docs sans texte exploitable (notes 002-* vides chez nous).
         # ORDER BY :
+        # 0) Préférer les arrêts dont l'appno = la requête (l'arrêt LUI-MÊME
+        #    plutôt que les arrêts qui le citent en footnote).
         # 1) Préférer arrêts judiciaires complets (HFJUD, HEJUD) aux notes résumées (CLINF).
         # 2) Puis BM25 rank (pertinence query).
         # 3) Puis length(text) DESC (entre arrêts du même rank, le plus complet d'abord).
@@ -57,16 +65,18 @@ def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
             rows = conn.execute(
                 """SELECT d.itemid, d.docname, d.ecli, d.date, d.doctype,
                           d.article, d.conclusion, d.importance, d.respondent,
+                          d.appno,
                           snippet(cedh_fts, -1, '<em>', '</em>', '…', 28) AS snip
                    FROM cedh_fts f JOIN cedh_decisions d ON d.rowid = f.rowid
                    WHERE cedh_fts MATCH ?
                      AND length(COALESCE(d.text, '')) > 200
                    ORDER BY
+                     CASE WHEN d.appno = ? THEN 0 ELSE 1 END,
                      CASE WHEN d.doctype IN ('HFJUD', 'HEJUD') THEN 0 ELSE 1 END,
                      rank,
                      COALESCE(length(d.text), 0) DESC
                    LIMIT ? OFFSET ?""",
-                (query.strip(), int(limit), int(offset)),
+                (query.strip(), appno_exact or "", int(limit), int(offset)),
             ).fetchall()
             total = conn.execute(
                 "SELECT COUNT(*) FROM cedh_fts WHERE cedh_fts MATCH ?", (query.strip(),)
@@ -88,6 +98,7 @@ def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
                     "conclusion": r["conclusion"],
                     "importance": r["importance"],
                     "respondent": r["respondent"],
+                    "appno": r["appno"] or "",
                     "snippet": r["snip"] or "",
                 }
                 for r in rows

@@ -19,8 +19,8 @@ from typing import Any
 
 import httpx
 
-BASE = "https://sandbox-api.piste.gouv.fr/cassation/judilibre/v1.0"
-OAUTH_URL = "https://sandbox-oauth.piste.gouv.fr/api/oauth/token"
+BASE = "https://api.piste.gouv.fr/cassation/judilibre/v1.0"
+OAUTH_URL = "https://oauth.piste.gouv.fr/api/oauth/token"
 
 JURIDICTIONS = {
     "cc": "Cour de cassation",
