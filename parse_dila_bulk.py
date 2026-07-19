@@ -48,6 +48,7 @@ def parse_legi():
     db = DB_DIR / "legi.db"
     conn = sqlite3.connect(db, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-131072")  # 128 MB
     conn.execute("PRAGMA temp_store=MEMORY")
@@ -85,6 +86,16 @@ def parse_legi():
         content='legi_articles', content_rowid='rowid'
     );
     CREATE TRIGGER IF NOT EXISTS legi_art_ai AFTER INSERT ON legi_articles BEGIN
+        INSERT INTO legi_articles_fts(rowid, legiarti, titre_text, num, texte)
+        VALUES (new.rowid, new.legiarti, new.titre_text, new.num, new.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS legi_art_ad AFTER DELETE ON legi_articles BEGIN
+        INSERT INTO legi_articles_fts(legi_articles_fts, rowid, legiarti, titre_text, num, texte)
+        VALUES ('delete', old.rowid, old.legiarti, old.titre_text, old.num, old.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS legi_art_au AFTER UPDATE ON legi_articles BEGIN
+        INSERT INTO legi_articles_fts(legi_articles_fts, rowid, legiarti, titre_text, num, texte)
+        VALUES ('delete', old.rowid, old.legiarti, old.titre_text, old.num, old.texte);
         INSERT INTO legi_articles_fts(rowid, legiarti, titre_text, num, texte)
         VALUES (new.rowid, new.legiarti, new.titre_text, new.num, new.texte);
     END;
@@ -226,6 +237,7 @@ def parse_jorf_like(fund: str):
     db = DB_DIR / f"{fund}.db"
     conn = sqlite3.connect(db, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-131072")
     conn.executescript(f"""
@@ -249,6 +261,16 @@ def parse_jorf_like(fund: str):
         content='{fund}_textes', content_rowid='rowid'
     );
     CREATE TRIGGER IF NOT EXISTS {fund}_ai AFTER INSERT ON {fund}_textes BEGIN
+        INSERT INTO {fund}_fts(rowid, jorftext, titre, nature, ministere, texte, nota)
+        VALUES (new.rowid, new.jorftext, new.titre, new.nature, new.ministere, new.texte, new.nota);
+    END;
+    CREATE TRIGGER IF NOT EXISTS {fund}_ad AFTER DELETE ON {fund}_textes BEGIN
+        INSERT INTO {fund}_fts({fund}_fts, rowid, jorftext, titre, nature, ministere, texte, nota)
+        VALUES ('delete', old.rowid, old.jorftext, old.titre, old.nature, old.ministere, old.texte, old.nota);
+    END;
+    CREATE TRIGGER IF NOT EXISTS {fund}_au AFTER UPDATE ON {fund}_textes BEGIN
+        INSERT INTO {fund}_fts({fund}_fts, rowid, jorftext, titre, nature, ministere, texte, nota)
+        VALUES ('delete', old.rowid, old.jorftext, old.titre, old.nature, old.ministere, old.texte, old.nota);
         INSERT INTO {fund}_fts(rowid, jorftext, titre, nature, ministere, texte, nota)
         VALUES (new.rowid, new.jorftext, new.titre, new.nature, new.ministere, new.texte, new.nota);
     END;
@@ -346,6 +368,7 @@ def parse_juris(fund: str):
     db = DB_DIR / f"{fund}.db"
     conn = sqlite3.connect(db, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-131072")
     conn.executescript(f"""
@@ -374,6 +397,16 @@ def parse_juris(fund: str):
         content='{fund}_decisions', content_rowid='rowid'
     );
     CREATE TRIGGER IF NOT EXISTS {fund}_ai AFTER INSERT ON {fund}_decisions BEGIN
+        INSERT INTO {fund}_fts(rowid, id, juridiction, numero, titre, sommaire, texte)
+        VALUES (new.rowid, new.id, new.juridiction, new.numero, new.titre, new.sommaire, new.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS {fund}_ad AFTER DELETE ON {fund}_decisions BEGIN
+        INSERT INTO {fund}_fts({fund}_fts, rowid, id, juridiction, numero, titre, sommaire, texte)
+        VALUES ('delete', old.rowid, old.id, old.juridiction, old.numero, old.titre, old.sommaire, old.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS {fund}_au AFTER UPDATE ON {fund}_decisions BEGIN
+        INSERT INTO {fund}_fts({fund}_fts, rowid, id, juridiction, numero, titre, sommaire, texte)
+        VALUES ('delete', old.rowid, old.id, old.juridiction, old.numero, old.titre, old.sommaire, old.texte);
         INSERT INTO {fund}_fts(rowid, id, juridiction, numero, titre, sommaire, texte)
         VALUES (new.rowid, new.id, new.juridiction, new.numero, new.titre, new.sommaire, new.texte);
     END;
@@ -482,6 +515,7 @@ def parse_kali():
     db = DB_DIR / "kali.db"
     conn = sqlite3.connect(db, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS kali_textes (
@@ -501,6 +535,16 @@ def parse_kali():
         content='kali_textes', content_rowid='rowid'
     );
     CREATE TRIGGER IF NOT EXISTS kali_ai AFTER INSERT ON kali_textes BEGIN
+        INSERT INTO kali_fts(rowid, id, idcc, titre, texte)
+        VALUES (new.rowid, new.id, new.idcc, new.titre, new.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS kali_ad AFTER DELETE ON kali_textes BEGIN
+        INSERT INTO kali_fts(kali_fts, rowid, id, idcc, titre, texte)
+        VALUES ('delete', old.rowid, old.id, old.idcc, old.titre, old.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS kali_au AFTER UPDATE ON kali_textes BEGIN
+        INSERT INTO kali_fts(kali_fts, rowid, id, idcc, titre, texte)
+        VALUES ('delete', old.rowid, old.id, old.idcc, old.titre, old.texte);
         INSERT INTO kali_fts(rowid, id, idcc, titre, texte)
         VALUES (new.rowid, new.id, new.idcc, new.titre, new.texte);
     END;
@@ -583,6 +627,7 @@ def parse_cnil():
     db = DB_DIR / "cnil.db"
     conn = sqlite3.connect(db, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS cnil_deliberations (
         id TEXT PRIMARY KEY,
@@ -597,6 +642,16 @@ def parse_cnil():
         content='cnil_deliberations', content_rowid='rowid'
     );
     CREATE TRIGGER IF NOT EXISTS cnil_ai AFTER INSERT ON cnil_deliberations BEGIN
+        INSERT INTO cnil_fts(rowid, id, numero, titre, formation, texte)
+        VALUES (new.rowid, new.id, new.numero, new.titre, new.formation, new.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS cnil_ad AFTER DELETE ON cnil_deliberations BEGIN
+        INSERT INTO cnil_fts(cnil_fts, rowid, id, numero, titre, formation, texte)
+        VALUES ('delete', old.rowid, old.id, old.numero, old.titre, old.formation, old.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS cnil_au AFTER UPDATE ON cnil_deliberations BEGIN
+        INSERT INTO cnil_fts(cnil_fts, rowid, id, numero, titre, formation, texte)
+        VALUES ('delete', old.rowid, old.id, old.numero, old.titre, old.formation, old.texte);
         INSERT INTO cnil_fts(rowid, id, numero, titre, formation, texte)
         VALUES (new.rowid, new.id, new.numero, new.titre, new.formation, new.texte);
     END;

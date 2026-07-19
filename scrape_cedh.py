@@ -49,6 +49,16 @@ def ensure_schema(conn):
         INSERT INTO cedh_fts(rowid, itemid, docname, article, conclusion, text)
         VALUES (new.rowid, new.itemid, new.docname, new.article, new.conclusion, new.text);
     END;
+    CREATE TRIGGER IF NOT EXISTS cedh_ad AFTER DELETE ON cedh_decisions BEGIN
+        INSERT INTO cedh_fts(cedh_fts, rowid, itemid, docname, article, conclusion, text)
+        VALUES ('delete', old.rowid, old.itemid, old.docname, old.article, old.conclusion, old.text);
+    END;
+    CREATE TRIGGER IF NOT EXISTS cedh_au AFTER UPDATE ON cedh_decisions BEGIN
+        INSERT INTO cedh_fts(cedh_fts, rowid, itemid, docname, article, conclusion, text)
+        VALUES ('delete', old.rowid, old.itemid, old.docname, old.article, old.conclusion, old.text);
+        INSERT INTO cedh_fts(rowid, itemid, docname, article, conclusion, text)
+        VALUES (new.rowid, new.itemid, new.docname, new.article, new.conclusion, new.text);
+    END;
     """)
     conn.commit()
 
@@ -89,6 +99,7 @@ def fetch_text(client, itemid):
 def main():
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
     conn.execute("PRAGMA cache_size=-8000")
     ensure_schema(conn)

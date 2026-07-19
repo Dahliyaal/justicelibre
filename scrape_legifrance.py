@@ -85,6 +85,16 @@ def ensure_schema(conn):
         INSERT INTO articles_fts(rowid, article_id, code_titre_court, num, titre, texte)
         VALUES (new.rowid, new.article_id, new.code_titre_court, new.num, new.titre, new.texte);
     END;
+    CREATE TRIGGER IF NOT EXISTS art_ad AFTER DELETE ON articles_loi BEGIN
+        INSERT INTO articles_fts(articles_fts, rowid, article_id, code_titre_court, num, titre, texte)
+        VALUES ('delete', old.rowid, old.article_id, old.code_titre_court, old.num, old.titre, old.texte);
+    END;
+    CREATE TRIGGER IF NOT EXISTS art_au AFTER UPDATE ON articles_loi BEGIN
+        INSERT INTO articles_fts(articles_fts, rowid, article_id, code_titre_court, num, titre, texte)
+        VALUES ('delete', old.rowid, old.article_id, old.code_titre_court, old.num, old.titre, old.texte);
+        INSERT INTO articles_fts(rowid, article_id, code_titre_court, num, titre, texte)
+        VALUES (new.rowid, new.article_id, new.code_titre_court, new.num, new.titre, new.texte);
+    END;
     """)
     conn.commit()
 
@@ -142,6 +152,7 @@ def fetch_article(client, headers, article_id):
 def main():
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA recursive_triggers=ON")  # INSERT OR REPLACE doit déclencher le trigger _ad du FTS5
     conn.execute("PRAGMA busy_timeout=120000")
     ensure_schema(conn)
 
