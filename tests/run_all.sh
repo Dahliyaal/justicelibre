@@ -22,6 +22,7 @@ run tests/test_ssr_escaping.py
 run tests/test_annotations.py
 run tests/test_fts5_triggers.py
 run tests/test_prompts_resources.py
+run tests/test_error_contract.py
 
 if [[ $INCLUDE_LIVE -eq 1 ]]; then
     echo "(les tests live sont déjà inclus dans test_search.py et test_v2.py)"

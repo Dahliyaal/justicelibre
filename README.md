@@ -60,7 +60,7 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 | **Conseil constit.** | ✅ 7k décisions + tool dédié | ⚠️ | ❌ | ⚠️ | ✅ |
 | **40 TA en parallèle** | ✅ fan-out | ⚠️ partiel | ❌ | ❌ | ✅ |
 | **9 CAA en parallèle** | ✅ fan-out | ⚠️ | ❌ | ❌ | ✅ |
-| **CNIL délibérations** | ✅ 26k | ❌ | ❌ | ⚠️ | ❌ |
+| **CNIL délibérations** | ✅ ~8k | ❌ | ❌ | ⚠️ | ❌ |
 | **Articles loi versionnés** | ✅ 1.5M | ⚠️ | ⚠️ Légifrance brut | ⚠️ | ✅ |
 | **BM25 pertinence** | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ |
 | **Open source** | ✅ MIT | ❌ | ⚠️ | ❌ | ❌ |
@@ -127,7 +127,7 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 |---|---|
 | `search_jorf` | 1.24M textes JO (lois, décrets, arrêtés, circulaires depuis 1990) |
 | `search_kali` | 335k conventions collectives + accords de branche |
-| `search_cnil` | 26k délibérations CNIL (RGPD, données personnelles) |
+| `search_cnil` | ~8k délibérations CNIL (RGPD, données personnelles) |
 
 ---
 

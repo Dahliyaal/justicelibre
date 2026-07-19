@@ -28,7 +28,50 @@ def _sanitize_fts5(q: str) -> str:
     if not q:
         return ""
     # Caractères autorisés : alphanum, espaces, ", *, (, ), -, accents (\w + unicode)
-    return re.sub(r"[^\w\s\"*()\-]", " ", q, flags=re.UNICODE).strip()
+    q = re.sub(r"[^\w\s\"*()\-]", " ", q, flags=re.UNICODE)
+    # Guillemets non appariés : FTS5 lève SyntaxError sur une phrase non
+    # fermée — on retire alors tous les guillemets plutôt que de deviner
+    # où la phrase devait s'arrêter.
+    if q.count('"') % 2:
+        q = q.replace('"', " ")
+    # Parenthèses : FTS5 ne les accepte que dans des groupes booléens
+    # explicites (`(a OR b) AND c`) — un simple `mot (précision)` est une
+    # SyntaxError. On ne les conserve donc que si la query utilise des
+    # opérateurs booléens ET qu'elles sont équilibrées.
+    if not re.search(r"\b(AND|OR|NOT)\b", q) or q.count("(") != q.count(")"):
+        q = q.replace("(", " ").replace(")", " ")
+    # Hors phrase quotée, FTS5 parse `a-b` comme filtre de colonne et lève
+    # SyntaxError ("79-105", "garde-à-vue"). On quote donc les tokens à
+    # tiret, on retire les tirets isolés et les * non collés à un mot.
+    parts = q.split('"')
+    for i in range(0, len(parts), 2):  # segments hors guillemets uniquement
+        seg = re.sub(
+            r"(\w+(?:-\w+)+)(\*?)",
+            lambda m: f'"{m.group(1)}"{m.group(2)}',
+            parts[i], flags=re.UNICODE,
+        )
+        seg = re.sub(r"(?<!\w)-|-(?!\w)", " ", seg)
+        seg = re.sub(r'(?<![\w"])\*', " ", seg)
+        parts[i] = seg
+    out = '"'.join(parts).strip()
+    # Opérateur booléen orphelin en tête ou en queue ("harcèlement AND") :
+    # SyntaxError FTS5 — on le retire.
+    return re.sub(
+        r"^(?:\s*(?:AND|OR|NOT)\b)+|(?:\b(?:AND|OR|NOT)\s*)+$", " ", out
+    ).strip()
+
+def _fts_syntax_error_result(e: Exception) -> dict[str, Any]:
+    """Filet de sécurité : malgré _sanitize_fts5, FTS5 peut encore rejeter
+    une combinaison d'opérateurs (parenthèses déséquilibrées, NOT en tête…).
+    Retour 0-résultat actionnable plutôt qu'une exception opaque au modèle."""
+    return {
+        "total": 0,
+        "returned": 0,
+        "decisions": [],
+        "note": f"Syntaxe de recherche invalide pour FTS5 ({e}). Reformuler "
+                "en mots-clés simples, sans opérateurs ni ponctuation.",
+    }
+
 
 JURIDICTIONS = {
     "cassation": "Cour de cassation",
@@ -75,6 +118,7 @@ def search(
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
+    limit = max(1, min(int(limit), 50))
     # Lookup direct par numero_rg si fourni : court-circuite FTS
     if numero_rg:
         canonical = _normalize_rg(numero_rg)
@@ -146,9 +190,20 @@ def search(
             from query_intent import normalize_fts_query
             fts_query = normalize_fts_query(query, expand=False)
         except Exception:
-            fts_query = _sanitize_fts5(query)
+            fts_query = query
+        # normalize_fts_query quote les tokens composés mais ne retire PAS les
+        # caractères qui font planter FTS5 en SyntaxError (`:`, `;`, apostrophes,
+        # points isolés…) — on passe donc systématiquement par _sanitize_fts5
+        # avant le MATCH, y compris sur le chemin normal.
+        fts_query = _sanitize_fts5(fts_query)
         if not fts_query:
-            return {"total": 0, "decisions": []}
+            return {
+                "total": 0,
+                "returned": 0,
+                "decisions": [],
+                "note": "Query vide après nettoyage FTS5 (caractères spéciaux "
+                        "retirés). Reformuler en mots-clés simples.",
+            }
 
         # snippet() : extrait autour du match, ~28 tokens, highlights <em>…</em>
         SNIPPET_SQL = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
@@ -170,22 +225,25 @@ def search(
 
         # ORDER BY rank (BM25) quand on a une query — sinon date DESC
         # (rank est négatif, ASC = best score first)
-        rows = conn.execute(
-            f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
-                       d.numero, d.formation, d.ecli, d.nature,
-                       {SNIPPET_SQL} AS snip
-                FROM decisions_fts f
-                JOIN decisions d ON d.rowid = f.rowid
-                WHERE {where_sql}
-                ORDER BY rank
-                LIMIT ? OFFSET ?""",
-            params + [int(limit), int(offset)],
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                f"""SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
+                           d.numero, d.formation, d.ecli, d.nature,
+                           {SNIPPET_SQL} AS snip
+                    FROM decisions_fts f
+                    JOIN decisions d ON d.rowid = f.rowid
+                    WHERE {where_sql}
+                    ORDER BY rank
+                    LIMIT ? OFFSET ?""",
+                params + [int(limit), int(offset)],
+            ).fetchall()
 
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {where_sql}",
-            params,
-        ).fetchone()[0]
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {where_sql}",
+                params,
+            ).fetchone()[0]
+        except sqlite3.OperationalError as e:
+            return _fts_syntax_error_result(e)
 
         decisions = [
             {
@@ -230,7 +288,14 @@ def search_cc(
         raise ValueError("query must be non-empty")
     fts_query = _sanitize_fts5(query)
     if not fts_query:
-        return {"total": 0, "decisions": []}
+        return {
+            "total": 0,
+            "returned": 0,
+            "decisions": [],
+            "note": "Query vide après nettoyage FTS5 (caractères spéciaux "
+                    "retirés). Reformuler en mots-clés simples.",
+        }
+    limit = max(1, min(int(limit), 50))
     conn = _get_conn()
     try:
         SNIPPET = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
@@ -249,11 +314,14 @@ def search_cc(
                f"d.numero, d.formation, d.ecli, d.nature, {SNIPPET} AS snip "
                f"FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid "
                f"WHERE {base_where} ORDER BY d.date DESC LIMIT ? OFFSET ?")
-        rows = conn.execute(sql, params + [int(limit), int(offset)]).fetchall()
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {base_where}",
-            params,
-        ).fetchone()[0]
+        try:
+            rows = conn.execute(sql, params + [int(limit), int(offset)]).fetchall()
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {base_where}",
+                params,
+            ).fetchone()[0]
+        except sqlite3.OperationalError as e:
+            return _fts_syntax_error_result(e)
         decisions = [{
             "id": r["id"], "titre": r["titre"], "date": r["date"],
             "juridiction": r["juridiction"], "solution": r["solution"],
@@ -279,7 +347,8 @@ def get_cc_decision(numero: str, nature: str | None = None) -> dict[str, Any] | 
     """
     if not numero.strip():
         return None
-    num_clean = numero.strip().replace(" ", " ")
+    # Un guillemet dans le numéro casserait la phrase FTS5 ci-dessous.
+    num_clean = numero.strip().replace('"', " ").replace(" ", " ")
     # FTS5 phrase match sur le numéro
     fts_q = f'"{num_clean}"'
     conn = _get_conn()

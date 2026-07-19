@@ -1,6 +1,6 @@
 """Wrapper MCP pour les délibérations CNIL.
 
-cnil.db contient les 26k+ délibérations de la Commission nationale de
+cnil.db contient les ~8 000 délibérations de la Commission nationale de
 l'informatique et des libertés (droit RGPD, données personnelles).
 """
 from __future__ import annotations
