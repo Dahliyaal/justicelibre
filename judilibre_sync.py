@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -30,8 +31,8 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 # Réutilise les crédentiels PROD du worker enrich_piste_meta.py
-PISTE_CLIENT_ID = "6c80c779-28ed-4913-ac49-d4cbac3f73e9"
-PISTE_CLIENT_SECRET = "a3ddd53c-eb03-41e7-80e9-531ec4ecbad3"
+PISTE_CLIENT_ID = os.environ["PISTE_CLIENT_ID"]
+PISTE_CLIENT_SECRET = os.environ["PISTE_CLIENT_SECRET"]
 OAUTH_URL = "https://oauth.piste.gouv.fr/api/oauth/token"
 JUDILIBRE_URL = "https://api.piste.gouv.fr/cassation/judilibre/v1.0"
 DB = "/opt/justicelibre/dila/judiciaire.db"
