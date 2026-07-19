@@ -85,8 +85,8 @@ h1 em{font-style:italic;color:var(--teal)}
   background:var(--white);border:1px solid var(--line);border-radius:4px;color:var(--muted);cursor:pointer}
 .range-bar button:hover{border-color:var(--teal);color:var(--teal)}
 .range-bar button.active{background:var(--teal);border-color:var(--teal);color:#fff}
-.range-bar select{margin-left:auto;padding:.35rem .5rem;font-size:.75rem;font-family:var(--mono);
-  background:var(--white);border:1px solid var(--line);border-radius:4px;color:var(--teal);cursor:pointer;max-width:14rem}
+#toolCs .cs-display-text{font-family:var(--mono);font-size:.78rem;color:var(--teal)}
+#toolCs .cs-item{font-family:var(--mono);font-size:.78rem}
 .stat-card{
   padding:1.5rem;
   text-align:center;
@@ -157,9 +157,13 @@ h2 em{font-style:italic;color:var(--teal)}
     <button type="button" data-range="7d">7 jours</button>
     <button type="button" data-range="30d" class="active">30 jours</button>
     <button type="button" data-range="365d">365 jours</button>
-    <select id="toolSel" title="Filtrer par outil">
-      <option value="">Tous les outils</option>
-    </select>
+    <div class="cs-wrap" id="toolCs" style="min-width:13rem;margin-left:auto">
+      <button type="button" class="cs-display"><span class="cs-display-text">Tous les outils</span><span class="chev">▾</span></button>
+      <div class="cs-panel">
+        <div class="cs-item selected" data-value="" data-label="Tous les outils">Tous les outils</div>
+      </div>
+    </div>
+    <input type="hidden" id="toolSel" value="">
   </div>
   <div id="daily-chart" class="daily-chart"></div>
   <p id="daily-note" class="refresh">Le 20 juillet 2026, le serveur MCP a franchi le cap des 50 000 requêtes. À cette occasion, cette page s'enrichit de nouvelles fonctionnalités : un suivi quotidien de l'historique sans limitation de durée, ainsi qu'un suivi individuel pour chaque outil. Les graphiques intègrent ces données à compter de cette date.</p>
@@ -187,12 +191,14 @@ function fetchStats(){
       document.getElementById('yesterday').textContent =
         (yd in days) ? days[yd].toLocaleString('fr-FR') : '—';
       _stats = d;
-      var sel = document.getElementById('toolSel');
-      if (sel.options.length <= 1){
+      var panel = document.querySelector('#toolCs .cs-panel');
+      if (panel.children.length <= 1){
         Object.keys(d.per_tool || {}).sort().forEach(function(t){
-          var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+          var it = document.createElement('div');
+          it.className = 'cs-item'; it.dataset.value = t; it.dataset.label = t; it.textContent = t;
+          panel.appendChild(it);
         });
-        sel.addEventListener('change', renderChart);
+        document.getElementById('toolSel').addEventListener('change', renderChart);
       }
       renderChart();
       document.getElementById('status').textContent = d.server_status || 'active';
@@ -318,6 +324,32 @@ document.getElementById('rangeBar').addEventListener('click', function(e){
   document.querySelectorAll('#rangeBar button').forEach(function(x){ x.classList.toggle('active', x === b); });
   renderChart();
 });
+
+/* Dropdown custom — logique réutilisable reprise de search.html (bindCs) */
+function bindCs(wrapId, hiddenId){
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  var dispText = wrap.querySelector('.cs-display-text');
+  var panel = wrap.querySelector('.cs-panel');
+  var hidden = document.getElementById(hiddenId);
+  wrap.querySelector('.cs-display').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.querySelectorAll('.cs-wrap.open').forEach(function(w){ if (w !== wrap) w.classList.remove('open'); });
+    wrap.classList.toggle('open');
+  });
+  panel.addEventListener('click', function(e){
+    var el = e.target.closest('[data-value]');
+    if (!el) return;
+    hidden.value = el.dataset.value;
+    dispText.textContent = el.dataset.label;
+    panel.querySelectorAll('.selected').forEach(function(n){ n.classList.remove('selected'); });
+    el.classList.add('selected');
+    wrap.classList.remove('open');
+    hidden.dispatchEvent(new Event('change'));
+  });
+  document.addEventListener('click', function(){ wrap.classList.remove('open'); });
+}
+bindCs('toolCs', 'toolSel');
 
 fetchStats();
 setInterval(fetchStats, 30000);
