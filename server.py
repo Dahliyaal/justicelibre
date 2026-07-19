@@ -1847,6 +1847,249 @@ async def search_annuaire(
         "returned": min(len(matches), limit),
         "results": [m[1] for m in matches[:limit]],
     }
+# ─── RESOURCES MCP — catalogues consultables sans appel de tool ──────
+# Les clients MCP peuvent lire ces catalogues directement (pattern
+# "content catalog" recommandé par la doc du Connectors Directory) au
+# lieu de dépenser des appels de tools exploratoires. Ils sont calculés
+# depuis les sources uniques (legi.py, juriadmin.py) — pas de copie de
+# chiffres qui dériverait.
+
+@mcp.resource(
+    "justicelibre://codes-supportes",
+    name="codes_supportes",
+    title="Codes et textes de loi supportés",
+    description=(
+        "Les codes courts acceptés par get_law_article, get_law_versions "
+        "et search_decisions_citing, avec nom complet et identifiant "
+        "LEGITEXT Légifrance."
+    ),
+    mime_type="application/json",
+)
+def resource_codes_supportes() -> str:
+    return json.dumps(
+        [
+            {
+                "code": code,
+                "nom": nom,
+                "legitext": legi.SUPPORTED_CODES_LEGITEXT.get(code),
+            }
+            for code, nom in legi.SUPPORTED_CODES.items()
+        ],
+        ensure_ascii=False, indent=2,
+    )
+
+
+@mcp.resource(
+    "justicelibre://juridictions",
+    name="juridictions",
+    title="Juridictions administratives couvertes",
+    description=(
+        "Les codes de juridiction acceptés par search_admin_recent et "
+        "get_admin_decision : Conseil d'État, cours administratives "
+        "d'appel et tribunaux administratifs (outre-mer inclus)."
+    ),
+    mime_type="application/json",
+)
+def resource_juridictions() -> str:
+    return json.dumps(
+        {
+            "conseil_etat": juriadmin.CONSEIL_ETAT,
+            "cours_administratives_appel": juriadmin.COURS_ADMIN_APPEL,
+            "tribunaux_administratifs": juriadmin.TRIBUNAUX_ADMIN,
+        },
+        ensure_ascii=False, indent=2,
+    )
+
+
+# Matrice de routage statique : quel format d'identifiant va avec quel
+# tool d'extraction. C'est la connaissance que get_decision_text redonne
+# en message d'erreur quand on se trompe — ici consultable a priori.
+_FORMATS_IDENTIFIANTS = [
+    {"format": "JURITEXT*, JURI*", "exemple": "JURITEXT000042579700",
+     "signification": "Décision judiciaire (Cass., cours d'appel) — bulk DILA",
+     "tool": "get_decision_judiciaire_libre"},
+    {"format": "CONSTEXT*", "exemple": "CONSTEXT000047529913",
+     "signification": "Décision du Conseil constitutionnel — bulk DILA",
+     "tool": "get_decision_judiciaire_libre"},
+    {"format": "DCE_*, DTA_*, DCAA_*", "exemple": "DCE_473286_20231123",
+     "signification": "Décision administrative (CE / TA / CAA) — open data",
+     "tool": "get_decision_text"},
+    {"format": "CETATEXT*", "exemple": "CETATEXT000048352255",
+     "signification": "Décision administrative — identifiant Légifrance (bulk JADE)",
+     "tool": "get_decision_text"},
+    {"format": "/Ariane_Web/AW_DCE/|N ou |N", "exemple": "|461534",
+     "signification": "Décision du Conseil d'État — index ArianeWeb (Sinequa)",
+     "tool": "get_decision_text"},
+    {"format": "001-XXXXXX", "exemple": "001-249914",
+     "signification": "Décision de la Cour EDH — itemid HUDOC",
+     "tool": "get_decision_cedh"},
+    {"format": "CELEX (6XXXXCJXXXX) / ECLI:EU:*", "exemple": "62012CJ0131",
+     "signification": "Arrêt CJUE / Tribunal UE — EUR-Lex",
+     "tool": "get_decision_cjue"},
+    {"format": "LEGIARTI*", "exemple": "LEGIARTI000006438819",
+     "signification": "Article de loi consolidé — préférer le couple (code, num)",
+     "tool": "get_law_article"},
+    {"format": "LEGITEXT*, JORFTEXT*", "exemple": "JORFTEXT000000215117",
+     "signification": "Texte entier (code, loi, décret) — URL Légifrance",
+     "tool": "build_source_url"},
+]
+
+
+@mcp.resource(
+    "justicelibre://formats-identifiants",
+    name="formats_identifiants",
+    title="Matrice identifiant → tool d'extraction",
+    description=(
+        "Quel format d'identifiant (JURITEXT, CETATEXT, itemid HUDOC, "
+        "CELEX…) se lit avec quel tool. À consulter avant d'appeler un "
+        "get_decision_* avec un identifiant d'origine inconnue."
+    ),
+    mime_type="application/json",
+)
+def resource_formats_identifiants() -> str:
+    return json.dumps(_FORMATS_IDENTIFIANTS, ensure_ascii=False, indent=2)
+
+
+# ─── PROMPTS MCP — workflows invocables par l'utilisateur ────────────
+# Contrairement aux tools (pilotés par le modèle), les prompts sont
+# déclenchés par l'utilisateur (slash-commands dans Claude Desktop /
+# Claude.ai…). Chacun packe un workflow complet qui demande une
+# discipline d'enchaînement de tools — celle que les instructions
+# n'imposent qu'au modèle.
+
+@mcp.prompt(
+    name="verifier_citation",
+    title="Vérifier une citation juridique",
+    description=(
+        "Vérifie qu'une référence invoquée (arrêt, article de loi) existe "
+        "réellement et dit bien ce qu'on lui fait dire — texte intégral à "
+        "l'appui, avec lien source officiel. L'anti-hallucination "
+        "juridique en une commande."
+    ),
+)
+def prompt_verifier_citation(reference: str, citation: str = "") -> str:
+    """Vérifie l'existence et le contenu réel d'une référence juridique.
+
+    Args:
+        reference: la référence à vérifier (ex : "Cass. soc., 12 juin
+            2014, n° 13-16.236", "CE n° 473286", "article 1240 du Code
+            civil", "CEDH 001-249914").
+        citation: optionnel — ce qu'on fait dire à cette référence, pour
+            confrontation au texte réel.
+    """
+    citation_line = (
+        f"\nOn lui fait dire : « {citation} »\n" if citation.strip() else "\n"
+    )
+    return f"""Vérifie la référence juridique suivante : {reference}
+{citation_line}
+Procède exclusivement avec les tools JusticeLibre, jamais de mémoire :
+
+1. Identifie le type de référence (décision de justice ou article de loi)
+   et résous-la avec le tool adapté — `get_cc_decision`, `get_ce_decision`,
+   `get_admin_decision`, `search_judiciaire_libre` (n° de pourvoi ou RG),
+   `search_cedh`/`search_cjue`, ou `get_law_article`. En cas de doute sur
+   un identifiant, consulte la resource justicelibre://formats-identifiants.
+2. Récupère le TEXTE INTÉGRAL (`get_decision_*` / `get_law_article`) — ne
+   conclus jamais depuis un simple extrait de recherche.
+3. Si la référence est un article de loi et qu'une date des faits est en
+   jeu, vérifie la version en vigueur À CETTE DATE
+   (`get_law_article(code, num, date)`), pas la version actuelle.
+4. Confronte le texte réel à ce qui est allégué et rends un verdict
+   explicite :
+   - ✅ la référence existe et dit bien cela — cite le passage exact ;
+   - ⚠️ elle existe mais dit autre chose — cite le passage réel et
+     explique l'écart ;
+   - ❌ elle est introuvable dans les bases — dis-le sans extrapoler
+     (préciser que la couverture des bases n'est pas exhaustive).
+5. Termine par l'identifiant retrouvé et l'URL officielle obtenue via
+   `build_source_url` pour vérification humaine."""
+
+
+@mcp.prompt(
+    name="droit_applicable",
+    title="Droit applicable à une date donnée",
+    description=(
+        "Retrouve la version d'un article de loi en vigueur à la date des "
+        "faits (pas la version actuelle), sa timeline de modifications et "
+        "la jurisprudence qui le cite. Le piège classique des versions, "
+        "désamorcé en une commande."
+    ),
+)
+def prompt_droit_applicable(code: str, article: str, date_des_faits: str) -> str:
+    """Analyse la version applicable d'un article à une date donnée.
+
+    Args:
+        code: code court (ex : "CC", "CT" — liste complète dans la
+            resource justicelibre://codes-supportes).
+        article: numéro de l'article (ex : "1382", "L1152-1").
+        date_des_faits: date des faits au format YYYY-MM-DD.
+    """
+    return f"""Quel était le droit applicable : article {article} du code {code} \
+à la date du {date_des_faits} ?
+
+Procède exclusivement avec les tools JusticeLibre :
+
+1. `get_law_article(code="{code}", num="{article}", date="{date_des_faits}")`
+   — la version en vigueur À LA DATE DES FAITS, pas la version actuelle.
+2. `get_law_versions(code="{code}", num="{article}")` — situe cette version
+   dans la timeline : depuis quand s'appliquait-elle, a-t-elle été modifiée
+   ou abrogée depuis, et par quoi.
+3. Si la version applicable diffère de la version actuellement en vigueur,
+   mets la différence en évidence — c'est le piège classique (ex : art. 1382
+   du Code civil devenu 1240 en 2016).
+4. `search_decisions_citing(code="{code}", num="{article}")` — donne
+   quelques décisions citant l'article, en privilégiant celles
+   contemporaines de la version applicable.
+5. Conclus avec : le texte applicable cité intégralement, ses dates de
+   vigueur, l'identifiant LEGIARTI, et l'URL Légifrance DATÉE obtenue via
+   `build_source_url(identifier, date="{date_des_faits}")` (sans la date,
+   Légifrance affiche la version courante)."""
+
+
+@mcp.prompt(
+    name="dossier_jurisprudence",
+    title="Dossier de jurisprudence",
+    description=(
+        "Constitue un dossier de jurisprudence sourcé sur un sujet : "
+        "recherche fédérée, lecture des textes intégraux (pas des "
+        "snippets), synthèse hiérarchisée par autorité avec identifiants "
+        "et liens officiels."
+    ),
+)
+def prompt_dossier_jurisprudence(sujet: str, contexte: str = "") -> str:
+    """Constitue un dossier de jurisprudence sourcé.
+
+    Args:
+        sujet: le sujet de droit (ex : "harcèlement moral au travail",
+            "refus de titre de séjour pour menace à l'ordre public").
+        contexte: optionnel — éléments de la situation qui orientent la
+            sélection (juridiction visée, période, qualité des parties…).
+    """
+    contexte_line = f"\nContexte : {contexte}\n" if contexte.strip() else "\n"
+    return f"""Constitue un dossier de jurisprudence sur : {sujet}
+{contexte_line}
+Méthode, exclusivement avec les tools JusticeLibre :
+
+1. `search_all(query)` pour le panorama — le thésaurus juridique étend
+   automatiquement les termes. Note le nombre de résultats par source et
+   signale explicitement toute source en échec ou non couverte.
+2. Sélectionne les 3 à 5 décisions les plus pertinentes en respectant la
+   hiérarchie d'autorité (CJUE / Cour EDH / Conseil constitutionnel >
+   Cour de cassation / Conseil d'État > cours d'appel / CAA > premier
+   ressort), en variant les ordres de juridiction si le sujet s'y prête.
+3. LIS LE TEXTE INTÉGRAL de chaque décision retenue avant de la citer
+   (`get_decision_*` selon le format d'identifiant — resource
+   justicelibre://formats-identifiants). Jamais de conclusion sur la
+   seule foi d'un snippet de recherche.
+4. Si un article de loi est central au sujet, ajoute sa version applicable
+   (`get_law_article` à la date des décisions retenues) et le
+   cross-référencement `search_decisions_citing`.
+5. Rends une synthèse structurée :
+   - l'état du droit en quelques paragraphes ;
+   - pour chaque décision retenue : juridiction, date, identifiant,
+     apport au dossier, passage clé cité, URL via `build_source_url` ;
+   - les limites du dossier (sources non interrogées, zones d'incertitude,
+     couverture partielle des bases)."""
 
 
 if __name__ == "__main__":
