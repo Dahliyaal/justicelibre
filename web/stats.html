@@ -45,6 +45,15 @@ html[data-theme="dark"]{
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* Scrollbar + contrôles natifs aux couleurs du thème (repris de styles/base.css) */
+html{scrollbar-color:var(--line) var(--white);scrollbar-width:thin;color-scheme:light}
+html[data-theme="dark"]{color-scheme:dark}
+@media (prefers-color-scheme: dark){html:not([data-theme="light"]){color-scheme:dark}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--white)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--white)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-corner{background:var(--white)}
 body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
 a{color:var(--teal);text-decoration:none}
 .wrap{max-width:800px;margin:0 auto;padding:3rem 2rem 5rem}
