@@ -1,7 +1,10 @@
 # justicelibre.org
 
-Corpus juridique français ouvert et annuaire des adresses électroniques
-publiques des juridictions et administrations françaises.
+> Corpus juridique français ouvert (~3,3 M décisions de justice + 1,75 M
+> articles de loi consolidés avec versions historiques) et annuaire des
+> adresses électroniques publiques des juridictions et administrations
+> françaises. Projet de l'association à but non lucratif JUSTICE LIBRE
+> (loi 1901, RNA W594013883).
 
 ## Description
 
@@ -12,35 +15,70 @@ JORF, les conventions collectives (KALI), les délibérations CNIL, ainsi
 qu'un annuaire agrégé des adresses fonctionnelles des juridictions et
 administrations françaises.
 
+## MCP (Model Context Protocol)
+
+Endpoint public : `https://justicelibre.org/mcp` (streamable HTTP, sans
+authentification). 31 outils en lecture seule, 3 prompts, 3 resources.
+Fiche registre : `io.github.Dahliyaal/justicelibre`.
+
+Outils clés : `search_all` (recherche fédérée avec thésaurus juridique FR),
+`get_law_article(code, num, date)` (texte de loi en vigueur à une date
+précise, versions depuis 1804), `search_decisions_citing(code, num)`
+(décisions citant un article), `search_annuaire` (adresses email publiques
+d'administrations, avec source officielle et preuve PDF archivée), plus les
+moteurs par source (`search_admin`, `search_judiciaire_libre`,
+`search_conseil_etat`, `search_cedh`, `search_cjue`, `search_legi`,
+`search_jorf`, `search_kali`, `search_cnil`, `search_cc`).
+
+Les tools de recherche renvoient des extraits ; le texte intégral s'obtient
+via `get_decision_text`, `get_decision_judiciaire_libre`, `get_decision_cedh`,
+`get_decision_cjue` selon la source.
+
+## Pages HTML indexables (SSR, sans JavaScript requis)
+
+- Décision : `https://justicelibre.org/decision/{source}/{id}` avec source ∈
+  {admin, dila, cedh, cjue, ariane, cnil} (ex :
+  https://justicelibre.org/decision/dila/JURITEXT000007399557)
+- Article de loi : `https://justicelibre.org/loi/{code}/{num}` (ex :
+  https://justicelibre.org/loi/CC/1128)
+- [Sitemap XML](https://justicelibre.org/sitemap.xml) : index de ~65
+  sous-sitemaps couvrant ~2,4 M d'URL.
+
+## Annuaire d'adresses publiques
+
+- [Annuaire (index)](https://justicelibre.org/annuaire.html) : juridictions
+  judiciaires et administratives, administrations centrales, PRADA.
+- [Sous-pages annuaire](https://justicelibre.org/annuaire.html) : 20 pages
+  statiques par catégorie sous `/annuaire/` (mairies, CCAS, France Services,
+  sous-préfectures, trésoreries, etc.), chacune avec l'intégralité des fiches.
+- [Adresses inédites](https://justicelibre.org/inedits.html) : adresses email
+  d'administrations extraites de PDF officiels et de décisions de justice,
+  introuvables ailleurs en ligne. Sous-pages : écoles, préfectures,
+  administrations centrales, autres. Chaque adresse est sourcée (document
+  officiel + copie archivée sous /preuves/).
+
 ## Données structurées machine-readable
 
-- [Annuaire juridictions JSON](https://justicelibre.org/data/annuaire_juridictions.json) : 71 000 fiches (juridictions, admin centrales, mairies, CCAS, France Services, points-justice, etc.) avec adresses email fonctionnelles publiques. Format JSON compact.
-- [Annuaire juridictions CSV](https://justicelibre.org/data/annuaire_juridictions.csv) : même contenu en CSV point-virgule (compatible Excel).
+- [Annuaire juridictions JSON](https://justicelibre.org/data/annuaire_juridictions.json) : ~71 000 fiches (juridictions, admin centrales, mairies, CCAS, France Services, points-justice, etc.) avec adresses email fonctionnelles publiques.
+- [Annuaire juridictions CSV](https://justicelibre.org/data/annuaire_juridictions.csv) : même contenu en CSV point-virgule.
 - [Annuaire PRADA JSON](https://justicelibre.org/data/annuaire_prada.json) : 2 247 personnes responsables de l'accès aux documents administratifs (art. L. 330-1 CRPA), avec nom et courriel. Premier export machine-readable de ce fichier.
 - [Annuaire PRADA CSV](https://justicelibre.org/data/annuaire_prada.csv) : idem CSV.
 - [Métadonnées annuaire](https://justicelibre.org/data/annuaire_meta.json) : dates, comptages, sources, taux de couverture par catégorie.
-- [Sitemap XML](https://justicelibre.org/sitemap.xml) : liste des 28 URLs indexables.
 
-## Pages principales
+## Autres pages
 
-- [Annuaire (index)](https://justicelibre.org/annuaire.html) : juridictions judiciaires et administratives, administrations centrales, PRADA.
-- [Sous-pages annuaire par catégorie](https://justicelibre.org/annuaire/) : mairies, CCAS, France Services, sous-préfectures, trésoreries, etc. (19 sous-pages statiques, chacune contenant l'intégralité des fiches de la catégorie).
-- [Recherche jurisprudence + lois](https://justicelibre.org/search.html) : interface de recherche fédérée sur toutes les sources.
+- [Recherche jurisprudence + lois](https://justicelibre.org/search.html) : interface de recherche fédérée.
 - [Ressources](https://justicelibre.org/ressources.html) : sources ouvertes, méthodologie, licences.
-
-## MCP (Model Context Protocol)
-
-Endpoint MCP public exposant 24 outils de recherche et d'extraction sur
-la jurisprudence et le droit positif français et européen. Configuration
-sur `https://mcp.justicelibre.org/` (voir tutoriel : https://justicelibre.org/tutoriel-piste.html).
-
-Outils clés : `search_all` (fédéré avec thésaurus juridique FR), `get_law_article(code, num, date)` (texte de loi à une date précise), `search_decisions_citing(code, num)` (cross-références inverses), plus les moteurs par source (`search_admin`, `search_judiciaire_libre`, `search_conseil_etat`, `search_cedh`, `search_cjue`, `search_legi`, `search_jorf`, `search_kali`, `search_cnil`, `search_cc`).
+- [Tutoriel PISTE](https://justicelibre.org/tutoriel-piste.html) : obtenir un accès à l'API Judilibre (Cour de cassation) via la plateforme PISTE.
+- [API REST publique](https://justicelibre.org/api) : recherche fédérée, texte intégral, articles de loi datés, sans authentification.
 
 ## Licence
 
 Contenus sous Licence Ouverte 2.0 (Etalab) : réutilisation libre y compris
-commerciale, avec citation de la source. Voir https://www.etalab.gouv.fr/licence-ouverte-open-licence.
+commerciale, avec citation de la source. Code sous licence MIT.
+Voir https://www.etalab.gouv.fr/licence-ouverte-open-licence.
 
 ## Contact
 
-`contact@justicelibre.org` · code source : https://github.com/Dahliyaal/justicelibre
+GitHub Issues : https://github.com/Dahliyaal/justicelibre/issues
+(adresse email affichable sur https://justicelibre.org/mentions-legales.html)
