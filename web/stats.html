@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <script defer src="/topbar.js?v=5"></script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://justicelibre.org/"}, {"@type": "ListItem", "position": 2, "name": "Statistiques"}]}</script>
@@ -28,6 +31,18 @@
   --display:"DM Serif Display",Georgia,serif;
   --sans:"DM Sans",-apple-system,sans-serif;
   --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+}
+html[data-theme="dark"]{
+  --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
+  --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
+  --light:#141413;--white:#1e1e1c;--line:#2a2a27;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
+    --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
+    --light:#141413;--white:#1e1e1c;--line:#2a2a27;
+  }
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
