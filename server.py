@@ -97,7 +97,8 @@ CPP, CT, CSP, CJA, CGI, CESEDA…) + Constitution + 3 lois non codifiées
 # Stats counter
 _STATS_PATH = Path("/var/www/justicelibre/stats.json")
 _STATS_LOCK = threading.Lock()
-_STATS = {"total": 0, "today": 0, "today_date": "", "per_tool": {}, "last_call": None}
+_STATS = {"total": 0, "today": 0, "today_date": "", "per_tool": {}, "last_call": None,
+          "days": {}}  # historique {YYYY-MM-DD: nb d'appels} — conservé ~400 jours
 _START_TIME = time.monotonic()
 
 
@@ -112,6 +113,7 @@ def _load_stats():
             _STATS["today_date"] = saved.get("today_date", "")
             _STATS["per_tool"] = saved.get("per_tool", {})
             _STATS["last_call"] = saved.get("last_call")
+            _STATS["days"] = saved.get("days", {})
     except Exception:
         pass
 
@@ -129,6 +131,7 @@ def _save_stats():
             "today_date": _STATS["today_date"],
             "per_tool": _STATS["per_tool"],
             "last_call": _STATS["last_call"],
+            "days": _STATS.get("days", {}),
             "server_status": "active",
             "uptime": f"{hours}h {mins:02d}m",
         }
@@ -151,6 +154,13 @@ def _record_call(tool_name: str):
         _STATS["today"] += 1
         _STATS["per_tool"][tool_name] = _STATS["per_tool"].get(tool_name, 0) + 1
         _STATS["last_call"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        # Historique quotidien (la valeur "today" était écrasée chaque nuit —
+        # ici on garde une entrée par date, bornée à ~400 jours).
+        days = _STATS.setdefault("days", {})
+        days[today_str] = days.get(today_str, 0) + 1
+        if len(days) > 400:
+            for old in sorted(days)[:-400]:
+                del days[old]
         _save_stats()
 
 

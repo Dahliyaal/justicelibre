@@ -55,9 +55,22 @@ h1 em{font-style:italic;color:var(--teal)}
 .back:hover{color:var(--teal)}
 
 .stats-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;
   margin-bottom:3rem;
 }
+/* ─── Graphique quotidien (SVG, série unique teal) ─── */
+.daily-chart{position:relative;background:var(--white);border:1px solid var(--line);
+  border-radius:6px;padding:1rem 1rem .5rem;margin-bottom:3rem;overflow-x:auto}
+.daily-chart svg{display:block;width:100%;height:180px}
+.daily-chart .grid-line{stroke:var(--line);stroke-width:1}
+.daily-chart .bar-rect{fill:var(--teal);cursor:pointer}
+.daily-chart .bar-hit{fill:transparent;cursor:pointer}
+.daily-chart .bar-hit:hover + .bar-rect,
+.daily-chart .bar-rect:hover{fill:var(--teal-l)}
+.daily-chart .axis-label{fill:var(--muted);font-size:10px;font-family:var(--sans)}
+.daily-tooltip{position:absolute;pointer-events:none;background:var(--ink);color:var(--white);
+  padding:.35rem .6rem;border-radius:4px;font-size:.75rem;white-space:nowrap;
+  transform:translate(-50%,-115%);display:none;z-index:5}
 .stat-card{
   padding:1.5rem;
   text-align:center;
@@ -113,10 +126,18 @@ h2 em{font-style:italic;color:var(--teal)}
       <span class="label">Aujourd'hui</span>
     </div>
     <div class="stat-card">
+      <span class="num" id="yesterday">...</span>
+      <span class="label">Hier</span>
+    </div>
+    <div class="stat-card">
       <span class="num" id="status">...</span>
       <span class="label">Serveur</span>
     </div>
   </div>
+
+  <h2>Requêtes <em>par jour</em> <span style="font-size:.7rem;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(30 derniers jours)</span></h2>
+  <div id="daily-chart" class="daily-chart"></div>
+  <p id="daily-note" class="refresh" style="display:none">L'historique quotidien est conservé depuis le 20 juillet 2026 — le graphique se remplit jour après jour.</p>
 
   <h2>Outils <em>les plus utilisés</em></h2>
   <div id="tools-list"></div>
@@ -135,6 +156,12 @@ function fetchStats(){
     .then(function(d){
       document.getElementById('total').textContent = (d.total||0).toLocaleString('fr-FR');
       document.getElementById('today').textContent = (d.today||0).toLocaleString('fr-FR');
+      // "Hier" depuis l'historique quotidien (démarre le 20 juillet 2026)
+      var days = d.days || {};
+      var yd = new Date(Date.now() - 864e5).toISOString().slice(0,10);
+      document.getElementById('yesterday').textContent =
+        (yd in days) ? days[yd].toLocaleString('fr-FR') : '—';
+      renderDailyChart(days);
       document.getElementById('status').textContent = d.server_status || 'active';
       document.getElementById('uptime').textContent = d.uptime || '?';
       document.getElementById('last').textContent = d.last_call || 'aucune';
@@ -158,6 +185,69 @@ function fetchStats(){
     })
     .catch(function(){});
 }
+function renderDailyChart(days){
+  var box = document.getElementById('daily-chart');
+  var note = document.getElementById('daily-note');
+  // Fenêtre : les 30 derniers jours calendaires (0 si pas de donnée)
+  var labels = [], values = [], haveData = 0;
+  for (var i = 29; i >= 0; i--){
+    var dt = new Date(Date.now() - i*864e5);
+    var key = dt.toISOString().slice(0,10);
+    labels.push(key);
+    var v = days[key] || 0;
+    values.push(v);
+    if (key in days) haveData++;
+  }
+  note.style.display = (haveData < 7) ? 'block' : 'none';
+  var W = 900, H = 180, padL = 36, padB = 20, padT = 12;
+  var plotW = W - padL - 8, plotH = H - padT - padB;
+  var max = Math.max.apply(null, values.concat([1]));
+  var n = values.length, slot = plotW / n, barW = Math.max(4, slot - 2);
+  var svg = ['<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Requêtes MCP par jour, 30 derniers jours">'];
+  // repères horizontaux discrets : max et mi-hauteur
+  [max, Math.round(max/2)].forEach(function(g){
+    if (!g) return;
+    var y = padT + plotH - (g/max)*plotH;
+    svg.push('<line class="grid-line" x1="'+padL+'" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>');
+    svg.push('<text class="axis-label" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+g.toLocaleString('fr-FR')+'</text>');
+  });
+  // ligne de base
+  svg.push('<line class="grid-line" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+W+'" y2="'+(padT+plotH)+'"/>');
+  for (var j = 0; j < n; j++){
+    var x = padL + j*slot + (slot-barW)/2;
+    var h = (values[j]/max)*plotH;
+    var y0 = padT + plotH - h;
+    var r = Math.min(4, barW/2, h);
+    // barre à sommet arrondi, ancrée à la ligne de base
+    var path = h <= 0 ? '' :
+      'M'+x+' '+(padT+plotH)+' V'+(y0+r)+' Q'+x+' '+y0+' '+(x+r)+' '+y0+
+      ' H'+(x+barW-r)+' Q'+(x+barW)+' '+y0+' '+(x+barW)+' '+(y0+r)+' V'+(padT+plotH)+' Z';
+    if (path) svg.push('<path class="bar-rect" d="'+path+'" data-i="'+j+'"/>');
+    // zone de survol pleine hauteur (cible plus grande que la barre)
+    svg.push('<rect class="bar-hit" x="'+(padL+j*slot)+'" y="'+padT+'" width="'+slot+'" height="'+plotH+'" data-i="'+j+'"/>');
+    // étiquette de date tous les 5 jours
+    if (j % 5 === 0 || j === n-1){
+      var lab = labels[j].slice(8,10) + '/' + labels[j].slice(5,7);
+      svg.push('<text class="axis-label" x="'+(padL+j*slot+slot/2)+'" y="'+(H-4)+'" text-anchor="middle">'+lab+'</text>');
+    }
+  }
+  svg.push('</svg>');
+  box.innerHTML = svg.join('') + '<div class="daily-tooltip" id="dailyTip"></div>';
+  var tip = document.getElementById('dailyTip');
+  box.querySelectorAll('[data-i]').forEach(function(el){
+    el.addEventListener('mousemove', function(ev){
+      var i = +el.dataset.i;
+      var dt = labels[i].slice(8,10)+'/'+labels[i].slice(5,7);
+      tip.textContent = dt + ' : ' + values[i].toLocaleString('fr-FR') + ' requête' + (values[i]>1?'s':'');
+      var r = box.getBoundingClientRect();
+      tip.style.left = (ev.clientX - r.left) + 'px';
+      tip.style.top = (ev.clientY - r.top) + 'px';
+      tip.style.display = 'block';
+    });
+    el.addEventListener('mouseleave', function(){ tip.style.display = 'none'; });
+  });
+}
+
 fetchStats();
 setInterval(fetchStats, 30000);
 </script>
