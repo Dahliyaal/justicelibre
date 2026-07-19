@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <title>Recherche · justicelibre.org</title>
 <meta name="description" content="Moteur de recherche libre sur ~2 millions de décisions de justice françaises et européennes (Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel) et 1,5 million d'articles de loi.">
@@ -740,7 +743,8 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 /* ─── Dark mode (toggle simple light/dark) ─── */
 const savedTheme = localStorage.getItem('jl-theme');
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-document.getElementById('themeToggle').addEventListener('click', () => {
+const themeToggleBtn = document.getElementById('themeToggle');
+if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => {
   const html = document.documentElement;
   let cur = html.dataset.theme;
   if (!cur) {

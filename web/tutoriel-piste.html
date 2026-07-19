@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <title>Tutoriel PISTE : accéder à la jurisprudence judiciaire | justicelibre.org</title>
 <meta name="description" content="Guide pas-à-pas pour obtenir un accès à l'API Judilibre via la plateforme PISTE. 13 étapes documentées avec captures d'écran.">

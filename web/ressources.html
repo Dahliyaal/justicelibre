@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <title>Ressources & jeux de données ouverts - JusticeLibre</title>
 <meta name="description" content="Thésaurus, vocabulaires contrôlés, dumps de jurisprudence et de codes : tout ce que JusticeLibre utilise, en téléchargement direct, sous licence ouverte.">
 <link rel="icon" type="image/svg+xml" href="/logo.svg">

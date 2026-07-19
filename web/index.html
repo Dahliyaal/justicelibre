@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <title>justicelibre.org · la jurisprudence française, sans péage</title>
 <meta name="description" content="Serveur MCP open source : ~3 millions de décisions de justice + ~1,5 million d'articles de loi (avec versions historiques) accessibles gratuitement. Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel, 9 CAA, 40 TA, CNIL.">
