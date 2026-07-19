@@ -2074,21 +2074,39 @@ def _load_annuaire() -> list[dict]:
             pass
         try:
             import csv as _csv
+            # Sous-page inédits exacte par catégorie (fallback: autres.html)
+            _INEDITS_PAGES = {
+                "ecole": "ecoles.html",
+                "administration_centrale": "administrations-centrales.html",
+                "prefecture": "prefectures.html",
+            }
             with open(f"{_ANNUAIRE_DATA_DIR}/pdf_findings.csv", encoding="utf-8") as f:
                 for r in _csv.DictReader(f, delimiter=";"):
                     if r.get("mail"):
+                        cat = r.get("category", "")
+                        pdf_local = (r.get("pdf_local") or "").strip()
                         rows.append({
                             "mail": r["mail"],
                             "organisme": r.get("organisme", ""),
                             "service": r.get("service", ""),
-                            "categorie": r.get("category", ""),
-                            "categorie_slug": r.get("category", ""),
+                            "role": r.get("role", ""),
+                            "categorie": cat,
+                            "categorie_slug": cat,
                             "source": "pdf",
                             "tel": r.get("tel", ""),
                             "site": r.get("site_web", ""),
                             "adresse": r.get("adresse_postale", ""),
                             "date_source": r.get("date_source", ""),
-                            "url_page": "https://justicelibre.org/inedits.html",
+                            # Traçabilité : document officiel d'origine + copie
+                            # archivée chez nous (au cas où l'original disparaît).
+                            "source_url": r.get("source_url", ""),
+                            "source_label": r.get("source_label", ""),
+                            "source_page": r.get("source_page", ""),
+                            "preuve_url": (
+                                f"https://justicelibre.org/{pdf_local}" if pdf_local else ""
+                            ),
+                            "url_page": "https://justicelibre.org/inedits/"
+                                        + _INEDITS_PAGES.get(cat, "autres.html"),
                         })
         except Exception:
             pass
@@ -2130,7 +2148,11 @@ async def search_annuaire(
     Returns:
         dict avec `total` (matches totaux), `returned`, `results` (liste de
         dicts {mail, organisme, service, categorie, source, tel, site,
-        adresse, date_source, url_page}).
+        adresse, date_source, url_page}). Les entrées issues de PDF scrapés
+        (`source: "pdf"`) portent en plus la traçabilité complète :
+        `role`, `source_url` (document officiel d'origine), `source_label`,
+        `source_page` (page du PDF), `preuve_url` (copie archivée sur
+        justicelibre.org/preuves/ — à citer si l'original a disparu).
     """
     _record_call("search_annuaire")
     rows = _load_annuaire()
