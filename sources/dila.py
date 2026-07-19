@@ -14,7 +14,6 @@ from typing import Any
 
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
 CONSTIT_DB = Path("/opt/justicelibre/dila/constit.db")
-CAPP_DB = Path("/opt/justicelibre/dila/capp.db")
 
 
 def _sanitize_fts5(q: str) -> str:
