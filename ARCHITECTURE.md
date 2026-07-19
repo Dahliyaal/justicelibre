@@ -39,9 +39,9 @@ modification directe en prod ; tout passe par commit + déploiement.
 Index FTS5 associés : `decisions_fts`, `ariane_fts`, `cedh_fts`, `cjue_fts`
 (external content, voir section FTS plus bas).
 
-### Autres fichiers présents mais vides/historiques
-`capp.db`, `jade.db` (0 octet sur le serveur public — les vraies données JADE
-vivent sur l'entrepôt). Ne pas s'y fier.
+### Note
+Les données JADE (justice administrative) ne sont pas sur le serveur public :
+elles vivent sur l'entrepôt et s'interrogent via son service HTTP interne.
 
 ## Bases de l'entrepôt (interrogées via warehouse_server.py)
 
