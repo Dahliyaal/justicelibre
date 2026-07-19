@@ -9,7 +9,6 @@ Circuit breaker : si N erreurs consécutives, on stoppe le script.
 """
 import html as _html
 import itertools
-import os
 import re
 import sqlite3
 import sys
