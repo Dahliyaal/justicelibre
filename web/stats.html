@@ -71,6 +71,11 @@ h1 em{font-style:italic;color:var(--teal)}
 .daily-tooltip{position:absolute;pointer-events:none;background:var(--ink);color:var(--white);
   padding:.35rem .6rem;border-radius:4px;font-size:.75rem;white-space:nowrap;
   transform:translate(-50%,-115%);display:none;z-index:5}
+.range-bar{display:flex;gap:.4rem;margin-bottom:.8rem}
+.range-bar button{padding:.35rem .8rem;font-size:.75rem;font-weight:600;letter-spacing:.05em;
+  background:var(--white);border:1px solid var(--line);border-radius:4px;color:var(--muted);cursor:pointer}
+.range-bar button:hover{border-color:var(--teal);color:var(--teal)}
+.range-bar button.active{background:var(--teal);border-color:var(--teal);color:#fff}
 .stat-card{
   padding:1.5rem;
   text-align:center;
@@ -135,9 +140,15 @@ h2 em{font-style:italic;color:var(--teal)}
     </div>
   </div>
 
-  <h2>Requêtes <em>par jour</em> <span style="font-size:.7rem;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(30 derniers jours)</span></h2>
+  <h2>Requêtes <em>dans le temps</em></h2>
+  <div class="range-bar" id="rangeBar">
+    <button type="button" data-range="today">Aujourd'hui</button>
+    <button type="button" data-range="7d">7 jours</button>
+    <button type="button" data-range="30d" class="active">30 jours</button>
+    <button type="button" data-range="365d">365 jours</button>
+  </div>
   <div id="daily-chart" class="daily-chart"></div>
-  <p id="daily-note" class="refresh" style="display:none">L'historique quotidien est conservé depuis le 20 juillet 2026 — le graphique se remplit jour après jour.</p>
+  <p id="daily-note" class="refresh" style="display:none">L'historique est conservé depuis le 20 juillet 2026 — le graphique se remplit jour après jour.</p>
 
   <h2>Outils <em>les plus utilisés</em></h2>
   <div id="tools-list"></div>
@@ -161,7 +172,7 @@ function fetchStats(){
       var yd = new Date(Date.now() - 864e5).toISOString().slice(0,10);
       document.getElementById('yesterday').textContent =
         (yd in days) ? days[yd].toLocaleString('fr-FR') : '—';
-      renderDailyChart(days);
+      _stats = d; renderChart();
       document.getElementById('status').textContent = d.server_status || 'active';
       document.getElementById('uptime').textContent = d.uptime || '?';
       document.getElementById('last').textContent = d.last_call || 'aucune';
@@ -185,50 +196,71 @@ function fetchStats(){
     })
     .catch(function(){});
 }
-function renderDailyChart(days){
+var _stats = null;
+var _range = '30d';
+
+function renderChart(){
+  if (!_stats) return;
   var box = document.getElementById('daily-chart');
   var note = document.getElementById('daily-note');
-  // Fenêtre : les 30 derniers jours calendaires (0 si pas de donnée)
-  var labels = [], values = [], haveData = 0;
-  for (var i = 29; i >= 0; i--){
-    var dt = new Date(Date.now() - i*864e5);
-    var key = dt.toISOString().slice(0,10);
-    labels.push(key);
-    var v = days[key] || 0;
-    values.push(v);
-    if (key in days) haveData++;
+  var days = _stats.days || {}, hours = _stats.hours || {};
+  var labels = [], values = [], tipUnit = 'requête';
+  function localKey(d){ return d.toLocaleDateString('fr-CA'); } // YYYY-MM-DD, fuseau navigateur
+  if (_range === 'today'){
+    var todayKey = localKey(new Date());
+    for (var h = 0; h < 24; h++){
+      var hh = (h < 10 ? '0' : '') + h;
+      labels.push(hh + 'h');
+      values.push(hours[todayKey + 'T' + hh] || 0);
+    }
+  } else if (_range === '365d'){
+    // agrégation par semaine (52 barres), sinon illisible
+    for (var w = 51; w >= 0; w--){
+      var sum = 0, start = null;
+      for (var dd = 0; dd < 7; dd++){
+        var dt = new Date(Date.now() - (w*7 + (6-dd))*864e5);
+        if (!start) start = dt;
+        sum += days[localKey(dt)] || 0;
+      }
+      labels.push(start.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}));
+      values.push(sum);
+    }
+    tipUnit = 'requête (semaine)';
+  } else {
+    var n = (_range === '7d') ? 7 : 30;
+    for (var i = n-1; i >= 0; i--){
+      var dt2 = new Date(Date.now() - i*864e5);
+      labels.push(dt2.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}));
+      values.push(days[localKey(dt2)] || 0);
+    }
   }
-  note.style.display = (haveData < 7) ? 'block' : 'none';
-  var W = 900, H = 180, padL = 36, padB = 20, padT = 12;
+  note.style.display = (Object.keys(days).length < 7 && _range !== 'today') ? 'block' : 'none';
+
+  var W = 900, H = 180, padL = 40, padB = 20, padT = 12;
   var plotW = W - padL - 8, plotH = H - padT - padB;
   var max = Math.max.apply(null, values.concat([1]));
-  var n = values.length, slot = plotW / n, barW = Math.max(4, slot - 2);
-  var svg = ['<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Requêtes MCP par jour, 30 derniers jours">'];
-  // repères horizontaux discrets : max et mi-hauteur
+  var count = values.length, slot = plotW / count, barW = Math.max(3, slot - 2);
+  var labelStep = Math.max(1, Math.round(count / 7));
+  var svg = ['<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Requêtes MCP dans le temps">'];
   [max, Math.round(max/2)].forEach(function(g){
     if (!g) return;
     var y = padT + plotH - (g/max)*plotH;
     svg.push('<line class="grid-line" x1="'+padL+'" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>');
     svg.push('<text class="axis-label" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+g.toLocaleString('fr-FR')+'</text>');
   });
-  // ligne de base
   svg.push('<line class="grid-line" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+W+'" y2="'+(padT+plotH)+'"/>');
-  for (var j = 0; j < n; j++){
+  for (var j = 0; j < count; j++){
     var x = padL + j*slot + (slot-barW)/2;
-    var h = (values[j]/max)*plotH;
-    var y0 = padT + plotH - h;
-    var r = Math.min(4, barW/2, h);
-    // barre à sommet arrondi, ancrée à la ligne de base
-    var path = h <= 0 ? '' :
-      'M'+x+' '+(padT+plotH)+' V'+(y0+r)+' Q'+x+' '+y0+' '+(x+r)+' '+y0+
-      ' H'+(x+barW-r)+' Q'+(x+barW)+' '+y0+' '+(x+barW)+' '+(y0+r)+' V'+(padT+plotH)+' Z';
-    if (path) svg.push('<path class="bar-rect" d="'+path+'" data-i="'+j+'"/>');
-    // zone de survol pleine hauteur (cible plus grande que la barre)
+    var hgt = (values[j]/max)*plotH;
+    var y0 = padT + plotH - hgt;
+    var r = Math.min(4, barW/2, hgt);
+    if (hgt > 0){
+      svg.push('<path class="bar-rect" d="M'+x+' '+(padT+plotH)+' V'+(y0+r)+' Q'+x+' '+y0+' '+(x+r)+' '+y0+
+        ' H'+(x+barW-r)+' Q'+(x+barW)+' '+y0+' '+(x+barW)+' '+(y0+r)+' V'+(padT+plotH)+' Z" data-i="'+j+'"/>');
+    }
     svg.push('<rect class="bar-hit" x="'+(padL+j*slot)+'" y="'+padT+'" width="'+slot+'" height="'+plotH+'" data-i="'+j+'"/>');
-    // étiquette de date tous les 5 jours
-    if (j % 5 === 0 || j === n-1){
-      var lab = labels[j].slice(8,10) + '/' + labels[j].slice(5,7);
-      svg.push('<text class="axis-label" x="'+(padL+j*slot+slot/2)+'" y="'+(H-4)+'" text-anchor="middle">'+lab+'</text>');
+    if (j % labelStep === 0 || j === count-1){
+      svg.push('<text class="axis-label" x="'+(padL+j*slot+slot/2)+'" y="'+(H-4)+'" text-anchor="middle">'+labels[j]+'</text>');
     }
   }
   svg.push('</svg>');
@@ -237,16 +269,24 @@ function renderDailyChart(days){
   box.querySelectorAll('[data-i]').forEach(function(el){
     el.addEventListener('mousemove', function(ev){
       var i = +el.dataset.i;
-      var dt = labels[i].slice(8,10)+'/'+labels[i].slice(5,7);
-      tip.textContent = dt + ' : ' + values[i].toLocaleString('fr-FR') + ' requête' + (values[i]>1?'s':'');
-      var r = box.getBoundingClientRect();
-      tip.style.left = (ev.clientX - r.left) + 'px';
-      tip.style.top = (ev.clientY - r.top) + 'px';
+      var v = values[i];
+      tip.textContent = labels[i] + ' : ' + v.toLocaleString('fr-FR') + ' ' + tipUnit + (v > 1 ? 's' : '');
+      var rc = box.getBoundingClientRect();
+      tip.style.left = (ev.clientX - rc.left) + 'px';
+      tip.style.top = (ev.clientY - rc.top) + 'px';
       tip.style.display = 'block';
     });
     el.addEventListener('mouseleave', function(){ tip.style.display = 'none'; });
   });
 }
+
+document.getElementById('rangeBar').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-range]');
+  if (!b) return;
+  _range = b.dataset.range;
+  document.querySelectorAll('#rangeBar button').forEach(function(x){ x.classList.toggle('active', x === b); });
+  renderChart();
+});
 
 fetchStats();
 setInterval(fetchStats, 30000);
