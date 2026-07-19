@@ -27,7 +27,10 @@ html[data-theme="dark"] ::selection{background:var(--teal);color:var(--white)}
 }
 
 /* Scrollbar custom (palette synchronisee avec --line / surface courante) */
-html{scrollbar-color:var(--line) var(--white);scrollbar-width:thin}
+html{scrollbar-color:var(--line) var(--white);scrollbar-width:thin;color-scheme:light}
+/* Les contrôles natifs (menus déroulants, ascenseurs de listes) suivent le thème */
+html[data-theme="dark"]{color-scheme:dark}
+@media (prefers-color-scheme: dark){html:not([data-theme="light"]){color-scheme:dark}}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:var(--white)}
 ::-webkit-scrollbar-thumb{
