@@ -7,12 +7,23 @@
 (function(){try{var s=localStorage.getItem("jl-theme");
 if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
+<script defer src="/topbar.js?v=5"></script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://justicelibre.org/"}, {"@type": "ListItem", "position": 2, "name": "Ressources", "item": "https://justicelibre.org/ressources.html"}, {"@type": "ListItem", "position": 3, "name": "Tutoriel PISTE"}]}</script>
 <title>Tutoriel PISTE : accéder à la jurisprudence judiciaire | justicelibre.org</title>
 <meta name="description" content="Guide pas-à-pas pour obtenir un accès à l'API Judilibre via la plateforme PISTE. 13 étapes documentées avec captures d'écran.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* Fil d'ariane sticky sous la topbar (même composant que le reste du site) */
+.page-subbar{background:var(--white);border-bottom:1px solid var(--line);
+  padding:.85rem 2.5rem;display:flex;align-items:center;gap:1rem;justify-content:space-between;
+  position:sticky;top:var(--topbar-h,48px);z-index:90}
+.page-subbar .crumb{font-size:.75rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.12em;font-weight:600}
+.page-subbar .crumb a{color:var(--muted);text-decoration:none}
+.page-subbar .crumb a:hover{color:var(--teal)}
+@media(max-width:700px){.page-subbar{padding:.7rem 1.2rem}}
 :root{
   --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
   --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
@@ -108,6 +119,10 @@ code{
 </style>
 </head>
 <body>
+<div data-topbar-mount></div>
+<div class="page-subbar">
+  <div class="crumb"><a href="/">Accueil</a> &nbsp;›&nbsp; <a href="/ressources.html">Ressources</a> &nbsp;›&nbsp; Tutoriel PISTE</div>
+</div>
 <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
   <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
   <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
