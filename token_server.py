@@ -8,7 +8,6 @@ Endpoints :
   GET    /api/law         — article de loi à une date donnée
   GET    /api/law/versions — toutes les versions d'un article
   POST   /api/law/batch   — plusieurs articles en une requête
-  POST   /api/feedback    — signalement utilisateur (RGPD-safe, pas de logging d'IP)
 
 Runs on port 8766. Nginx routes /api/* here.
 """
@@ -380,8 +379,6 @@ class TokenHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/law/batch":
             return self._handle_law_batch()
-        if self.path == "/api/feedback":
-            return self._handle_feedback()
         if self.path != "/api/token":
             self.send_response(404)
             self.end_headers()
@@ -425,51 +422,6 @@ class TokenHandler(BaseHTTPRequestHandler):
             "message": "Token valide 1 heure. Utilisez-le dans le paramètre session_token des tools search_judiciaire et get_decision_judiciaire.",
         })
 
-    def _handle_feedback(self):
-        """Endpoint append-only pour signalements utilisateur."""
-        try:
-            content_len = int(self.headers.get("Content-Length", "0"))
-        except (ValueError, TypeError):
-            return self._json_response(400, {"error": "Content-Length invalide"})
-        if content_len <= 0 or content_len > 10000:
-            return self._json_response(400, {"error": "Taille de message invalide."})
-        raw = self.rfile.read(content_len)
-        try:
-            body = json.loads(raw)
-        except json.JSONDecodeError:
-            return self._json_response(400, {"error": "JSON invalide"})
-        msg = (body.get("message") or "").strip()[:3000]
-        email = (body.get("email") or "").strip()[:120]
-        context_raw = body.get("context") or {}
-        ua = (body.get("ua") or "").strip()[:150]
-        if len(msg) < 5:
-            return self._json_response(400, {"error": "Message trop court."})
-        # Whitelist des clés de contexte (évite log injection / pollution arbitraire)
-        ALLOWED_CONTEXT_KEYS = {"source", "id", "url", "title"}
-        context = {}
-        if isinstance(context_raw, dict):
-            for k in ALLOWED_CONTEXT_KEYS:
-                v = context_raw.get(k)
-                if v is not None:
-                    context[k] = str(v)[:300]
-        # RGPD : on NE stocke PAS l'IP (donnée à caractère personnel sans base
-        # légale + sans info au point de collecte). Email optionnel, fourni
-        # volontairement par l'utilisateur. UA tronqué (debug browser/OS).
-        entry = {
-            "ts": time.time(),
-            "message": msg,
-            "email": email,
-            "context": context,
-            "ua": ua,
-        }
-        try:
-            os.makedirs("/var/log/justicelibre", exist_ok=True)
-            with open("/var/log/justicelibre/feedback.jsonl", "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-            return self._json_response(200, {"ok": True})
-        except Exception:
-            logger.exception('handler failed')
-            return self._json_response(500, {"error": "Erreur d'écriture"})
 
     def _handle_law_batch(self):
         try:

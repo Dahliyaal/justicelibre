@@ -724,14 +724,12 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 <div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--white);color:var(--ink);max-width:480px;width:100%;padding:1.8rem;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
     <h3 style="font-family:var(--display);font-size:1.2rem;margin-bottom:.4rem">Signaler un problème</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Signalez-le ici. Pas de compte requis ; votre message arrive en append-only sur notre serveur.</p>
-    <textarea id="feedbackMessage" placeholder="Décrivez brièvement le problème (ex : 'L 132-1 du Code pénal cité mais pas cliquable')" style="width:100%;min-height:100px;padding:.7rem;border:1px solid var(--line);border-radius:4px;font-family:var(--sans);font-size:.9rem;background:var(--white);color:var(--ink);resize:vertical"></textarea>
-    <input id="feedbackEmail" type="email" placeholder="Email (optionnel - pour retour)" style="width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:4px;margin-top:.6rem;font-size:.85rem;background:var(--white);color:var(--ink)">
-    <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end">
-      <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Annuler</button>
-      <button type="button" id="feedbackSend" style="padding:.55rem 1.1rem;background:var(--teal);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600">Envoyer</button>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Citation d'article non détectée, texte incorrect, mauvaise version… Le contexte (page, décision ou article concerné) est pré-rempli.</p>
+    <a id="feedbackGh" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;padding:.7rem 1.1rem;background:var(--teal);color:#fff;border-radius:4px;font-size:.85rem;font-weight:600;text-decoration:none">Ouvrir un ticket GitHub</a>
+    <p style="font-size:.8rem;color:var(--muted);margin-top:.8rem;text-align:center">ou par email : <a href="#" class="mail-r" style="white-space:nowrap" data-u="contact" data-d="justicelibre" data-t="org">afficher l'adresse</a></p>
+    <div style="display:flex;margin-top:1rem;justify-content:flex-end">
+      <button type="button" id="feedbackCancel" style="padding:.55rem .9rem;background:none;border:1px solid var(--line);color:var(--body);border-radius:4px;cursor:pointer;font-size:.82rem">Fermer</button>
     </div>
-    <p id="feedbackStatus" style="font-size:.8rem;margin-top:.6rem;color:var(--muted);display:none"></p>
   </div>
 </div>
 
@@ -1836,62 +1834,38 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ─── FEEDBACK FORM ─────────────────────────────────────────────
+// ─── FEEDBACK (pop-up classique : ticket GitHub pré-rempli + email) ──
 
 const feedbackModal = document.getElementById('feedbackModal');
-const feedbackStatus = document.getElementById('feedbackStatus');
 
 function openFeedback(context){
-  feedbackStatus.style.display = 'none';
-  document.getElementById('feedbackMessage').value = '';
-  document.getElementById('feedbackEmail').value = '';
-  feedbackModal.dataset.context = JSON.stringify(context || {});
+  const ctx = context || {};
+  const what = ctx.title || ctx.id || (ctx.code ? `${ctx.code} ${ctx.num || ''}` : '') || 'recherche';
+  const ghTitle = `Signalement : ${what}`.slice(0, 120);
+  const ghBody = 'Élément concerné : ' + (ctx.id || what) + '\nPage : ' + (ctx.url || location.href)
+    + '\n\nProblème constaté (citation non détectée, texte incorrect, mauvaise version...) :\n';
+  document.getElementById('feedbackGh').href =
+    'https://github.com/Dahliyaal/justicelibre/issues/new?title=' + encodeURIComponent(ghTitle)
+    + '&body=' + encodeURIComponent(ghBody);
   feedbackModal.style.display = 'flex';
 }
 
 function closeFeedback(){ feedbackModal.style.display = 'none'; }
 
 document.getElementById('lawFeedback').addEventListener('click', () => {
-  const ctx = {
+  openFeedback({
     source: 'law-panel',
     title: document.getElementById('lawTitle').textContent,
     url: location.href,
-  };
-  openFeedback(ctx);
+  });
 });
 document.getElementById('feedbackCancel').addEventListener('click', closeFeedback);
 feedbackModal.addEventListener('click', e => { if (e.target === feedbackModal) closeFeedback(); });
-document.getElementById('feedbackSend').addEventListener('click', async () => {
-  const msg = document.getElementById('feedbackMessage').value.trim();
-  if (msg.length < 5) {
-    feedbackStatus.style.display = 'block';
-    feedbackStatus.textContent = 'Message trop court.';
-    feedbackStatus.style.color = 'var(--red)';
-    return;
-  }
-  const email = document.getElementById('feedbackEmail').value.trim();
-  const context = JSON.parse(feedbackModal.dataset.context || '{}');
-  feedbackStatus.style.display = 'block';
-  feedbackStatus.textContent = 'Envoi…';
-  feedbackStatus.style.color = 'var(--muted)';
-  try {
-    const r = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: msg, email, context, ua: navigator.userAgent}),
-    });
-    if (r.ok) {
-      feedbackStatus.textContent = '✓ Merci ! Signalement enregistré.';
-      feedbackStatus.style.color = 'var(--teal)';
-      setTimeout(closeFeedback, 1500);
-    } else {
-      feedbackStatus.textContent = 'Erreur serveur. Réessaie.';
-      feedbackStatus.style.color = 'var(--red)';
-    }
-  } catch(e) {
-    feedbackStatus.textContent = 'Erreur réseau.';
-    feedbackStatus.style.color = 'var(--red)';
-  }
+/* Anti-scrape : le mail est assemblé au clic, jamais présent dans le HTML. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.mail-r'); if(!a) return;
+  var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+  if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
 });
 
 /**
