@@ -1,5 +1,15 @@
-# JusticeLibre — dépendances du serveur MCP (server.py) et des serveurs
-# annexes (token_server.py, ssr.py, search_api.py : stdlib + httpx).
-# Python >= 3.10 requis par le SDK mcp.
+# JusticeLibre — dépendances Python. Python >= 3.10 (requis par le SDK mcp).
+# Installe tout ce qu'il faut pour faire tourner le serveur MCP ET reconstruire
+# les bases depuis les bulks DILA (chemin d'auto-hébergement du README).
+
+# ── Serveur MCP + serveurs annexes (token_server.py, ssr.py, search_api.py) ──
 mcp>=1.8
 httpx>=0.27
+
+# ── Pipeline ETL / auto-hébergement (parse_dila_bulk.py, scripts/build_thesaurus_db.py) ──
+lxml>=5.0        # parsing des bulks XML DILA (sans lui : ModuleNotFoundError sur parse_dila_bulk)
+
+# ── Normalisation des accents (thésaurus) ──
+# Optionnel au runtime (thesaurus_engine.py a un fallback intégré si absent),
+# mais requis pour reconstruire le thésaurus (scripts/build_thesaurus_db.py).
+unidecode>=1.3
