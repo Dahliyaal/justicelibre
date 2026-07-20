@@ -2102,6 +2102,35 @@ async function runSearch(append = false) {
     return;
   }
   const juri = document.getElementById('juridiction').value;
+
+  // ── Aiguillage référence ──────────────────────────────────────
+  // Un éclaireur fédéré avec la query BRUTE : si le serveur y reconnaît une
+  // référence jurisprudentielle (numéro, juridiction+date), il la résout en
+  // précision maximale — on affiche ça et on s'arrête (pas de thésaurus,
+  // pas de fan-out). Sinon, parcours classique inchangé.
+  if (!append && !juri) {
+    try {
+      const pre = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`);
+      const preData = pre.ok ? await pre.json() : null;
+      if (preData && preData.citation_match) {
+        lastSearchState = { q, juri, lieu: '', dateMin: '', dateMax: '', offset: 0,
+          accumulated: preData.results || [], perSource: preData.per_source || {},
+          noResult: [], pendingSources: new Set(), lastChunkSize: 0,
+          previousSize: (preData.results || []).length };
+        document.getElementById('expansionBar')?.style && (document.getElementById('expansionBar').style.display = 'none');
+        renderResults(preData, q);
+        finalizeHeader();
+        if (preData.note) {
+          const banner = document.createElement('div');
+          banner.style.cssText = 'padding:1rem 1.2rem;margin:.8rem 0;background:var(--teal-xl);border-left:3px solid var(--teal);font-size:.88rem;color:var(--body);border-radius:0 4px 4px 0';
+          banner.textContent = preData.note;
+          resultsList.prepend(banner);
+        }
+        return;
+      }
+    } catch (e) { /* éclaireur en panne → parcours classique */ }
+  }
+
   // Lance l'expansion sémantique en parallèle (non-bloquant)
   fetchExpansion(q, juridictionToScope(juri));
   const lieu = document.getElementById('lieu').value;
