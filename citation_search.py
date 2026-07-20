@@ -42,7 +42,7 @@ NUM_PATTERNS = [
     ("pourvoi",  re.compile(r"\b\d{2}-\d{2}\.?\d{3}\b")),
     ("cedh",     re.compile(r"\b(\d{3,5})/(\d{2})\b")),
     ("rg",       re.compile(r"\b(\d{2})/(\d{4,5})\b")),
-    ("dossier",  re.compile(r"\b(\d{6,7})\b")),
+    ("dossier",  re.compile(r"\b(\d{5,7})\b")),   # 5 chiffres : vieux n° CE (80338, 1947)
 ]
 
 DATE_TXT_RE = re.compile(
@@ -242,25 +242,80 @@ async def try_citation_search(q: str, limit: int = 20) -> dict[str, Any] | None:
                     rows.append(_row_from_decision(d, celex, "cjue"))
                     break
 
-        # b) recherche par numéro dans les sources routées
-        rows += await fed(val, sources)
+        # b) recherche par numéro dans les sources routées — on n'accepte que
+        # les résultats qui PORTENT vraiment ce numéro (sinon un numéro
+        # inexistant remonterait des à-peu-près ; on préfère continuer la
+        # cascade : noms de parties, puis juridiction+date).
+        found = await fed(val, sources)
+        nval = re.sub(r"[.\-/\s]", "", val).lower()
+        def _carries(r):
+            blob = " ".join(str(r.get(k, "")) for k in
+                            ("numero", "id", "ecli", "appno", "title", "titre", "extract"))
+            return nval in re.sub(r"[.\-/\s]", "", blob).lower()
+        found = [r for r in found if _carries(r)]
+        rows += found
         if rows:
             break
 
-    # c) noms de parties restants
-    if not rows and parsed["text"] and len(parsed["text"]) > 3:
+    # c) noms de parties restants — SEULEMENT si la référence n'avait pas de
+    # numéro (ex : "TA Lille, Welkamp c/ MDPH"). Si un numéro précis a été
+    # donné et n'existe nulle part, les miettes de texte ("publié au recueil
+    # Lebon"…) ne font que repêcher du bruit : on saute directement au
+    # repli juridiction+date.
+    if not rows and not parsed["numeros"] and parsed["text"] and len(parsed["text"]) > 3:
         srcs = JURI_SOURCES.get(parsed["juri_type"], [])
-        rows = await fed(parsed["text"], srcs,
-                         date_min=parsed["date"] or None,
-                         date_max=parsed["date"] or None)
-        if not rows and parsed["date"]:
-            rows = await fed(parsed["text"], srcs)
+        named = await fed(parsed["text"], srcs,
+                          date_min=parsed["date"] or None,
+                          date_max=parsed["date"] or None)
+        NOISE = {"publie", "publiee", "recueil", "lebon", "bulletin", "tables",
+                 "mentionne", "mentionnee", "point", "affaire", "decision",
+                 "arret", "ordonnance", "jugement"}
+        toks = [t for t in _fold(parsed["text"]).split() if len(t) > 3 and t not in NOISE]
+
+        def _has_tok(r):
+            blob = _fold(" ".join(str(r.get(k, "")) for k in
+                                  ("title", "titre", "juridiction", "extract", "numero")))
+            return any(t in blob for t in toks)
+        if parsed["date"]:
+            rows = [r for r in named
+                    if (r.get("date") or "")[:10] == parsed["date"] and _has_tok(r)]
+            if not rows and toks:
+                # relance sans date, mais on exige qu'un nom de partie
+                # apparaisse vraiment (sinon c'est du bruit de source)
+                rows = [r for r in await fed(parsed["text"], srcs) if _has_tok(r)]
+        else:
+            rows = named
 
     # d) juridiction + date seules (référence de rappel "Cass. crim. 21 janv. 2025")
-    if not rows and parsed["juri_type"] and parsed["date"]:
-        rows = await fed(JURI_DAY_QUERY.get(parsed["juri_type"], parsed["juri_type"]),
-                         JURI_SOURCES.get(parsed["juri_type"], []),
-                         date_min=parsed["date"], date_max=parsed["date"])
+    # Le repli-jour est désactivé sur le fonds judiciaire (dila) : la requête
+    # y brasse 1,2 M de décisions (>60 s). Limite v1 : les références de
+    # rappel sans numéro type "Cass. crim. 21 janv. 2025, § 41" reçoivent un
+    # aveu immédiat plutôt qu'un timeout. TODO : index par date côté dila.
+    day_sources = [s for s in JURI_SOURCES.get(parsed["juri_type"], []) if s != "dila"]
+    if not rows and parsed["juri_type"] and parsed["date"] and day_sources:
+        day = await fed(JURI_DAY_QUERY.get(parsed["juri_type"], parsed["juri_type"]),
+                        day_sources,
+                        date_min=parsed["date"], date_max=parsed["date"])
+        # certaines sources ignorent date_min/max et renvoient du récent :
+        # on ne garde que ce qui est VRAIMENT daté du jour demandé, ET du bon
+        # type de juridiction (un repli "TA de tel jour" ne doit pas ramener
+        # des CAA), ET de la bonne ville si elle était précisée.
+        TYPE_SIG = {"ta": "tribunal administratif", "caa": "cour administrative",
+                    "ce": "conseil", "cass": "cassation", "ca": "cour d'appel",
+                    "tj": "tribunal judiciaire", "cph": "prud",
+                    "tsa": "tribunal superieur", "cedh": "", "cjue": ""}
+        sig = TYPE_SIG.get(parsed["juri_type"], "")
+        ville = _fold(parsed["juri_ville"])
+        def _day_ok(r):
+            if (r.get("date") or "")[:10] != parsed["date"]:
+                return False
+            juri = _fold(r.get("juridiction", ""))
+            if sig and sig not in juri:
+                return False
+            if ville and ville not in juri:
+                return False
+            return True
+        rows = [r for r in day if _day_ok(r)]
 
     rows = _rescore(rows, parsed)[:limit]
 
