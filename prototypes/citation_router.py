@@ -64,6 +64,7 @@ JURI_PATTERNS = [
     (re.compile(r"(?:tribunal administratif|\bT\.?A\.?\b)\s*(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)?", re.I), "ta", True),
     (re.compile(r"conseil d'[ée]tat|\bC\.?E\.?\b(?=[\s,.;]|$)", re.I), "ce", False),
     (re.compile(r"cour de cassation|\bcass\.?\b", re.I), "cass", False),
+    (re.compile(r"\b(?:1[èr]?re|[23]e)\s+civ\.?\b|\bch\.?\s+mixte\b|\bcrim\.\b|\bsoc\.\b|\bcom\.\b", re.I), "cass", False),
     (re.compile(r"cour d'appel\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)", re.I), "ca", True),
     (re.compile(r"conseil de prud'hommes\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)?", re.I), "cph", True),
     (re.compile(r"tribunal judiciaire\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)", re.I), "tj", True),
@@ -141,10 +142,15 @@ JURI_SOURCES = {"cjue": ["cjue"], "cedh": ["cedh"], "ta": ["admin"],
                 "tj": ["dila"], "tsa": ["dila"]}
 
 
-def api_search(q: str, sources: str = "", limit: int = 20) -> list[dict]:
+def api_search(q: str, sources: str = "", limit: int = 20,
+               date_min: str = "", date_max: str = "") -> list[dict]:
     params = {"q": q, "limit": str(limit)}
     if sources:
         params["sources"] = sources
+    if date_min:
+        params["date_min"] = date_min
+    if date_max:
+        params["date_max"] = date_max
     url = API + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={
         "User-Agent": "justicelibre-citation-router-prototype/0.1 (dev interne)"})
@@ -231,7 +237,26 @@ def route_and_search(parsed: dict) -> list[dict]:
         if candidates:
             break  # le numéro le plus spécifique a suffi
     if not candidates and parsed["text"]:
-        candidates = api_search(parsed["text"])
+        # Texte restant (noms de parties…) : cherche dans les sources de la
+        # juridiction si connue, sinon fédéré ; la date resserre si présente.
+        srcs = ",".join(JURI_SOURCES.get(parsed["juri_type"], []))
+        candidates = api_search(parsed["text"], srcs,
+                                date_min=parsed["date"], date_max=parsed["date"])
+        if not candidates and parsed["date"]:
+            candidates = api_search(parsed["text"], srcs)
+    if not candidates and parsed["juri_type"] and parsed["date"]:
+        # Référence de rappel type "Cass. crim. 21 janv. 2025, § 41" : ni
+        # numéro ni nom — on liste les décisions de cette juridiction ce
+        # jour-là (peu nombreuses) et le re-scoring fera le reste.
+        JURI_QUERY = {"cass": "cassation", "ce": "conseil état", "cjue": "cour justice",
+                      "cedh": "cour", "ta": "tribunal administratif",
+                      "caa": "cour administrative appel", "ca": "cour appel",
+                      "tj": "tribunal judiciaire", "cph": "prud'hommes",
+                      "tsa": "tribunal supérieur appel"}
+        srcs = ",".join(JURI_SOURCES.get(parsed["juri_type"], []))
+        candidates = api_search(JURI_QUERY.get(parsed["juri_type"], parsed["juri_type"]),
+                                srcs, limit=30,
+                                date_min=parsed["date"], date_max=parsed["date"])
     return candidates
 
 
@@ -267,9 +292,29 @@ def search_citation(q: str) -> list[dict]:
     return rescore(route_and_search(parsed), parsed), parsed
 
 
+def _norm_num(s: str) -> str:
+    return re.sub(r"[.\-/\s]", "", s or "")
+
+
+def make_check(num: str = "", date: str = "", juri_frag: str = ""):
+    """Réussite = le n°1 porte le bon numéro (insensible à la ponctuation),
+    ou à défaut la bonne date + un fragment de juridiction."""
+    def check(r: dict) -> bool:
+        rnum = _norm_num(str(r.get("numero", r.get("number", ""))))
+        rid = _norm_num(r.get("id", ""))
+        if num and (_norm_num(num) == rnum or _norm_num(num) in rid):
+            return True
+        if date and r.get("date", "") == date:
+            jf = fold(juri_frag)
+            return (not jf) or jf in fold(r.get("juridiction", "") + r.get("titre", r.get("title", "")))
+        return False
+    return check
+
+
 # ─── Banc de test (cas réels fournis par la mainteneuse) ─────────
 
 TESTS = [
+    # ── les 5 cas fondateurs ──
     ("Tribunal supérieur d'appel de Mamoudzou n° 07/00033 · 6 novembre 2007",
      lambda r: r.get("id") == "JURITEXT000019394773"),
     ("l'ordonnance du tribunal administratif de Melun du 20 juillet 2023 (n° 2302331)",
@@ -280,6 +325,69 @@ TESTS = [
      lambda r: r.get("id") == "62011CJ0312"),
     ("CEDH, 30 janvier 2018, Enver Şahin c. Turquie, n° 23065/12, § 72",
      lambda r: "enver" in fold(r.get("titre", r.get("title", ""))) or r.get("date") == "2018-01-30"),
+    # ── les 22 références distinctes du mémoire (verbatim) ──
+    ("CAA Nancy, 24 mai 2006, n° 03NC01126", make_check("03NC01126", "2006-05-24", "nancy")),
+    ("CAA Nantes, 3ème ch., 21 juillet 2023, n° 22NT01294", make_check("22NT01294", "2023-07-21", "nantes")),
+    ("CE, 27 juillet 2001, n° 212050", make_check("212050", "2001-07-27", "tat")),
+    ("CE, Ass., 26 octobre 2001, Ternon, n° 197018", make_check("197018", "2001-10-26", "tat")),
+    ("CE, 6 mars 2009, Coulibaly, n° 306084", make_check("306084", "2009-03-06", "tat")),
+    ("CJUE, 11 avril 2013, HK Danmark, C-335/11", make_check("", "2013-04-11", "cjue")),
+    ("CE, Ass., 22 octobre 2010, Bleitrach, n° 301572, publié au Recueil Lebon",
+     make_check("301572", "2010-10-22", "tat")),
+    ("CE, 23 juin 2023, Société Combronde Logistique, n° 454844", make_check("454844", "2023-06-23", "tat")),
+    ("Cass. crim., 21 janvier 2025, France Télécom, n° 22-87.145, publié au bulletin",
+     make_check("22-87.145", "2025-01-21", "cassation")),
+    ("Cass. crim., 11 mars 2025, Centre hospitalier universitaire de La Réunion, n° 22-83.263",
+     make_check("22-83.263", "2025-03-11", "cassation")),
+    ("CE, Sect., 11 juillet 2011, n° 321225", make_check("321225", "2011-07-11", "tat")),
+    ("CAA Nantes, 1ère ch., 18 novembre 2025, n° 25NT00556", make_check("25NT00556", "2025-11-18", "nantes")),
+    # ABSENTE de la base (couverture TA partielle) : la bonne réponse est
+    # "rien" ou un résultat daté du même jour au même TA — pas du bruit.
+    ("TA Lille, 2 juin 2020, Welkamp c/ MDPH du Nord",
+     lambda r: (not r) or (r.get("date") == "2020-06-02" and "lille" in fold(r.get("juridiction", "")))),
+    ("CE, 5e-6e ch. réunies, 24 juillet 2019, n° 421189", make_check("421189", "2019-07-24", "tat")),
+    ("CE, 5e-6e ch. réunies, 23 octobre 2019, n° 422023", make_check("422023", "2019-10-23", "tat")),
+    ("CE, 5e-4e ch. réunies, 16 décembre 2016, n° 383111", make_check("383111", "2016-12-16", "tat")),
+    ("CAA Douai, 15 janv. 2025, n° 21DA02143", make_check("21DA02143", "2025-01-15", "douai")),
+    ("CE, 7 juin 2010, n° 312909, Lebon T.", make_check("312909", "2010-06-07", "tat")),
+    # ABSENTE de la base (1947, antérieure à la couverture JADE) : la bonne
+    # réponse est "rien" — surtout pas des référés de 2026.
+    ("CE, Ass., 21 mars 1947, Aubry, n° 80338",
+     lambda r: (not r) or _norm_num(r.get("numero", "")) == "80338"),
+    ("CAA Lyon, 31 janv. 2025, n° 23LY00926", make_check("23LY00926", "2025-01-31", "lyon")),
+    ("CE, Ass., 22 oct. 2010, Bleitrach, n° 301572", make_check("301572", "2010-10-22", "tat")),
+    ("Cass. crim. 21 janv. 2025, § 41", make_check("", "2025-01-21", "cassation")),
+    # ── mode flemmard : références partielles, sales, minuscules ──
+    ("CE n°422023", make_check("422023", "2019-10-23", "")),
+    ("CE 422023", make_check("422023", "2019-10-23", "")),
+    # nom seul, sans date : les DEUX arrêts CE Bleitrach (2007 et 2010) sont
+    # des réponses légitimes en n°1
+    ("ce, bleitrach", lambda r: _norm_num(r.get("numero", "")) == "301572"
+     or "114818" in (r.get("id") or "")),
+    ("Conseil d'État a jugé (13 novembre 2023, n° 466958)", make_check("466958", "2023-11-13", "")),
+    ("13 novembre 2023, n° 466958", make_check("466958", "2023-11-13", "")),
+    ("caa douai 21DA02143", make_check("21DA02143", "2025-01-15", "douai")),
+    ("cass 22-87.145", make_check("22-87.145", "2025-01-21", "")),
+    ("21TL04508", make_check("21TL04508", "2024-02-27", "toulouse")),
+    # ── 2e mémoire (TA Rectorat) : ord. réf., tables Lebon, chambres nues ──
+    ("Cass. 2e civ., 13 mars 2003, n° 01-17.418", make_check("01-17.418", "2003-03-13", "cassation")),
+    ("2e civ., 13 mars 2003, n° 01-17.418, publié au bulletin", make_check("01-17.418", "2003-03-13", "cassation")),
+    ("rappr. CE, 13 novembre 2023, n° 466958, jugeant la juridiction administrative "
+     "incompétente pour connaître d'un litige relatif à une décision de la direction diocésaine",
+     make_check("466958", "2023-11-13", "")),
+    ("CE, ord. réf., 14 avril 2023, n° 472611", make_check("472611", "2023-04-14", "")),
+    ("CE, ord. réf., 14 avril 2023, Association Juristes pour l'enfance, n° 472611, "
+     "mentionné aux tables du recueil Lebon", make_check("472611", "2023-04-14", "")),
+    ("CE, ord. réf., 4 avril 2020, n° 439816, point 6", make_check("439816", "2020-04-04", "")),
+    ("CE, 22 février 2012, n° 343052, mentionné aux tables du recueil Lebon",
+     make_check("343052", "2012-02-22", "")),
+    ("CE, ord. réf., 15 décembre 2010, n° 344729", make_check("344729", "2010-12-15", "")),
+    ("l'affaire n° 344729", make_check("344729", "2010-12-15", "")),
+    ("décision n° 344729", make_check("344729", "2010-12-15", "")),
+    ("CE, 1er juillet 2022, n° 463162", make_check("463162", "2022-07-01", "")),
+    # 1965 : peut-être absente de la base — absence honnête acceptée
+    ("CE, 7 juillet 1965, n° 61958, publié au recueil Lebon",
+     lambda r: (not r) or _norm_num(r.get("numero", "")) == "61958"),
 ]
 
 if __name__ == "__main__":
@@ -287,7 +395,7 @@ if __name__ == "__main__":
     for q, check in TESTS:
         results, parsed = search_citation(q)
         top = results[0] if results else {}
-        hit = bool(results) and check(top)
+        hit = check(top) if results else bool(check({}))
         ok += hit
         status = "✅ PASS" if hit else "❌ FAIL"
         print(f"{status}  {q[:70]}")
