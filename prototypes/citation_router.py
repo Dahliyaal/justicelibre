@@ -86,10 +86,18 @@ def parse_citation(q: str) -> dict:
             rest = rest[:m.start()] + " " + rest[m.end():]
             break
 
-    # Date numérique d'abord (dd-mm-yyyy etc.) — AVANT les numéros, sinon
+    # Date ISO yyyy-mm-dd d'abord (la plus spécifique : l'année devant)
+    m = re.search(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b", rest)
+    if m:
+        an, mo, j = m.group(1), int(m.group(2)), int(m.group(3))
+        if 1 <= mo <= 12 and 1 <= j <= 31 and 1799 < int(an) < 2100:
+            out["date"] = f"{an}-{mo:02d}-{j:02d}"
+            rest = rest[:m.start()] + " " + rest[m.end():]
+
+    # Date numérique dd-mm-yyyy — AVANT les numéros, sinon
     # "13-11-2026" serait pris pour un n° de pourvoi.
     m = re.search(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b", rest)
-    if m:
+    if m and not out["date"]:
         j, mo, an = int(m.group(1)), int(m.group(2)), m.group(3)
         if 1 <= mo <= 12 and 1 <= j <= 31:
             out["date"] = f"{an}-{mo:02d}-{j:02d}"
