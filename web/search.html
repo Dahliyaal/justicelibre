@@ -2095,6 +2095,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function runSearch(append = false) {
+  // Le bouton "Chercher" appelle runSearch en handler de clic : le navigateur
+  // passe alors l'ÉVÉNEMENT comme 1er argument (truthy !). Seul `true`
+  // explicite signifie "charger plus".
+  append = (append === true);
   const q = queryInput.value.trim();
   if (!q) return;
   if (q.length < 3) {
