@@ -86,9 +86,18 @@ def parse_citation(q: str) -> dict:
             rest = rest[:m.start()] + " " + rest[m.end():]
             break
 
-    # Date
-    m = DATE_RE.search(rest)
+    # Date numérique d'abord (dd-mm-yyyy etc.) — AVANT les numéros, sinon
+    # "13-11-2026" serait pris pour un n° de pourvoi.
+    m = re.search(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b", rest)
     if m:
+        j, mo, an = int(m.group(1)), int(m.group(2)), m.group(3)
+        if 1 <= mo <= 12 and 1 <= j <= 31:
+            out["date"] = f"{an}-{mo:02d}-{j:02d}"
+            rest = rest[:m.start()] + " " + rest[m.end():]
+
+    # Date en toutes lettres
+    m = DATE_RE.search(rest)
+    if m and not out["date"]:
         jour = "01" if m.group(1) == "1er" else f"{int(m.group(1)):02d}"
         mois_key = fold(m.group(2))[:4].rstrip(".")
         mois = MOIS.get(mois_key) or MOIS.get(mois_key[:3], "")
