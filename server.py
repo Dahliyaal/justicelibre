@@ -97,7 +97,11 @@ CPP, CT, CSP, CJA, CGI, CESEDA…) + Constitution + 3 lois non codifiées
 # Stats counter
 _STATS_PATH = Path("/var/www/justicelibre/stats.json")
 _STATS_LOCK = threading.Lock()
-_STATS = {"total": 0, "today": 0, "today_date": "", "per_tool": {}, "last_call": None}
+_STATS = {"total": 0, "today": 0, "today_date": "", "per_tool": {}, "last_call": None,
+          "days": {},        # {YYYY-MM-DD: nb} — conservé à vie (garde-fou 4000 j)
+          "hours": {},       # {YYYY-MM-DDTHH: nb} — ~3 jours (vue horaire)
+          "days_tools": {},  # {YYYY-MM-DD: {tool: nb}} — 400 jours (vue par tool)
+          "hours_tools": {}} # {YYYY-MM-DDTHH: {tool: nb}} — ~3 jours
 _START_TIME = time.monotonic()
 
 
@@ -112,11 +116,23 @@ def _load_stats():
             _STATS["today_date"] = saved.get("today_date", "")
             _STATS["per_tool"] = saved.get("per_tool", {})
             _STATS["last_call"] = saved.get("last_call")
+            _STATS["days"] = saved.get("days", {})
+            _STATS["hours"] = saved.get("hours", {})
+            _STATS["days_tools"] = saved.get("days_tools", {})
+            _STATS["hours_tools"] = saved.get("hours_tools", {})
     except Exception:
         pass
 
 
+_LAST_SAVE = [0.0]
+
 def _save_stats():
+    # Débounce : le fichier grossit avec l'historique par tool — on écrit au
+    # plus une fois toutes les 2 s (les compteurs restent justes en mémoire,
+    # l'appel suivant persiste tout).
+    if time.monotonic() - _LAST_SAVE[0] < 2.0:
+        return
+    _LAST_SAVE[0] = time.monotonic()
     try:
         paris = timezone(timedelta(hours=2))
         now = datetime.now(paris)
@@ -129,6 +145,10 @@ def _save_stats():
             "today_date": _STATS["today_date"],
             "per_tool": _STATS["per_tool"],
             "last_call": _STATS["last_call"],
+            "days": _STATS.get("days", {}),
+            "hours": _STATS.get("hours", {}),
+            "days_tools": _STATS.get("days_tools", {}),
+            "hours_tools": _STATS.get("hours_tools", {}),
             "server_status": "active",
             "uptime": f"{hours}h {mins:02d}m",
         }
@@ -151,6 +171,28 @@ def _record_call(tool_name: str):
         _STATS["today"] += 1
         _STATS["per_tool"][tool_name] = _STATS["per_tool"].get(tool_name, 0) + 1
         _STATS["last_call"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        # Historique quotidien (conservé à vie) + horaire (3 jours).
+        days = _STATS.setdefault("days", {})
+        days[today_str] = days.get(today_str, 0) + 1
+        if len(days) > 4000:
+            for old in sorted(days)[:-4000]:
+                del days[old]
+        hours = _STATS.setdefault("hours", {})
+        hkey = now.strftime("%Y-%m-%dT%H")
+        hours[hkey] = hours.get(hkey, 0) + 1
+        if len(hours) > 75:
+            for old in sorted(hours)[:-75]:
+                del hours[old]
+        dt_map = _STATS.setdefault("days_tools", {}).setdefault(today_str, {})
+        dt_map[tool_name] = dt_map.get(tool_name, 0) + 1
+        if len(_STATS["days_tools"]) > 400:
+            for old in sorted(_STATS["days_tools"])[:-400]:
+                del _STATS["days_tools"][old]
+        ht_map = _STATS.setdefault("hours_tools", {}).setdefault(hkey, {})
+        ht_map[tool_name] = ht_map.get(tool_name, 0) + 1
+        if len(_STATS["hours_tools"]) > 75:
+            for old in sorted(_STATS["hours_tools"])[:-75]:
+                del _STATS["hours_tools"][old]
         _save_stats()
 
 

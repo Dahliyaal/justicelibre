@@ -13,7 +13,7 @@ if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s)
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles/tokens.css?v=20260501">
-<link rel="stylesheet" href="/styles/base.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260720">
 <link rel="stylesheet" href="/styles/components.css?v=20260719b">
 <style>
 /* Page-specific : SPA layout (flex column, surface light, body 15px) */
@@ -2095,6 +2095,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function runSearch(append = false) {
+  // Le bouton "Chercher" appelle runSearch en handler de clic : le navigateur
+  // passe alors l'ÉVÉNEMENT comme 1er argument (truthy !). Seul `true`
+  // explicite signifie "charger plus".
+  append = (append === true);
   const q = queryInput.value.trim();
   if (!q) return;
   if (q.length < 3) {
@@ -2102,6 +2106,35 @@ async function runSearch(append = false) {
     return;
   }
   const juri = document.getElementById('juridiction').value;
+
+  // ── Aiguillage référence ──────────────────────────────────────
+  // Un éclaireur fédéré avec la query BRUTE : si le serveur y reconnaît une
+  // référence jurisprudentielle (numéro, juridiction+date), il la résout en
+  // précision maximale — on affiche ça et on s'arrête (pas de thésaurus,
+  // pas de fan-out). Sinon, parcours classique inchangé.
+  if (!append && !juri) {
+    try {
+      const pre = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`);
+      const preData = pre.ok ? await pre.json() : null;
+      if (preData && preData.citation_match) {
+        lastSearchState = { q, juri, lieu: '', dateMin: '', dateMax: '', offset: 0,
+          accumulated: preData.results || [], perSource: preData.per_source || {},
+          noResult: [], pendingSources: new Set(), lastChunkSize: 0,
+          previousSize: (preData.results || []).length };
+        document.getElementById('expansionBar')?.style && (document.getElementById('expansionBar').style.display = 'none');
+        renderResults(preData, q);
+        finalizeHeader();
+        if (preData.note) {
+          const banner = document.createElement('div');
+          banner.style.cssText = 'padding:1rem 1.2rem;margin:.8rem 0;background:var(--teal-xl);border-left:3px solid var(--teal);font-size:.88rem;color:var(--body);border-radius:0 4px 4px 0';
+          banner.textContent = preData.note;
+          resultsList.prepend(banner);
+        }
+        return;
+      }
+    } catch (e) { /* éclaireur en panne → parcours classique */ }
+  }
+
   // Lance l'expansion sémantique en parallèle (non-bloquant)
   fetchExpansion(q, juridictionToScope(juri));
   const lieu = document.getElementById('lieu').value;

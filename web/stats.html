@@ -14,36 +14,11 @@ if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s)
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260720">
+<link rel="stylesheet" href="/styles/components.css?v=20260720">
 <style>
-.page-subbar{background:var(--white);border-bottom:1px solid var(--line);
-  padding:.85rem 2.5rem;display:flex;align-items:center;gap:1rem;justify-content:space-between;
-  position:sticky;top:var(--topbar-h,48px);z-index:90}
-.page-subbar .crumb{font-size:.75rem;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.12em;font-weight:600}
-.page-subbar .crumb a{color:var(--muted);text-decoration:none}
-.page-subbar .crumb a:hover{color:var(--teal)}
-@media(max-width:700px){.page-subbar{padding:.7rem 1.2rem}}
 
-:root{
-  --teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;
-  --ink:#1a1a1a;--body:#3a3a3a;--muted:#6b6b6b;
-  --light:#f5f5f3;--white:#ffffff;--line:#e0ddd6;
-  --display:"DM Serif Display",Georgia,serif;
-  --sans:"DM Sans",-apple-system,sans-serif;
-  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
-}
-html[data-theme="dark"]{
-  --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
-  --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
-  --light:#141413;--white:#1e1e1c;--line:#2a2a27;
-}
-@media (prefers-color-scheme: dark){
-  html:not([data-theme="light"]){
-    --teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;
-    --ink:#e8e6df;--body:#c8c5bc;--muted:#8a867d;
-    --light:#141413;--white:#1e1e1c;--line:#2a2a27;
-  }
-}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--white)}
 a{color:var(--teal);text-decoration:none}
@@ -55,9 +30,29 @@ h1 em{font-style:italic;color:var(--teal)}
 .back:hover{color:var(--teal)}
 
 .stats-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;
   margin-bottom:3rem;
 }
+/* ─── Graphique quotidien (SVG, série unique teal) ─── */
+.daily-chart{position:relative;background:var(--white);border:1px solid var(--line);
+  border-radius:6px;padding:1rem 1rem .5rem;margin-bottom:3rem}
+.daily-chart svg{display:block;width:100%;height:180px}
+.daily-chart .grid-line{stroke:var(--line);stroke-width:1}
+.daily-chart .bar-rect{fill:var(--teal);cursor:pointer}
+.daily-chart .bar-hit{fill:transparent;cursor:pointer}
+.daily-chart .bar-hit:hover + .bar-rect,
+.daily-chart .bar-rect:hover{fill:var(--teal-l)}
+.daily-chart .axis-label{fill:var(--muted);font-size:10px;font-family:var(--sans)}
+.daily-tooltip{position:absolute;pointer-events:none;background:var(--ink);color:var(--white);
+  padding:.35rem .6rem;border-radius:4px;font-size:.75rem;white-space:nowrap;
+  transform:translate(-50%,-115%);display:none;z-index:5}
+.range-bar{display:flex;gap:.4rem;margin-bottom:.8rem}
+.range-bar button{padding:.35rem .8rem;font-size:.75rem;font-weight:600;letter-spacing:.05em;
+  background:var(--white);border:1px solid var(--line);border-radius:4px;color:var(--muted);cursor:pointer}
+.range-bar button:hover{border-color:var(--teal);color:var(--teal)}
+.range-bar button.active{background:var(--teal);border-color:var(--teal);color:#fff}
+#toolCs .cs-display-text{font-family:var(--mono);font-size:.78rem;color:var(--teal)}
+#toolCs .cs-item{font-family:var(--mono);font-size:.78rem}
 .stat-card{
   padding:1.5rem;
   text-align:center;
@@ -113,10 +108,31 @@ h2 em{font-style:italic;color:var(--teal)}
       <span class="label">Aujourd'hui</span>
     </div>
     <div class="stat-card">
+      <span class="num" id="yesterday">...</span>
+      <span class="label">Hier</span>
+    </div>
+    <div class="stat-card">
       <span class="num" id="status">...</span>
       <span class="label">Serveur</span>
     </div>
   </div>
+
+  <h2>Requêtes <em>dans le temps</em></h2>
+  <div class="range-bar" id="rangeBar">
+    <button type="button" data-range="today">Aujourd'hui</button>
+    <button type="button" data-range="7d">7 jours</button>
+    <button type="button" data-range="30d" class="active">30 jours</button>
+    <button type="button" data-range="365d">365 jours</button>
+    <div class="cs-wrap" id="toolCs" style="min-width:13rem;margin-left:auto">
+      <button type="button" class="cs-display"><span class="cs-display-text">Tous les outils</span><span class="chev">▾</span></button>
+      <div class="cs-panel">
+        <div class="cs-item selected" data-value="" data-label="Tous les outils">Tous les outils</div>
+      </div>
+    </div>
+    <input type="hidden" id="toolSel" value="">
+  </div>
+  <div id="daily-chart" class="daily-chart"></div>
+  <p id="daily-note" class="refresh">Le 20 juillet 2026, le serveur MCP a franchi le cap des 50 000 requêtes. À cette occasion, cette page s'enrichit de nouvelles fonctionnalités : un suivi quotidien de l'historique sans limitation de durée, ainsi qu'un suivi individuel pour chaque outil. Les graphiques intègrent ces données à compter de cette date.</p>
 
   <h2>Outils <em>les plus utilisés</em></h2>
   <div id="tools-list"></div>
@@ -135,6 +151,22 @@ function fetchStats(){
     .then(function(d){
       document.getElementById('total').textContent = (d.total||0).toLocaleString('fr-FR');
       document.getElementById('today').textContent = (d.today||0).toLocaleString('fr-FR');
+      // "Hier" depuis l'historique quotidien (démarre le 20 juillet 2026)
+      var days = d.days || {};
+      var yd = new Date(Date.now() - 864e5).toISOString().slice(0,10);
+      document.getElementById('yesterday').textContent =
+        (yd in days) ? days[yd].toLocaleString('fr-FR') : '—';
+      _stats = d;
+      var panel = document.querySelector('#toolCs .cs-panel');
+      if (panel.children.length <= 1){
+        Object.keys(d.per_tool || {}).sort().forEach(function(t){
+          var it = document.createElement('div');
+          it.className = 'cs-item'; it.dataset.value = t; it.dataset.label = t; it.textContent = t;
+          panel.appendChild(it);
+        });
+        document.getElementById('toolSel').addEventListener('change', renderChart);
+      }
+      renderChart();
       document.getElementById('status').textContent = d.server_status || 'active';
       document.getElementById('uptime').textContent = d.uptime || '?';
       document.getElementById('last').textContent = d.last_call || 'aucune';
@@ -158,6 +190,133 @@ function fetchStats(){
     })
     .catch(function(){});
 }
+var _stats = null;
+var _range = '30d';
+
+function renderChart(){
+  if (!_stats) return;
+  var box = document.getElementById('daily-chart');
+  var tool = document.getElementById('toolSel').value;
+  var days, hours;
+  if (tool){
+    days = {}; hours = {};
+    var dt = _stats.days_tools || {}, ht = _stats.hours_tools || {};
+    Object.keys(dt).forEach(function(k){ if (dt[k][tool]) days[k] = dt[k][tool]; });
+    Object.keys(ht).forEach(function(k){ if (ht[k][tool]) hours[k] = ht[k][tool]; });
+  } else {
+    days = _stats.days || {}; hours = _stats.hours || {};
+  }
+  var labels = [], values = [], tipUnit = 'requête';
+  function localKey(d){ return d.toLocaleDateString('fr-CA'); } // YYYY-MM-DD, fuseau navigateur
+  if (_range === 'today'){
+    var todayKey = localKey(new Date());
+    for (var h = 0; h < 24; h++){
+      var hh = (h < 10 ? '0' : '') + h;
+      labels.push(hh + 'h');
+      values.push(hours[todayKey + 'T' + hh] || 0);
+    }
+  } else if (_range === '365d'){
+    // agrégation par semaine (52 barres), sinon illisible
+    for (var w = 51; w >= 0; w--){
+      var sum = 0, start = null;
+      for (var dd = 0; dd < 7; dd++){
+        var dt = new Date(Date.now() - (w*7 + (6-dd))*864e5);
+        if (!start) start = dt;
+        sum += days[localKey(dt)] || 0;
+      }
+      labels.push(start.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}));
+      values.push(sum);
+    }
+    tipUnit = 'requête (semaine)';
+  } else {
+    var n = (_range === '7d') ? 7 : 30;
+    for (var i = n-1; i >= 0; i--){
+      var dt2 = new Date(Date.now() - i*864e5);
+      labels.push(dt2.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}));
+      values.push(days[localKey(dt2)] || 0);
+    }
+  }
+
+  var W = 900, H = 180, padL = 40, padB = 20, padT = 12;
+  var plotW = W - padL - 8, plotH = H - padT - padB;
+  var max = Math.max.apply(null, values.concat([1]));
+  var count = values.length, slot = plotW / count, barW = Math.max(3, slot - 2);
+  var labelStep = Math.max(1, Math.round(count / 7));
+  var svg = ['<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Requêtes MCP dans le temps">'];
+  [max, Math.round(max/2)].forEach(function(g){
+    if (!g) return;
+    var y = padT + plotH - (g/max)*plotH;
+    svg.push('<line class="grid-line" x1="'+padL+'" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>');
+    svg.push('<text class="axis-label" x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end">'+g.toLocaleString('fr-FR')+'</text>');
+  });
+  svg.push('<line class="grid-line" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+W+'" y2="'+(padT+plotH)+'"/>');
+  for (var j = 0; j < count; j++){
+    var x = padL + j*slot + (slot-barW)/2;
+    var hgt = (values[j]/max)*plotH;
+    var y0 = padT + plotH - hgt;
+    var r = Math.min(4, barW/2, hgt);
+    if (hgt > 0){
+      svg.push('<path class="bar-rect" d="M'+x+' '+(padT+plotH)+' V'+(y0+r)+' Q'+x+' '+y0+' '+(x+r)+' '+y0+
+        ' H'+(x+barW-r)+' Q'+(x+barW)+' '+y0+' '+(x+barW)+' '+(y0+r)+' V'+(padT+plotH)+' Z" data-i="'+j+'"/>');
+    }
+    svg.push('<rect class="bar-hit" x="'+(padL+j*slot)+'" y="'+padT+'" width="'+slot+'" height="'+plotH+'" data-i="'+j+'"/>');
+    if (j % labelStep === 0 || j === count-1){
+      svg.push('<text class="axis-label" x="'+(padL+j*slot+slot/2)+'" y="'+(H-4)+'" text-anchor="middle">'+labels[j]+'</text>');
+    }
+  }
+  svg.push('</svg>');
+  box.innerHTML = svg.join('') + '<div class="daily-tooltip" id="dailyTip"></div>';
+  var tip = document.getElementById('dailyTip');
+  box.querySelectorAll('[data-i]').forEach(function(el){
+    el.addEventListener('mousemove', function(ev){
+      var i = +el.dataset.i;
+      var v = values[i];
+      tip.textContent = labels[i] + ' : ' + v.toLocaleString('fr-FR') + ' ' + tipUnit + (v > 1 ? 's' : '');
+      var rc = box.getBoundingClientRect();
+      tip.style.display = 'block';
+      var tw = tip.offsetWidth || 90;
+      var lx = Math.min(Math.max(ev.clientX - rc.left, tw/2 + 4), rc.width - tw/2 - 4);
+      tip.style.left = lx + 'px';
+      tip.style.top = Math.max(ev.clientY - rc.top, 28) + 'px';
+    });
+    el.addEventListener('mouseleave', function(){ tip.style.display = 'none'; });
+  });
+}
+
+document.getElementById('rangeBar').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-range]');
+  if (!b) return;
+  _range = b.dataset.range;
+  document.querySelectorAll('#rangeBar button').forEach(function(x){ x.classList.toggle('active', x === b); });
+  renderChart();
+});
+
+/* Dropdown custom — logique réutilisable reprise de search.html (bindCs) */
+function bindCs(wrapId, hiddenId){
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  var dispText = wrap.querySelector('.cs-display-text');
+  var panel = wrap.querySelector('.cs-panel');
+  var hidden = document.getElementById(hiddenId);
+  wrap.querySelector('.cs-display').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.querySelectorAll('.cs-wrap.open').forEach(function(w){ if (w !== wrap) w.classList.remove('open'); });
+    wrap.classList.toggle('open');
+  });
+  panel.addEventListener('click', function(e){
+    var el = e.target.closest('[data-value]');
+    if (!el) return;
+    hidden.value = el.dataset.value;
+    dispText.textContent = el.dataset.label;
+    panel.querySelectorAll('.selected').forEach(function(n){ n.classList.remove('selected'); });
+    el.classList.add('selected');
+    wrap.classList.remove('open');
+    hidden.dispatchEvent(new Event('change'));
+  });
+  document.addEventListener('click', function(){ wrap.classList.remove('open'); });
+}
+bindCs('toolCs', 'toolSel');
+
 fetchStats();
 setInterval(fetchStats, 30000);
 </script>

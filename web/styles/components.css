@@ -160,3 +160,16 @@
 .page-subbar .crumb a{color:var(--muted);text-decoration:none}
 .page-subbar .crumb a:hover{color:var(--teal)}
 @media(max-width:700px){.page-subbar{padding:.7rem 1.2rem}}
+
+/* ─── Dropdown custom réutilisable (.cs-*) — même composant que search/annuaire ─── */
+.cs-wrap{position:relative;display:inline-block;min-width:260px}
+.cs-display{width:100%;text-align:left;cursor:pointer;font-size:.88rem;color:var(--ink);padding:.55rem .75rem;background:var(--white);border:1px solid var(--line);border-radius:3px;display:flex;justify-content:space-between;align-items:center;font-family:inherit}
+.cs-display:hover{border-color:var(--teal)}
+.cs-display .chev{color:var(--muted);transition:transform .2s;margin-left:.5rem}
+.cs-wrap.open .cs-display{border-color:var(--teal)}
+.cs-wrap.open .cs-display .chev{transform:rotate(180deg)}
+.cs-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;width:max-content;max-width:460px;background:var(--white);border:1px solid var(--line);border-radius:3px;box-shadow:0 6px 20px rgba(0,0,0,.12);max-height:360px;overflow-y:auto;z-index:200;display:none}
+.cs-wrap.open .cs-panel{display:block}
+.cs-item{padding:.5rem .85rem;font-size:.85rem;cursor:pointer;color:var(--ink);transition:background .12s}
+.cs-item:hover{background:var(--teal-xl,rgba(26,78,78,.08))}
+.cs-item.selected{background:var(--teal-xl,rgba(26,78,78,.08));color:var(--teal);font-weight:600}

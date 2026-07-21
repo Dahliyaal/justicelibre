@@ -346,15 +346,30 @@ class TokenHandler(BaseHTTPRequestHandler):
         # Si on interroge une seule source, limit_per_source = limit entier
         lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
         try:
-            data = asyncio.run(search_federated(
-                q=q, juridiction=juri, lieu=lieu, limit=limit,
-                limit_per_source=lps,
-                offset=offset,
-                sources_only=sources_only or None,
-                timeout_s=timeout_s,
-                date_min=date_min, date_max=date_max,
-                sort=sort,
-            ))
+            async def _run():
+                # Aiguillage référence : si la query est une référence
+                # jurisprudentielle (numéro, ou juridiction+date), le résolveur
+                # dédié prend la main — précision maximale, pas de thésaurus.
+                # Uniquement sur les appels fédérés (pas de param sources) et
+                # sans filtres explicites, pour ne rien changer aux autres usages.
+                if not sources_only and not juri and not date_min and not date_max and offset == 0:
+                    try:
+                        from citation_search import try_citation_search
+                        cit = await try_citation_search(q, limit=limit)
+                        if cit is not None:
+                            return cit
+                    except Exception:
+                        logger.exception("citation_search failed, fallback pipeline")
+                return await search_federated(
+                    q=q, juridiction=juri, lieu=lieu, limit=limit,
+                    limit_per_source=lps,
+                    offset=offset,
+                    sources_only=sources_only or None,
+                    timeout_s=timeout_s,
+                    date_min=date_min, date_max=date_max,
+                    sort=sort,
+                )
+            data = asyncio.run(_run())
             return self._json_response(200, data)
         except Exception as e:
             # Ne pas exposer stacktrace/chemin serveur au client
