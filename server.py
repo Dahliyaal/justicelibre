@@ -1,19 +1,22 @@
-"""justicelibre — MCP server exposing free access to French administrative
-case law.
+"""justicelibre — serveur MCP d'accès libre à la jurisprudence et au droit
+positif français et européen.
 
-Two data sources, both zero-auth, legally redistributable under Licence
-Ouverte 2.0:
+Expose ~31 tools sur ~3,3 M décisions de justice + ~1,5 M articles de loi
+consolidés (versions historiques) + textes annexes (JORF/KALI/CNIL) :
+Cour de cassation, cours d'appel, Conseil constitutionnel, Conseil d'État,
+CAA, TA, Cour EDH, CJUE. Données zéro-auth, redistribuables sous Licence
+Ouverte 2.0.
 
-  - opendata.justice-administrative.fr (hidden Elasticsearch) — covers
-    Conseil d'État, 9 cours administratives d'appel, and 40 tribunaux
-    administratifs including overseas. Roughly 1,050,000 decisions as of
-    April 2026.
+Sources agrégées (cf. `sources/`) : bulks DILA en local (SQLite + FTS5
+BM25), ArianeWeb/Sinequa (CE), HUDOC (CEDH), EUR-Lex (CJUE), et
+optionnellement PISTE/Judilibre (OAuth2) pour les décisions récentes.
 
-  - conseil-etat.fr/xsearch (ArianeWeb Sinequa) — richest index for Conseil
-    d'État decisions of jurisprudential interest (~270k with highlights).
+Transports :
+    python3 server.py            # stdio (Claude Desktop, Cursor…)
+    python3 server.py http       # Streamable HTTP (Claude.ai, connecteurs)
 
-Phase A: stdio transport, run locally via `mcp dev server.py` or wire it
-into Claude Desktop / Cursor / any MCP client.
+Point d'entrée : le tool `search_all` (recherche fédérée) ; `about_justicelibre`
+détaille la cartographie complète des sources et des identifiants.
 """
 from __future__ import annotations
 
