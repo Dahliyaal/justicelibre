@@ -71,6 +71,7 @@ CODE_TO_LEGITEXT: dict[str, str] = {
     "CSP":        "LEGITEXT000006072665",  # Code de la santé publique
     "CJA":        "LEGITEXT000006070933",  # Code de justice administrative
     "CGCT":       "LEGITEXT000006070633",  # Code général des collectivités territoriales
+    "CCom2":      "LEGITEXT000006070162",  # Code des communes (obsolète, remplacé par CGCT)
     "CRPA":       "LEGITEXT000031366350",  # Relations public-administration
     "CPI":        "LEGITEXT000006069414",  # Propriété intellectuelle
     "CASF":       "LEGITEXT000006074069",  # Action sociale et familles
