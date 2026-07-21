@@ -314,6 +314,22 @@ function bindCs(wrapId, hiddenId){
     hidden.dispatchEvent(new Event('change'));
   });
   document.addEventListener('click', function(){ wrap.classList.remove('open'); });
+  // Molette sur le sélecteur fermé : change directement de valeur sans l'ouvrir.
+  wrap.addEventListener('wheel', function(e){
+    if (wrap.classList.contains('open')) return;
+    e.preventDefault();
+    var items = Array.prototype.slice.call(panel.querySelectorAll('.cs-item'));
+    if (items.length < 2) return;
+    var cur = items.indexOf(panel.querySelector('.cs-item.selected'));
+    var next = Math.min(items.length - 1, Math.max(0, (cur < 0 ? 0 : cur) + (e.deltaY > 0 ? 1 : -1)));
+    if (next === cur) return;
+    var el = items[next];
+    hidden.value = el.dataset.value;
+    dispText.textContent = el.dataset.label;
+    items.forEach(function(n){ n.classList.remove('selected'); });
+    el.classList.add('selected');
+    hidden.dispatchEvent(new Event('change'));
+  }, {passive:false});
 }
 bindCs('toolCs', 'toolSel');
 
