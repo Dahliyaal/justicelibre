@@ -3,7 +3,9 @@
 # les bases depuis les bulks DILA (chemin d'auto-hébergement du README).
 
 # ── Serveur MCP + serveurs annexes (token_server.py, ssr.py, search_api.py) ──
-mcp>=1.8
+# <2 : mcp 2.0.0 (sorti fin juillet 2026) supprime mcp.server.fastmcp ;
+# migrer vers 2.x est un chantier à part (imports + patch sse_escape.py).
+mcp>=1.8,<2
 httpx>=0.27
 
 # ── Pipeline ETL / auto-hébergement (parse_dila_bulk.py, scripts/build_thesaurus_db.py) ──
