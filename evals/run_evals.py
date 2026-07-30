@@ -232,7 +232,7 @@ async def main() -> int:
             # un ordre stable préserve le cache entre les tâches.
             anthropic_tools = sorted(
                 ({"name": t.name, "description": t.description or "",
-                  "input_schema": t.inputSchema} for t in listed.tools),
+                  "input_schema": t.input_schema} for t in listed.tools),
                 key=lambda t: t["name"],
             )
 

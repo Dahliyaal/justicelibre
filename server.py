@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
 import sse_escape
@@ -46,7 +46,7 @@ from sources import (
     jade_remote, jorf_remote, kali_remote, cnil_remote,
 )
 
-mcp = FastMCP(
+mcp = MCPServer(
     "justicelibre",
     instructions="""Protocole d'accès libre à la jurisprudence et au droit positif français + européen (30 tools).
 
@@ -2489,12 +2489,17 @@ if __name__ == "__main__":
 
     mode = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     if mode in ("http", "streamable-http"):
-        mcp.settings.host = "127.0.0.1"
-        mcp.settings.port = 8765
+        from mcp.server.transport_security import TransportSecuritySettings
+
         # Relax DNS rebinding protection so reverse proxies / dev tunnels
         # (cloudflared, ngrok, later nginx on justicelibre.org) can forward
         # requests. For production we'll pin allowed_hosts to the real domain.
-        mcp.settings.transport_security.enable_dns_rebinding_protection = False
-        mcp.run(transport="streamable-http")
+        mcp.run(
+            transport="streamable-http",
+            host="127.0.0.1",
+            port=8765,
+            transport_security=TransportSecuritySettings(
+                enable_dns_rebinding_protection=False),
+        )
     else:
         mcp.run()

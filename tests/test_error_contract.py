@@ -64,12 +64,12 @@ def test_no_credentials_params():
     # Aucun tool ne doit exposer un paramètre client_secret.
     leaking = [
         t.name for t in _list_tools()
-        if "client_secret" in (t.inputSchema or {}).get("properties", {})
+        if "client_secret" in (t.input_schema or {}).get("properties", {})
     ]
     assert not leaking, "tools exposant client_secret :\n  " + "\n  ".join(leaking)
 
     # search_judiciaire n'a plus de paramètre client_id.
-    props = (_tool_by_name("search_judiciaire").inputSchema or {}).get("properties", {})
+    props = (_tool_by_name("search_judiciaire").input_schema or {}).get("properties", {})
     assert "client_id" not in props, "search_judiciaire expose encore client_id"
 
 
@@ -122,7 +122,7 @@ def test_fts5_sanitizer_real_engine():
 
 def test_pagination_params():
     for name in ("search_cedh", "search_cjue"):
-        props = (_tool_by_name(name).inputSchema or {}).get("properties", {})
+        props = (_tool_by_name(name).input_schema or {}).get("properties", {})
         assert "offset" in props, f"{name} n'expose pas de paramètre offset"
 
 

@@ -43,7 +43,7 @@ def test_every_tool_is_read_only():
     # écrit doit porter destructiveHint et être exclu explicitement ici.
     wrong = [
         t.name for t in _list_tools()
-        if not (t.annotations and t.annotations.readOnlyHint is True)
+        if not (t.annotations and t.annotations.read_only_hint is True)
     ]
     assert not wrong, "tools sans readOnlyHint=True :\n  " + "\n  ".join(wrong)
 

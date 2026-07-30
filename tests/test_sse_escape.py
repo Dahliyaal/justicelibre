@@ -44,11 +44,17 @@ HOSTILE = (
 
 
 def _frame(result: dict) -> str:
-    """Sérialise un résultat de tool comme le fait streamable_http.py."""
-    msg = mcp_types.JSONRPCMessage(
-        root=mcp_types.JSONRPCResponse(jsonrpc="2.0", id=2, result=result)
-    )
-    return msg.model_dump_json(by_alias=True, exclude_none=True)
+    """Sérialise un résultat de tool comme le fait streamable_http.py.
+
+    SDK 1.x : le transport émet l'enveloppe JSONRPCMessage (RootModel).
+    SDK 2.x : JSONRPCMessage n'est qu'un alias d'union, le transport
+    appelle model_dump_json() directement sur l'instance concrète.
+    """
+    resp = mcp_types.JSONRPCResponse(jsonrpc="2.0", id=2, result=result)
+    msg_cls = getattr(mcp_types, "JSONRPCMessage", None)
+    if isinstance(msg_cls, type):
+        return msg_cls(root=resp).model_dump_json(by_alias=True, exclude_none=True)
+    return resp.model_dump_json(by_alias=True, exclude_unset=True)
 
 
 def main() -> None:
