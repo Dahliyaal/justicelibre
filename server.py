@@ -34,6 +34,13 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+import sse_escape
+
+# Les textes DILA peuvent contenir des U+0085/U+2028/U+2029 bruts qui, non
+# échappés dans le JSON, coupent la ligne `data:` chez les clients SSE à
+# splitlines() Unicode (cf. sse_escape.py, cas CETATEXT000007543903).
+sse_escape.install()
+
 from sources import (
     ariane, dila, european, judilibre, juriadmin, legi,
     jade_remote, jorf_remote, kali_remote, cnil_remote,
