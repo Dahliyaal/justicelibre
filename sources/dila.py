@@ -116,7 +116,53 @@ def search(
     date_max: str | None = None,
     limit: int = 20,
     offset: int = 0,
+    juridiction_like: list[str] | None = None,
 ) -> dict[str, Any]:
+    # Chemin "tranche de dates" sans query : lookup SQL direct via
+    # idx_decisions_date (une journée = quelques milliers de lignes max),
+    # là où le FTS généraliste brasserait 1,2 M de décisions. Utilisé par le
+    # repli-jour de citation_search ("9 juillet 2026 bobigny tj").
+    # `juridiction_like` = fragments à exiger dans le champ juridiction
+    # (LIKE insensible à la casse ASCII — passer des fragments sans accent).
+    if (not query or not query.strip()) and not numero_rg and (date_min or date_max):
+        limit = max(1, min(int(limit), 500))
+        where, params = [], []
+        if date_min:
+            where.append("date >= ?")
+            params.append(date_min)
+        if date_max:
+            where.append("date <= ?")
+            params.append(date_max)
+        for frag in (juridiction_like or []):
+            if frag.strip():
+                where.append("juridiction LIKE ?")
+                params.append(f"%{frag.strip()}%")
+        conn = _get_conn()
+        try:
+            rows = conn.execute(
+                f"""SELECT id, titre, date, juridiction, solution, numero,
+                           formation, ecli, nature
+                    FROM decisions WHERE {' AND '.join(where)}
+                    ORDER BY date DESC LIMIT ? OFFSET ?""",
+                (*params, int(limit), int(offset))
+            ).fetchall()
+            return {
+                "total": len(rows),
+                "returned": len(rows),
+                "source": "DILA (tranche de dates)",
+                "decisions": [
+                    {
+                        "id": r["id"], "titre": r["titre"], "date": r["date"],
+                        "juridiction": r["juridiction"], "solution": r["solution"],
+                        "numero": r["numero"], "formation": r["formation"],
+                        "ecli": r["ecli"], "nature": r["nature"], "snippet": "",
+                    }
+                    for r in rows
+                ],
+            }
+        finally:
+            conn.close()
+
     limit = max(1, min(int(limit), 50))
     # Lookup direct par numero_rg si fourni : court-circuite FTS
     if numero_rg:

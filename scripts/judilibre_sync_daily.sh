@@ -23,7 +23,7 @@ echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] judilibre sync START" >> "$LOG"
 
 # Marge de sécurité : 26h en arrière (cron quotidien + un peu de chevauchement
 # pour absorber un retard ; l'upsert est idempotent).
-timeout 3600 python3 -u judilibre_sync.py --history --since-hours 26 >> "$LOG" 2>&1 \
+timeout 7200 python3 -u judilibre_sync.py --history --since-hours 26 >> "$LOG" 2>&1 \
   && echo "[$(date -u '+%H:%M:%S')] judilibre sync OK" >> "$LOG" \
   || echo "[$(date -u '+%H:%M:%S')] judilibre sync timeout/error" >> "$LOG"
 

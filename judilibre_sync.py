@@ -37,6 +37,16 @@ OAUTH_URL = "https://oauth.piste.gouv.fr/api/oauth/token"
 JUDILIBRE_URL = "https://api.piste.gouv.fr/cassation/judilibre/v1.0"
 DB = "/opt/justicelibre/dila/judiciaire.db"
 
+# Taxonomie officielle Judilibre code → nom de juridiction (générée depuis
+# /taxonomy?id=location, contexts tj/tcom/ca). Voir map_to_row().
+_LOCATIONS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "data", "judilibre_locations.json")
+try:
+    with open(_LOCATIONS_PATH, encoding="utf-8") as _f:
+        LOCATIONS: dict[str, str] = json.load(_f)
+except OSError:
+    LOCATIONS = {}
+
 sys.stdout.reconfigure(line_buffering=True)
 
 
@@ -56,11 +66,23 @@ def get_token() -> str:
 
 
 def piste_get(client: httpx.Client, path: str, **params) -> dict:
-    """GET PISTE avec 1 retry sur erreur transitoire."""
+    """GET PISTE avec 1 retry sur erreur transitoire.
+
+    Le token OAuth PISTE expire au bout d'~1h : un run long (gros backlog
+    transactionalhistory) le voit mourir EN COURS DE ROUTE — cascade de 401
+    puis perte silencieuse des décisions restantes (incident du 1er août
+    2026, fenêtre 31 juil.→1er août jamais retentée). Sur 401, on
+    re-authentifie une fois et on rejoue la requête.
+    """
     last = None
     for attempt in range(2):
         try:
             r = client.get(f"{JUDILIBRE_URL}{path}", params=params, timeout=30)
+            if r.status_code == 401 and attempt == 0:
+                client.headers["Authorization"] = f"Bearer {get_token()}"
+                last = httpx.HTTPStatusError(
+                    "401", request=r.request, response=r)
+                continue
             r.raise_for_status()
             return r.json()
         except (httpx.HTTPError,) as e:
@@ -116,17 +138,27 @@ def map_to_row(d: dict, conn: sqlite3.Connection, force_id: str | None = None) -
     if not text:
         text = d.get("text", "") or ""
     # juridiction lisible (cc=Cour de cassation, ca=Cour d'appel, tj=TJ)
-    juri_map = {"cc": "Cour de cassation", "ca": "Cour d'appel", "tj": "Tribunal judiciaire"}
+    juri_map = {"cc": "Cour de cassation", "ca": "Cour d'appel",
+                "tj": "Tribunal judiciaire", "tcom": "Tribunal de commerce",
+                "cph": "Conseil de prud'hommes"}
     juri_base = juri_map.get(d.get("jurisdiction", ""), d.get("jurisdiction", ""))
     location = d.get("location", "") or ""
-    # Nettoyage des codes location Judilibre : "ca_bordeaux" -> "Bordeaux",
-    # "tj75056" -> "75056" (INSEE, pas idéal mais lisible).
-    loc_display = location
-    if location.startswith(("ca_", "tj_", "cc_")):
-        loc_display = location[3:].replace("_", " ").title()
-    elif location.startswith("tj") and location[2:].isdigit():
-        loc_display = location[2:]  # INSEE
-    juridiction = f"{juri_base} de {loc_display}" if loc_display and juri_base else juri_base or loc_display
+    # Nom officiel via la taxonomie Judilibre (data/judilibre_locations.json :
+    # "tj02691" → "Tribunal judiciaire de Saint-Quentin", "9301" → "Tribunal
+    # de commerce de Bobigny"). Sans elle, les TJ restaient en codes INSEE
+    # ("Tribunal judiciaire de 02691") : illisible, et introuvable par ville.
+    mapped = LOCATIONS.get(location)
+    if mapped:
+        juridiction = mapped
+    else:
+        # Repli historique pour les codes hors taxonomie : "ca_bordeaux" ->
+        # "Bordeaux", "tj75056" -> "75056" (INSEE, pas idéal mais lisible).
+        loc_display = location
+        if location.startswith(("ca_", "tj_", "cc_")):
+            loc_display = location[3:].replace("_", " ").title()
+        elif location.startswith("tj") and location[2:].isdigit():
+            loc_display = location[2:]  # INSEE
+        juridiction = f"{juri_base} de {loc_display}" if loc_display and juri_base else juri_base or loc_display
     numero = d.get("number") or d.get("numbers", [""])[0] if d.get("numbers") else d.get("number", "")
     date = d.get("decision_date") or ""
     titre = f"{juridiction}, {date}, n° {numero}"

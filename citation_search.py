@@ -20,6 +20,7 @@ ou None si la query ne ressemble pas à une référence (→ pipeline normal).
 """
 from __future__ import annotations
 
+import asyncio
 import re
 import unicodedata
 from typing import Any
@@ -58,10 +59,32 @@ JURI_PATTERNS = [
     (re.compile(r"conseil d'[ée]tat|\bC\.?E\.?\b(?=[\s,.;]|$)", re.I), "ce", False),
     (re.compile(r"cour de cassation|\bcass\.?\b", re.I), "cass", False),
     (re.compile(r"\b(?:1[èr]?re|[23]e)\s+civ\.?\b|\bch\.?\s+mixte\b|\bcrim\.\b|\bsoc\.\b|\bcom\.\b", re.I), "cass", False),
-    (re.compile(r"cour d'appel\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)", re.I), "ca", True),
-    (re.compile(r"conseil de prud'hommes\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)?", re.I), "cph", True),
-    (re.compile(r"tribunal judiciaire\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)", re.I), "tj", True),
+    (re.compile(r"cour d'appel\s+(?:de\s+|d'|du\s+)?([^\W\d][\w'’-]+)", re.I), "ca", True),
+    (re.compile(r"conseil de prud'hommes\s+(?:de\s+|d'|du\s+)?([^\W\d][\w'’-]+)?", re.I), "cph", True),
+    (re.compile(r"tribunal judiciaire\s+(?:de\s+|d'|du\s+)?([^\W\d][\w'’-]+)", re.I), "tj", True),
+    (re.compile(r"tribunal de commerce\s+(?:de\s+|d'|du\s+)?([^\W\d][\w'’-]+)?", re.I), "tcom", True),
+    # ── formes flemmardes ("bobigny tj", "tj bobigny", "tcom nanterre") :
+    # matchées en DERNIER pour laisser priorité aux formes canoniques.
+    # La ville peut être en minuscules ; _clean_ville() écarte les articles.
+    (re.compile(r"([^\W\d][\w'’-]{2,})\s+(?:tj|tgi)\b", re.I), "tj", True),
+    (re.compile(r"\b(?:tj|tgi)\s+(?:de\s+|d')?([^\W\d][\w'’-]{2,})", re.I), "tj", True),
+    (re.compile(r"\b(?:tj|tgi)\b", re.I), "tj", False),
+    (re.compile(r"([^\W\d][\w'’-]{2,})\s+tcom\b", re.I), "tcom", True),
+    (re.compile(r"\btcom\s+(?:de\s+|d')?([^\W\d][\w'’-]{2,})", re.I), "tcom", True),
+    (re.compile(r"\btcom\b", re.I), "tcom", False),
 ]
+
+# Mots capturables par les groupes « ville » qui n'en sont pas ("le tribunal
+# judiciaire de ladite commune") : on garde le TYPE de juridiction mais on
+# jette la pseudo-ville. Nécessaire depuis que les villes en minuscules sont
+# acceptées (mode flemmard).
+VILLE_STOP = {"la", "le", "les", "ce", "cet", "cette", "ladite", "ledit",
+              "dudit", "celle", "celui", "ceans", "ville", "commune", "meme"}
+
+
+def _clean_ville(v: str) -> str:
+    v = v.strip("'’-")
+    return "" if _fold(v) in VILLE_STOP else v
 
 ROUTES = {"cjue": ["cjue"], "celex": ["cjue"], "cedh": ["cedh"],
           "caa_ce": ["admin"], "dossier": ["admin", "ariane"],
@@ -70,12 +93,21 @@ ROUTES = {"cjue": ["cjue"], "celex": ["cjue"], "cedh": ["cedh"],
 JURI_SOURCES = {"cjue": ["cjue"], "cedh": ["cedh"], "ta": ["admin"],
                 "caa": ["admin"], "ce": ["admin", "ariane"],
                 "ca": ["dila"], "cass": ["dila"], "cph": ["dila"],
-                "tj": ["dila"], "tsa": ["dila"]}
+                "tj": ["dila"], "tsa": ["dila"], "tcom": ["dila"]}
 JURI_DAY_QUERY = {"cass": "cassation", "ce": "conseil état",
                   "cjue": "cour justice", "cedh": "cour",
                   "ta": "tribunal administratif", "caa": "cour administrative appel",
                   "ca": "cour appel", "tj": "tribunal judiciaire",
-                  "cph": "prud'hommes", "tsa": "tribunal supérieur appel"}
+                  "cph": "prud'hommes", "tsa": "tribunal supérieur appel",
+                  "tcom": "tribunal commerce"}
+# Signature textuelle du type de juridiction dans le champ `juridiction` des
+# résultats (pour filtrer les homonymes : un RG "26/00038" existe dans des
+# dizaines de tribunaux différents).
+TYPE_SIG = {"ta": "tribunal administratif", "caa": "cour administrative",
+            "ce": "conseil", "cass": "cassation", "ca": "cour d'appel",
+            "tj": "tribunal judiciaire", "cph": "prud",
+            "tcom": "commerce", "tsa": "tribunal superieur",
+            "cedh": "", "cjue": ""}
 ADMIN_ID_PREFIXES = {"ta": ["DTA", "ORTA"], "caa": ["DCAA", "ORCA"],
                      "ce": ["DCE", "ORCE"],
                      "": ["DTA", "DCAA", "DCE", "ORTA", "ORCA", "ORCE"]}
@@ -91,7 +123,7 @@ def parse_citation(q: str) -> dict:
         if m:
             out["juri_type"] = jtype
             if has_ville and m.groups() and m.group(1):
-                out["juri_ville"] = m.group(1).strip("'’-")
+                out["juri_ville"] = _clean_ville(m.group(1))
             rest = rest[:m.start()] + " " + rest[m.end():]
             break
 
@@ -242,6 +274,36 @@ async def try_citation_search(q: str, limit: int = 20) -> dict[str, Any] | None:
                     rows.append(_row_from_decision(d, celex, "cjue"))
                     break
 
+        # b-bis) numéro RG sur le fonds judiciaire : lookup EXACT dédié
+        # (index par numéro, tri par date), jamais le FTS généraliste. Un RG
+        # est réattribué par chaque juridiction ("26/00038" existe dans 76
+        # tribunaux) : le classement BM25 sur un tel numéro est une loterie
+        # qui enterre le bon résultat. Le filtre TYPE_SIG écarte les
+        # homonymes d'un autre type de juridiction quand il a été précisé
+        # ("tj X" ne doit pas remonter une cour d'appel), et _rescore fait
+        # remonter la bonne ville / la bonne date.
+        if kind == "rg" and "dila" in sources:
+            from sources import dila as dila_src
+            direct = await asyncio.to_thread(dila_src.search, numero_rg=val, limit=50)
+            sig = TYPE_SIG.get(parsed["juri_type"], "")
+            rg_rows = [{
+                "id": d.get("id"), "source": "dila",
+                "source_label": "Justice judiciaire",
+                "title": d.get("titre") or "",
+                "juridiction": d.get("juridiction") or "",
+                "date": (d.get("date") or "")[:10],
+                "formation": d.get("formation") or "",
+                "numero": d.get("numero") or "",
+                "ecli": d.get("ecli") or "",
+                "extract": "", "relevance": 100,
+            } for d in direct.get("decisions", [])]
+            if sig:
+                typed = [r for r in rg_rows if sig in _fold(r["juridiction"])]
+                rg_rows = typed or rg_rows
+            rows += rg_rows
+            if rows:
+                break
+
         # b) recherche par numéro dans les sources routées — on n'accepte que
         # les résultats qui PORTENT vraiment ce numéro (sinon un numéro
         # inexistant remonterait des à-peu-près ; on préfère continuer la
@@ -286,35 +348,52 @@ async def try_citation_search(q: str, limit: int = 20) -> dict[str, Any] | None:
         else:
             rows = named
 
-    # d) juridiction + date seules (référence de rappel "Cass. crim. 21 janv. 2025")
-    # Le repli-jour est désactivé sur le fonds judiciaire (dila) : la requête
-    # y brasse 1,2 M de décisions (>60 s). Limite v1 : les références de
-    # rappel sans numéro type "Cass. crim. 21 janv. 2025, § 41" reçoivent un
-    # aveu immédiat plutôt qu'un timeout. TODO : index par date côté dila.
-    day_sources = [s for s in JURI_SOURCES.get(parsed["juri_type"], []) if s != "dila"]
-    if not rows and parsed["juri_type"] and parsed["date"] and day_sources:
-        day = await fed(JURI_DAY_QUERY.get(parsed["juri_type"], parsed["juri_type"]),
-                        day_sources,
-                        date_min=parsed["date"], date_max=parsed["date"])
+    # d) juridiction + date seules (référence de rappel "Cass. crim. 21 janv.
+    # 2025", ou mode flemmard "9 juillet 2026 bobigny tj").
+    # Sur le fonds judiciaire (dila), le repli-jour passe par le chemin SQL
+    # indexé par date (idx_decisions_date) — le FTS généraliste y brassait
+    # 1,2 M de décisions (>60 s), raison de son ancienne désactivation.
+    sig = TYPE_SIG.get(parsed["juri_type"], "")
+    ville = _fold(parsed["juri_ville"])
+
+    def _day_ok(r):
         # certaines sources ignorent date_min/max et renvoient du récent :
         # on ne garde que ce qui est VRAIMENT daté du jour demandé, ET du bon
         # type de juridiction (un repli "TA de tel jour" ne doit pas ramener
         # des CAA), ET de la bonne ville si elle était précisée.
-        TYPE_SIG = {"ta": "tribunal administratif", "caa": "cour administrative",
-                    "ce": "conseil", "cass": "cassation", "ca": "cour d'appel",
-                    "tj": "tribunal judiciaire", "cph": "prud",
-                    "tsa": "tribunal superieur", "cedh": "", "cjue": ""}
-        sig = TYPE_SIG.get(parsed["juri_type"], "")
-        ville = _fold(parsed["juri_ville"])
-        def _day_ok(r):
-            if (r.get("date") or "")[:10] != parsed["date"]:
-                return False
-            juri = _fold(r.get("juridiction", ""))
-            if sig and sig not in juri:
-                return False
-            if ville and ville not in juri:
-                return False
-            return True
+        if (r.get("date") or "")[:10] != parsed["date"]:
+            return False
+        juri = _fold(r.get("juridiction", ""))
+        if sig and sig not in juri:
+            return False
+        if ville and ville not in juri:
+            return False
+        return True
+
+    juri_srcs = JURI_SOURCES.get(parsed["juri_type"], [])
+    if not rows and parsed["juri_type"] and parsed["date"] and "dila" in juri_srcs:
+        from sources import dila as dila_src
+        day = await asyncio.to_thread(
+            dila_src.search, query="",
+            date_min=parsed["date"], date_max=parsed["date"],
+            juridiction_like=[sig] if sig else None, limit=300)
+        rows = [r for r in ({
+            "id": d.get("id"), "source": "dila",
+            "source_label": "Justice judiciaire",
+            "title": d.get("titre") or "",
+            "juridiction": d.get("juridiction") or "",
+            "date": (d.get("date") or "")[:10],
+            "formation": d.get("formation") or "",
+            "numero": d.get("numero") or "",
+            "ecli": d.get("ecli") or "",
+            "extract": "", "relevance": 100,
+        } for d in day.get("decisions", [])) if _day_ok(r)]
+
+    day_sources = [s for s in juri_srcs if s != "dila"]
+    if not rows and parsed["juri_type"] and parsed["date"] and day_sources:
+        day = await fed(JURI_DAY_QUERY.get(parsed["juri_type"], parsed["juri_type"]),
+                        day_sources,
+                        date_min=parsed["date"], date_max=parsed["date"])
         rows = [r for r in day if _day_ok(r)]
 
     rows = _rescore(rows, parsed)[:limit]
