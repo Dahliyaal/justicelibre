@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -107,6 +108,9 @@ def sync_build_url(identifier: str, legitext: str | None = None, date: str | Non
     """Variant sync de build_url. Utilisé par le SSR pour générer le lien
     "Source officielle" sur les pages décision/loi.
     """
+    jl = _judilibre_url(identifier)
+    if jl:
+        return jl
     if not _KEY:
         return None
     try:
@@ -221,13 +225,27 @@ async def lookup_by_numero(fond: str, numero: str, juridiction: str | None = Non
     return (data or {}).get("results", []) if data else []
 
 
+def _judilibre_url(identifier: str) -> str | None:
+    """Id Judilibre (hex 24 caractères : TJ, tribunaux de commerce, décisions
+    récentes synchronisées via l'API) → page publique officielle sur le site
+    de la Cour de cassation. Résolu EN LOCAL : le warehouse ne connaît pas ce
+    pattern, et il n'y a rien à lui demander (l'URL dérive de l'id seul)."""
+    if re.match(r"^[0-9a-f]{24}$", identifier):
+        return f"https://www.courdecassation.fr/decision/{identifier}"
+    return None
+
+
 async def build_url(identifier: str, legitext: str | None = None, date: str | None = None) -> str | None:
     """Construit l'URL canonique (source officielle) d'un document à partir
-    de son identifiant. Délègue au warehouse qui connaît tous les patterns.
+    de son identifiant. Délègue au warehouse qui connaît tous les patterns
+    (sauf les ids Judilibre, résolus en local — cf. _judilibre_url).
 
     `date` (YYYY-MM-DD) — si fourni, pointe vers la version de l'article
     en vigueur à cette date (URLs Légifrance versionnées).
     """
+    jl = _judilibre_url(identifier)
+    if jl:
+        return jl
     params = {"id": identifier}
     if legitext:
         params["legitext"] = legitext

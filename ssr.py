@@ -354,6 +354,12 @@ def _official_source_from_pattern(decision_id: str) -> tuple[str, str] | None:
     if _re.match(r"^\d{4,5}[A-Z]{2}\d{4}$", decision_id) or "CELEX" in decision_id:
         celex = decision_id.replace("CELEX:", "").replace("CELEX", "")
         return ("EUR-Lex", f"https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:{celex}")
+    # Judilibre : id hexadécimal 24 caractères (TJ, tribunaux de commerce et
+    # décisions récentes synchronisées via l'API). Page publique officielle
+    # sur le site de la Cour de cassation (vérifié : /decision/<id> → 200).
+    if _re.match(r"^[0-9a-f]{24}$", decision_id):
+        return ("courdecassation.fr (Judilibre)",
+                f"https://www.courdecassation.fr/decision/{decision_id}")
     # TA / CAA / CE opendata : la majorité des TAs ne sont JAMAIS sur Légifrance
     # (uniquement les Lebon, ~5%). On retourne None → pas de bouton mensonger.
     # Le SSR affichera à la place un encadré "open data CE" honnête (cf. render_decision).
