@@ -68,14 +68,17 @@ def main() -> int:
                   "scripts/apply_fts_triggers.py --apply puis rebuild_fts.py")
             return 1
 
+        # Un SEUL balayage de la table pour tous les comptages (il n'y a pas
+        # d'index sur juridiction : 351 COUNT séparés = 351 full scans).
+        counts = dict(conn.execute(
+            "SELECT juridiction, COUNT(*) FROM decisions GROUP BY juridiction"))
+
         total, renamed_codes = 0, 0
         for code, official in sorted(locations.items()):
             old = old_name_for(code, official)
             if not old or old == official:
                 continue
-            n = conn.execute(
-                "SELECT COUNT(*) FROM decisions WHERE juridiction = ?",
-                (old,)).fetchone()[0]
+            n = counts.get(old, 0)
             if not n:
                 continue
             total += n
