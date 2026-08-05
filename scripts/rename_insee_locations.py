@@ -68,8 +68,16 @@ def main() -> int:
                   "scripts/apply_fts_triggers.py --apply puis rebuild_fts.py")
             return 1
 
-        # Un SEUL balayage de la table pour tous les comptages (il n'y a pas
-        # d'index sur juridiction : 351 COUNT séparés = 351 full scans).
+        # Sans index sur juridiction, chaque requête par tribunal (échantillon
+        # du dry-run, UPDATE de l'apply) balaie la table entière (plusieurs
+        # Go) : ~300 tribunaux = des heures. L'index se construit en une
+        # passe et sert ensuite pour toujours (lookups exacts par
+        # juridiction). IF NOT EXISTS → gratuit aux runs suivants.
+        print("Index juridiction (création si absent)…")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_decisions_juridiction "
+                     "ON decisions(juridiction)")
+        conn.commit()
+
         counts = dict(conn.execute(
             "SELECT juridiction, COUNT(*) FROM decisions GROUP BY juridiction"))
 
