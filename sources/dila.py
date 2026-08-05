@@ -167,18 +167,33 @@ def search(
     # Lookup direct par numero_rg si fourni : court-circuite FTS
     if numero_rg:
         canonical = _normalize_rg(numero_rg)
-        # Match toutes les variantes via numero_rg_norm qui contient "21/05835 21-05835 2105835"
-        # ET fallback sur numero (au cas où)
+        flat = re.sub(r"\D", "", canonical)
         conn = _get_conn()
         try:
+            # Token exact sur la colonne numero_rg_norm de l'index FTS :
+            # chaque ligne y stocke "21/05835 21-05835 2105835", le token
+            # plat y figure donc toujours. L'ancien LIKE '%…%' balayait la
+            # table entière (plusieurs Go → >60 s sous charge, 504 côté
+            # nginx). Nécessite l'index reconstruit avec numero_rg_norm
+            # (fait le 3 août 2026, cf. scripts/apply_fts_triggers.py).
             rows = conn.execute(
-                """SELECT id, titre, date, juridiction, solution, numero,
-                          formation, ecli, nature
-                   FROM decisions
-                   WHERE numero_rg_norm LIKE ? OR numero = ?
-                   ORDER BY date DESC LIMIT ?""",
-                (f"%{canonical}%", canonical, int(limit))
-            ).fetchall()
+                """SELECT d.id, d.titre, d.date, d.juridiction, d.solution,
+                          d.numero, d.formation, d.ecli, d.nature
+                   FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid
+                   WHERE decisions_fts MATCH ?
+                   ORDER BY d.date DESC LIMIT ?""",
+                (f'numero_rg_norm:"{flat}"', int(limit))
+            ).fetchall() if flat else []
+            if not rows:
+                # Filet : lookup sur le numéro exact via idx_decisions_numero
+                # (couvre les lignes au numero_rg_norm vide).
+                rows = conn.execute(
+                    """SELECT id, titre, date, juridiction, solution, numero,
+                              formation, ecli, nature
+                       FROM decisions WHERE numero = ?
+                       ORDER BY date DESC LIMIT ?""",
+                    (canonical, int(limit))
+                ).fetchall()
             total = len(rows)
             return {
                 "total": total,
