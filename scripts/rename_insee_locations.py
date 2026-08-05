@@ -26,6 +26,9 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import csv
+import datetime
+import gzip
 import json
 import os
 import sqlite3
@@ -80,6 +83,29 @@ def main() -> int:
 
         counts = dict(conn.execute(
             "SELECT juridiction, COUNT(*) FROM decisions GROUP BY juridiction"))
+
+        # Renommer modifie ~100 k lignes : on fige d'abord la correspondance
+        # « décision → juridiction avec code » dans un backup compressé
+        # (règle : jamais d'écriture sans sauvegarde). Réversible aussi via
+        # data/judilibre_locations.json, mais ceinture ET bretelles.
+        if args.apply:
+            os.makedirs("/opt/justicelibre/backups", exist_ok=True)
+            backup = ("/opt/justicelibre/backups/juridictions_avant_renommage_"
+                      f"{datetime.date.today():%Y%m%d}.csv.gz")
+            nb = 0
+            with gzip.open(backup, "wt", newline="") as f:
+                w = csv.writer(f, delimiter=";")
+                w.writerow(["id", "juridiction_avant"])
+                for code, official in sorted(locations.items()):
+                    old = old_name_for(code, official)
+                    if not old or old == official or not counts.get(old):
+                        continue
+                    for r in conn.execute(
+                            "SELECT id, juridiction FROM decisions "
+                            "WHERE juridiction = ?", (old,)):
+                        w.writerow([r["id"], r["juridiction"]])
+                        nb += 1
+            print(f"Backup : {nb} lignes → {backup}")
 
         total, renamed_codes = 0, 0
         for code, official in sorted(locations.items()):
