@@ -75,6 +75,16 @@ def test_tcom():
     assert _fold(p2["juri_ville"]) == "bobigny", p2
 
 
+def test_rg_avec_tiret_devant_un_tribunal_du_fond():
+    # "26-00038" a la forme d'un pourvoi Cass, mais avec un TJ c'est un RG.
+    p = _p("26-00038 tj saint-quentin")
+    assert ("rg", "26-00038") in p["numeros"], p
+    assert p["juri_type"] == "tj", p
+    # …et sans juridiction du fond, la lecture pourvoi reste inchangée.
+    p2 = _p("cass 22-87.145")
+    assert ("pourvoi", "22-87.145") in p2["numeros"], p2
+
+
 def test_article_nest_pas_une_ville():
     # "le tribunal judiciaire de ladite commune" : le TYPE reste, la
     # pseudo-ville est écartée (VILLE_STOP).

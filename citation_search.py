@@ -156,8 +156,13 @@ def parse_citation(q: str) -> dict:
             seen.append((m.start(), m.end()))
 
     # Désambiguïsation cedh/rg (formes miroir) par la juridiction
-    if out["juri_type"] in {"ca", "cph", "tj", "tsa"}:
+    if out["juri_type"] in {"ca", "cph", "tj", "tsa", "tcom"}:
         out["numeros"] = [(("rg", v) if k == "cedh" else (k, v)) for k, v in out["numeros"]]
+    # "26-00038" a la forme d'un pourvoi Cass, mais cité avec un tribunal du
+    # fond (tj/tcom/cph/tsa) c'est forcément un RG écrit avec un tiret — un
+    # pourvoi n'existe qu'en cassation. (_normalize_rg re-canonise en 26/00038.)
+    if out["juri_type"] in {"cph", "tj", "tsa", "tcom"}:
+        out["numeros"] = [(("rg", v) if k == "pourvoi" else (k, v)) for k, v in out["numeros"]]
     if out["juri_type"] == "cedh":
         out["numeros"] = [(("cedh", v) if k == "rg" else (k, v)) for k, v in out["numeros"]]
 
