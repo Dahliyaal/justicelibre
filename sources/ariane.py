@@ -60,10 +60,15 @@ async def fetch_full_text(client: httpx.AsyncClient, ariane_id: str) -> str:
     r = await client.get(DOWNLOAD_URL, params=params, timeout=60)
     if r.status_code != 200:
         return ""
-    # Le serveur renvoie souvent iso-8859-1 — forcer le décodage propre
-    if "charset=iso-8859-1" in (r.headers.get("content-type") or "").lower():
-        r.encoding = "iso-8859-1"
-    html = r.text
+    # L'endpoint /plugin DÉCLARE charset=iso-8859-1 mais envoie en réalité
+    # de l'UTF-8 valide (vérifié le 7 août 2026) : le croire produisait du
+    # mojibake (« Conseil d'Ãtat », « prÃ©sident »). L'UTF-8 est
+    # auto-validant — s'il décode strictement, c'est lui ; sinon on retombe
+    # sur l'iso-8859-1 annoncé (qui, lui, décode toujours).
+    try:
+        html = r.content.decode("utf-8")
+    except UnicodeDecodeError:
+        html = r.content.decode("iso-8859-1")
     # Nettoyage HTML basique
     import re as _re
     text = _re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=_re.DOTALL)

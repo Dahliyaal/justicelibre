@@ -97,9 +97,14 @@ def fetch_one(client, num: int) -> str | None:
         return None
     if r.status_code != 200:
         raise RuntimeError(f"HTTP {r.status_code}")
-    if "charset=iso-8859-1" in (r.headers.get("content-type") or "").lower():
-        r.encoding = "iso-8859-1"
-    text = clean_html(r.text)
+    # /plugin déclare iso-8859-1 mais envoie parfois de l'UTF-8 valide
+    # (constaté le 7 août 2026) : UTF-8 strict d'abord (auto-validant),
+    # repli sur l'iso-8859-1 annoncé. Cf. sources/ariane.py.
+    try:
+        raw = r.content.decode("utf-8")
+    except UnicodeDecodeError:
+        raw = r.content.decode("iso-8859-1")
+    text = clean_html(raw)
     if len(text) < 200:
         return None
     return text
