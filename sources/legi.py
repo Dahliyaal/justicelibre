@@ -56,6 +56,45 @@ SUPPORTED_CODES: dict[str, str] = {
     "CDEMay":    "Code du domaine Etat Mayotte",
     "CIMM":      "Code des instruments monétaires",
     "CDA":       "Code de déontologie des architectes",
+    # ─── 35 codes alignés sur SUPPORTED_CODES_LEGITEXT (13 août 2026) ──
+    # Ils étaient servis par le warehouse mais refusés par la barrière
+    # is_supported() : « COJ » → « Code inconnu » alors que l'article
+    # sortait très bien via son LEGITEXT direct.
+    "CTransp":   "Code des transports",
+    "CAss":      "Code des assurances",
+    "CDef":      "Code de la défense",
+    "CSI":       "Code de la sécurité intérieure",
+    "CEner":     "Code de l'énergie",
+    "CCiné":     "Code du cinéma et de l'image animée",
+    "CSport":    "Code du sport",
+    "CJF":       "Code des juridictions financières",
+    "COJ":       "Code de l'organisation judiciaire",
+    "CPCE":      "Code des postes et des communications électroniques",
+    "CElec":     "Code électoral",
+    "CGFP":      "Code général de la fonction publique",
+    "LPF":       "Livre des procédures fiscales",
+    "CRoute":    "Code de la route",
+    "CPatr":     "Code du patrimoine",
+    "CMut":      "Code de la mutualité",
+    "CPénit":    "Code pénitentiaire",
+    "CCP":       "Code de la commande publique",
+    "CAvCiv":    "Code de l'aviation civile",
+    "CIBS":      "Code des impositions sur les biens et services",
+    "CDouanes":  "Code des douanes",
+    "CForêt":    "Code forestier (nouveau)",
+    "CTou":      "Code du tourisme",
+    "CG3P":      "Code général de la propriété des personnes publiques",
+    "CSN":       "Code du service national",
+    "CRech":     "Code de la recherche",
+    "CPortM":    "Code des ports maritimes",
+    "CDE":       "Code du domaine de l'Etat",
+    "CMin":      "Code minier (nouveau)",
+    "CJM":       "Code de justice militaire",
+    "CExpr":     "Code de l'expropriation pour cause d'utilité publique",
+    "CVoir":     "Code de la voirie routière",
+    "CJPM":      "Code de la justice pénale des mineurs",
+    "CArt":      "Code de l'artisanat",
+    "CPCMR":     "Code des pensions civiles et militaires de retraite",
     # ─── Constitution ────────────────────────────────────────
     "CONST":   "Constitution du 4 octobre 1958",
     # ─── Lois non codifiées fréquemment citées ──────────────
@@ -173,6 +212,11 @@ async def get_article(code: str, num: str, date: str | None = None) -> dict[str,
         data = await wh.get_law(code, num, date)
     elif is_supported(code):
         data = await wh.get_law(code, num, date)
+        # Filet : le CODE_TO_LEGITEXT du warehouse peut avoir un sigle de
+        # retard sur cette liste (il se déploie séparément) — on retente
+        # avec l'identifiant Légifrance, que le warehouse accepte toujours.
+        if data is None and code in SUPPORTED_CODES_LEGITEXT:
+            data = await wh.get_law(SUPPORTED_CODES_LEGITEXT[code], num, date)
     else:
         return {
             "error": f"Code inconnu: {code!r}. Codes supportés: {list(SUPPORTED_CODES.keys())}. "
@@ -204,6 +248,9 @@ async def get_versions(code: str, num: str) -> dict[str, Any]:
             "supported_codes": list(SUPPORTED_CODES.keys()),
         }
     versions = await wh.get_law_versions(code, num)
+    # Même filet que get_article : sigle inconnu du warehouse → LEGITEXT.
+    if not versions and code in SUPPORTED_CODES_LEGITEXT:
+        versions = await wh.get_law_versions(SUPPORTED_CODES_LEGITEXT[code], num)
     return {
         "code": code,
         "code_long": SUPPORTED_CODES[code],

@@ -98,9 +98,10 @@ justicelibre.org/tutoriel-piste.html.
 
 PROTOCOLE D'USAGE : pour tout doute, commencer par `about_justicelibre`
 qui détaille la cartographie. Sinon : `search_all(query)` couvre 90% des
-besoins. 26 codes/textes supportés : 22 codes consolidés (CC, CP, CPC,
-CPP, CT, CSP, CJA, CGI, CESEDA…) + Constitution + 3 lois non codifiées
-(liste complète via `about_justicelibre` ou `search_legi`).
+besoins. ~80 codes/textes supportés pour les articles de loi (CC, CP,
+CPC, CPP, CT, CSP, CJA, COJ, CGI, CESEDA…) + Constitution + lois non
+codifiées, et LEGITEXT/JORFTEXT direct pour le reste (liste complète via
+la resource `justicelibre://codes-supportes`).
 """,
 )
 
@@ -1688,10 +1689,13 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
     2016. Avec ce tool on récupère le texte **tel qu'il existait en 1992**
     (l'ancienne version napoléonienne), pas le texte actuel.
 
-    Codes/textes supportés (26) : 22 codes consolidés — CC, CP, CPC, CPP,
-    CT, CSP, CJA, CGCT, CRPA, CPI, CASF, CMF, C.com, C.cons, C.éduc, CU,
-    C.env, CR, CGI, CESEDA, CSS, CCH — + 4 textes non codifiés : CONST
-    (Constitution), LIL, LO58, L2005-102.
+    Codes/textes supportés : ~80 sigles courts — les grands codes (CC, CP,
+    CPC, CPP, CT, CSP, CJA, CRPA, CSS, COJ, CGFP, LPF, CSI, CSport…), la
+    Constitution (CONST) et des lois non codifiées (LIL, LO58, L2005-102).
+    Liste complète : resource `justicelibre://codes-supportes`. Pour tout
+    autre texte (loi, ordonnance, décret), passer un identifiant
+    LEGITEXT/JORFTEXT direct — `resolve_law_number()` le trouve depuis un
+    numéro ("78-17" → JORFTEXT…).
 
     Args:
         code: code court (ex : "CC" pour Code civil, "CT" pour Code du travail)
