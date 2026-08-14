@@ -56,7 +56,7 @@ TOOL D'ENTRÉE : `search_all` — recherche fédérée fan-out avec ranking BM25
 requête floue ou multi-source.
 
 SOURCES DE JURISPRUDENCE (pertinence BM25) :
-• `search_admin` — ~570 k décisions JADE (CE + CAA, TA partiels) full text
+• `search_admin` — ~570 k décisions JADE (CE + Tribunal des conflits + CAA, TA partiels) full text
 • `search_judiciaire_libre` — ~1,3 M (Cass, CA, TJ, trib. de commerce, Conseil constit.)
 • `search_conseil_etat` — 270 k+ CE via Sinequa (moteur sémantique natif)
 • `search_cedh` — 76 k décisions Cour EDH
@@ -338,7 +338,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "2_admin_pertinence": {
                 "tools": ["search_admin", "list_juridictions"],
-                "volume": "~570 000 décisions JADE : CE + 9 CAA + 40 TA full text",
+                "volume": "~570 000 décisions JADE : CE + Tribunal des conflits (~1 800, filtre juridiction=\"conflits\") + 9 CAA + 40 TA full text",
                 "strengths": "Ranking BM25 (vraie pertinence) + snippets + date range. REMPLACE les tools date-sorted pour trouver la jurisprudence pertinente.",
                 "id_format": "DCE_*, DTA_*, DCAA_*",
                 "id_compatible_with": "get_decision_text",
@@ -1510,7 +1510,7 @@ async def search_admin(
     offset: int = 0,
 ) -> dict[str, Any]:
     """Recherche pondérée par pertinence BM25 sur la jurisprudence
-    administrative complète (Conseil d'État + 9 CAA + 40 TA).
+    administrative complète (Conseil d'État + Tribunal des conflits + 9 CAA + 40 TA — pour le TC, filtrer avec juridiction="conflits").
 
     Source : bulk JADE DILA (~550 k décisions full text). Contrairement aux
     outils `search_admin_recent*` qui trient par date, celui-ci classe par
