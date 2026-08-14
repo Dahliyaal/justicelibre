@@ -75,6 +75,8 @@ def _fts_syntax_error_result(e: Exception) -> dict[str, Any]:
 JURIDICTIONS = {
     "cassation": "Cour de cassation",
     "appel": "Cour d'appel",
+    "tj": "Tribunal judiciaire",
+    "tcom": "Tribunal de commerce",
     "constit": "Conseil constitutionnel",
 }
 

@@ -1,7 +1,7 @@
 """justicelibre — serveur MCP d'accès libre à la jurisprudence et au droit
 positif français et européen.
 
-Expose ~31 tools sur ~3,3 M décisions de justice + ~1,5 M articles de loi
+Expose ~31 tools sur ~3,3 M décisions de justice + ~1,8 M articles de loi
 consolidés (versions historiques) + textes annexes (JORF/KALI/CNIL) :
 Cour de cassation, cours d'appel, Conseil constitutionnel, Conseil d'État,
 CAA, TA, Cour EDH, CJUE. Données zéro-auth, redistribuables sous Licence
@@ -56,8 +56,8 @@ TOOL D'ENTRÉE : `search_all` — recherche fédérée fan-out avec ranking BM25
 requête floue ou multi-source.
 
 SOURCES DE JURISPRUDENCE (pertinence BM25) :
-• `search_admin` — ~550 k décisions JADE (CE + CAA, TA partiels) full text
-• `search_judiciaire_libre` — ~1,17 M (Cass + CA + Conseil constitutionnel)
+• `search_admin` — ~570 k décisions JADE (CE + CAA, TA partiels) full text
+• `search_judiciaire_libre` — ~1,3 M (Cass, CA, TJ, trib. de commerce, Conseil constit.)
 • `search_conseil_etat` — 270 k+ CE via Sinequa (moteur sémantique natif)
 • `search_cedh` — 76 k décisions Cour EDH
 • `search_cjue` — 44 k arrêts CJUE + Tribunal UE
@@ -77,8 +77,8 @@ ARTICLES DE LOI (killer feature unique à justicelibre) :
 • `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
   Ex : art. 1128 CC en 1992 → texte napoléonien, pas la réforme 2016.
 • `get_law_versions(code, num)` — timeline complète historique.
-• `search_legi` — ~1,5 M articles (22 codes consolidés + Constitution
-  + 3 lois non codifiées).
+• `search_legi` — ~1,8 M articles, ~146 000 textes (tous les codes
+  consolidés + lois, ordonnances et décrets).
 • `search_decisions_citing(code, num)` — cross-référence inverse.
 
 DROIT POSITIF COMPLÉMENTAIRE :
@@ -338,7 +338,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "2_admin_pertinence": {
                 "tools": ["search_admin", "list_juridictions"],
-                "volume": "~550 000 décisions JADE : CE + 9 CAA + 40 TA full text",
+                "volume": "~570 000 décisions JADE : CE + 9 CAA + 40 TA full text",
                 "strengths": "Ranking BM25 (vraie pertinence) + snippets + date range. REMPLACE les tools date-sorted pour trouver la jurisprudence pertinente.",
                 "id_format": "DCE_*, DTA_*, DCAA_*",
                 "id_compatible_with": "get_decision_text",
@@ -349,7 +349,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "3_dila_judiciaire": {
                 "tools": ["search_judiciaire_libre", "get_decision_judiciaire_libre"],
-                "volume": "~1,17 M décisions : Cour de cassation + 36 Cours d'appel + Conseil constitutionnel (archives DILA locales)",
+                "volume": "~1,3 M décisions : Cour de cassation, 36 cours d'appel, tribunaux judiciaires (~68 000, surtout depuis 2023), tribunaux de commerce (~40 000) et Conseil constitutionnel (archives DILA locales + sync quotidienne Judilibre)",
                 "strengths": "Index local FTS5, aucune auth. Opérateurs FTS5 (phrase exacte, AND, OR, préfixe*).",
                 "id_format": "JURITEXT*, CONSTEXT*, JURI*",
                 "id_compatible_with": "get_decision_judiciaire_libre",
@@ -377,7 +377,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "7_articles_loi": {
                 "tools": ["get_law_article", "get_law_versions", "search_legi", "search_decisions_citing"],
-                "volume": "~3,6 Go bulk LEGI : 26 codes/textes (22 codes consolidés — CC, CP, CT, etc. — + Constitution + 3 lois non codifiées) AVEC toutes les versions historiques",
+                "volume": "~3,6 Go bulk LEGI : ~1,8 M d'articles, ~146 000 textes (tous les codes consolidés, lois, ordonnances, décrets) AVEC toutes les versions historiques",
                 "strengths": "**Killer feature** : récupérer un article à sa version en vigueur à une date précise. Ex: art. 1128 CC en 1992 → texte napoléonien ; en 2024 → texte réforme 2016. Ce que Dalloz facture 200€/mois.",
                 "id_format": "LEGIARTI*",
                 "id_compatible_with": "get_law_article / get_law_versions",
@@ -794,13 +794,16 @@ async def search_judiciaire_libre(
     localement et affranchie de toute obligation d'authentification
     gouvernementale.
 
-    Exploite l'index FTS5 des archives publiques DILA (~1,17 M décisions :
-    Cour de cassation, 36 cours d'appel, Conseil constitutionnel). Scoring
+    Exploite l'index FTS5 des archives publiques DILA enrichies par la
+    synchronisation quotidienne Judilibre (~1,3 M décisions : Cour de
+    cassation, 36 cours d'appel, tribunaux judiciaires, tribunaux de
+    commerce, Conseil constitutionnel). Scoring
     BM25 disponible mais tri appliqué par ordre chronologique décroissant.
 
     **Couverture connue** : la base contient un sous-ensemble des arrêts
-    publiés par les CA en open data DILA (~73 000 arrêts CA, principalement
-    depuis 2007). Tous les arrêts ne sont PAS dans la base ; un faux négatif
+    publiés en open data (~86 000 arrêts CA depuis 2007, ~68 000 décisions
+    de tribunaux judiciaires et ~40 000 de tribunaux de commerce surtout
+    depuis 2023 via Judilibre). Tous les arrêts ne sont PAS dans la base ; un faux négatif
     n'implique donc pas que l'arrêt n'existe pas. En cas de bredouille,
     suggérer à l'utilisateur de chercher sur Légifrance ou via PISTE
     (`search_judiciaire`).
@@ -812,15 +815,17 @@ async def search_judiciaire_libre(
 
     ⚠️ Les résultats ne contiennent qu'un SNIPPET tronqué (`snippet`), pas
     le texte intégral. Pour lire une décision en entier, appeler
-    `get_decision_judiciaire_libre(id)` avec l'id retourné (format
-    `JURITEXT*` Cass / cours d'appel, `CONSTEXT*` Conseil constitutionnel).
+    `get_decision_judiciaire_libre(id)` avec l'id retourné (formats :
+    `JURITEXT*` Cass / cours d'appel historiques, `CONSTEXT*` Conseil
+    constitutionnel, id hexadécimal 24 caractères pour les décisions
+    synchronisées via Judilibre — TJ, tribunaux de commerce, flux récents).
     Ne pas se fier au snippet seul pour conclure sur le contenu.
 
     Args:
         query: mots-clés (ex : "licenciement abusif"). FTS5 supporte
             `"phrase exacte"`, `mot1 AND mot2`, `mot*` (préfixe). Optionnel
             si `numero_rg` est fourni.
-        juridiction: filtre optionnel : "cassation" / "appel" / "constit".
+        juridiction: filtre optionnel : "cassation" / "appel" / "tj" / "tcom" / "constit".
         numero_rg: numéro RG d'un arrêt CA (ex: "21/05835"). Lookup direct
             qui matche toutes les variantes typographiques.
         date_min: date min ISO (YYYY-MM-DD), optionnel
@@ -899,7 +904,7 @@ _NO_CREDS_MSG = (
     "L'accès via PISTE requiert une authentification OAuth2 (gratuite). "
     "Dans la majorité des cas, privilégier `search_judiciaire_libre` ou "
     "`get_decision_judiciaire_libre`, qui interrogent l'archive locale "
-    "DILA (~1,17 M décisions, sans authentification). Ne recourir à "
+    "DILA (~1,3 M décisions, sans authentification). Ne recourir à "
     "l'API PISTE qu'en cas de besoin avéré des toutes dernières décisions "
     "non encore archivées. Deux méthodes : 1) obtenir un session token "
     "temporaire sur https://justicelibre.org/tutoriel-piste.html et le "
@@ -1130,7 +1135,7 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
     ou JORFTEXT Légifrance.
 
     Utile pour les textes non codifiés (lois, ordonnances, décrets) qui ne
-    sont pas dans la whitelist des 26 codes courts (CC, CP, LIL, LO58, etc.).
+    sont pas dans la liste des ~80 sigles courts (CC, CP, COJ, LIL, etc. — resource `justicelibre://codes-supportes`).
     Une fois le LEGITEXT/JORFTEXT résolu, on peut l'utiliser avec
     `get_law_article(code=<LEGITEXT>, num=<N>)` pour récupérer un article
     spécifique.
