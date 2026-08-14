@@ -277,9 +277,21 @@ async def try_citation_search(q: str, limit: int = 20) -> dict[str, Any] | None:
         # a-ter) numéro Tribunal des conflits (C3830) : lookup exact JADE par
         # numéro — le FTS fédéré ne connaît pas ce fonds pour les années
         # anciennes et le numéro seul n'est pas cherchable autrement.
+        # Trois générations de numérotation dans le bulk (vérifié) :
+        # « C3830 » depuis 2001, « 3261 » nu de ~1990 à 2001, « 00012 »
+        # zéro-paddé à 5 chiffres avant (Blanco = 00012). On cite toujours
+        # avec le C ; on cherche donc aussi les formes anciennes, filtrées
+        # sur la juridiction pour écarter les homonymes des autres fonds.
         if kind == "tdc":
             from sources import jade_remote
             d = await jade_remote.get_admin_decision(val.upper(), None)
+            if not (isinstance(d, dict) and d.get("id") and not d.get("error")):
+                digits = val.upper().lstrip("C")
+                for cand in (digits, digits.zfill(5)):
+                    d = await jade_remote.get_admin_decision(
+                        cand, "Tribunal des Conflits")
+                    if isinstance(d, dict) and d.get("id") and not d.get("error"):
+                        break
             if isinstance(d, dict) and d.get("id") and not d.get("error"):
                 rows.append(_row_from_decision(d, d["id"], "admin"))
                 break
