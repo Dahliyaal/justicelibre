@@ -395,7 +395,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "10_cnil": {
                 "tools": ["search_cnil"],
-                "volume": "~8 000 délibérations CNIL",
+                "volume": "~27 000 délibérations CNIL",
                 "strengths": "Droit des données personnelles (RGPD).",
             },
         },
@@ -1668,7 +1668,7 @@ async def search_cnil(
 ) -> dict[str, Any]:
     """Recherche dans les délibérations de la CNIL.
 
-    Source : bulk CNIL (109 Mo, ~8 000 délibérations). Utile pour le droit
+    Source : bulk CNIL (~27 000 délibérations). Utile pour le droit
     des données personnelles, RGPD, traitements algorithmiques.
     """
     _record_call("search_cnil")
