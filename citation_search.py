@@ -39,6 +39,7 @@ NUM_PATTERNS = [
     ("ecli",     re.compile(r"\bECLI:[A-Z]+:[A-Z]+:\d{4}:[\w.]+\b", re.I)),
     ("celex",    re.compile(r"\b6\d{4}[A-Z]{2}\d{4}\b")),
     ("cjue",     re.compile(r"\b([CT])-(\d{1,4})/(\d{2})\b")),
+    ("tdc",      re.compile(r"\bC\d{4}\b", re.I)),  # Tribunal des conflits (C3830)
     ("caa_ce",   re.compile(r"\b\d{2}[A-Z]{2}\d{5}\b")),
     ("pourvoi",  re.compile(r"\b\d{2}-\d{2}\.?\d{3}\b")),
     ("cedh",     re.compile(r"\b(\d{3,5})/(\d{2})\b")),
@@ -53,6 +54,7 @@ DATE_TXT_RE = re.compile(
 JURI_PATTERNS = [
     (re.compile(r"\bCJUE\b|\bCJCE\b|cour de justice de l'union", re.I), "cjue", False),
     (re.compile(r"\bCEDH\b|cour ?edh|cour europ[ée]enne des droits", re.I), "cedh", False),
+    (re.compile(r"tribunal des conflits|\bTdC\b", re.I), "tdc", False),
     (re.compile(r"tribunal sup[ée]rieur d'appel\s+(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)", re.I), "tsa", True),
     (re.compile(r"(?:cour administrative d'appel|C\.?A\.?A\.?)\s*(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)?", re.I), "caa", True),
     (re.compile(r"(?:tribunal administratif|\bT\.?A\.?\b)\s*(?:de\s+|d'|du\s+)?([A-ZÉÈÎ][\w'’-]+)?", re.I), "ta", True),
@@ -88,18 +90,19 @@ def _clean_ville(v: str) -> str:
 
 ROUTES = {"cjue": ["cjue"], "celex": ["cjue"], "cedh": ["cedh"],
           "caa_ce": ["admin"], "dossier": ["admin", "ariane"],
-          "pourvoi": ["dila"], "rg": ["dila"],
+          "pourvoi": ["dila"], "rg": ["dila"], "tdc": ["admin"],
           "ecli": ["admin", "dila", "cjue"]}
 JURI_SOURCES = {"cjue": ["cjue"], "cedh": ["cedh"], "ta": ["admin"],
                 "caa": ["admin"], "ce": ["admin", "ariane"],
                 "ca": ["dila"], "cass": ["dila"], "cph": ["dila"],
-                "tj": ["dila"], "tsa": ["dila"], "tcom": ["dila"]}
+                "tj": ["dila"], "tsa": ["dila"], "tcom": ["dila"],
+                "tdc": ["admin"]}
 JURI_DAY_QUERY = {"cass": "cassation", "ce": "conseil état",
                   "cjue": "cour justice", "cedh": "cour",
                   "ta": "tribunal administratif", "caa": "cour administrative appel",
                   "ca": "cour appel", "tj": "tribunal judiciaire",
                   "cph": "prud'hommes", "tsa": "tribunal supérieur appel",
-                  "tcom": "tribunal commerce"}
+                  "tcom": "tribunal commerce", "tdc": "tribunal conflits"}
 # Signature textuelle du type de juridiction dans le champ `juridiction` des
 # résultats (pour filtrer les homonymes : un RG "26/00038" existe dans des
 # dizaines de tribunaux différents).
@@ -107,7 +110,7 @@ TYPE_SIG = {"ta": "tribunal administratif", "caa": "cour administrative",
             "ce": "conseil", "cass": "cassation", "ca": "cour d'appel",
             "tj": "tribunal judiciaire", "cph": "prud",
             "tcom": "commerce", "tsa": "tribunal superieur",
-            "cedh": "", "cjue": ""}
+            "tdc": "conflits", "cedh": "", "cjue": ""}
 ADMIN_ID_PREFIXES = {"ta": ["DTA", "ORTA"], "caa": ["DCAA", "ORCA"],
                      "ce": ["DCE", "ORCE"],
                      "": ["DTA", "DCAA", "DCE", "ORTA", "ORCA", "ORCE"]}
@@ -271,6 +274,16 @@ async def try_citation_search(q: str, limit: int = 20) -> dict[str, Any] | None:
                     rows.append(_row_from_decision(d, rid, "admin"))
             if rows:
                 break
+        # a-ter) numéro Tribunal des conflits (C3830) : lookup exact JADE par
+        # numéro — le FTS fédéré ne connaît pas ce fonds pour les années
+        # anciennes et le numéro seul n'est pas cherchable autrement.
+        if kind == "tdc":
+            from sources import jade_remote
+            d = await jade_remote.get_admin_decision(val.upper(), None)
+            if isinstance(d, dict) and d.get("id") and not d.get("error"):
+                rows.append(_row_from_decision(d, d["id"], "admin"))
+                break
+
         if kind == "cjue":
             celex = _celex_from_cjue(val)
             if celex:

@@ -85,6 +85,21 @@ def test_rg_avec_tiret_devant_un_tribunal_du_fond():
     assert ("pourvoi", "22-87.145") in p2["numeros"], p2
 
 
+def test_tribunal_des_conflits():
+    # Numéro TC nu (cas réel : C3830 = TdC 2 avr. 2012, Proyart, publié).
+    p = _p("C3830")
+    assert ("tdc", "C3830") in p["numeros"], p
+    assert is_reference(p)
+    # Citation complète + casse libre.
+    p2 = _p("Tribunal des conflits, 2 avril 2012, n° c3830")
+    assert p2["juri_type"] == "tdc", p2
+    assert any(k == "tdc" for k, _ in p2["numeros"]), p2
+    assert p2["date"] == "2012-04-02", p2
+    # Un CELEX C-312/11 ne doit PAS devenir un numéro TdC.
+    p3 = _p("CJUE, C-312/11")
+    assert not any(k == "tdc" for k, _ in p3["numeros"]), p3
+
+
 def test_article_nest_pas_une_ville():
     # "le tribunal judiciaire de ladite commune" : le TYPE reste, la
     # pseudo-ville est écartée (VILLE_STOP).
