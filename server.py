@@ -463,7 +463,7 @@ async def search_conseil_etat(query: str, limit: int = 20, offset: int = 0) -> d
     pour le droit public.
 
     EXTRACTION DU TEXTE : les ids retournés (`/Ariane_Web/AW_DCE/|XXXXXX`)
-    sont DÉSORMAIS exploitables directement par `get_decision_text(id)`
+    sont DÉSORMAIS exploitables directement par `get_decision_text(decision_id=…)`
     (récupération live via le plugin Sinequa).
 
     ⚠️ COUVERTURE : cet index ArianeWeb (Sinequa) couvre MAL les arrêts
@@ -654,7 +654,7 @@ def _dec_cache_put(key: str, val: Any) -> None:
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision administrative", readOnlyHint=True))
-async def get_decision_text(decision_id: str) -> dict[str, Any]:
+async def get_decision_text(decision_id: str = "", id: str = "") -> dict[str, Any]:
     """Extraction du texte intégral d'une décision relevant de l'ordre
     administratif (Conseil d'État, TA, CAA).
 
@@ -683,6 +683,16 @@ async def get_decision_text(decision_id: str) -> dict[str, Any]:
         alternatifs à essayer.
     """
     _record_call("get_decision_text")
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
+    # nom court est le réflexe naturel des modèles) : la requête échouait
+    # alors en erreur de validation pydantic, avant même d'atteindre le
+    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
     cached = _dec_cache_get(f"text:{decision_id}")
     if cached is not None:
         return cached
@@ -815,7 +825,7 @@ async def search_judiciaire_libre(
 
     ⚠️ Les résultats ne contiennent qu'un SNIPPET tronqué (`snippet`), pas
     le texte intégral. Pour lire une décision en entier, appeler
-    `get_decision_judiciaire_libre(id)` avec l'id retourné (formats :
+    `get_decision_judiciaire_libre(decision_id=…)` avec l'id retourné (formats :
     `JURITEXT*` Cass / cours d'appel historiques, `CONSTEXT*` Conseil
     constitutionnel, id hexadécimal 24 caractères pour les décisions
     synchronisées via Judilibre — TJ, tribunaux de commerce, flux récents).
@@ -858,7 +868,8 @@ async def search_judiciaire_libre(
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision judiciaire (DILA)", readOnlyHint=True))
 async def get_decision_judiciaire_libre(
-    decision_id: str,
+    decision_id: str = "",
+    id: str = "",
 ) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision judiciaire depuis l'index
     indépendant (sans authentification).
@@ -875,6 +886,16 @@ async def get_decision_judiciaire_libre(
         decision_id: identifiant JURITEXT/JURI/CONSTEXT de la décision
     """
     _record_call("get_decision_judiciaire_libre")
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
+    # nom court est le réflexe naturel des modèles) : la requête échouait
+    # alors en erreur de validation pydantic, avant même d'atteindre le
+    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
     cached = _dec_cache_get(f"judi:{decision_id}")
     if cached is not None:
         return cached
@@ -1034,7 +1055,8 @@ async def search_judiciaire(
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision (PISTE Judilibre)", readOnlyHint=True))
 async def get_decision_judiciaire(
-    decision_id: str,
+    decision_id: str = "",
+    id: str = "",
     session_token: str = "",
 ) -> dict[str, Any]:
     """Extraction du texte intégral d'une décision judiciaire via l'API
@@ -1080,6 +1102,16 @@ async def get_decision_judiciaire(
                 "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
             }
         _record_call("get_decision_judiciaire")
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
+    # nom court est le réflexe naturel des modèles) : la requête échouait
+    # alors en erreur de validation pydantic, avant même d'atteindre le
+    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
         async with _client() as client:
             headers = {"Authorization": f"Bearer {bearer}"}
             try:
@@ -1407,7 +1439,7 @@ async def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str,
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'une décision CEDH", readOnlyHint=True))
-async def get_decision_cedh(decision_id: str) -> dict[str, Any]:
+async def get_decision_cedh(decision_id: str = "", id: str = "") -> dict[str, Any]:
     """Extraction du texte intégral d'une décision de la Cour européenne des
     droits de l'homme sur la base de son identifiant système (itemid HUDOC).
 
@@ -1419,6 +1451,16 @@ async def get_decision_cedh(decision_id: str) -> dict[str, Any]:
         `{error, error_category: "not_found"}` si l'itemid est inconnu.
     """
     _record_call("get_decision_cedh")
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
+    # nom court est le réflexe naturel des modèles) : la requête échouait
+    # alors en erreur de validation pydantic, avant même d'atteindre le
+    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
     result = await asyncio.to_thread(european.get_cedh, decision_id)
     if result is None:
         return _tool_error(
@@ -1462,7 +1504,7 @@ async def search_cjue(query: str, limit: int = 20, offset: int = 0) -> dict[str,
 
 @mcp.tool(annotations=ToolAnnotations(
     title="Texte intégral d'un arrêt CJUE", readOnlyHint=True))
-async def get_decision_cjue(decision_id: str) -> dict[str, Any]:
+async def get_decision_cjue(decision_id: str = "", id: str = "") -> dict[str, Any]:
     """Extraction du texte intégral d'une décision de la Cour de justice de
     l'Union européenne sur la base de son identifiant normalisé (CELEX).
 
@@ -1477,6 +1519,16 @@ async def get_decision_cjue(decision_id: str) -> dict[str, Any]:
         `{error, error_category: "not_found"}` si le CELEX est inconnu.
     """
     _record_call("get_decision_cjue")
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
+    # nom court est le réflexe naturel des modèles) : la requête échouait
+    # alors en erreur de validation pydantic, avant même d'atteindre le
+    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
     result = await asyncio.to_thread(european.get_cjue, decision_id)
     if result is None:
         return _tool_error(
