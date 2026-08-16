@@ -211,12 +211,10 @@ async def get_article(code: str, num: str, date: str | None = None) -> dict[str,
     if code.startswith("LEGITEXT") or code.startswith("JORFTEXT"):
         data = await wh.get_law(code, num, date)
     elif is_supported(code):
+        # Le repli « sigle inconnu du warehouse → LEGITEXT » est centralisé
+        # dans sources/warehouse.py (_legitext_for), donc valable aussi pour
+        # le site (/api/law) et le SSR, pas seulement pour le MCP.
         data = await wh.get_law(code, num, date)
-        # Filet : le CODE_TO_LEGITEXT du warehouse peut avoir un sigle de
-        # retard sur cette liste (il se déploie séparément) — on retente
-        # avec l'identifiant Légifrance, que le warehouse accepte toujours.
-        if data is None and code in SUPPORTED_CODES_LEGITEXT:
-            data = await wh.get_law(SUPPORTED_CODES_LEGITEXT[code], num, date)
     else:
         return {
             "error": f"Code inconnu: {code!r}. Codes supportés: {list(SUPPORTED_CODES.keys())}. "
@@ -248,9 +246,6 @@ async def get_versions(code: str, num: str) -> dict[str, Any]:
             "supported_codes": list(SUPPORTED_CODES.keys()),
         }
     versions = await wh.get_law_versions(code, num)
-    # Même filet que get_article : sigle inconnu du warehouse → LEGITEXT.
-    if not versions and code in SUPPORTED_CODES_LEGITEXT:
-        versions = await wh.get_law_versions(SUPPORTED_CODES_LEGITEXT[code], num)
     return {
         "code": code,
         "code_long": SUPPORTED_CODES[code],

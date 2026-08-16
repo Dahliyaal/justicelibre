@@ -107,6 +107,8 @@ CODE_TO_LEGITEXT: dict[str, str] = {
     "CAvCiv":     "LEGITEXT000006074234",  # Aviation civile
     "CIBS":       "LEGITEXT000044595989",  # Impositions des biens et services
     "CDouanes":   "LEGITEXT000006071570",  # Douanes
+    "CForêt":     "LEGITEXT000025244092",  # Forestier (nouveau)
+    "CG3P":       "LEGITEXT000006070299",  # Propriété des personnes publiques
     "CTou":       "LEGITEXT000006074073",  # Tourisme
     "CSN":        "LEGITEXT000006071335",  # Service national
     "CRech":      "LEGITEXT000006071190",  # Recherche

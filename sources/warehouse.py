@@ -91,17 +91,50 @@ async def get_freshness(fond: str) -> str | None:
     return (_HEALTH_CACHE["data"] or {}).get("last_updated", {}).get(fond)
 
 
+def _legitext_for(code: str) -> str | None:
+    """Identifiant Légifrance d'un sigle court, ou None s'il n'y en a pas.
+
+    Le mapping du warehouse (CODE_TO_LEGITEXT) se déploie séparément de ce
+    client et peut avoir des sigles de retard — constaté le 16 août 2026 :
+    CForêt et CG3P, ajoutés côté serveur MCP le 14, y manquaient encore, et
+    le chemin /api/law du site (token_server → sync_get_law) tombait à vide.
+    Les endpoints /v1/law* acceptent tous un LEGITEXT/JORFTEXT direct : on
+    réessaie donc avec l'identifiant plutôt que d'échouer. Import tardif :
+    sources.legi importe ce module.
+    """
+    if not code or code.startswith(("LEGITEXT", "JORFTEXT")):
+        return None
+    try:
+        from sources.legi import SUPPORTED_CODES_LEGITEXT
+    except Exception:
+        return None
+    return SUPPORTED_CODES_LEGITEXT.get(code)
+
+
 async def get_law(code: str, num: str, date: str | None = None) -> dict | None:
     """Fetch an article at a given date. Returns None if not found."""
     params = {"code": code, "num": num}
     if date:
         params["date"] = date
-    return await _aget("/v1/law", **params)
+    data = await _aget("/v1/law", **params)
+    if data is None:
+        lt = _legitext_for(code)
+        if lt:
+            data = await _aget("/v1/law", **{**params, "code": lt})
+            if isinstance(data, dict):
+                data["code"] = code   # on rend le sigle court, pas le LEGITEXT
+    return data
 
 
 async def get_law_versions(code: str, num: str) -> list[dict]:
     data = await _aget("/v1/law/versions", code=code, num=num)
-    return (data or {}).get("versions", [])
+    versions = (data or {}).get("versions", [])
+    if not versions:
+        lt = _legitext_for(code)
+        if lt:
+            data = await _aget("/v1/law/versions", code=lt, num=num)
+            versions = (data or {}).get("versions", [])
+    return versions
 
 
 def sync_build_url(identifier: str, legitext: str | None = None, date: str | None = None) -> str | None:
@@ -136,8 +169,19 @@ def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
             params["date"] = date
         r = httpx.get(f"{WAREHOUSE_URL}/v1/law", params=params,
                       headers=_HEADERS, timeout=10.0)
-        if r.status_code == 404 or r.status_code != 200:
-            return None
+        if r.status_code != 200:
+            lt = _legitext_for(code)
+            if not lt:
+                return None
+            r = httpx.get(f"{WAREHOUSE_URL}/v1/law",
+                          params={**params, "code": lt},
+                          headers=_HEADERS, timeout=10.0)
+            if r.status_code != 200:
+                return None
+            data = r.json()
+            if isinstance(data, dict):
+                data["code"] = code
+            return data
         return r.json()
     except Exception:
         return None
@@ -273,7 +317,18 @@ def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
     with httpx.Client(timeout=_TIMEOUT, headers=_HEADERS) as client:
         r = client.get(f"{WAREHOUSE_URL}/v1/law", params=params)
         if r.status_code == 404:
-            return None
+            lt = _legitext_for(code)
+            if not lt:
+                return None
+            r = client.get(f"{WAREHOUSE_URL}/v1/law",
+                           params={**params, "code": lt})
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                data["code"] = code
+            return data
         r.raise_for_status()
         return r.json()
 
@@ -294,7 +349,13 @@ def sync_get_law_versions(code: str, num: str) -> list[dict]:
     with httpx.Client(timeout=_TIMEOUT, headers=_HEADERS) as client:
         r = client.get(f"{WAREHOUSE_URL}/v1/law/versions", params={"code": code, "num": num})
         if r.status_code == 404:
-            return []
+            lt = _legitext_for(code)
+            if not lt:
+                return []
+            r = client.get(f"{WAREHOUSE_URL}/v1/law/versions",
+                           params={"code": lt, "num": num})
+            if r.status_code == 404:
+                return []
         r.raise_for_status()
         return r.json().get("versions", [])
 
