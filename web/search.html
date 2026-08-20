@@ -554,7 +554,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   /* 1. Rien que le document : on retire l'interface. */
   .searchbar, .results-list, .footer-min,
   .law-viewer, .law-backdrop, .sheet-handle, .sheet-close,
-  .actions, .thesaurus-bar, .dots-inline, .sheet-backdrop,
+  .actions, .expansion-bar, .dots-inline, .sheet-backdrop,
   .topbar nav.main-nav, .topbar .theme-toggle, .topbar-burger,
   .topbar-drawer, .topbar-overlay, .topbar .proto-badge{
     display:none !important;
@@ -610,20 +610,41 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
     font-size:14pt;margin:0 0 .6em;color:#000 !important;
     break-after:avoid;page-break-after:avoid;
   }
-  .doc-meta{
-    font-size:9pt;color:#000 !important;
-    border-bottom:1px solid #000;padding-bottom:.5em;margin-bottom:1em;
+  /* .doc-meta est un conteneur flex avec une spécificité plus forte
+     (.text-viewer .doc-meta) : on s'aligne dessus, sinon rien ne prend. */
+  .text-viewer .doc-meta{
+    display:flex;flex-wrap:wrap;gap:.3em 1.4em;
+    font-size:9pt !important;color:#000 !important;
+    border-bottom:1px solid #000 !important;
+    padding-bottom:.5em !important;margin-bottom:1.3em !important;
     break-inside:avoid;page-break-inside:avoid;
   }
-  .doc-meta span{display:inline-block;margin-right:1.2em}
+  .text-viewer .doc-meta span{display:inline-block;margin:0}
 
   /* 4. Les liens ne cliquent pas sur papier : on écrit l'URL. */
-  .source-cta-spa{
-    border:0 !important;padding:0 !important;margin:0 0 1em !important;
-    background:none !important;font-size:9pt;break-inside:avoid;
+  /* Le bloc « Voir sur … → » est un bouton d'écran : sur papier on le
+     réduit à une ligne de référence, l'URL en toutes lettres. Le texte du
+     lien est neutralisé par font-size:0, les pseudo-éléments le remplacent. */
+  .text-viewer .source-cta-spa{
+    display:block !important;border:0 !important;
+    padding:0 !important;margin:0 0 1.1em !important;
+    background:none !important;break-inside:avoid;
   }
-  .source-cta-spa a[href]:after{content:" — " attr(href)}
+  .text-viewer .source-cta-spa small{display:none !important}
+  .text-viewer .btn-source-spa{
+    display:inline !important;font-size:0 !important;
+    padding:0 !important;border:0 !important;background:none !important;
+  }
+  .text-viewer .btn-source-spa span{display:none !important}
+  .text-viewer .btn-source-spa:before{
+    content:"Source officielle : ";font-size:9pt;font-weight:600;color:#000;
+  }
+  .text-viewer .btn-source-spa:after{
+    content:attr(href);font-size:9pt;font-weight:normal;font-style:italic;
+    color:#000;word-break:break-all;
+  }
   .text-viewer a{color:#000 !important;text-decoration:none}
+
 
   /* 5. Les surlignages de recherche ne doivent pas noircir la page. */
   .text-viewer em, .text-viewer mark{
