@@ -552,11 +552,34 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   @page{margin:18mm 16mm}
 
   /* 1. Rien que le document : on retire l'interface. */
-  [data-topbar-mount], .searchbar, .results-list, .footer-min,
+  .searchbar, .results-list, .footer-min,
   .law-viewer, .law-backdrop, .sheet-handle, .sheet-close,
-  .actions, .thesaurus-bar, .dots-inline{
+  .actions, .thesaurus-bar, .dots-inline, .sheet-backdrop,
+  .topbar nav.main-nav, .topbar .theme-toggle, .topbar-burger,
+  .topbar-drawer, .topbar-overlay, .topbar .proto-badge{
     display:none !important;
   }
+
+  /* ⚠️ Une page A4 fait ~794 px : le point de rupture 860 px s'active donc
+     À L'IMPRESSION, et c'est la mise en page MOBILE (volet fixe, sheet) qui
+     partait sur le papier — d'où le texte tronqué à une page et la barre de
+     défilement imprimée. On neutralise ce qu'elle impose. */
+  body{display:block !important}
+  .results-shell{grid-template-columns:none !important}
+
+  /* Le logo reste, en haut à gauche, sans le badge « bêta ». */
+  .topbar{
+    position:static !important;background:none !important;
+    border:0 !important;box-shadow:none !important;backdrop-filter:none !important;
+    display:block !important;padding:0 0 .8em !important;height:auto !important;
+    margin-bottom:1.2em;border-bottom:1px solid #000 !important;
+  }
+  .topbar .logo-area{
+    display:flex !important;align-items:center;gap:.5em;
+    color:#000 !important;text-decoration:none;
+  }
+  .topbar .logo-area img{height:22px;width:auto}
+  .topbar .logo-area .name{font-size:12pt;color:#000 !important}
 
   /* 2. On déverrouille les conteneurs à défilement (le vrai bug). */
   html, body{
@@ -2380,5 +2403,23 @@ juriEl.addEventListener('change', () => {
 })();
 </script>
 
+<script>
+/* Impression : le navigateur imprime le <title> dans son en-tête et s'en sert
+   pour nommer le PDF. Plutôt que « Recherche · justicelibre.org », on y met le
+   titre de la décision ouverte — l'en-tête devient une référence utile et le
+   fichier enregistré porte le nom de la décision. Restauré après impression. */
+(function(){
+  var saved = null;
+  window.addEventListener('beforeprint', function(){
+    var h1 = document.querySelector('#textViewerBody h1');
+    if (!h1 || !h1.textContent.trim()) return;
+    saved = document.title;
+    document.title = h1.textContent.trim().slice(0, 120);
+  });
+  window.addEventListener('afterprint', function(){
+    if (saved !== null) { document.title = saved; saved = null; }
+  });
+})();
+</script>
 </body>
 </html>

@@ -552,6 +552,65 @@ footer.page-footer a{color:var(--teal)}
 .cta:hover{background:var(--teal-l);text-decoration:none}
 .cta.alt{background:transparent;color:var(--teal);border:1px solid var(--teal)}
 .cta.alt:hover{background:var(--teal-xl)}
+
+/* ─── IMPRESSION ─────────────────────────────────────────────
+   Ces pages sont celles qu'un justiciable atteint depuis Google
+   et imprime pour son dossier. Sur papier on ne garde que le
+   document : logo, titre, métadonnées, texte intégral, source. */
+@media print{
+  @page{margin:18mm 16mm}
+  *, *::before, *::after{
+    background:transparent !important;box-shadow:none !important;
+    text-shadow:none !important;
+  }
+  .topbar nav.main-nav, .topbar .theme-toggle, .topbar-burger,
+  .topbar-drawer, .topbar-overlay, .topbar .proto-badge,
+  .page-subbar, .btn-source, .page-footer, .lang-warning-actions{
+    display:none !important;
+  }
+  html, body{
+    background:#fff !important;color:#000 !important;
+    height:auto !important;overflow:visible !important;
+  }
+  .topbar{
+    position:static !important;border:0 !important;height:auto !important;
+    display:block !important;padding:0 0 .6em !important;
+    border-bottom:1px solid #000 !important;margin-bottom:1.2em;
+    backdrop-filter:none !important;
+  }
+  .topbar .logo-area{display:flex !important;align-items:center;gap:.5em;color:#000 !important}
+  .topbar .logo-area img{height:22px;width:auto}
+  .topbar .logo-area .name{font-size:12pt;color:#000 !important}
+  .wrap{max-width:none !important;margin:0 !important;padding:0 !important}
+  body, .wrap, article, article p{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:10.5pt;line-height:1.45;color:#000 !important;
+  }
+  article p{margin:0 0 .55em;orphans:3;widows:3;text-align:justify}
+  article{border:0 !important;padding:0 !important}
+  h1{font-size:15pt !important;color:#000 !important;break-after:avoid;page-break-after:avoid}
+  .kicker{font-size:9pt;color:#000 !important;letter-spacing:.08em}
+  .subline{font-size:9pt;font-style:italic;margin-bottom:1em}
+  .meta-table{
+    width:100%;font-size:9pt;border-collapse:collapse;margin-bottom:1.2em;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .meta-table td{border:1px solid #000 !important;padding:.25em .5em;color:#000 !important}
+  /* Un lien ne clique pas sur papier : on écrit l'adresse. */
+  .source-cta{border:0 !important;padding:0 !important;margin:0 0 1em !important;font-size:9pt}
+  .source-cta small{font-style:italic}
+  a{color:#000 !important;text-decoration:none}
+  article a[href^="http"]:after, .meta-table a[href^="http"]:after{
+    content:" (" attr(href) ")";font-size:8pt;
+    font-weight:normal;font-style:italic;word-break:break-all;
+  }
+  .page-footer{display:none !important}
+  article:after{
+    content:"Imprimé depuis justicelibre.org — base de jurisprudence en accès libre, Licence Ouverte 2.0";
+    display:block;margin-top:1.5em;padding-top:.5em;
+    border-top:1px solid #000;font-size:8pt;font-style:italic;
+  }
+}
 """
 
 # Source de vérité unique : on extrait le <header class="topbar">…</header>
