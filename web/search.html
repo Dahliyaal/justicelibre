@@ -540,6 +540,81 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
 }
 .footer-min a{color:var(--muted)}
 .footer-min a:hover{color:var(--teal)}
+
+/* ─── IMPRESSION ─────────────────────────────────────────────
+   Sans cette feuille, Ctrl+P sortait une bouillie : les deux
+   panneaux sont des boîtes à défilement (max-height + overflow),
+   donc le navigateur n'imprimait que la tranche visible du texte.
+   On les déverrouille, on masque toute l'interface, et il ne
+   reste sur le papier que la décision — en noir sur blanc, quel
+   que soit le thème affiché à l'écran. */
+@media print{
+  @page{margin:18mm 16mm}
+
+  /* 1. Rien que le document : on retire l'interface. */
+  [data-topbar-mount], .searchbar, .results-list, .footer-min,
+  .law-viewer, .law-backdrop, .sheet-handle, .sheet-close,
+  .actions, .thesaurus-bar, .dots-inline{
+    display:none !important;
+  }
+
+  /* 2. On déverrouille les conteneurs à défilement (le vrai bug). */
+  html, body{
+    background:#fff !important;color:#000 !important;
+    height:auto !important;overflow:visible !important;
+  }
+  .results-shell{
+    display:block !important;max-width:none !important;
+    min-height:0 !important;background:#fff !important;gap:0 !important;
+  }
+  .text-viewer{
+    overflow:visible !important;max-height:none !important;
+    height:auto !important;padding:0 !important;
+    background:#fff !important;color:#000 !important;
+    border:0 !important;box-shadow:none !important;
+    position:static !important;transform:none !important;
+  }
+  /* Rien à imprimer si aucune décision n'est ouverte. */
+  .text-viewer.empty{display:none !important}
+
+  /* 3. Typographie papier. */
+  .text-viewer, .text-viewer p{
+    font-family:Georgia, "Times New Roman", serif;
+    font-size:10.5pt;line-height:1.45;color:#000 !important;
+  }
+  .text-viewer p{margin:0 0 .55em;orphans:3;widows:3;text-align:justify}
+  .text-viewer h1{
+    font-size:14pt;margin:0 0 .6em;color:#000 !important;
+    break-after:avoid;page-break-after:avoid;
+  }
+  .doc-meta{
+    font-size:9pt;color:#000 !important;
+    border-bottom:1px solid #000;padding-bottom:.5em;margin-bottom:1em;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .doc-meta span{display:inline-block;margin-right:1.2em}
+
+  /* 4. Les liens ne cliquent pas sur papier : on écrit l'URL. */
+  .source-cta-spa{
+    border:0 !important;padding:0 !important;margin:0 0 1em !important;
+    background:none !important;font-size:9pt;break-inside:avoid;
+  }
+  .source-cta-spa a[href]:after{content:" — " attr(href)}
+  .text-viewer a{color:#000 !important;text-decoration:none}
+
+  /* 5. Les surlignages de recherche ne doivent pas noircir la page. */
+  .text-viewer em, .text-viewer mark{
+    background:none !important;color:#000 !important;
+    font-style:normal;font-weight:600;
+  }
+
+  /* 6. Provenance en pied de chaque page. */
+  .text-viewer:after{
+    content:"Imprimé depuis justicelibre.org — base de jurisprudence en accès libre";
+    display:block;margin-top:1.5em;padding-top:.5em;
+    border-top:1px solid #000;font-size:8pt;font-style:italic;
+  }
+}
 </style>
 <script defer src="/topbar.js?v=5"></script>
 </head>
