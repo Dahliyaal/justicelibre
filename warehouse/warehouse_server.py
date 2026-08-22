@@ -345,7 +345,8 @@ def resolve_law_number(numero: str) -> dict | None:
     return {
         "numero": numero,
         "legitext": legitext,
-        "titre_section": r["titre_sec"],
+        "titre_texte": r["titre_sec"],
+        "titre_section": None,
         "date_debut": r["date_debut"],
         "articles_count": total,
         "source_url": _build_source_url(legitext),
@@ -473,7 +474,13 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
         "num": row["num"],
         "code": code,
         "legitext": legitext,
-        "titre_section": row["titre_text"],
+        # ⚠️ La hiérarchie des sections LEGI (LEGISCTA) n'est PAS ingérée dans
+        # le bulk : legi_articles ne contient que le titre du TEXTE. L'ancien
+        # champ `titre_section` renvoyait donc le titre du code (« Code civil »)
+        # en se faisant passer pour une section — faux et plausible, le pire
+        # des cas. On dit désormais ce qu'on a, et null pour ce qu'on n'a pas.
+        "titre_texte": row["titre_text"],
+        "titre_section": None,
         "etat": row["etat"],
         "date_debut": row["date_debut"] or None,
         "date_fin": row["date_fin"] or None,
@@ -575,7 +582,13 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         order = f"m.{date_col} ASC"
 
     # Count
-    sql_count = f"SELECT COUNT(*) FROM {fts_table} JOIN {main_table} m ON m.rowid = {fts_table}.rowid WHERE " + " AND ".join(where)
+    # CROSS JOIN (et non JOIN) : force SQLite à attaquer par l'index FTS.
+    # Avec un JOIN simple + filtre legitext, le planificateur choisissait de
+    # balayer les 1,8 M d'articles → 23,8 s, soit un timeout côté client avec
+    # un message VIDE (httpx.ReadTimeout n'a pas de texte). Mesuré le 22 août
+    # 2026 : 23,8 s → 0,009 s. Le CROSS JOIN ne change PAS le résultat, il ne
+    # contraint que l'ordre de jointure.
+    sql_count = f"SELECT COUNT(*) FROM {fts_table} CROSS JOIN {main_table} m ON m.rowid = {fts_table}.rowid WHERE " + " AND ".join(where)
     total = c.execute(sql_count, params).fetchone()[0]
 
     # Columns to select per fond
@@ -590,9 +603,13 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
     # LEGI : dédup par legitext parent (évite 8 versions d'une annexe arrêté).
     # On over-fetche x3 puis on dédup en Python pour garder les meilleurs scores
     # par texte-parent distinct, dans l'ordre BM25.
-    if fond == "legi":
+    # La dédup par texte-parent n'a de sens qu'en recherche large. Filtrer sur
+    # un code ET dédupliquer par legitext, c'est garantir UN SEUL résultat
+    # (tous les articles du code partagent le même legitext) : le filtre `code`
+    # en devenait inutilisable (total: 41, returned: 1).
+    if fond == "legi" and not filter_legitext:
         params_paged = list(params) + [limit * 5, offset]  # over-fetch
-        sql = (f"SELECT {select_cols} FROM {fts_table} JOIN {main_table} m ON m.rowid = {fts_table}.rowid "
+        sql = (f"SELECT {select_cols} FROM {fts_table} CROSS JOIN {main_table} m ON m.rowid = {fts_table}.rowid "
                f"WHERE " + " AND ".join(where) + f" ORDER BY {order} LIMIT ? OFFSET ?")
         all_rows = c.execute(sql, params_paged).fetchall()
         seen_legitexts: set[str] = set()
@@ -755,12 +772,29 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             date_min = _q(q, "date_min")
             date_max = _q(q, "date_max")
             filter_code = _q(q, "code")
-            filter_legitext = CODE_TO_LEGITEXT.get(filter_code) if filter_code else None
+            filter_legitext = None
+            if filter_code:
+                if filter_code.startswith(("LEGITEXT", "JORFTEXT")):
+                    filter_legitext = filter_code
+                else:
+                    filter_legitext = CODE_TO_LEGITEXT.get(filter_code)
+                # Un sigle inconnu produisait un filtre None, donc une recherche
+                # NON filtrée renvoyée comme si de rien n'était (ex. code="CForêt"
+                # → 12 762 résultats piochés dans tous les fonds). Silence =
+                # résultats faux : on refuse explicitement.
+                if not filter_legitext:
+                    return self._json(400, {
+                        "error": f"code inconnu: {filter_code!r}",
+                        "hint": "passer un sigle connu ou un LEGITEXT/JORFTEXT direct",
+                    })
             try:
                 result = fts_search(fond, query, limit, offset, sort, date_min, date_max, filter_legitext)
                 return self._json(200, result)
             except ValueError as e:
                 return self._json(400, {"error": str(e)})
+            except Exception as e:  # jamais d'exception nue : le client recevait
+                # « Error executing tool » sans le moindre message exploitable.
+                return self._json(500, {"error": f"{type(e).__name__}: {e}"})
 
         # /v1/decision/{fond}/{id}
         m = re.match(r"^/v1/decision/(\w+)/(.+)$", path)

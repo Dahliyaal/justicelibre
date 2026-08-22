@@ -1182,7 +1182,7 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
         numero: format "YY-NNNN" ou "YYYY-NNNN" (ex: "68-1250", "2000-321")
 
     Returns:
-        `{numero, legitext, titre_section, date_debut, articles_count, source_url}`
+        `{numero, legitext, titre_texte, date_debut, articles_count, source_url}`
         ou `{error}` si introuvable.
     """
     _record_call("resolve_law_number")
@@ -1614,9 +1614,23 @@ async def search_legi(
     Source : bulk LEGI DILA (3,6 Go avec versions historiques). Trouve
     les articles dont le texte ou le titre contient les mots-clés.
 
+    ⚠️ `titre_texte` est le titre du TEXTE contenant l'article (« Code civil »,
+    « Arrêté du 10 août 1998 »), PAS celui de sa section : la hiérarchie des
+    sections LEGI n'est pas ingérée dans le bulk. Pour situer un article dans
+    le plan d'un code (partie / livre / titre / chapitre / section), il faut
+    consulter Légifrance — l'ancien champ `titre_section` renvoyait le titre du
+    code et donnait l'illusion d'une réponse.
+
+    Sans filtre `code`, les résultats sont DÉDUPLIQUÉS par texte-parent (un
+    article par texte, le mieux classé) : `returned` peut donc être bien
+    inférieur à `total` sans que rien ne manque — c'est le sens de
+    `deduplicated_by`. Avec un filtre `code`, aucune dédup.
+
     Args:
         query: mots-clés FTS5
-        code: filtre optionnel sur un code spécifique (CC, CT, CSP...)
+        code: filtre optionnel — sigle (CC, CT, CSP, COJ…) ou LEGITEXT/JORFTEXT
+            direct. Un sigle inconnu renvoie une erreur explicite (et non,
+            comme avant, une recherche non filtrée déguisée en succès).
         date_min/date_max: filtre par date_debut de version (ISO)
         limit: max 50
         offset: pagination
@@ -1639,7 +1653,7 @@ async def search_legi(
             {
                 "legiarti": h.get("id"),
                 "num": h.get("num"),
-                "titre_section": h.get("titre"),
+                "titre_texte": h.get("titre"),   # titre du TEXTE (cf. note ci-dessous)
                 "legitext": h.get("legitext"),
                 "etat": h.get("etat"),
                 "date_debut": h.get("date"),

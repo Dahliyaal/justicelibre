@@ -59,7 +59,14 @@ async def _request(method: str, path: str, *, params=None, body=None) -> dict | 
             if attempt == 0:
                 await asyncio.sleep(0.3)
                 continue
-            raise
+            # Ne JAMAIS relayer l'exception nue : httpx.ReadTimeout a un
+            # str() VIDE, si bien que l'appelant recevait « Error executing
+            # tool search_legi: » sans un mot d'explication (constaté le
+            # 22 août 2026 sur une requête lente). On la retraduit.
+            detail = str(e) or f"délai dépassé (> {_TIMEOUT.read:g}s)"
+            raise RuntimeError(
+                f"warehouse injoignable sur {path} — {type(e).__name__}: {detail}"
+            ) from e
     raise last_exc  # unreachable but satisfies type-checkers
 
 
