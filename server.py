@@ -1243,20 +1243,35 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any]:
     """Récupère une décision du Conseil constitutionnel par son numéro.
 
     Format attendu : "AA-NNN NATURE" ou juste "AA-NNN" (ex : "79-105 DC",
-    "2020-800 DC", "2023-1048 QPC"). Recherche full-text sur le numéro
-    + filtre juridiction="Conseil constitutionnel" dans judiciaire.db.
+    "2020-800 DC", "2023-1048 QPC"). Lookup EXACT sur le numéro (aucune
+    recherche plein texte : une décision qui se contente d'en CITER une
+    autre ne doit jamais être servie à sa place).
+
+    ⚠️ La nature n'est pas décorative : un même numéro existe en plusieurs
+    natures (2019-778 **DC** du 21 mars 2019 et 2019-778 **QPC** du 10 mai
+    2019). Sans nature et si le numéro est ambigu, le tool refuse de choisir
+    et renvoie la liste des candidats.
 
     Args:
         numero: numéro de décision CC (ex : "79-105 DC")
         nature: filtre optionnel (QPC, DC, L, etc.) — cf search_cc
 
     Returns:
-        `{id, titre, date, juridiction, nature, ecli, text}`, ou dict
-        d'erreur structuré `{error, error_category: "not_found"}` si
-        introuvable.
+        `{id, titre, date, juridiction, nature, numero, numero_demande,
+        ecli, text}` — `numero` est le numéro RÉELLEMENT servi, à comparer
+        mécaniquement à `numero_demande`. Ou dict d'erreur structuré
+        `{error, error_category}` si introuvable ou ambigu.
     """
     _record_call("get_cc_decision")
     result = await asyncio.to_thread(dila.get_cc_decision, numero, nature or None)
+    if isinstance(result, dict) and result.get("_ambiguous"):
+        cands = result["_ambiguous"]
+        return _tool_error(
+            f"Numéro {numero!r} ambigu : {len(cands)} décisions portent ce "
+            "numéro dans des natures différentes. Préciser `nature`.",
+            category="validation",
+            candidates=cands,
+        )
     if result is None:
         return _tool_error(
             f"Décision du Conseil constitutionnel {numero!r} introuvable. "

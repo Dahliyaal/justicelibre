@@ -401,35 +401,62 @@ def search_cc(
 
 
 def get_cc_decision(numero: str, nature: str | None = None) -> dict[str, Any] | None:
-    """Récupère une décision du Conseil constitutionnel par son numéro.
+    """Récupère une décision du Conseil constitutionnel par son numéro EXACT.
 
-    Le numéro de décision CC suit le format `AA-NNN NATURE` (ex : "79-105 DC",
-    "2020-800 DC", "2023-1048 QPC"). On cherche via FTS5 sur le pattern
-    pour retrouver l'entrée dans judiciaire.db.
+    Format : `AA-NNN NATURE` ("2019-778 DC") ou `AA-NNN` seul, la nature
+    pouvant alors être passée séparément.
+
+    ⚠️ Lookup STRICT sur la colonne `numero`. L'implémentation précédente
+    faisait un MATCH plein texte du numéro sur le TEXTE des décisions puis
+    prenait la plus récente : `get_cc_decision("2019-778 DC")` renvoyait la
+    2022-846 DC, qui se contente de CITER la 2019-778 dans ses visas — une
+    décision plausible et fausse, sans le moindre avertissement (bug
+    reproduit le 23 août 2026). On ne devine plus : soit le numéro existe,
+    soit on renvoie None (l'appelant émettra un not_found).
+
+    La nature n'est pas décorative : un même numéro coexiste en plusieurs
+    natures (2019-778 DC du 21 mars 2019 ET 2019-778 QPC du 10 mai 2019).
+    Sans nature et si plusieurs candidats, on refuse de choisir et on
+    renvoie `{"_ambiguous": [...]}` pour que l'appelant tranche.
     """
     if not numero.strip():
         return None
-    # Un guillemet dans le numéro casserait la phrase FTS5 ci-dessous.
-    num_clean = numero.strip().replace('"', " ").replace(" ", " ")
-    # FTS5 phrase match sur le numéro
-    fts_q = f'"{num_clean}"'
+    raw = numero.strip().replace('"', " ")
+    # Détacher un suffixe de nature collé au numéro ("2019-778 DC")
+    parts = raw.split()
+    num_only = parts[0] if parts else raw
+    if not nature and len(parts) > 1 and parts[-1].upper() in CC_NATURES:
+        nature = parts[-1].upper()
+    num_only = num_only.strip().rstrip(".,;")
+
     conn = _get_conn()
     try:
-        base = ("SELECT d.id, d.titre, d.date, d.juridiction, d.nature, d.ecli, d.text "
-                "FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid "
-                "WHERE decisions_fts MATCH ? AND d.juridiction = 'Conseil constitutionnel'")
-        params = [fts_q]
+        sql = ("SELECT d.id, d.titre, d.date, d.juridiction, d.nature, d.numero, "
+               "d.ecli, d.text FROM decisions d "
+               "WHERE d.juridiction = 'Conseil constitutionnel' AND d.numero = ?")
+        params: list[Any] = [num_only]
         if nature and nature.upper() in CC_NATURES:
-            base += " AND d.nature = ?"
+            sql += " AND d.nature = ?"
             params.append(nature.upper())
-        base += " ORDER BY d.date DESC LIMIT 1"
-        row = conn.execute(base, params).fetchone()
-        if not row:
+        sql += " ORDER BY d.date ASC"
+        rows = conn.execute(sql, params).fetchall()
+        if not rows:
             return None
+        if len(rows) > 1:
+            # Plusieurs natures pour ce numéro : choisir au hasard serait
+            # exactement le bug qu'on corrige.
+            return {"_ambiguous": [
+                {"numero": r["numero"], "nature": r["nature"], "date": r["date"],
+                 "id": r["id"], "titre": r["titre"]}
+                for r in rows
+            ]}
+        r = rows[0]
         return {
-            "id": row["id"], "titre": row["titre"], "date": row["date"],
-            "juridiction": row["juridiction"], "nature": row["nature"],
-            "ecli": row["ecli"], "text": row["text"],
+            "id": r["id"], "titre": r["titre"], "date": r["date"],
+            "juridiction": r["juridiction"], "nature": r["nature"],
+            "numero": r["numero"],          # numéro RÉELLEMENT servi
+            "numero_demande": numero.strip(),
+            "ecli": r["ecli"], "text": r["text"],
         }
     finally:
         conn.close()

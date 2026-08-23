@@ -144,6 +144,19 @@ def inv_field_varies(field: str):
     return check
 
 
+def inv_equals(**expected):
+    """Le lookup doit servir EXACTEMENT ce qui a été demandé.
+
+    Attrape la famille de bugs « voisin plausible » : get_cc_decision qui
+    renvoyait la 2022-846 DC pour un appel sur la 2019-778 DC, parce qu'elle
+    la CITE dans ses visas (23 août 2026)."""
+    def check(p, args):
+        for field, want in expected.items():
+            got = p.get(field)
+            assert got == want, f"{field}: servi {got!r} ≠ demandé {want!r}"
+    return check
+
+
 # ─── Cas : (tool, args, [invariants], doit_échouer) ──────────────
 
 CASES: list[tuple[str, dict, list, bool]] = [
@@ -193,6 +206,16 @@ CASES: list[tuple[str, dict, list, bool]] = [
     # — cohérence entre tools : un n° trouvé doit être récupérable —
     ("get_admin_decision", {"numero": "03NT00167", "juridiction": "CAA de Nantes"},
      [inv_all_match("juridiction", "Nantes")], False),
+    # — lookups par numéro : servir le VOISIN est pire qu'échouer —
+    # (2019-778 existe en DC ET en QPC : le numéro seul est ambigu)
+    ("get_cc_decision", {"numero": "2019-778 DC"},
+     [inv_equals(numero="2019-778", nature="DC", date="2019-03-21")], False),
+    ("get_cc_decision", {"numero": "2019-778", "nature": "QPC"},
+     [inv_equals(numero="2019-778", nature="QPC", date="2019-05-10")], False),
+    ("get_cc_decision", {"numero": "2019-778"}, [], True),      # ambigu → refus
+    ("get_cc_decision", {"numero": "9999-999 DC"}, [], True),   # inexistant
+    ("get_ce_decision", {"numero": "999999999"}, [], True),
+    ("get_admin_decision", {"numero": "999999999"}, [], True),
 ]
 
 

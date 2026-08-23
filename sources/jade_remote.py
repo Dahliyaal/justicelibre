@@ -135,12 +135,16 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             data = await juriadmin.search(client, query=num_clean, juridiction=juri_code, limit=10)
         hits = data.get("decisions", [])
-        # Chercher un match exact sur numero_dossier
+        # Match EXACT sur le numéro, et rien d'autre.
         for h in hits:
             if str(h.get("numero_dossier", "")).replace(" ", "") == num_clean:
                 return h
-        # Sinon le premier résultat si query est le numéro seul
-        return hits[0] if hits else None
+        # ⚠️ Auparavant : `return hits[0]` — on servait le premier résultat de
+        # la recherche même si son numéro ne correspondait pas. Un lookup par
+        # numéro qui renvoie une décision au numéro DIFFÉRENT est un piège :
+        # l'appelant croit tenir la décision demandée (bug de famille
+        # identifié le 23 août 2026 sur get_cc_decision). On avoue.
+        return None
     except Exception:
         return None
 
@@ -168,11 +172,14 @@ async def get_ce_decision(numero: str) -> dict[str, Any] | None:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             data = await ariane.search(client, num_clean, limit=5)
         hits = data.get("decisions", [])
-        # Cherche un match exact sur le numéro dans les résultats
+        # Match EXACT sur le numéro, et rien d'autre.
         for h in hits:
             if str(h.get("numero", "")).replace(" ", "") == num_clean:
                 return h
-        # Sinon retourner le premier hit si pertinent (Sinequa filtre déjà sur CE)
-        return hits[0] if hits else None
+        # ⚠️ Auparavant : `return hits[0]` — Sinequa filtre bien sur le CE,
+        # mais rien ne garantit que le premier résultat porte LE numéro
+        # demandé. Mieux vaut un not_found qu'un arrêt voisin servi comme
+        # étant le bon.
+        return None
     except Exception:
         return None
