@@ -367,34 +367,35 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
         if not legitext:
             return None
     target = target_date or _date.today().isoformat()
-    # Normalize num: drop spaces, keep structure
-    num_clean = _normalize_num(num)
+    # Toutes les écritures plausibles : LEGI stocke aussi « L80 B » (espace).
+    nums = _num_candidates(num)
+    ph = ", ".join("?" * len(nums))
     c = _conn("legi")
     # Strategy 1: exact legitext match + num + date in range
     row = c.execute(
-        """
+        f"""
         SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
         FROM legi_articles
-        WHERE legitext = ? AND num = ?
+        WHERE legitext = ? AND num IN ({ph})
           AND (date_debut IS NULL OR date_debut = '' OR date_debut <= ?)
           AND (date_fin IS NULL OR date_fin = '' OR date_fin >= ?)
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, num_clean, target, target),
+        (legitext, *nums, target, target),
     ).fetchone()
     if row:
         return _law_row_to_dict(row, code, legitext, at_date=target_date)
     # Strategy 2: if no match at date, return current version
     row = c.execute(
-        """
+        f"""
         SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
         FROM legi_articles
-        WHERE legitext = ? AND num = ? AND etat = 'VIGUEUR'
+        WHERE legitext = ? AND num IN ({ph}) AND etat = 'VIGUEUR'
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, num_clean),
+        (legitext, *nums),
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
@@ -402,14 +403,14 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
         return d
     # Strategy 3: look for any version (abrogated, etc.)
     row = c.execute(
-        """
+        f"""
         SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
         FROM legi_articles
-        WHERE legitext = ? AND num = ?
+        WHERE legitext = ? AND num IN ({ph})
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, num_clean),
+        (legitext, *nums),
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
@@ -429,16 +430,17 @@ def law_versions(code: str, num: str) -> list[dict]:
         legitext = CODE_TO_LEGITEXT.get(code)
         if not legitext:
             return []
-    num_clean = _normalize_num(num)
+    nums = _num_candidates(num)
+    ph = ", ".join("?" * len(nums))
     c = _conn("legi")
     rows = c.execute(
-        """
+        f"""
         SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
         FROM legi_articles
-        WHERE legitext = ? AND num = ?
+        WHERE legitext = ? AND num IN ({ph})
         ORDER BY date_debut ASC
         """,
-        (legitext, num_clean),
+        (legitext, *nums),
     ).fetchall()
     return [_law_row_to_dict(r, code, legitext) for r in rows]
 
@@ -491,14 +493,38 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
 
 
 def _normalize_num(num: str) -> str:
-    """Normalise un numéro d'article pour le matching DB.
-
-    LEGI stocke les numéros sans points ni espaces (ex: 'R772-8', pas
-    'R. 772-8' ou 'R.772-8'). Les citations détectées dans les jugements
-    arrivent souvent avec ponctuation libre. On enlève espaces + points
-    pour matcher de manière stable.
-    """
+    """Forme compacte d'un numéro d'article ('R. 772-8' → 'R772-8')."""
     return (num or "").strip().replace(" ", "").replace(".", "")
+
+
+def _num_candidates(num: str) -> list[str]:
+    """Toutes les écritures plausibles d'un numéro d'article.
+
+    ⚠️ Contrairement à ce qu'affirmait le commentaire d'origine, LEGI ne
+    stocke PAS tous les numéros sans espace : les articles à lettre suffixe
+    s'écrivent « L80 B », « L16 B » (LPF), et le CGI en compte des dizaines.
+    Ne chercher que la forme compacte les rendait purement INTROUVABLES —
+    `search_legi` les listait (`num: "L80 B"`) et `get_law_article` répondait
+    « introuvable » sur le numéro qu'il venait lui-même d'afficher. Pire,
+    `get_law_versions` renvoyait `count: 0` sans erreur : un faux négatif
+    parfaitement silencieux. Constaté le 23 août 2026 (L80 B du LPF, le
+    rescrit fiscal — 16/50 des articles CGI échantillonnés sont concernés).
+
+    On interroge donc les deux écritures, plus la restitution de l'espace
+    devant une lettre suffixe.
+    """
+    raw = (num or "").strip()
+    compact = _normalize_num(raw)
+    cands = [compact, raw]
+    m = re.match(r"^(.*\d)([A-Za-z]{1,3})$", compact)
+    if m:
+        cands.append(f"{m.group(1)} {m.group(2)}")
+    out: list[str] = []
+    for c in cands:
+        for v in (c, c.upper()):
+            if v and v not in out:
+                out.append(v)
+    return out
 
 
 # ─── FTS5 SEARCH (by fond) ───────────────────────────────────────────

@@ -98,6 +98,10 @@ _JURI_ALIASES = {
 }
 
 
+# Code Judilibre brut resté en base faute de libellé (cf. le filtre plus bas).
+_CODE_BRUT = {"cassation": "cc", "appel": "ca", "tj": "tj", "tcom": "tcom"}
+
+
 def resolve_juridiction(value: str | None) -> str | None:
     """Clé canonique de JURIDICTIONS, ou None si la valeur est inconnue.
 
@@ -303,8 +307,19 @@ def search(
         params: list = [fts_query]
         _juri_key = resolve_juridiction(juridiction)
         if _juri_key:
-            where.append("d.juridiction LIKE ?")
+            # ⚠️ La colonne `juridiction` contient DEUX étiquetages pour la
+            # Cour de cassation : « Cour de cassation » (ingestion DILA) et le
+            # code brut « cc » (ingestion Judilibre, dont la taxonomie ne
+            # couvre pas les codes de juridiction eux-mêmes). Mesuré le
+            # 23 août 2026 : 560 492 lignes « cc » au total, et pour les seules
+            # décisions depuis 2024, 36 619 « cc » contre 12 849 « Cour de
+            # cassation » — le LIKE seul en ratait donc les trois quarts, en
+            # silence. Correction de fond = renommer les lignes (script
+            # scripts/backfill_juridiction_cc.py) ; en attendant, on accepte
+            # les deux écritures pour ne pas amputer les résultats.
+            where.append("(d.juridiction LIKE ? OR d.juridiction = ?)")
             params.append(f"%{JURIDICTIONS[_juri_key]}%")
+            params.append(_CODE_BRUT.get(_juri_key, "\x00"))
         if date_min:
             where.append("d.date >= ?")
             params.append(date_min)

@@ -1984,11 +1984,23 @@ async def search_decisions_citing(
     limit = max(1, min(int(limit), 50))
     # Construire une query FTS5 couvrant les formulations habituelles.
     # On enrobe en phrases pour éviter les faux positifs.
-    variants = [
-        f'"article {num}"',
-        f'"art. {num}"',
-        f'"art {num}"',
-    ]
+    #
+    # ⚠️ Il faut couvrir la forme ESPACÉE « L. 521-1 », qui est la manière
+    # normale d'écrire un article en français — et celle qu'emploient les
+    # juridictions. Ne chercher que la forme compacte « L521-1 » revenait à
+    # rater la quasi-totalité des citations : mesuré le 23 août 2026 sur le
+    # fonds administratif, "article L. 521-1" → 9 496 décisions,
+    # "article L521-1" → 4. La docstring, elle, donnait déjà le bon exemple
+    # (« art. L. 1152-1 ») : c'est le code qui ne le cherchait pas.
+    _m = re.match(r"^([A-Za-z]{0,3})\.?\s*(.+)$", num.strip())
+    _lettre, _reste = (_m.group(1).upper(), _m.group(2).strip()) if _m else ("", num.strip())
+    if _lettre:
+        formes = [f"{_lettre}. {_reste}", f"{_lettre}{_reste}", f"{_lettre}.{_reste}"]
+    else:
+        formes = [_reste]
+    variants = [f'"{mot} {forme}"'
+                for forme in formes
+                for mot in ("article", "articles", "art.", "art")]
     # Code nom complet + code court
     query = f'({" OR ".join(variants)}) AND ("{code_long}" OR "{code}")'
     allowed = set(sources) if sources else {"dila", "jade", "cedh", "cjue"}
@@ -2159,10 +2171,15 @@ async def search_all(
                 if src == "dila":
                     # SQLite synchrone → thread pour ne pas bloquer l'event loop
                     d = await asyncio.to_thread(
-                        dila.search, query=q, juridiction="", limit=limit)
+                        dila.search, query=q, juridiction="", limit=limit,
+                        date_min=date_min or None, date_max=date_max or None)
+                    # `dila.search` renvoie `titre`, pas `title` : lire la
+                    # mauvaise clé donnait un titre None sur TOUS les
+                    # résultats DILA de search_all (23 août 2026).
                     hits = [{"source": "dila", "id": h.get("id"),
                              "juridiction": h.get("juridiction"),
-                             "date": h.get("date"), "title": h.get("title"),
+                             "date": h.get("date"),
+                             "title": h.get("titre") or h.get("title"),
                              "extract": h.get("extract"),
                              "score": 1.0} for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
@@ -2188,9 +2205,12 @@ async def search_all(
                 if src == "cedh":
                     d = await asyncio.to_thread(
                         european.search_cedh, query=q, limit=limit)
+                    # L'index CEDH nomme le champ `docname` (« AFFAIRE X
+                    # c. FRANCE ») : lire `title` renvoyait None partout.
                     hits = [{"source": "cedh", "id": h.get("id"),
                              "juridiction": "Cour EDH",
-                             "date": h.get("date"), "title": h.get("title"),
+                             "date": h.get("date"),
+                             "title": h.get("docname") or h.get("title"),
                              "extract": h.get("extract"),
                              "score": 1.0} for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
@@ -2222,12 +2242,39 @@ async def search_all(
             ps[src] = total
             boost = AUTHORITY.get(src, 1.0)
             for rank, h in enumerate(hits):
-                # -rank*0.001 préserve l'ordre BM25 interne à chaque source : une
-                # décision classée avant une autre par sa source le reste à boost
-                # égal (évite qu'une décision citante passe devant la vraie).
-                h["score"] = h.get("score", 1.0) * boost - rank * 0.001
+                # ⚠️ Les scores BM25 ne traversent PAS les sources : chaque
+                # hit arrivait ici avec score = 1.0, si bien que le tri se
+                # faisait sur le SEUL bonus d'autorité. Avec cedh/cjue à 1,20
+                # et dila à 1,15, la décote de rang (0,001/rang) ne pouvait
+                # jamais combler l'écart : le pire arrêt européen passait
+                # devant le meilleur arrêt de la Cour de cassation. Mesuré le
+                # 23 août 2026 sur « responsabilité de l'État » : 154 542
+                # résultats DILA et 78 266 JADE annoncés, et 20 résultats
+                # servis 100 % cedh/cjue. Le tool d'entrée du serveur masquait
+                # donc la Cour de cassation, le Conseil d'État et les lois.
+                #
+                # On ne compare plus des scores incomparables : on ENTRELACE.
+                # Clé (rang, -autorité) → le 1er de chaque source d'abord (les
+                # plus autorisées en tête), puis le 2e de chaque source, etc.
+                # L'ordre BM25 interne à chaque source est préservé à
+                # l'identique, et aucune source ne peut plus être affamée.
+                h["source_rank"] = rank
+                h["_ordre"] = (rank, -boost)
                 merged_local.append(h)
-        merged_local.sort(key=lambda h: h.get("score", 0), reverse=True)
+        # Bornes de date : dila les applique en SQL, jade et legi aussi, mais
+        # les index CEDH et CJUE ne savent pas filtrer par date — sans ce
+        # garde-fou, une recherche bornée renvoyait des décisions hors période.
+        if date_min or date_max:
+            def _dans_bornes(h):
+                d = (h.get("date") or "")[:10]
+                if not d:
+                    return False          # sans date, on ne peut pas garantir
+                return ((not date_min or d >= date_min)
+                        and (not date_max or d <= date_max))
+            merged_local = [h for h in merged_local if _dans_bornes(h)]
+        merged_local.sort(key=lambda h: h["_ordre"])
+        for h in merged_local:
+            h.pop("_ordre", None)
         return ps, merged_local, errors
 
     # 1er essai (avec expansion si demandée)

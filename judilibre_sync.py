@@ -159,6 +159,13 @@ def map_to_row(d: dict, conn: sqlite3.Connection, force_id: str | None = None) -
         elif location.startswith("tj") and location[2:].isdigit():
             loc_display = location[2:]  # INSEE
         juridiction = f"{juri_base} de {loc_display}" if loc_display and juri_base else juri_base or loc_display
+    # Filet : quand l'API ne renvoie pas `jurisdiction` et que `location` vaut
+    # le code de juridiction lui-même (« cc »), les deux branches ci-dessus
+    # laissent passer le code BRUT. C'est ainsi que 560 492 arrêts de la Cour
+    # de cassation se sont retrouvés étiquetés « cc » en base, invisibles au
+    # filtre `juridiction="cassation"` (constaté le 23 août 2026).
+    if juridiction in juri_map:
+        juridiction = juri_map[juridiction]
     numero = d.get("number") or d.get("numbers", [""])[0] if d.get("numbers") else d.get("number", "")
     date = d.get("decision_date") or ""
     titre = f"{juridiction}, {date}, n° {numero}"
