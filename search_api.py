@@ -779,16 +779,25 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 text = await ariane.fetch_full_text(client, decision_id)
                 if not text:
                     return {"error": "Texte intégral indisponible pour cette décision ArianeWeb."}
+                # L'en-tête du texte porte le n° de requête, l'ECLI et la
+                # date : sans cette extraction, les 114 k pages /decision/
+                # ariane/ sortaient toutes avec numero/date/ecli vides et un
+                # titre identique (« Conseil d'État, Décision du Conseil
+                # d'État »). Le MCP, lui, parsait déjà cet en-tête — le site
+                # non. Même parseur pour les deux depuis le 23 août 2026.
+                meta = ariane.parse_header(text)
+                numero = meta.get("numero", "")
                 return {
                     "id": decision_id,
                     "source": "ariane",
                     "source_label": "CE",
-                    "title": "Décision du Conseil d'État",
+                    "title": (f"Conseil d'État, n° {numero}" if numero
+                              else "Décision du Conseil d'État"),
                     "juridiction": "Conseil d'État",
-                    "date": "",
+                    "date": meta.get("date", ""),
                     "formation": "",
-                    "numero": "",
-                    "ecli": "",
+                    "numero": numero,
+                    "ecli": meta.get("ecli", ""),
                     "full_text": text,
                 }
             except Exception as e:

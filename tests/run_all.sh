@@ -25,6 +25,7 @@ run tests/test_fts5_triggers.py
 run tests/test_prompts_resources.py
 run tests/test_error_contract.py
 run tests/test_sse_escape.py
+run tests/test_ariane_header.py
 
 # Tests qui interrogent la prod live (justicelibre.org) : à ne pas lancer en
 # CI (flaky + charge le serveur). Skippés avec --offline.

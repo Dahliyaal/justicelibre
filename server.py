@@ -608,19 +608,14 @@ async def search_admin_recent_all_caa(
 
 def _parse_ariane_header(text: str) -> dict[str, str]:
     """Extrait numéro de requête, ECLI et date ISO depuis l'en-tête d'un
-    arrêt ArianeWeb (texte brut renvoyé par le plugin Sinequa)."""
-    out: dict[str, str] = {}
-    m = re.search(r"N°\s*([\dA-Z]+)", text)
-    if m:
-        out["numero"] = m.group(1)
-    m = re.search(r"(ECLI:FR:[A-Z0-9:.]+)", text)
-    if m:
-        ecli = m.group(1).rstrip(".")
-        out["ecli"] = ecli
-        dm = re.search(r"\.(\d{4})(\d{2})(\d{2})\b", ecli)
-        if dm:
-            out["date"] = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
-    return out
+    arrêt ArianeWeb (texte brut renvoyé par le plugin Sinequa).
+
+    Délègue à `sources.ariane.parse_header` : cette extraction existait ici
+    pour le MCP seulement, et le site (SSR + /api/decision) écrivait des
+    champs vides en dur. Un seul parseur désormais, pour qu'ils ne puissent
+    plus diverger.
+    """
+    return ariane.parse_header(text)
 
 
 # Cache TTL+LRU pour les textes de décision : élimine la majorité des

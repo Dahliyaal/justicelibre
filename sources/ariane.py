@@ -22,6 +22,53 @@ _HIGHLIGHT_RE = re.compile(r"\{n?b\}")
 _OFFSET_RE = re.compile(r";\d+,\d+")
 
 
+_MOIS_FR = {
+    "janvier": "01", "février": "02", "fevrier": "02", "mars": "03",
+    "avril": "04", "mai": "05", "juin": "06", "juillet": "07",
+    "août": "08", "aout": "08", "septembre": "09", "octobre": "10",
+    "novembre": "11", "décembre": "12", "decembre": "12",
+}
+_ARIANE_NUM_RE = re.compile(r"N°\s*([\dA-Z]+)")
+_ARIANE_ECLI_RE = re.compile(r"(ECLI:FR:[A-Z0-9:.]+)")
+_ARIANE_ECLI_DATE_RE = re.compile(r"\.(\d{4})(\d{2})(\d{2})\b")
+_ARIANE_LECTURE_RE = re.compile(
+    r"[Ll]ecture d[ue]\s+(?:\w+\s+)?(\d{1,2})(?:er)?\s+([a-zéûôA-Z]+)\s+(\d{4})")
+
+
+def parse_header(text: str) -> dict[str, str]:
+    """Extrait n° de requête, ECLI et date ISO de l'en-tête d'un arrêt ArianeWeb.
+
+    Le plugin Sinequa ne renvoie QUE du texte brut : ni le numéro, ni la date
+    ne sont exposés en champ. Sans cette extraction, les enregistrements
+    ArianeWeb arrivent avec `numero`/`date`/`ecli` vides alors que l'en-tête
+    du texte les contient (« Conseil d'État  N° 454852
+    ECLI:FR:CEORD:2021:454852.20210727 … Lecture du mardi 27 juillet 2021 »).
+
+    Deux sources pour la date : l'ECLI (fiable, mais absent des arrêts
+    anciens) puis la mention « Lecture du … » en toutes lettres.
+    """
+    out: dict[str, str] = {}
+    if not text:
+        return out
+    m = _ARIANE_NUM_RE.search(text)
+    if m:
+        out["numero"] = m.group(1)
+    m = _ARIANE_ECLI_RE.search(text)
+    if m:
+        ecli = m.group(1).rstrip(".")
+        out["ecli"] = ecli
+        dm = _ARIANE_ECLI_DATE_RE.search(ecli)
+        if dm:
+            out["date"] = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    if not out.get("date"):
+        lm = _ARIANE_LECTURE_RE.search(text)
+        if lm:
+            mois = _MOIS_FR.get(lm.group(2).lower())
+            if mois:
+                out["date"] = f"{lm.group(3)}-{mois}-{int(lm.group(1)):02d}"
+    return out
+
+
 def _clean_extract(raw: str) -> str:
     if not raw:
         return ""
