@@ -314,6 +314,29 @@ def _check_dates(**dates: str):
     return None
 
 
+def _check_choice(nom: str, valeur: str, valides, *, resolu=None):
+    """Refuse une valeur hors liste. Renvoie (erreur, valeur_normalisée).
+
+    Un filtre à valeur inconnue était SILENCIEUSEMENT abandonné : la
+    recherche revenait complète, présentée comme filtrée. Mesuré le 23 août
+    2026 sur `search_cc` — `nature="DC "` (une espace de trop) faisait passer
+    le total de 325 à 1 362, avec des décisions QPC servies pour une demande
+    de DC. Un client n'a aucun moyen de distinguer ça d'un filtre légitime
+    qui n'aurait rien exclu.
+    """
+    if not valeur or not valeur.strip():
+        return None, ""
+    if resolu:
+        return None, resolu
+    return _tool_error(
+        f"{nom}={valeur!r} n'est pas une valeur reconnue. Valeurs acceptées : "
+        + ", ".join(sorted(valides))
+        + ". (Une valeur inconnue ne filtrerait rien et te renverrait le "
+          "fonds entier comme s'il était filtré.)",
+        category="validation", parametre=nom, valeurs_acceptees=sorted(valides),
+    ), ""
+
+
 def _annotate_pagination(data, limit, offset, results_key):
     """Annonce la troncature au modèle : si le total dépasse ce qui a été
     renvoyé, ajoute `truncated` + `next_offset` pour signaler qu'il reste
@@ -867,6 +890,11 @@ async def search_judiciaire_libre(
     _bad = _check_dates(date_min=date_min, date_max=date_max)
     if _bad:
         return _bad
+    _bad, juridiction = _check_choice(
+        "juridiction", juridiction, dila.JURIDICTIONS,
+        resolu=dila.resolve_juridiction(juridiction))
+    if _bad:
+        return _bad
     if not query.strip() and not numero_rg.strip():
         return _tool_error(
             "Fournir query (mots-clés FTS5) ou numero_rg.",
@@ -1099,6 +1127,22 @@ async def get_decision_judiciaire(
         decision_id: identifiant Judilibre de la décision
         session_token: jeton justicelibre temporaire (recommandé)
     """
+    # Certains clients MCP envoient `id` au lieu de `decision_id` (le nom
+    # court est le réflexe naturel des modèles) : la requête échouait alors
+    # en erreur de validation pydantic, avant même d'atteindre le serveur.
+    # On accepte les deux ; `decision_id` reste le nom canonique.
+    # ⚠️ Cette normalisation doit rester ICI, AVANT la branche
+    # `session_token` : insérée au milieu de celle-ci, elle avait rendu
+    # inatteignable tout l'appel PISTE par jeton (le bloc `async with` se
+    # retrouvait APRÈS un `return`, donc jamais exécuté) — un utilisateur
+    # muni d'un jeton VALIDE se voyait répondre qu'une authentification
+    # OAuth2 était requise. Découvert à l'audit du 23 août 2026.
+    decision_id = (decision_id or id or "").strip()
+    if not decision_id:
+        return _tool_error(
+            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
+            category="validation",
+        )
     if decision_id.startswith(("DCE_", "DTA_", "DCAA_")) or decision_id.startswith("/Ariane_Web/"):
         return _tool_error(
             f"L'identifiant fourni ({decision_id!r}) relève de l'ordre administratif. "
@@ -1124,16 +1168,6 @@ async def get_decision_judiciaire(
                 "regenerate_token_url": "https://justicelibre.org/tutoriel-piste.html",
             }
         _record_call("get_decision_judiciaire")
-    # Certains clients MCP envoient `id` au lieu de `decision_id` (le
-    # nom court est le réflexe naturel des modèles) : la requête échouait
-    # alors en erreur de validation pydantic, avant même d'atteindre le
-    # serveur. On accepte les deux ; `decision_id` reste le nom canonique.
-    decision_id = (decision_id or id or "").strip()
-    if not decision_id:
-        return _tool_error(
-            "Identifiant manquant : passer `decision_id` (alias toléré : `id`).",
-            category="validation",
-        )
         async with _client() as client:
             headers = {"Authorization": f"Bearer {bearer}"}
             try:
@@ -1443,6 +1477,13 @@ async def search_cc(
     """
     _record_call("search_cc")
     _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
+    # « DC », « dc », « D.C. », « DC » suivi d'une espace : même intention.
+    _nat = nature.strip().upper().replace(".", "").replace(" ", "")
+    _bad, nature = _check_choice(
+        "nature", nature, dila.CC_NATURES,
+        resolu=_nat if _nat in dila.CC_NATURES else None)
     if _bad:
         return _bad
     if not query.strip():

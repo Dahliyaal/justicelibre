@@ -111,17 +111,23 @@ def fetch_celex_html(client, celex):
 
 
 def celex_to_ecli(celex):
-    """Best-effort ECLI mapping. Not all CELEX have clean ECLI mappable."""
-    # Format: YYYYTTNNNN where T is 1-2 chars type (CJ=Judgment, CO=Order, CC=AG Opinion, TJ=General Court)
-    m = re.match(r"^6(\d{4})([A-Z]{2})(\d{4})$", celex)
-    if not m:
-        return ""
-    year, typ, num = m.groups()
-    court_map = {"CJ": "C", "CO": "C", "CC": "C", "TJ": "T", "TO": "T", "FC": "F"}
-    court = court_map.get(typ, "")
-    if not court:
-        return ""
-    return f"ECLI:EU:{court}:{year}:{int(num)}"
+    """⛔ On ne DÉDUIT pas un ECLI d'un CELEX. Renvoie toujours "".
+
+    Cette fonction construisait `ECLI:EU:C:<année du CELEX>:<n° d'affaire>`
+    et le stockait comme s'il s'agissait de l'ECLI réel. Ce n'en est pas
+    un : le dernier segment d'un ECLI est un numéro d'enregistrement
+    séquentiel attribué par la Cour, sans rapport avec le numéro d'affaire.
+    Deux preuves internes (23 août 2026) : 62019CJ0030 (arrêt du 15/04/2021)
+    et 62019CC0030 (conclusions du 14/05/2020) recevaient le MÊME
+    identifiant, alors qu'un ECLI est unique ; et l'année produite
+    contredisait la date de la décision.
+
+    Le seul ECLI valable est celui publié par EUR-Lex, à récupérer avec le
+    document. En attendant, mieux vaut aucun identifiant qu'un faux : le
+    CELEX est exact et se cite très bien. Les valeurs déjà en base sont
+    neutralisées à la lecture par `sources.european._clean_ecli`.
+    """
+    return ""
 
 
 def main():

@@ -80,6 +80,36 @@ JURIDICTIONS = {
     "constit": "Conseil constitutionnel",
 }
 
+# Formes que les clients écrivent naturellement — dont le vocabulaire du tool
+# voisin `search_judiciaire` (« ca », « cc »). Sans elles, la clé inconnue
+# était SILENCIEUSEMENT ignorée et la recherche revenait non filtrée, ce qui
+# ressemble trait pour trait à un filtre qui n'aurait rien exclu.
+# ⚠️ « cc » n'est PAS le Conseil constitutionnel ici : c'est le code Judilibre
+# de la Cour de cassation. L'y mapper inverserait le sens de la requête.
+_JURI_ALIASES = {
+    "ca": "appel", "cour d'appel": "appel", "cours d'appel": "appel",
+    "cour dappel": "appel", "caa": None,           # CAA = ordre administratif
+    "cass": "cassation", "ccass": "cassation", "cc": "cassation",
+    "cour de cassation": "cassation", "c. cass": "cassation",
+    "tribunal judiciaire": "tj", "tgi": "tj", "ti": "tj",
+    "tribunal de commerce": "tcom", "tc": "tcom",
+    "conseil constitutionnel": "constit", "cons const": "constit",
+    "conseil constit": "constit",
+}
+
+
+def resolve_juridiction(value: str | None) -> str | None:
+    """Clé canonique de JURIDICTIONS, ou None si la valeur est inconnue.
+
+    None signifie « je ne sais pas » : l'appelant doit REFUSER, jamais
+    poursuivre sans filtre — c'était le défaut (23 août 2026)."""
+    if not value:
+        return None
+    v = " ".join(value.strip().lower().split())
+    if v in JURIDICTIONS:
+        return v
+    return _JURI_ALIASES.get(v)
+
 # Natures des décisions du Conseil constitutionnel :
 # QPC = Question Prioritaire de Constitutionnalité (contrôle a posteriori)
 # DC  = Décision sur loi ordinaire / organique (contrôle a priori)
@@ -271,9 +301,10 @@ def search(
         SNIPPET_SQL = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
         where = ["decisions_fts MATCH ?"]
         params: list = [fts_query]
-        if juridiction and juridiction in JURIDICTIONS:
+        _juri_key = resolve_juridiction(juridiction)
+        if _juri_key:
             where.append("d.juridiction LIKE ?")
-            params.append(f"%{JURIDICTIONS[juridiction]}%")
+            params.append(f"%{JURIDICTIONS[_juri_key]}%")
         if date_min:
             where.append("d.date >= ?")
             params.append(date_min)

@@ -218,6 +218,18 @@ CASES: list[tuple[str, dict, list, bool]] = [
     ("search_admin", {"query": "éolienne", "date_min": "01/01/2020", "limit": 3},
      [], True),
     ("search_legi", {"query": "forêt", "date_max": "2020", "limit": 3}, [], True),
+    # Une valeur d'énumération inconnue était abandonnée en silence : la
+    # recherche revenait complète, présentée comme filtrée. `nature="DC "`
+    # — une espace de trop — faisait passer le total de 325 à 1 362, avec des
+    # QPC servies pour une demande de DC (23 août 2026).
+    ("search_cc", {"query": "liberté", "nature": "BIDON", "limit": 3}, [], True),
+    ("search_judiciaire_libre", {"query": "bail", "juridiction": "BIDON", "limit": 3},
+     [], True),
+    # …mais les variantes d'écriture raisonnables doivent PASSER, et filtrer.
+    ("search_cc", {"query": "liberté", "nature": "DC ", "limit": 5},
+     [inv_pagination, inv_all_match("nature", "DC")], False),
+    ("search_cc", {"query": "liberté", "nature": "Q.P.C.", "limit": 5},
+     [inv_pagination, inv_all_match("nature", "QPC")], False),
     ("search_judiciaire_libre", {"query": "bail", "date_min": "hier", "limit": 3},
      [], True),
     ("search_legi", {"query": "forêt", "code": "CodeQuiNexistePas", "limit": 3},

@@ -4,11 +4,46 @@ Populated by scrape_cjue.py and scrape_cedh.py. Zero auth, zero network.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
 
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
+
+# ─── ECLI CJUE fabriqués (défaut découvert le 23 août 2026) ──────────
+# `scrape_cjue.celex_to_ecli` ne « mappait » rien : il CONSTRUISAIT un ECLI
+# à partir du CELEX, sous la forme ECLI:EU:C:<année du CELEX>:<n° d'affaire>.
+# Ce n'est pas un ECLI : le dernier segment d'un vrai ECLI est un numéro
+# d'enregistrement séquentiel attribué par la Cour, sans rapport avec le
+# numéro d'affaire. Deux preuves internes, sans sortir de la base :
+#   · 62019CJ0030 (arrêt, 15/04/2021) et 62019CC0030 (conclusions,
+#     14/05/2020) portent le MÊME « ECLI » — or un ECLI est unique ;
+#   · l'année annoncée (2019) contredit la date de la décision (2021).
+# Citer un tel identifiant dans un mémoire, c'est citer une référence qui
+# n'existe pas. On préfère donc ne rien renvoyer : le CELEX, lui, est exact
+# et parfaitement citable.
+_CELEX_RE = re.compile(r"^6(\d{4})([A-Z]{2})(\d{4})$")
+_COURT_MAP = {"CJ": "C", "CO": "C", "CC": "C", "TJ": "T", "TO": "T", "FC": "F"}
+
+
+def _is_forged_ecli(celex: str, ecli: str) -> bool:
+    """True si `ecli` est exactement ce que l'ancien script aurait fabriqué."""
+    if not ecli or not celex:
+        return False
+    m = _CELEX_RE.match(celex)
+    if not m:
+        return False
+    year, typ, num = m.groups()
+    court = _COURT_MAP.get(typ)
+    if not court:
+        return False
+    return ecli.strip() == f"ECLI:EU:{court}:{year}:{int(num)}"
+
+
+def _clean_ecli(celex: str, ecli: str) -> str:
+    """Renvoie l'ECLI s'il est plausible, une chaîne vide s'il est fabriqué."""
+    return "" if _is_forged_ecli(celex, ecli) else (ecli or "")
 
 # Sanitizer + filet FTS5 partagés avec dila.py : FTS5 lève SyntaxError sur
 # certains caractères spéciaux (`:`, `\`, apostrophes…) — même moteur,
@@ -195,7 +230,7 @@ def search_cjue(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
                 {
                     "id": r["celex"],
                     "celex": r["celex"],
-                    "ecli": r["ecli"],
+                    "ecli": _clean_ecli(r["celex"], r["ecli"]),
                     "date": r["date"],
                     "type": r["type"],
                     "title": r["title"],
@@ -219,7 +254,7 @@ def get_cjue(celex: str) -> dict[str, Any] | None:
         return {
             "id": row["celex"],
             "celex": row["celex"],
-            "ecli": row["ecli"],
+            "ecli": _clean_ecli(row["celex"], row["ecli"]),
             "date": row["date"],
             "type": row["type"],
             "title": row["title"],
