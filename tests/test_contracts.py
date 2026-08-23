@@ -144,6 +144,35 @@ def inv_nonempty(*fields: str):
     return check
 
 
+def inv_sources_multiples(mini: int = 3):
+    """Un fan-out doit servir PLUSIEURS sources.
+
+    `search_all` classait sur le seul bonus d'autorité (tous les hits
+    entraient au même score) : cedh/cjue à 1,20 écrasaient dila à 1,15, et
+    les 20 résultats étaient 100 % européens — alors que la réponse
+    annonçait 154 542 résultats DILA et 78 266 JADE. Le tool d'entrée du
+    serveur masquait le droit français (23 août 2026)."""
+    def check(p, args):
+        rows = p.get("results") or p.get("decisions") or []
+        assert rows, "aucun résultat"
+        srcs = {r.get("source") for r in rows}
+        assert len(srcs) >= mini, (
+            f"{len(srcs)} source(s) servie(s) sur {mini} attendues : {sorted(srcs)} "
+            f"— alors que per_source annonce {p.get('per_source')}")
+    return check
+
+
+def inv_au_moins(field: str, mini: int):
+    """Un compteur doit dépasser un plancher — attrape les recherches qui
+    « marchent » en ne trouvant presque rien (citations : 4 au lieu de 9 496)."""
+    def check(p, args):
+        val = p.get(field)
+        if isinstance(val, dict):
+            val = max(val.values()) if val else 0
+        assert (val or 0) >= mini, f"{field}={val} < {mini} attendu au minimum"
+    return check
+
+
 def inv_field_varies(field: str):
     """Un champ qui vaut TOUJOURS la même chose sur des entrées différentes
     est un champ qui ment (c'était le cas de titre_section)."""
@@ -244,6 +273,21 @@ CASES: list[tuple[str, dict, list, bool]] = [
     ("get_law_article", {"code": "CC", "num": "1128"},
      [inv_no_lying_section, inv_nonempty("titre_texte", "texte"),
       inv_all_match("titre_texte", "Code civil")], False),
+
+    # — le fan-out ne doit affamer aucune source —
+    ("search_all", {"query": "responsabilité de l'État", "limit": 20},
+     [inv_sources_multiples(4)], False),
+
+    # — les citations doivent couvrir la forme française « L. 521-1 » —
+    ("search_decisions_citing", {"code": "CJA", "num": "L521-1", "limit": 5},
+     [inv_au_moins("per_source", 1000)], False),
+
+    # — un numéro d'article à espace doit être trouvable (LPF L80 B,
+    #   le rescrit fiscal), dans les deux écritures —
+    ("get_law_article", {"code": "LPF", "num": "L80 B"},
+     [inv_nonempty("texte"), inv_all_match("num", "L80")], False),
+    ("get_law_article", {"code": "LPF", "num": "L80B"},
+     [inv_nonempty("texte"), inv_all_match("num", "L80")], False),
 
     # — les alias documentés fonctionnent —
     ("get_decision_text", {"id": "CETATEXT000007543903"}, [], False),
