@@ -980,7 +980,10 @@ def _source_host(url: str) -> str:
 
 def render_law(code: str, num: str, data: dict) -> str:
     """Page HTML SSR d'un article de loi (style cohérent avec le SPA)."""
-    titre_section = data.get("titre_section", "")
+    # `titre_texte` = titre du TEXTE parent (« Code de la santé publique »).
+    # L'ancien `titre_section` portait la même valeur sous un nom mensonger et
+    # vaut désormais None (22 août 2026) : on retombe sur le sigle sans lui.
+    titre_texte = data.get("titre_texte") or data.get("titre_section") or ""
     texte = data.get("texte", "") or ""
     etat = data.get("etat", "")
     date_debut = data.get("date_debut", "")
@@ -990,7 +993,7 @@ def render_law(code: str, num: str, data: dict) -> str:
     legitext = data.get("legitext", "")
     legiarti = data.get("legiarti", "")
 
-    code_label = titre_section or code
+    code_label = titre_texte or code
     title_h1 = f"Article {num}"
     title_seo = f"Article {num} -{code_label} -{SITE_NAME}"
     desc = _strip(texte, 200) or f"Article {num} du {code_label}"

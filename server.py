@@ -1799,9 +1799,15 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
               version contemporaine de la citation.
 
     Returns:
-        dict avec `legiarti`, `num`, `code`, `texte`, `etat`
+        dict avec `legiarti`, `num`, `code`, `titre_texte`, `texte`, `etat`
         (VIGUEUR/MODIFIE/ABROGE), `date_debut`, `date_fin`, `nota`. Plus
         un champ `note` si la version retournée n'est pas celle demandée.
+
+        ⚠️ `titre_texte` est le titre du TEXTE parent (« Code civil »), pas
+        celui de la section. La place de l'article dans le plan du code
+        (partie / livre / titre / chapitre / section) n'est PAS disponible :
+        la hiérarchie LEGISCTA n'est pas ingérée du bulk LEGI. Ne pas
+        l'inventer — renvoyer vers Légifrance si l'utilisateur la demande.
     """
     _record_call("get_law_article")
     result = await legi.get_article(code, num, date or None)
@@ -1822,8 +1828,8 @@ async def get_law_versions(code: str, num: str) -> dict[str, Any]:
     avec `date_debut`, `date_fin`, `etat`, `texte` distincts).
 
     Args:
-        code: code court (voir get_law_article pour la liste des 26
-            codes/textes)
+        code: code court (voir get_law_article — ~80 codes/textes, liste
+            complète dans la resource `justicelibre://codes-supportes`)
         num: numéro de l'article
 
     Returns:

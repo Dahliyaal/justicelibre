@@ -1790,7 +1790,9 @@ function renderLawInto(container, code, num, data) {
     container.extern.removeAttribute('hidden');
     return;
   }
-  container.title.textContent = `Article ${data.num} ${data.titre_section || ''}`.trim();
+  // titre_texte = titre du texte parent ; titre_section vaut None depuis le
+  // correctif du 22 août 2026 (il mentait, cf. get_law_article).
+  container.title.textContent = `Article ${data.num} ${data.titre_texte || ''}`.trim();
   const etat = data.etat || '';
   const etatCls = etat === 'VIGUEUR' ? 'law-etat-vigueur'
                  : (etat === 'ABROGE' ? 'law-etat-abroge' : 'law-etat-modifie');

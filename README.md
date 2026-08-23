@@ -87,15 +87,15 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 | `search_judiciaire` | Live PISTE Judilibre (besoin OAuth) |
 | `get_decision_judiciaire` | Texte via PISTE |
 | `search_cc` | Conseil constitutionnel dédié (7112 décisions, filtre par nature : QPC/DC/L/SEN/AN/PDR) |
-| `get_cc_decision` | Décision CC par numéro (ex: "2023-1048 QPC") |
+| `get_cc_decision` | **Cette** décision CC, par son numéro (ex: "2023-1048 QPC"). Lookup exact : un numéro porté par plusieurs natures (2019-778 existe en DC *et* en QPC) est refusé tant que `nature` n'est pas précisé, plutôt que de servir un voisin. Pour la **postérité** d'une décision (qui la cite, la confirme, la renverse) : `search_cc(query='"2019-778 DC"')` |
 
 ### Jurisprudence administrative (CE + 9 CAA + 40 TA)
 
 | Outil | Description |
 |---|---|
 | `search_admin` | BM25 pondéré sur 552k décisions admin bulk JADE |
-| `get_admin_decision` | Lookup par numéro de requête (avec désambiguïsation par juridiction) |
-| `get_ce_decision` | CE spécifique avec fallback ArianeWeb |
+| `get_admin_decision` | Lookup par numéro de requête (désambiguïsation par juridiction). Échoue si le numéro est introuvable — ne sert jamais la décision « la plus proche » |
+| `get_ce_decision` | CE spécifique, avec repli ArianeWeb si le numéro n'est pas dans le bulk. Idem : pas de résultat approchant |
 | `search_conseil_etat` | ~270k CE via Sinequa (moteur sémantique natif) |
 | `get_decision_text` | Texte intégral via DCE/DTA/DCAA id |
 | `search_admin_recent` / `_all_caa` / `_all_ta` | Tri date desc pour l'actualité |
@@ -114,9 +114,9 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 
 | Outil | Description |
 |---|---|
-| `get_law_article` | Article à une date donnée. Ex: `("CC","1128","1992-05-15")` -> texte napoléonien ; `("CC","1128","2024-01-01")` -> texte post-réforme |
+| `get_law_article` | Article à une date donnée. Ex: `("CC","1128","1992-05-15")` -> texte napoléonien ; `("CC","1128","2024-01-01")` -> texte post-réforme. `titre_texte` = titre du texte parent ; la hiérarchie des sections (partie/livre/titre/chapitre) n'est pas ingérée du bulk LEGI et n'est donc **pas** renvoyée |
 | `get_law_versions` | Timeline complète des versions d'un article |
-| `search_legi` | BM25 sur 1.5M articles consolidés (22 codes + Constitution + lois non codifiées) |
+| `search_legi` | BM25 sur 1.5M articles consolidés (79 codes + Constitution + lois non codifiées). Un sigle `code` inconnu renvoie une erreur, jamais une recherche non filtrée déguisée en succès |
 | `search_decisions_citing` | Cross-référence inverse : "quelles décisions citent l'article X ?" |
 | `resolve_law_number` | Numéro loi/ord/décret -> LEGITEXT/JORFTEXT |
 | `build_source_url` | URL Légifrance canonique pour un identifier |
