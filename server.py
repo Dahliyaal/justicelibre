@@ -1252,6 +1252,14 @@ async def get_cc_decision(numero: str, nature: str = "") -> dict[str, Any]:
     2019). Sans nature et si le numéro est ambigu, le tool refuse de choisir
     et renvoie la liste des candidats.
 
+    💡 Les deux usages sont séparés, et complémentaires :
+    · CETTE décision           → `get_cc_decision("2019-778 DC")`
+    · les décisions qui la CITENT (sa postérité, les revirements, les
+      confirmations) → `search_cc(query='"2019-778 DC"')`, qui renvoie la
+      décision elle-même ET celles qui la visent.
+    L'ancien lookup mélangeait les deux par accident et servait la citante
+    à la place de la citée.
+
     Args:
         numero: numéro de décision CC (ex : "79-105 DC")
         nature: filtre optionnel (QPC, DC, L, etc.) — cf search_cc
