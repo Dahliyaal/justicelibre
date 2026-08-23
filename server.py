@@ -1075,7 +1075,10 @@ async def search_judiciaire(
             data = r.json()
             results = data.get("results", [])
             return {
-                "total": data.get("total_results", 0),
+                # Judilibre renvoie `total`, jamais `total_results` : le champ
+                # lu n'existait pas, donc le tool annonçait « total: 0 » tout
+                # en servant des résultats (23 août 2026).
+                "total": data.get("total", data.get("total_results", 0)),
                 "returned": len(results),
                 "decisions": [judilibre._normalize_decision(d) for d in results],
             }
@@ -1186,7 +1189,9 @@ async def get_decision_judiciaire(
             data = r.json()
             if not data:
                 return _not_found
-            return judilibre._normalize_decision(data)
+            # Forme COMPLÈTE : la forme allégée est celle des lignes de
+            # résultat et ne porte pas le texte — ce tool n'existe que pour ça.
+            return judilibre._normalize_full_decision(data)
 
     # Method 2: credentials serveur (env vars, auto-hébergement uniquement)
     cid = os.environ.get("PISTE_CLIENT_ID", "")

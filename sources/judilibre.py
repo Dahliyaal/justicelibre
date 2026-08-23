@@ -83,6 +83,7 @@ async def _get_token(
 
 
 def _normalize_decision(doc: dict[str, Any]) -> dict[str, Any]:
+    """Forme allégée, pour une LIGNE DE RÉSULTAT de recherche."""
     return {
         "id": doc.get("id"),
         "jurisdiction": doc.get("jurisdiction"),
@@ -96,6 +97,38 @@ def _normalize_decision(doc: dict[str, Any]) -> dict[str, Any]:
         "summary": doc.get("summary"),
         "highlights": doc.get("highlights"),
     }
+
+
+def _normalize_full_decision(doc: dict[str, Any]) -> dict[str, Any]:
+    """Décision COMPLÈTE, pour une récupération par identifiant.
+
+    ⚠️ `get_decision_judiciaire` réutilisait la forme allégée ci-dessus —
+    celle des lignes de résultat — et renvoyait donc tout SAUF le texte,
+    alors que c'est sa raison d'être. Vérifié le 23 août 2026 en
+    interrogeant PISTE directement : l'endpoint `/decision` renvoie bien
+    `text` (11 742 caractères sur l'arrêt testé), plus les visas, les
+    rapprochements de jurisprudence et la timeline de procédure —
+    intégralement jetés. Le tool répondait « OK » avec un texte vide.
+    """
+    out = _normalize_decision(doc)
+    out.update({
+        "text": doc.get("text") or "",
+        "full_text": doc.get("text") or "",   # alias : nom utilisé ailleurs
+        "zones": doc.get("zones"),
+        "numbers": doc.get("numbers"),
+        "visa": doc.get("visa"),
+        "themes": doc.get("themes"),
+        "timeline": doc.get("timeline"),
+        "rapprochements": doc.get("rapprochements"),
+        "titles_and_summaries": doc.get("titlesAndSummaries"),
+        "contested": doc.get("contested"),
+        "forward": doc.get("forward"),
+        "nac": doc.get("nac"),
+        "portalis": doc.get("portalis"),
+        "source": doc.get("source"),
+        "update_date": doc.get("update_date"),
+    })
+    return out
 
 
 async def search(
@@ -125,7 +158,13 @@ async def search(
     data = r.json()
     results = data.get("results", [])
     return {
-        "total": data.get("total_results", 0),
+        # ⚠️ Judilibre renvoie `total`, pas `total_results` : le champ lu
+        # n'a jamais existé, donc `search_judiciaire` annonçait
+        # invariablement « total: 0 » tout en servant des résultats — un
+        # client raisonnable en conclut qu'il n'y a rien et s'arrête là.
+        # Vérifié le 23 août 2026 en interrogeant PISTE directement :
+        # « licenciement » → total = 76 041.
+        "total": data.get("total", data.get("total_results", 0)),
         "returned": len(results),
         "page": page,
         "decisions": [_normalize_decision(d) for d in results],
@@ -145,17 +184,7 @@ async def get_decision(
     data = r.json()
     if not data:
         return None
-    return {
-        "id": data.get("id"),
-        "jurisdiction": data.get("jurisdiction"),
-        "chamber": data.get("chamber"),
-        "number": data.get("number"),
-        "ecli": data.get("ecli"),
-        "date": data.get("decision_date"),
-        "solution": data.get("solution"),
-        "type": data.get("type"),
-        "publication": data.get("publication"),
-        "zones": data.get("zones"),
-        "text": data.get("text"),
-        "summary": data.get("summary"),
-    }
+    # Même normaliseur que le chemin par jeton de session : c'est la
+    # divergence entre les deux qui avait produit un tool renvoyant tout
+    # sauf le texte (23 août 2026).
+    return _normalize_full_decision(data)
