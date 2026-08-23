@@ -31,6 +31,7 @@ _MOIS_FR = {
 _ARIANE_NUM_RE = re.compile(r"N°\s*([\dA-Z]+)")
 _ARIANE_ECLI_RE = re.compile(r"(ECLI:FR:[A-Z0-9:.]+)")
 _ARIANE_ECLI_DATE_RE = re.compile(r"\.(\d{4})(\d{2})(\d{2})\b")
+_ISO_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 _ARIANE_LECTURE_RE = re.compile(
     r"[Ll]ecture d[ue]\s+(?:\w+\s+)?(\d{1,2})(?:er)?\s+([a-zéûôA-Z]+)\s+(\d{4})")
 
@@ -78,13 +79,45 @@ def _clean_extract(raw: str) -> str:
 
 
 def _normalize_doc(doc: dict[str, Any]) -> dict[str, Any]:
+    """Normalise un document Sinequa — métadonnées comprises.
+
+    Sinequa expose le numéro, la date, l'ECLI et la formation dans des
+    champs `Source*` que le code jetait : chaque résultat sortait donc avec
+    `title = "Conseil d'État"` (identique pour tous), sans date ni numéro,
+    et il fallait télécharger le texte intégral de chaque résultat pour
+    savoir ce qu'on avait sous les yeux. Constaté le 23 août 2026.
+    """
     extracts = _clean_extract(doc.get("Extracts", "") or "")
+    # Affaires jointes : Sinequa colle les numéros (« 487762;487834;497966 »).
+    numeros = [n for n in re.split(r"[;,\s]+",
+               str(doc.get("SourceCsv1") or doc.get("SourceStr5") or "")) if n]
+    numero = ", ".join(numeros)
+    ecli = str(doc.get("SourceStr30") or "").strip()
+    # SourceDateTime1 = date de lecture, « 2024-10-23 02:00:00 »
+    raw_date = str(doc.get("SourceDateTime1") or "").strip()
+    date = raw_date[:10] if _ISO_PREFIX_RE.match(raw_date) else ""
+    if not date and ecli:
+        m = _ARIANE_ECLI_DATE_RE.search(ecli)
+        if m:
+            date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    title = (doc.get("Title") or "").strip()
+    # ArianeWeb intitule TOUT « Conseil d'État » : sans le numéro, une liste
+    # de résultats est une liste de lignes identiques.
+    if numeros and title in ("", "Conseil d'État", "Conseil dÉtat", "Conseil d'Etat"):
+        autres = len(numeros) - 1
+        suffixe = (f" (et {autres} affaire{'s' if autres > 1 else ''} "
+                   f"jointe{'s' if autres > 1 else ''})") if autres else ""
+        title = f"Conseil d'État, n° {numeros[0]}{suffixe}"
     return {
         "id": doc.get("Id"),
         "index": doc.get("Index"),
         "rank": doc.get("Rank"),
         "relevance": doc.get("Relevance"),
-        "title": doc.get("Title"),
+        "title": title,
+        "numero": numero,
+        "date": date,
+        "ecli": ecli,
+        "formation": str(doc.get("SourceStr7") or "").strip(),
         "extracts": extracts,
     }
 

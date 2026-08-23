@@ -105,10 +105,10 @@ def _ariane_date_from_text(*texts: str) -> str:
             mn = _FR_MONTHS.get(month_fr.replace("é", "e").replace("û", "u"))
             if mn:
                 return f"{int(year):04d}-{mn:02d}-{int(day):02d}"
-        # Fallback : ECLI contient l'année
-        m2 = _ECLI_RE.search(t)
-        if m2:
-            return f"{m2.group(1)}-01-01"
+        # ⛔ Pas de repli « année de l'ECLI + 01-01 » : il inventait une date
+        # de lecture au 1er janvier et l'affichait comme la vraie (23 août
+        # 2026). Mieux vaut aucune date qu'une fausse — surtout sur un site
+        # où l'on vient chercher une date d'audience ou de notification.
     return ""
 
 
@@ -123,10 +123,14 @@ def _norm_ariane(raw: dict) -> dict:
             raw_title = first_chunk[:140]
         else:
             raw_title = "Arrêt du Conseil d'État"
-    # Extraction date + numéro depuis title et extracts (ArianeWeb ne les expose pas en champ direct)
-    date_iso = _ariane_date_from_text(raw_title, extracts)
-    num_match = _NUM_DEC_RE.search(extracts) or _NUM_DEC_RE.search(raw_title)
-    num = num_match.group(1) if num_match else ""
+    # Sinequa EXPOSE le numéro, la date, l'ECLI et la formation (champs
+    # Source*) — `sources.ariane._normalize_doc` les remonte depuis le 23 août
+    # 2026. On ne devine à partir du texte que si le champ manque.
+    date_iso = (raw.get("date") or "").strip() or _ariane_date_from_text(raw_title, extracts)
+    num = (raw.get("numero") or "").strip()
+    if not num:
+        num_match = _NUM_DEC_RE.search(extracts) or _NUM_DEC_RE.search(raw_title)
+        num = num_match.group(1) if num_match else ""
     return {
         "id": raw.get("id") or "",
         "source": "ariane",
@@ -134,9 +138,9 @@ def _norm_ariane(raw: dict) -> dict:
         "title": raw_title,
         "juridiction": "Conseil d'État",
         "date": date_iso,
-        "formation": "",
+        "formation": (raw.get("formation") or "").strip(),
         "numero": num,
-        "ecli": "",
+        "ecli": (raw.get("ecli") or "").strip(),
         "extract": extracts,
         "relevance": raw.get("relevance"),
     }
