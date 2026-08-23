@@ -815,7 +815,15 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     if date:
         title_h1 = f"{main_id_html} <em>· {esc(_format_fr_date(date))}</em>"
     title_h1_plain = f"{main_id} · {_format_fr_date(date)}" if date else main_id
-    title_seo = f"{juri or main_id}, {numero or ''} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
+    # Le <title> doit porter l'identifiant le plus reconnaissable. Le numéro
+    # quand il existe, SINON l'intitulé — la CEDH n'a pas de `numero` en base,
+    # et sans ce repli ses 76 k pages s'intitulaient toutes « Cour EDH,
+    # <date> » : titres quasi dupliqués, et le nom d'affaire (« AFFAIRE
+    # AZIMOVY c. RUSSIE »), qui est justement ce qu'on cherche, absent de la
+    # seule balise que Google affiche. Le H1, l'og:title et le JSON-LD, eux,
+    # le portaient déjà — d'où l'invisibilité du défaut.
+    seo_ident = numero or (titre_brut[:90].strip() if titre_brut != juri else "")
+    title_seo = f"{juri or seo_ident}, {seo_ident} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
 
     desc = _strip(text, 200) or f"{SOURCE_LABELS.get(source, '')} -{juri}".strip(" -")
     canonical = _canonical(source, decision_id)

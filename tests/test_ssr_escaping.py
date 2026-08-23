@@ -113,6 +113,29 @@ def test_render_law_uses_titre_texte():
         "render_law est retombé sur le sigle au lieu du nom du code"
 
 
+def test_render_decision_title_carries_identifier():
+    """La balise <title> doit porter un identifiant reconnaissable.
+
+    Régression réelle (23 août 2026) : les 76 k pages CEDH s'intitulaient
+    « Cour EDH, <date> » — la CEDH n'a pas de `numero` en base et le
+    <title> ne retombait pas sur l'intitulé. Le H1, l'og:title et le
+    JSON-LD, eux, portaient bien « AFFAIRE X c. Y » : le défaut était
+    invisible à l'œil, visible seulement de Google."""
+    cedh = ssr.render_decision("cedh", "001-249844", {
+        "title": "AFFAIRE AZIMOVY c. RUSSIE", "juridiction": "Cour EDH",
+        "date": "2026-04-30", "numero": "", "full_text": "THIRD SECTION…"})
+    seo = re.search(r"<title>(.*?)</title>", cedh).group(1)
+    assert "AZIMOVY" in seo, f"<title> sans identifiant : {seo!r}"
+
+    # …sans casser les fonds qui ont un numéro (le titre reste le n°).
+    dila = ssr.render_decision("dila", "6a7d", {
+        "titre": "Cour de cassation, ch. crim.", "juridiction": "Cour de cassation",
+        "date": "2026-08-12", "numero": "26-83.237", "full_text": "arrêt"})
+    seo = re.search(r"<title>(.*?)</title>", dila).group(1)
+    assert "26-83.237" in seo and "ch. crim" not in seo, \
+        f"le n° doit primer sur l'intitulé quand il existe : {seo!r}"
+
+
 def test_jsonld_embed_valid_and_no_breakout():
     embedded = ssr._jsonld_embed(
         {"name": "</script><script>alert(1)</script>", "x": "a < b & c > d"}
@@ -138,6 +161,7 @@ if __name__ == "__main__":
         ("render_decision sans XSS",        test_render_decision_no_xss),
         ("render_law sans XSS",             test_render_law_no_xss),
         ("render_law affiche le nom du code", test_render_law_uses_titre_texte),
+        ("<title> porte un identifiant",     test_render_decision_title_carries_identifier),
         ("_jsonld_embed valide + no breakout", test_jsonld_embed_valid_and_no_breakout),
         ("JSON-LD pas sur-échappé",         test_jsonld_not_html_over_escaped),
     ]
