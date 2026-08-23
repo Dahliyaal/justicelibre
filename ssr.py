@@ -772,7 +772,21 @@ def _strip(text: str, n: int = 200) -> str:
 
 
 def _canonical(source: str, decision_id: str) -> str:
-    return f"{BASE_URL}/decision/{source}/{decision_id}"
+    """URL canonique — l'identifiant DOIT être %-encodé.
+
+    Les ids ArianeWeb contiennent des slashs et un pipe
+    (« /Ariane_Web/AW_DCE/|234999 »). Interpolés bruts, ils produisaient
+    `…/decision/ariane//Ariane_Web/AW_DCE/|234999`, avec un double slash —
+    une URL que la route refuse et qui répond 404. Les ~114 000 pages du
+    Conseil d'État déclaraient donc à Google, dans leur `canonical`, leur
+    `og:url` et leur JSON-LD, une adresse canonique inexistante : le signal
+    le plus destructeur qu'une page puisse émettre pour son référencement,
+    puisqu'il demande explicitement de lui préférer une page morte.
+    Constaté le 23 août 2026. Le sitemap, lui, publiait déjà la forme
+    encodée — les deux sont enfin d'accord.
+    """
+    from urllib.parse import quote
+    return f"{BASE_URL}/decision/{source}/{quote(decision_id, safe='')}"
 
 
 # ─── Decision page rendering ──────────────────────────────────────────

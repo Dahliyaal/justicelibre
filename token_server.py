@@ -498,7 +498,15 @@ class TokenHandler(BaseHTTPRequestHandler):
         except Exception:
             logger.exception('ssr decision failed')
             data = None
-        if not data:
+        # ⚠️ `fetch_decision` renvoie parfois {"error": …} au lieu de None —
+        # c'est le cas d'ArianeWeb quand le texte est indisponible. Un dict
+        # non vide étant « truthy », on rendait alors une page COMPLÈTE,
+        # HTTP 200, mise en cache 24 h et sans noindex, au titre vide
+        # (« <title>,   -JusticeLibre</title> »). N'importe quel identifiant
+        # inventé fabriquait donc une page indexable : une réserve infinie
+        # de pages fantômes offertes à Google (23 août 2026). Les autres
+        # sources renvoyaient bien un 404.
+        if not data or (isinstance(data, dict) and data.get("error")):
             return self._html_response(404, render_decision_404(source, decision_id))
         html = render_decision(source, decision_id, data)
         return self._html_response(200, html, cache_seconds=86400)
