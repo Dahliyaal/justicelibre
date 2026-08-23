@@ -245,6 +245,16 @@ CASES: list[tuple[str, dict, list, bool]] = [
      [inv_equals(numero="2019-778", nature="DC", date="2019-03-21")], False),
     ("get_cc_decision", {"numero": "2019-778", "nature": "QPC"},
      [inv_equals(numero="2019-778", nature="QPC", date="2019-05-10")], False),
+    # L'ordre de juridiction demandé doit être CONTRÔLÉ : le rapprochement du
+    # warehouse se fait par ville, et la ville ne distingue pas le TA de la
+    # CAA. 19LY02575 est un arrêt de la CAA de Lyon — le réclamer au TA de
+    # Lyon doit échouer, pas servir la CAA (constaté le 23 août 2026).
+    ("get_admin_decision", {"numero": "19LY02575", "juridiction": "CAA de Lyon"},
+     [inv_all_match("juridiction", "LYON")], False),
+    ("get_admin_decision",
+     {"numero": "19LY02575", "juridiction": "Tribunal administratif de Lyon"},
+     [], True),
+
     ("get_cc_decision", {"numero": "2019-778"}, [], True),      # ambigu → refus
     ("get_cc_decision", {"numero": "9999-999 DC"}, [], True),   # inexistant
     ("get_ce_decision", {"numero": "999999999"}, [], True),

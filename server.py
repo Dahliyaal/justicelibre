@@ -1355,9 +1355,12 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
 
     ⚠️ **Désambiguïsation indispensable** : un même numéro à 7 chiffres
     (ex: 2200433) est partagé par 24+ tribunaux administratifs différents
-    (chaque TA a sa propre série annuelle qui repart à 1). Sans `juridiction`,
-    tu obtiens un homonyme au hasard parmi 24 — souvent pas le bon. **Si tu
-    sais quelle juridiction a rendu la décision, passe-la TOUJOURS.**
+    (chaque TA a sa propre série annuelle qui repart à 1). **Si tu sais
+    quelle juridiction a rendu la décision, passe-la TOUJOURS.**
+
+    Sans `juridiction`, le repli sur l'API live n'interroge que le Conseil
+    d'État et les CAA : un numéro de TA peut alors ressortir « introuvable »
+    alors qu'il existe. Dans ce cas, réessaie en nommant le tribunal.
 
     Args:
         numero: numéro de requête (ex : "2200433", "2116343", "497566")
@@ -1370,8 +1373,12 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
               ⚠️ Les codes courts peuvent rater les arrêts anciens (id
               CETATEXT* historiques) pour lesquels le mapping interne échoue.
               Si tu sais le nom long, préfère-le.
-            Note : "Lyon" seul est ambigu (TA Lyon ou CAA Lyon) — préférer le
-            nom complet pour éviter la collision.
+            Note : "Lyon" seul reste ambigu (TA Lyon ou CAA Lyon) et n'écarte
+            ni l'un ni l'autre. Dès que le nom porte l'ordre de juridiction
+            ("Tribunal administratif de…", "CAA…", "Conseil d'État"), il est
+            CONTRÔLÉ : une décision d'un autre ordre n'est jamais servie à la
+            place, le tool répond introuvable. Avant le 23 août 2026, demander
+            le TA de Lyon renvoyait silencieusement la CAA de Lyon.
 
     Returns:
         Décision avec métadonnées (id, juridiction, numero, date, titre),
@@ -1625,10 +1632,20 @@ async def search_admin(
 
     Args:
         query: mots-clés (opérateurs FTS5 : AND/OR/NOT, "phrase exacte", mot*)
-        juridiction: filtre par fragment de nom de juridiction. Ex :
-            "Lyon" → toutes les décisions Lyon (TA + CAA), "Tribunal
-            Administratif de Lyon" → uniquement TA Lyon. Combiné en
-            FTS5 AND avec la query principale.
+        juridiction: ⚠️ **ce n'est PAS un filtre** — malgré son nom. Le
+            fragment est ajouté à la requête plein texte en `AND`, donc il
+            matche aussi les décisions qui se contentent de **citer** cette
+            juridiction. Mesuré le 23 août 2026 :
+            `juridiction="Tribunal Administratif de Melun"` renvoie 1 506
+            résultats dont AUCUN des cinq premiers n'émane de Melun (des CAA
+            de Paris et un CE, qui statuaient sur des appels venus de Melun).
+            Le `total` n'est donc pas la volumétrie de la juridiction.
+            Utilise-le pour ORIENTER la recherche, jamais pour t'assurer de
+            l'origine d'une décision : vérifie le champ `juridiction` de
+            chaque résultat. Pour un tri réellement par juridiction, passer
+            par `search_admin_recent(juridiction_code=…)` ou
+            `get_admin_decision(numero, juridiction=…)`, qui, eux, contrôlent
+            l'ordre de juridiction.
         sort: "relevance" (défaut, BM25) ou "date_desc" / "date_asc"
         date_min: limite inférieure ISO YYYY-MM-DD (optionnel)
         date_max: limite supérieure ISO YYYY-MM-DD (optionnel)

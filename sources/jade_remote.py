@@ -14,11 +14,65 @@ Remplace la plupart des usages de `search_juridiction`, qui devient
 """
 from __future__ import annotations
 
+import re
+import unicodedata
 from typing import Any
 
 from query_intent import match_admin_docket, normalize_numero
 
 from . import warehouse as wh
+
+
+def _fold(s: str) -> str:
+    """Minuscules sans accents, pour comparer des noms de juridiction."""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", (s or "").lower())
+        if unicodedata.category(c) != "Mn"
+    )
+
+
+def _juri_type(name: str) -> str:
+    """Ordre de juridiction administrative : 'ce', 'caa', 'ta', 'tc' ou ''.
+
+    La base écrit le même tribunal de dix façons (« CAA de LYON », « Cour
+    Administrative d'Appel de Lyon », « TA69 »…), d'où un rapprochement par
+    ville côté warehouse. Mais la ville seule ne distingue PAS le TA de la
+    CAA de la même ville : demander le TA de Lyon renvoyait la CAA de Lyon,
+    sans le signaler (constaté le 23 août 2026 sur 19LY02575). D'où ce
+    contrôle d'ordre, qui doit être satisfait AVANT d'accepter une réponse.
+    """
+    n = _fold(name)
+    if "conflit" in n:
+        return "tc"
+    if re.search(r"\bcaa\d*\b", n) or ("cour" in n and "appel" in n):
+        return "caa"
+    if re.search(r"\bta\d*\b", n) or ("tribunal" in n and "administratif" in n):
+        return "ta"
+    if ("conseil" in n and "etat" in n) or n.strip() == "ce":
+        return "ce"
+    return ""
+
+
+def _filter_by_juridiction(results: list[dict], juridiction: str | None) -> list[dict]:
+    """Ne garde que les décisions du même ordre que celui demandé.
+
+    Une juridiction non typée (« Lyon » nu) ne filtre rien : l'utilisateur
+    n'a pas exprimé d'ordre, on ne lui en impose pas."""
+    if not results or not juridiction:
+        return results
+    want = _juri_type(juridiction)
+    if not want:
+        return results
+    return [r for r in results if _juri_type(r.get("juridiction", "")) == want]
+
+
+def _pick_by_juridiction(results: list[dict], juridiction: str | None) -> dict | None:
+    """Retient la décision du bon ordre de juridiction, ou aucune.
+
+    Servir la voisine plausible est pire qu'échouer : le client cite alors
+    un arrêt de CAA en croyant tenir le jugement de TA."""
+    kept = _filter_by_juridiction(results, juridiction)
+    return kept[0] if kept else None
 
 
 def _normalize_hit(h: dict) -> dict:
@@ -53,6 +107,9 @@ async def search(
     num = match_admin_docket(query)
     if num:
         results = await wh.lookup_by_numero("jade", num, juridiction=juridiction)
+        # Le rapprochement du warehouse se fait par ville : sans ce contrôle
+        # d'ordre, une recherche « TA de Lyon » sert la CAA de Lyon.
+        results = _filter_by_juridiction(results, juridiction)
         if results:
             return {
                 "total": len(results),
@@ -106,8 +163,9 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
 
     # 1. Lookup SQL exact dans JADE bulk
     results = await wh.lookup_by_numero("jade", num_clean, juridiction=juridiction)
-    if results:
-        return results[0]
+    picked = _pick_by_juridiction(results, juridiction)
+    if picked:
+        return picked
 
     # 2. Fallback sur API live (opendata.justice-administrative.fr)
     try:
