@@ -1427,6 +1427,42 @@ function renderResults(data, query) {
     results = [...results].sort((a, b) => (b.date || '0000-00-00').localeCompare(a.date || '0000-00-00'));
   } else if (tri === 'date_asc') {
     results = [...results].sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31'));
+  } else {
+    // Mode « Pertinence » : il n'y avait AUCUN tri ici. L'ordre affiché
+    // était donc l'ordre d'ARRIVÉE des cinq requêtes parallèles — une
+    // course réseau. D'où des résultats différents à chaque recherche
+    // identique : selon que `admin` répondait en 0,4 s ou en 4,5 s, la
+    // liste commençait par de l'administratif ou du judiciaire.
+    // (Constaté le 23 août 2026 sur la requête « chat ».)
+    //
+    // On ne peut pas trier par score : les pertinences BM25 sont calculées
+    // dans des fonds différents et ne sont pas comparables entre elles.
+    // On ENTRELACE donc — le 1er de chaque source, puis le 2e, etc. —
+    // ce qui préserve exactement le classement interne de chaque source,
+    // garantit que chacune est représentée, et rend l'ordre STABLE d'une
+    // recherche à l'autre.
+    // 👉 ORDRE_SOURCES ci-dessous est un choix éditorial : sources
+    //    françaises d'abord. Changer cette ligne suffit à le modifier.
+    const ORDRE_SOURCES = ['dila', 'admin', 'ariane', 'legi', 'cedh', 'cjue'];
+    const groupes = new Map();
+    for (const r of results) {
+      const s = r.source || '?';
+      if (!groupes.has(s)) groupes.set(s, []);
+      groupes.get(s).push(r);
+    }
+    const rang = s => { const i = ORDRE_SOURCES.indexOf(s); return i < 0 ? 99 : i; };
+    const listes = [...groupes.entries()]
+      .sort((a, b) => rang(a[0]) - rang(b[0]))
+      .map(e => e[1]);
+    const entrelace = [];
+    for (let i = 0; ; i++) {
+      let ajoute = false;
+      for (const liste of listes) {
+        if (i < liste.length) { entrelace.push(liste[i]); ajoute = true; }
+      }
+      if (!ajoute) break;
+    }
+    results = entrelace;
   }
   // En-tête : on garde juste le placeholder, updateHeader() le remplit
   parts.push(`<div class="results-header" id="resultsHeader"></div>`);
