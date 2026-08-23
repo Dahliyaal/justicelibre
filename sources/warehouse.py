@@ -19,6 +19,12 @@ from typing import Any
 import httpx
 
 WAREHOUSE_URL = os.environ.get("JL_WAREHOUSE_URL", "http://46.224.173.253:8001")
+
+# Les exceptions httpx recopient l'URL appelée dans leur message. Relayée
+# telle quelle à l'utilisateur, elle publie l'adresse interne du warehouse
+# (10.8.0.2:8001, derrière le tunnel WireGuard) et la forme de ses routes.
+# Aucune URL interne ne doit sortir dans un message d'erreur public.
+_SANS_URL = re.compile(r"\s*(?:for url\s*)?'?https?://\S+'?", re.IGNORECASE)
 KEY_FILE = Path(os.environ.get("JL_WAREHOUSE_KEY_FILE", "/etc/justicelibre/warehouse.key"))
 
 try:
@@ -54,6 +60,34 @@ async def _request(method: str, path: str, *, params=None, body=None) -> dict | 
                     return None
                 r.raise_for_status()
                 return r.json()
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            if 400 <= code < 500:
+                # 4xx = la REQUÊTE est en cause (code de loi inconnu, borne
+                # invalide…), pas le serveur. Deux corrections d'un coup
+                # (23 août 2026) : ne plus annoncer une panne — « warehouse
+                # injoignable » envoyait le client retenter un appel qui
+                # échouera toujours à l'identique — et ne plus recopier le
+                # str() de httpx, qui contient l'URL COMPLÈTE et exposait
+                # donc l'adresse interne du warehouse (10.8.0.2:8001) et ses
+                # chemins d'API dans un message d'erreur public.
+                detail = ""
+                try:
+                    detail = (e.response.json() or {}).get("error", "") or ""
+                except Exception:
+                    detail = ""
+                raise RuntimeError(
+                    detail or f"requête refusée par l'entrepôt de données "
+                              f"(code HTTP {code}) sur {path} — vérifier les "
+                              f"paramètres."
+                ) from None
+            last_exc = e
+            if attempt == 0:
+                await asyncio.sleep(0.3)
+                continue
+            raise RuntimeError(
+                f"entrepôt de données en erreur (code HTTP {code}) sur {path}"
+            ) from None
         except (httpx.HTTPError, asyncio.TimeoutError) as e:
             last_exc = e
             if attempt == 0:
@@ -62,11 +96,14 @@ async def _request(method: str, path: str, *, params=None, body=None) -> dict | 
             # Ne JAMAIS relayer l'exception nue : httpx.ReadTimeout a un
             # str() VIDE, si bien que l'appelant recevait « Error executing
             # tool search_legi: » sans un mot d'explication (constaté le
-            # 22 août 2026 sur une requête lente). On la retraduit.
-            detail = str(e) or f"délai dépassé (> {_TIMEOUT.read:g}s)"
+            # 22 août 2026 sur une requête lente). On la retraduit — en
+            # retirant toute URL, qui trahirait l'adresse interne.
+            detail = _SANS_URL.sub("", str(e)).strip(" —-") or (
+                f"délai dépassé (> {_TIMEOUT.read:g}s)")
             raise RuntimeError(
-                f"warehouse injoignable sur {path} — {type(e).__name__}: {detail}"
-            ) from e
+                f"entrepôt de données injoignable sur {path} "
+                f"— {type(e).__name__}: {detail}"
+            ) from None
     raise last_exc  # unreachable but satisfies type-checkers
 
 
