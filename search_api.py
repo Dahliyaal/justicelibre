@@ -266,6 +266,7 @@ ALL_CAA = list(juriadmin.COURS_ADMIN_APPEL.keys())  # 9 CAAs
 
 async def _dispatch_ariane(
     client, intent: QueryIntent, limit: int, offset: int,
+    date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
     """ArianeWeb dispatch.
 
@@ -316,6 +317,15 @@ async def _dispatch_ariane(
                 seen.add(d.get("id"))
     except Exception as e:
         print(f"[ariane fts err] {e}")
+    # ArianeWeb était la SEULE source de la recherche fédérée à ignorer les
+    # bornes de date : une recherche bornée à 2020+ ramenait des arrêts de
+    # 1982 (constaté le 23 août 2026 sur le site). La raison était en amont —
+    # les hits n'avaient pas de date fiable à filtrer, Sinequa ne sachant
+    # pas borner et le code jetant les champs de date qu'il renvoyait
+    # pourtant. Maintenant que `_normalize_doc` remonte la vraie date de
+    # lecture, le filtrage devient possible : on l'applique ici.
+    if date_min or date_max:
+        out = [h for h in out if _date_in_range(h.get("date", ""), date_min, date_max)]
     return out
 
 
@@ -553,7 +563,8 @@ async def search_federated(
     async def _q_ariane(client):
         if "ariane" not in sources_to_query:
             return []
-        return await _dispatch_ariane(client, intent, limit_per_source, offset)
+        return await _dispatch_ariane(client, intent, limit_per_source, offset,
+                                      date_min=date_min, date_max=date_max)
 
     async def _q_admin(client):
         if "admin" not in sources_to_query:

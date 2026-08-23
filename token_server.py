@@ -333,12 +333,23 @@ class TokenHandler(BaseHTTPRequestHandler):
         except ValueError:
             timeout_s = 12.0
         timeout_s = max(2.0, min(timeout_s, 60.0))
-        # Dates : format ISO YYYY-MM-DD attendu, sinon ignoré silencieusement
+        # Dates : format ISO YYYY-MM-DD attendu. Une date mal formée est
+        # écartée — mais plus en SILENCE : le client recevait alors le fonds
+        # entier en croyant l'avoir borné, ce qui est exactement le scénario
+        # où l'on cite une décision hors période (23 août 2026). On la
+        # signale dans `filtres_ignores`.
         date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
         date_min_raw = (qs.get("date_min", [""])[0] or "").strip()
         date_max_raw = (qs.get("date_max", [""])[0] or "").strip()
         date_min = date_min_raw if date_re.match(date_min_raw) else None
         date_max = date_max_raw if date_re.match(date_max_raw) else None
+        filtres_ignores = [
+            {"parametre": nom, "valeur": brut,
+             "raison": "format attendu AAAA-MM-JJ ; filtre NON appliqué"}
+            for nom, brut, retenu in (("date_min", date_min_raw, date_min),
+                                      ("date_max", date_max_raw, date_max))
+            if brut and not retenu
+        ]
         # Tri : pertinence (défaut) / date_desc / date_asc
         sort = (qs.get("sort", ["pertinence"])[0] or "pertinence").strip().lower()
         if sort not in {"pertinence", "date_desc", "date_asc"}:
@@ -370,6 +381,8 @@ class TokenHandler(BaseHTTPRequestHandler):
                     sort=sort,
                 )
             data = asyncio.run(_run())
+            if filtres_ignores and isinstance(data, dict):
+                data["filtres_ignores"] = filtres_ignores
             return self._json_response(200, data)
         except Exception as e:
             # Ne pas exposer stacktrace/chemin serveur au client
