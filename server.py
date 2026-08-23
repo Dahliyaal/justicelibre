@@ -290,6 +290,30 @@ def _tool_error(message, *, category, retryable=False, **extra):
     return out
 
 
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _check_dates(**dates: str):
+    """Refuse une date non ISO. Renvoie une erreur structurée, ou None.
+
+    Les filtres de date sont comparés en SQL comme des CHAÎNES : « 01/01/2020 »
+    ne borne alors strictement rien et la recherche renvoie le fonds entier,
+    présenté comme filtré (mesuré le 23 août 2026 : total identique au total
+    sans filtre, avec des décisions de 2019 dans les résultats). Un filtre
+    silencieusement inopérant est pire qu'un refus : le client croit avoir
+    restreint sa période et cite une décision hors sujet.
+    """
+    for name, value in dates.items():
+        if value and not _ISO_DATE_RE.match(value):
+            return _tool_error(
+                f"{name}={value!r} n'est pas une date ISO. Format attendu : "
+                "AAAA-MM-JJ (ex. 2020-01-01). Un autre format ne filtrerait "
+                "rien et te renverrait le fonds entier comme s'il était filtré.",
+                category="validation", parametre=name, valeur_recue=value,
+            )
+    return None
+
+
 def _annotate_pagination(data, limit, offset, results_key):
     """Annonce la troncature au modèle : si le total dépasse ce qui a été
     renvoyé, ajoute `truncated` + `next_offset` pour signaler qu'il reste
@@ -840,6 +864,9 @@ async def search_judiciaire_libre(
             `truncated: true`, réitérer avec `next_offset` pour la suite.
     """
     _record_call("search_judiciaire_libre")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     if not query.strip() and not numero_rg.strip():
         return _tool_error(
             "Fournir query (mots-clés FTS5) ou numero_rg.",
@@ -1408,6 +1435,9 @@ async def search_cc(
         `{"total", "returned", "nature_filter", "decisions": [...]}`
     """
     _record_call("search_cc")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     if not query.strip():
         return _tool_error(
             "Le paramètre query est requis (mots-clés FTS5, ex : "
@@ -1609,6 +1639,9 @@ async def search_admin(
         {"total", "returned", "decisions": [...]} avec extracts BM25.
     """
     _record_call("search_admin")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     result = await jade_remote.search(
         query=query, juridiction=juridiction or None, sort=sort,
         date_min=date_min or None, date_max=date_max or None,
@@ -1657,6 +1690,9 @@ async def search_legi(
         {"total", "returned", "articles": [...]}
     """
     _record_call("search_legi")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     from sources import warehouse as wh
     data = await wh.search_fond(
         "legi", query, limit=limit, offset=offset, sort="relevance",
@@ -1708,6 +1744,9 @@ async def search_jorf(
         {"total", "returned", "textes": [...]}
     """
     _record_call("search_jorf")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     result = await jorf_remote.search(
         query=query, nature=nature or None,
         date_min=date_min or None, date_max=date_max or None,
@@ -2029,6 +2068,9 @@ async def search_all(
         `truncated: true` + `note` signalent que la fusion dépasse `limit`.
     """
     _record_call("search_all")
+    _bad = _check_dates(date_min=date_min, date_max=date_max)
+    if _bad:
+        return _bad
     limit = max(1, min(int(limit), 100))
     allowed = set(sources) if sources else {"dila", "jade", "legi", "cedh", "cjue"}
     # Expansion thésaurus

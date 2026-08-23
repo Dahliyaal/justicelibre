@@ -201,7 +201,25 @@ CASES: list[tuple[str, dict, list, bool]] = [
                       "date_max": "2024-12-31", "limit": 5},
      [inv_pagination, inv_date_range("2024-01-01", "2024-12-31")], False),
 
+    # — la pagination doit paginer (23 août 2026) —
+    # `SkipCount` de Sinequa n'est pas un décalage mais un nombre de
+    # documents : le code le prenait pour un skip PUIS re-tranchait à la même
+    # profondeur, donc toute page après la première était vide — en annonçant
+    # `truncated: true` et un `next_offset`, soit une invitation à boucler
+    # dans le vide. 414 des 434 résultats étaient inatteignables.
+    ("search_conseil_etat", {"query": "éolienne", "limit": 20, "offset": 20},
+     [inv_pagination, inv_nonempty("decisions")], False),
+    ("search_conseil_etat", {"query": "éolienne", "limit": 20, "offset": 40},
+     [inv_pagination, inv_nonempty("decisions")], False),
+
     # — un paramètre invalide doit ÉCHOUER, pas réussir en silence —
+    # Une date non ISO était comparée en SQL comme une chaîne : elle ne
+    # bornait rien et le fonds entier revenait présenté comme filtré.
+    ("search_admin", {"query": "éolienne", "date_min": "01/01/2020", "limit": 3},
+     [], True),
+    ("search_legi", {"query": "forêt", "date_max": "2020", "limit": 3}, [], True),
+    ("search_judiciaire_libre", {"query": "bail", "date_min": "hier", "limit": 3},
+     [], True),
     ("search_legi", {"query": "forêt", "code": "CodeQuiNexistePas", "limit": 3},
      [], True),
     ("get_law_article", {"code": "CodeQuiNexistePas", "num": "1"}, [], True),

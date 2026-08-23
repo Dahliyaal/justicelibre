@@ -139,20 +139,35 @@ async def search(
 ) -> dict[str, Any]:
     if not query.strip():
         raise ValueError("query must be non-empty")
+    skip = max(0, int(skip))
+    limit = max(0, int(limit))
+    # ⚠️ `SkipCount` ne saute RIEN malgré son nom : c'est le NOMBRE de
+    # documents que Sinequa consent à renvoyer (SkipCount=40 → les 40
+    # premiers ; SkipCount=0 → la totalité). Vérifié le 23 août 2026 sur
+    # « éolienne » : 0→434 docs, 20→20 docs, 40→40 docs, tous à partir du
+    # premier. Le code le prenait pour un décalage ET re-tranchait ensuite
+    # à la même profondeur : pour offset=20 il demandait les 20 premiers
+    # puis en prenait la tranche [20:40] — vide. Toute page au-delà de la
+    # première était donc inatteignable, alors que la réponse annonçait
+    # `truncated: true` et invitait à boucler.
+    # Corollaire : demander exactement `skip + limit` au lieu de 0 évite de
+    # télécharger l'intégralité du jeu de résultats à chaque appel.
+    want = max(1, skip + limit)
     params = {
         "type": "json",
         "SourceStr4": "AW_DCE",
         "text.add": query,
-        "SkipCount": skip,
+        "SkipCount": want,
     }
     r = await client.get(URL, params=params)
     r.raise_for_status()
     data = r.json()
     total = data.get("TotalCount", 0)
     all_docs = data.get("Documents") or []
-    # Sinequa ignore PageSize sur cet endpoint, on slice côté client
-    start = max(0, int(skip))
-    sliced = all_docs[start : start + max(0, int(limit))]
+    # Le découpage reste côté client : Sinequa sert toujours depuis le
+    # premier document. L'ensemble des N premiers est stable d'un appel à
+    # l'autre (vérifié), seul l'ordre interne à la page peut varier.
+    sliced = all_docs[skip : skip + limit]
     return {
         "total": total,
         "returned": len(sliced),
