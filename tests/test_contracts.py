@@ -131,6 +131,19 @@ def inv_no_lying_section(p, args):
         "la hiérarchie des sections n'est pas en base")
 
 
+def inv_nonempty(*fields: str):
+    """Un champ documenté dans le contrat doit être SERVI.
+
+    Symétrique de `inv_no_lying_section` : on a supprimé un champ qui
+    mentait (`titre_section`), il faut vérifier que celui qui le remplace
+    (`titre_texte`) arrive vraiment — sinon les consommateurs (SSR, SPA)
+    retombent en silence sur le sigle, ce qui s'est produit."""
+    def check(p, args):
+        for f in fields:
+            assert p.get(f), f"{f} absent ou vide de la réponse"
+    return check
+
+
 def inv_field_varies(field: str):
     """Un champ qui vaut TOUJOURS la même chose sur des entrées différentes
     est un champ qui ment (c'était le cas de titre_section)."""
@@ -196,9 +209,11 @@ CASES: list[tuple[str, dict, list, bool]] = [
 
     # — pas de champ menteur —
     ("get_law_article", {"code": "CSP", "num": "R4126-37"},
-     [inv_no_lying_section], False),
+     [inv_no_lying_section, inv_nonempty("titre_texte", "texte"),
+      inv_all_match("titre_texte", "Code de la santé publique")], False),
     ("get_law_article", {"code": "CC", "num": "1128"},
-     [inv_no_lying_section], False),
+     [inv_no_lying_section, inv_nonempty("titre_texte", "texte"),
+      inv_all_match("titre_texte", "Code civil")], False),
 
     # — les alias documentés fonctionnent —
     ("get_decision_text", {"id": "CETATEXT000007543903"}, [], False),

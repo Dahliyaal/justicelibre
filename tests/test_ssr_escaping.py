@@ -91,6 +91,28 @@ def test_render_law_no_xss():
     _assert_no_xss(ssr.render_law("CC", "1128", data), "render_law")
 
 
+def test_render_law_uses_titre_texte():
+    """Garde-fou : la page /loi/ doit afficher le NOM du code, pas le sigle.
+
+    Régression réelle (23 août 2026) : le correctif `titre_section` (qui
+    mentait et vaut désormais None) a laissé ssr.render_law lire l'ancien
+    champ, et toutes les pages /loi/ sont passées à « Article R4126-37 -
+    CSP » — dans le <title>, l'og:title, le JSON-LD et le fil d'Ariane.
+    Aucun test ne l'a vu : la page se rendait parfaitement, elle était
+    seulement moins bonne. C'est la même famille que titre_section
+    lui-même — un défaut qui ne plante pas."""
+    html_out = ssr.render_law("CSP", "R4126-37", {
+        "num": "R4126-37", "code": "CSP",
+        "titre_texte": "Code de la santé publique", "titre_section": None,
+        "texte": "Le président de la chambre disciplinaire…",
+        "etat": "VIGUEUR", "date_debut": "2007-08-03",
+    })
+    assert "Code de la santé publique" in html_out, \
+        "render_law n'affiche plus le titre du texte (titre_texte ignoré ?)"
+    assert "<title>Article R4126-37 -CSP -" not in html_out, \
+        "render_law est retombé sur le sigle au lieu du nom du code"
+
+
 def test_jsonld_embed_valid_and_no_breakout():
     embedded = ssr._jsonld_embed(
         {"name": "</script><script>alert(1)</script>", "x": "a < b & c > d"}
@@ -115,6 +137,7 @@ if __name__ == "__main__":
     tests = [
         ("render_decision sans XSS",        test_render_decision_no_xss),
         ("render_law sans XSS",             test_render_law_no_xss),
+        ("render_law affiche le nom du code", test_render_law_uses_titre_texte),
         ("_jsonld_embed valide + no breakout", test_jsonld_embed_valid_and_no_breakout),
         ("JSON-LD pas sur-échappé",         test_jsonld_not_html_over_escaped),
     ]
