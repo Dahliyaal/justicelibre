@@ -331,6 +331,21 @@ def parse_jorf_like(fund: str):
                 if meta_v is not None:
                     min_elt = meta_v.find("MINISTERE")
                     ministere = xml_text(min_elt) if min_elt is not None else ""
+                    # ⚠️ Dans le format des MISES À JOUR quotidiennes, le titre
+                    # n'est PAS dans META_TEXTE_CHRONICLE (qui n'y porte que
+                    # CID, NUM, NOR et les dates) mais dans
+                    # META_TEXTE_VERSION. Ne le chercher qu'au premier endroit
+                    # produisait des textes SANS TITRE : 100 % des textes JORF
+                    # ingérés depuis avril 2026 et 51,6 % de ceux de 2025,
+                    # contre ~3 % les années issues du stock initial. Un texte
+                    # sans titre reste introuvable par son intitulé et
+                    # s'affiche nu sur le site. Vérifié le 29 août 2026 sur
+                    # JORF_20250830-002214 : <META_TEXTE_VERSION><TITRE> =
+                    # « Décret n°2025-859 du 28 août 2025 ».
+                    if not titre:
+                        titre = xml_text(meta_v.find("TITRE"))
+                    if not titre_long:
+                        titre_long = xml_text(meta_v.find("TITREFULL"))
                 # Texte principal
                 visa = root.find(".//VISAS")
                 sign = root.find(".//SIGNATAIRES")
