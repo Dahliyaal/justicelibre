@@ -157,7 +157,14 @@ def main():
             for attempt in range(5):
                 try:
                     conn.execute(
-                        "INSERT OR REPLACE INTO cedh_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        # INSERT NOMMÉ (cf. scrape_cedh.py) : le positionnel a
+                        # cassé toutes les insertions quand la table a gagné
+                        # des colonnes.
+                        "INSERT OR REPLACE INTO cedh_decisions "
+                        "(itemid, docname, ecli, date, doctype, article, "
+                        " conclusion, importance, respondent, "
+                        " originating_body, text) "
+                        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                         row,
                     )
                     break

@@ -2349,6 +2349,10 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
     if (lieu) params.set('lieu', lieu);
     if (dateMin) params.set('date_min', dateMin);
     if (dateMax) params.set('date_max', dateMax);
+    // La case « Recherche élargie » ne servait qu'à afficher les pastilles de
+    // termes voisins : elle n'était JAMAIS transmise à la recherche, qui
+    // partait toujours avec la requête brute (29 août 2026). On l'envoie.
+    if (document.getElementById('useThesaurus')?.checked) params.set('expand', '1');
     const tri = document.getElementById('tri')?.value || 'pertinence';
     if (tri && tri !== 'pertinence') params.set('sort', tri);
     const r = await fetch('/api/search?' + params);

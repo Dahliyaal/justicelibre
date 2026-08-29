@@ -350,6 +350,12 @@ class TokenHandler(BaseHTTPRequestHandler):
                                       ("date_max", date_max_raw, date_max))
             if brut and not retenu
         ]
+        # Élargissement thésaurus. La page l'affiche via /api/expand mais ne
+        # l'appliquait PAS à la recherche : les deux appels ne se
+        # rencontraient jamais (29 août 2026). Défaut à faux pour ne rien
+        # changer aux appels d'API existants ; la page envoie expand=1 quand
+        # sa case « Recherche élargie » est cochée.
+        expand = (qs.get("expand", ["0"])[0] or "0").strip().lower() in {"1", "true", "oui", "yes"}
         # Tri : pertinence (défaut) / date_desc / date_asc
         sort = (qs.get("sort", ["pertinence"])[0] or "pertinence").strip().lower()
         if sort not in {"pertinence", "date_desc", "date_asc"}:
@@ -379,6 +385,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                     timeout_s=timeout_s,
                     date_min=date_min, date_max=date_max,
                     sort=sort,
+                    expand=expand,
                 )
             data = asyncio.run(_run())
             if filtres_ignores and isinstance(data, dict):

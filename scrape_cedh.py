@@ -166,8 +166,22 @@ def main():
                 )
                 for attempt in range(5):
                     try:
+                        # ⚠️ INSERT NOMMÉ, jamais positionnel. La table a reçu
+                        # des colonnes après l'écriture de ce script
+                        # (text_lang, text_itemid, appno, appno_norm) : un
+                        # `VALUES (?×11)` sans liste de colonnes a alors cassé
+                        # 100 % des insertions — « table cedh_decisions has 13
+                        # columns but 11 values were supplied ». Le pipeline
+                        # est mort le 30 avril 2026 et personne ne l'a vu :
+                        # 683 359 erreurs empilées dans le log pendant que le
+                        # script parent affichait « CEDH OK ». Nommer les
+                        # colonnes rend l'insertion insensible aux ajouts.
                         conn.execute(
-                            "INSERT OR REPLACE INTO cedh_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                            "INSERT OR REPLACE INTO cedh_decisions "
+                            "(itemid, docname, ecli, date, doctype, article, "
+                            " conclusion, importance, respondent, "
+                            " originating_body, text) "
+                            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                             row_data,
                         )
                         break

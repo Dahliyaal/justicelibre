@@ -186,8 +186,16 @@ def main():
                 ecli = celex_to_ecli(celex)
                 for attempt in range(5):
                     try:
+                        # ⚠️ INSERT NOMMÉ, jamais positionnel — même cause que
+                        # pour la CEDH : la table a gagné text_lang,
+                        # affaire_num et affaire_num_norm après l'écriture de
+                        # ce script, et un `VALUES (?×6)` sans liste de
+                        # colonnes a cassé 100 % des insertions depuis le
+                        # 30 avril 2026, en silence.
                         conn.execute(
-                            "INSERT OR REPLACE INTO cjue_decisions VALUES (?,?,?,?,?,?)",
+                            "INSERT OR REPLACE INTO cjue_decisions "
+                            "(celex, ecli, date, type, title, text) "
+                            "VALUES (?,?,?,?,?,?)",
                             (celex, ecli, date, rtype, title, text),
                         )
                         break

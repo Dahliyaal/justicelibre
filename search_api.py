@@ -24,6 +24,8 @@ from typing import Any
 import httpx
 
 from sources import ariane, juriadmin, dila, european
+from dataclasses import replace
+
 from query_intent import (
     QueryIntent, detect_intent, normalize_fts_query, sources_for_intent,
     SOURCE_CAPABILITIES,
@@ -540,6 +542,7 @@ async def search_federated(
     date_min: str | None = None,
     date_max: str | None = None,
     sort: str = "pertinence",
+    expand: bool = False,
 ) -> dict[str, Any]:
     """Interroge en parallèle les sources pertinentes, fusionne et trie.
 
@@ -548,10 +551,30 @@ async def search_federated(
        avec celles capables de traiter cet intent
     3. Dispatch chaque source avec sa stratégie spécifique à l'intent
     4. Fusionne, trie, retourne
+
+    `expand` applique le thésaurus juridique. ⚠️ Il ne l'était JAMAIS sur le
+    site : la page appelait `/api/expand` pour AFFICHER les termes voisins,
+    et `/api/search` séparément avec la requête brute — les deux ne se
+    rencontraient pas. La case « Recherche élargie », cochée par défaut, les
+    pastilles de termes voisins et le bouton « Désactiver » ne changeaient
+    donc rien au résultat. Constaté le 29 août 2026 : /api/expand annonce
+    `("harcèlement moral" OR "harcèlement psychologique")` pendant que
+    /api/search cherche `harcèlement moral` tout court.
+    N'élargit QUE les recherches conceptuelles : une référence
+    (numéro de pourvoi, RG, CELEX…) ne doit jamais être diluée.
     """
     intent = detect_intent(q)
     if intent.kind == "empty":
         return {"total": 0, "results": [], "per_source": {}}
+    expansion_appliquee = False
+    if expand and intent.kind == "fts":
+        try:
+            elargi = normalize_fts_query(q, expand=True)
+            if elargi and elargi != intent.fts_query:
+                intent = replace(intent, fts_query=elargi)
+                expansion_appliquee = True
+        except Exception as e:          # thésaurus indisponible : on continue nu
+            print(f"[expand err] {e}")
 
     # Sources autorisées par le filtre juridiction
     juri_sources = JURI_DISPATCH.get(juridiction, JURI_DISPATCH[""])
@@ -679,9 +702,22 @@ async def search_federated(
         final = _candidates_for_exact + [r for r in final if r['id'] not in exact_ids]
     final = final[:limit]
 
+    # Filet : l'élargissement thésaurus ajoute des OR, mais si la requête
+    # élargie ne rend RIEN alors que la requête nue aurait rendu quelque
+    # chose (opérateurs mal combinés, terme voisin absent des fonds…), on
+    # rejoue sans. Mieux vaut un résultat exact qu'un zéro élargi.
+    if expansion_appliquee and not final:
+        return await search_federated(
+            q, juridiction=juridiction, lieu=lieu, limit=limit,
+            limit_per_source=limit_per_source, offset=offset,
+            sources_only=sources_only, timeout_s=timeout_s,
+            date_min=date_min, date_max=date_max, sort=sort, expand=False,
+        )
+
     return {
         "query_normalized": intent.fts_query,
         "intent": intent.kind,
+        "expansion_appliquee": expansion_appliquee,
         "total": len(merged),
         "per_source": per_source,
         "sources_queried": sources_to_query,
