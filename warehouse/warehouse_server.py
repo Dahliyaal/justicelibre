@@ -581,13 +581,25 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
     params: list = [q_clean]
 
     # Date field varies by fond
+    # ⚠️ Toute entrée de FONDS doit figurer ici, sinon la recherche de ce
+    # fonds lève un KeyError et l'endpoint répond une erreur opaque. C'était
+    # le cas d'`opendata` (985 996 décisions de TA et de CAA) : le fonds était
+    # déclaré, sa base présente, et sa recherche plantait depuis toujours —
+    # personne ne s'en est aperçu parce que son index était vide de toute
+    # façon. Constaté le 29 août 2026. Le `.get()` évite désormais le
+    # plantage sec sur un fonds ajouté sans être déclaré ici.
     date_col = {
         "legi": "date_debut",
         "jade": "date",
         "jorf": "date_publi",
         "kali": "date_publi",
         "cnil": "date",
-    }[fond]
+        "opendata": "date",
+    }.get(fond)
+    if not date_col:
+        return {"fond": fond, "total": 0, "results": [],
+                "error": f"fond {fond!r} sans colonne de date déclarée "
+                         "(voir date_col dans fts_search)"}
 
     where = [f"{fts_table} MATCH ?"]
     if date_min:
@@ -624,7 +636,16 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         "jorf": f"m.jorftext AS id, m.titre, m.nature, m.date_publi AS date, m.ministere, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
         "kali": f"m.id, m.idcc, m.titre, m.nature, m.date_publi AS date, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
         "cnil": f"m.id, m.numero, m.titre, m.date, m.formation, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
-    }[fond]
+        # opendata : décisions TA/CAA moissonnées sur
+        # opendata.justice-administrative.fr. Fonds déclaré depuis toujours,
+        # mais absent d'ici comme de `date_col` — sa recherche levait donc un
+        # KeyError à chaque appel (29 août 2026).
+        "opendata": f"m.id, m.juridiction_name AS juridiction, m.numero_dossier AS numero, m.date, m.formation, m.ecli, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
+    }.get(fond)
+    if not select_cols:
+        return {"fond": fond, "total": 0, "results": [],
+                "error": f"fond {fond!r} sans colonnes déclarées "
+                         "(voir select_cols dans fts_search)"}
 
     # LEGI : dédup par legitext parent (évite 8 versions d'une annexe arrêté).
     # On over-fetche x3 puis on dédup en Python pour garder les meilleurs scores
