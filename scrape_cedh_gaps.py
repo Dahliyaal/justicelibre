@@ -129,17 +129,34 @@ def main():
             itemid = c.get("itemid", "")
             if not itemid:
                 continue
+            # ⚠️ Le coupe-circuit ci-dessous ne se déclenchait JAMAIS.
+            # `fetch_text` attrape ses propres exceptions et renvoie "" : le
+            # `except` n'était donc jamais atteint, et `consecutive_errors`
+            # restait à 0 quoi qu'il arrive. Constaté le 29 août 2026, quand
+            # l'endpoint de conversion HUDOC est tombé : 30 échecs d'affilée,
+            # 60 s chacun, et le script continuait imperturbablement.
+            # On compte désormais aussi les textes vides, qui SONT le mode
+            # d'échec réel de cette source.
+            text = ""
             try:
                 text = fetch_text(client, itemid)
             except Exception as e:
-                consecutive_errors += 1
                 print(f"  [err fetch {itemid}]: {e}")
+            if text:
+                consecutive_errors = 0
+            else:
+                consecutive_errors += 1
                 if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-                    print("\n*** CIRCUIT BREAKER ***")
+                    conn.commit()
+                    print(
+                        f"\n*** COUPE-CIRCUIT : {consecutive_errors} textes vides "
+                        f"d'affilée — HUDOC ne répond plus. Arrêt ; reprise au "
+                        f"prochain passage. (+{added} cette exécution)",
+                        flush=True,
+                    )
                     sys.exit(2)
                 time.sleep(min(60, 5 * consecutive_errors))
                 continue
-            consecutive_errors = 0
 
             row = (
                 itemid,

@@ -9,6 +9,7 @@ Stocke dans une table separate `cedh_decisions` dans la même DB.
 import html
 import re
 import sqlite3
+import sys
 import time
 from urllib.parse import quote
 import httpx
@@ -17,6 +18,22 @@ DB_PATH = "/opt/justicelibre/dila/judiciaire.db"
 BASE = "https://hudoc.echr.coe.int"
 BATCH = 100  # HUDOC caps somewhere below 500
 USER_AGENT = "justicelibre.org/1.0 (open data scraper, contact: dahliyaal@justicelibre.org)"
+
+# Coupe-circuit sur une panne de la source.
+#
+# Le 29 août 2026, l'endpoint de conversion de HUDOC est tombé (le endpoint
+# de LISTE, lui, répondait en 200 — la panne n'était donc visible qu'ici).
+# Chaque appel expirait au bout de 60 s : en 30 minutes le script a tenté
+# 28 décisions, n'en a récupéré AUCUNE, et a consommé toute la fenêtre
+# allouée, empêchant la CJUE et ArianeWeb de tourner derrière lui.
+# Vérifié depuis deux IP distinctes : la panne venait bien du Conseil de
+# l'Europe, pas de nous.
+#
+# Au-delà de ce seuil de textes vides consécutifs, on rend la main : la
+# source est morte, insister ne rapporte rien et coûte les autres sources.
+# Les lignes déjà écrites sans texte seront reprises au passage suivant
+# (le filtre de reprise est `length(text) > 100`).
+MAX_TEXTES_VIDES = 25
 
 QUERY_BASE = (
     'contentsitename=ECHR AND '
@@ -108,6 +125,7 @@ def main():
     print(f"CEDH existing: {existing}")
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
+    textes_vides = 0
 
     # Peek overall total
     first = list_batch(client, QUERY_BASE, 0)
@@ -151,6 +169,22 @@ def main():
                     continue
 
                 text = fetch_text(client, itemid)
+                if text:
+                    textes_vides = 0
+                else:
+                    textes_vides += 1
+                    if textes_vides >= MAX_TEXTES_VIDES:
+                        conn.commit()
+                        print(
+                            f"\n*** COUPE-CIRCUIT : {textes_vides} textes vides "
+                            f"d'affilée — l'endpoint de conversion HUDOC ne "
+                            f"répond plus. Arrêt pour laisser la fenêtre aux "
+                            f"autres sources ; reprise au prochain passage. "
+                            f"(+{added} cette exécution)",
+                            flush=True,
+                        )
+                        conn.close()
+                        sys.exit(2)
                 row_data = (
                     itemid,
                     c.get("docname", ""),
