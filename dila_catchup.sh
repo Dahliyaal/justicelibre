@@ -16,6 +16,12 @@ FUND_UP="${FUND^^}"
 LOG="/var/log/justicelibre/dila_catchup_${FUND}.log"
 WORK="/opt/justicelibre/dila_bulk"
 mkdir -p "$WORK" /var/log/justicelibre
+# Même verrou que scripts/dila_update_daily.sh : les deux écrivent dans le
+# même fichier temporaire ($WORK/Freemium_<fond>.tar.gz), imposé par
+# parse_dila_bulk.py. Sans sérialisation, un rattrapage qui déborde sur le
+# cron de 4 h fait parser à l'un le tarball de l'autre.
+exec 9>"$WORK/.ingest.lock"
+flock 9
 cd /opt/justicelibre
 
 echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] catchup $FUND since $SINCE" | tee -a "$LOG"
