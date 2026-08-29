@@ -484,19 +484,54 @@ def parse_juris(fund: str):
                 nature = xml_text(meta.find("NATURE"))
                 ecli = juridiction = formation = date = numero = solution = ""
                 president = rapporteur = avocat_general = avocats = titre = sommaire = ""
-                if meta_j is not None:
-                    ecli = xml_text(meta_j.find("ECLI"))
-                    juridiction = xml_text(meta_j.find("JURIDICTION"))
-                    date = xml_text(meta_j.find("DATE_DEC"))
-                    numero = xml_text(meta_j.find("NUMERO"))
-                    solution = xml_text(meta_j.find("SOLUTION"))
-                    formation = xml_text(meta_j.find("FORMATION"))
-                    president = xml_text(meta_j.find("PRESIDENT"))
-                    rapporteur = xml_text(meta_j.find("RAPPORTEUR"))
-                    avocat_general = xml_text(meta_j.find("AVOCAT_GENERAL"))
-                    avocats_elts = meta_j.findall(".//AVOCATS/AVOCAT")
-                    avocats = " ; ".join(xml_text(a) for a in avocats_elts)
-                    titre = xml_text(meta_j.find("TITRE"))
+                # ⚠️ Les métadonnées sont réparties sur DEUX conteneurs, et le
+                # parseur ne lisait que le premier. Vérifié sur l'archive
+                # réelle CASS_20260824 :
+                #   META_JURI       → TITRE, DATE_DEC, JURIDICTION, SOLUTION,
+                #                     et un NUMERO **interne** (« 22600719 ») ;
+                #   META_JURI_JUDI  → ECLI, FORMATION, PRESIDENT, RAPPORTEUR,
+                #                     AVOCATS, et NUMEROS_AFFAIRES, qui porte
+                #                     le VRAI n° de pourvoi (« 23-18085 »).
+                # Conséquence : ECLI, formation, magistrats et avocats
+                # arrivaient vides, et le numéro stocké n'était pas celui par
+                # lequel on cite un arrêt — donc introuvable par recherche de
+                # pourvoi. Les lignes déjà en base, issues du stock initial,
+                # portent bien « 25-86842 » : le prochain delta les aurait
+                # ÉCRASÉES (INSERT OR REPLACE) par la mauvaise valeur.
+                # Le conteneur s'appelle META_JURI_ADMIN pour l'ordre
+                # administratif — on essaie les deux.
+                meta_spec = root.find(".//META_JURI_JUDI")
+                if meta_spec is None:
+                    meta_spec = root.find(".//META_JURI_ADMIN")
+
+                def _champ(tag: str) -> str:
+                    for src in (meta_j, meta_spec):
+                        if src is not None:
+                            v = xml_text(src.find(tag))
+                            if v:
+                                return v
+                    return ""
+
+                if meta_j is not None or meta_spec is not None:
+                    ecli = _champ("ECLI")
+                    juridiction = _champ("JURIDICTION")
+                    date = _champ("DATE_DEC")
+                    solution = _champ("SOLUTION")
+                    formation = _champ("FORMATION")
+                    president = _champ("PRESIDENT")
+                    rapporteur = _champ("RAPPORTEUR")
+                    avocat_general = _champ("AVOCAT_GENERAL")
+                    titre = _champ("TITRE")
+                    # Numéro : le pourvoi d'abord, le n° interne en dernier
+                    # recours (c'est ce dernier que le code servait).
+                    numeros = [xml_text(x) for x in root.iter("NUMERO_AFFAIRE")]
+                    numeros = [x for x in numeros if x]
+                    numero = numeros[0] if numeros else _champ("NUMERO")
+                    # AVOCATS est tantôt une liste <AVOCAT>, tantôt un simple
+                    # texte (« SCP Delamarre et Jehannin, SELAS Froger… »).
+                    avocats_elts = [x for x in root.iter("AVOCAT") if xml_text(x)]
+                    avocats = (" ; ".join(xml_text(a) for a in avocats_elts)
+                               if avocats_elts else _champ("AVOCATS"))
                 # sommaire et texte
                 somm_elt = root.find(".//SOMMAIRE/CONTENU") or root.find(".//SOMMAIRE")
                 sommaire = strip_html(ET.tostring(somm_elt, encoding="unicode")) if somm_elt is not None else ""
