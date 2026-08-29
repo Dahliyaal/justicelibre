@@ -29,11 +29,19 @@ USER_AGENT = "justicelibre.org/1.0 (open data scraper, contact: dahliyaal@justic
 # Vérifié depuis deux IP distinctes : la panne venait bien du Conseil de
 # l'Europe, pas de nous.
 #
-# Au-delà de ce seuil de textes vides consécutifs, on rend la main : la
-# source est morte, insister ne rapporte rien et coûte les autres sources.
-# Les lignes déjà écrites sans texte seront reprises au passage suivant
-# (le filtre de reprise est `length(text) > 100`).
-MAX_TEXTES_VIDES = 25
+# Deux réglages, à tenir ensemble : le seuil ne sert à rien s'il se
+# déclenche après la fin de la fenêtre. À 60 s × 25 essais on abandonnait
+# à la 25e minute sur 30 — autant ne rien faire. 10 essais × 20 s plafonne
+# la perte à ~3 minutes et laisse le reste aux autres sources.
+#
+# On ne compte QUE les échecs de la source (réseau, HTTP ≠ 200), pas les
+# documents légitimement vides : sinon une série de documents sans texte
+# ferait passer pour morte une source en bonne santé.
+#
+# Les lignes déjà écrites sans texte sont reprises au passage suivant (le
+# filtre de reprise est `length(text) > 100`).
+MAX_ECHECS_SOURCE = 10
+TIMEOUT_TEXTE = 20
 
 QUERY_BASE = (
     'contentsitename=ECHR AND '
@@ -92,14 +100,22 @@ def list_batch(client, query, start):
 
 
 def fetch_text(client, itemid):
+    """Renvoie le texte, "" si le document est vide, None si la SOURCE a échoué.
+
+    La distinction compte : un document vide est un cas normal et isolé, un
+    échec réseau ou HTTP est le symptôme d'une panne qui va se répéter sur
+    tous les suivants. Confondre les deux, c'est ne jamais pouvoir décider
+    d'arrêter (cf. MAX_ECHECS_SOURCE).
+    """
     try:
         r = client.get(
             f"{BASE}/app/conversion/docx/html/body",
             params={"library": "ECHR", "id": itemid, "filename": "x.docx", "logEvent": "False"},
-            timeout=60,
+            timeout=TIMEOUT_TEXTE,
         )
         if r.status_code != 200:
-            return ""
+            print(f"  [text {itemid}]: HTTP {r.status_code}")
+            return None
         text = r.text
         # Strip HTML to plain text
         text = re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=re.DOTALL)
@@ -110,7 +126,7 @@ def fetch_text(client, itemid):
         return text
     except Exception as e:
         print(f"  [text err {itemid}]: {e}")
-        return ""
+        return None
 
 
 def main():
@@ -125,7 +141,7 @@ def main():
     print(f"CEDH existing: {existing}")
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
-    textes_vides = 0
+    echecs_source = 0
 
     # Peek overall total
     first = list_batch(client, QUERY_BASE, 0)
@@ -169,14 +185,12 @@ def main():
                     continue
 
                 text = fetch_text(client, itemid)
-                if text:
-                    textes_vides = 0
-                else:
-                    textes_vides += 1
-                    if textes_vides >= MAX_TEXTES_VIDES:
+                if text is None:
+                    echecs_source += 1
+                    if echecs_source >= MAX_ECHECS_SOURCE:
                         conn.commit()
                         print(
-                            f"\n*** COUPE-CIRCUIT : {textes_vides} textes vides "
+                            f"\n*** COUPE-CIRCUIT : {echecs_source} échecs "
                             f"d'affilée — l'endpoint de conversion HUDOC ne "
                             f"répond plus. Arrêt pour laisser la fenêtre aux "
                             f"autres sources ; reprise au prochain passage. "
@@ -185,6 +199,11 @@ def main():
                         )
                         conn.close()
                         sys.exit(2)
+                    # Panne de la source : ne rien écrire, ne pas marquer la
+                    # décision comme traitée. On la reprendra intacte.
+                    time.sleep(min(30, 2 * echecs_source))
+                    continue
+                echecs_source = 0
                 row_data = (
                     itemid,
                     c.get("docname", ""),

@@ -24,7 +24,11 @@ QUERY_BASE = (
     '((languageisocode="FRE"))'
 )
 SELECT = "itemid,docname,ecli,kpdate,doctype,article,conclusion,importance,respondent,originatingbody_name"
-MAX_CONSECUTIVE_ERRORS = 20
+# Cf. le commentaire détaillé dans scrape_cedh.py : seuil et timeout se
+# règlent ENSEMBLE, sinon le coupe-circuit se déclenche après la fin de la
+# fenêtre de 30 min et ne sert à rien.
+MAX_ECHECS_SOURCE = 10
+TIMEOUT_TEXTE = 20
 
 
 def list_batch(client, query, start, length=BATCH):
@@ -38,14 +42,16 @@ def list_batch(client, query, start, length=BATCH):
 
 
 def fetch_text(client, itemid):
+    """Texte, "" si document vide, None si la SOURCE a échoué (cf. scrape_cedh)."""
     try:
         r = client.get(
             f"{BASE}/app/conversion/docx/html/body",
             params={"library": "ECHR", "id": itemid, "filename": "x.docx", "logEvent": "False"},
-            timeout=60,
+            timeout=TIMEOUT_TEXTE,
         )
         if r.status_code != 200:
-            return ""
+            print(f"  [text {itemid}]: HTTP {r.status_code}")
+            return None
         t = r.text
         t = re.sub(r"<script[^>]*>.*?</script>", " ", t, flags=re.DOTALL)
         t = re.sub(r"<style[^>]*>.*?</style>", " ", t, flags=re.DOTALL)
@@ -55,7 +61,7 @@ def fetch_text(client, itemid):
         return t
     except Exception as e:
         print(f"  [text err {itemid}]: {e}")
-        return ""
+        return None
 
 
 def list_all_itemids_for_year(client, year):
@@ -130,33 +136,30 @@ def main():
             if not itemid:
                 continue
             # ⚠️ Le coupe-circuit ci-dessous ne se déclenchait JAMAIS.
-            # `fetch_text` attrape ses propres exceptions et renvoie "" : le
-            # `except` n'était donc jamais atteint, et `consecutive_errors`
+            # `fetch_text` attrapait ses propres exceptions et renvoyait "" :
+            # le `except` n'était donc jamais atteint et `consecutive_errors`
             # restait à 0 quoi qu'il arrive. Constaté le 29 août 2026, quand
             # l'endpoint de conversion HUDOC est tombé : 30 échecs d'affilée,
             # 60 s chacun, et le script continuait imperturbablement.
-            # On compte désormais aussi les textes vides, qui SONT le mode
-            # d'échec réel de cette source.
-            text = ""
-            try:
-                text = fetch_text(client, itemid)
-            except Exception as e:
-                print(f"  [err fetch {itemid}]: {e}")
-            if text:
-                consecutive_errors = 0
-            else:
+            # `fetch_text` distingue désormais le document vide ("") de
+            # l'échec de la source (None) — seul le second est comptabilisé.
+            text = fetch_text(client, itemid)
+            if text is None:
                 consecutive_errors += 1
-                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                if consecutive_errors >= MAX_ECHECS_SOURCE:
                     conn.commit()
                     print(
-                        f"\n*** COUPE-CIRCUIT : {consecutive_errors} textes vides "
+                        f"\n*** COUPE-CIRCUIT : {consecutive_errors} échecs "
                         f"d'affilée — HUDOC ne répond plus. Arrêt ; reprise au "
                         f"prochain passage. (+{added} cette exécution)",
                         flush=True,
                     )
                     sys.exit(2)
-                time.sleep(min(60, 5 * consecutive_errors))
+                # On ne marque pas la décision comme traitée : elle sera
+                # reprise intacte au prochain passage.
+                time.sleep(min(30, 2 * consecutive_errors))
                 continue
+            consecutive_errors = 0
 
             row = (
                 itemid,
