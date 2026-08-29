@@ -1362,13 +1362,25 @@ async def get_ce_decision(numero: str) -> dict[str, Any]:
     Pour retrouver une décision via identifiant DCE_*, utiliser
     `get_decision_text` à la place.
 
+    ⚠️ **Numéros réutilisés** : le CE a réattribué ses numéros de pourvoi
+    d'une époque à l'autre. 7 938 numéros sont portés par plusieurs
+    décisions (16 143 décisions concernées, mesuré le 29 août 2026). Le
+    n° 74052, par exemple, désigne à la fois un arrêt de 1969 sur des
+    quotas de mouture et l'arrêt d'Assemblée du 3 février 1989 « Compagnie
+    Alitalia ». Quand c'est le cas, la réponse porte un champ
+    `avertissement` et un champ `homonymes` listant les autres décisions du
+    même numéro. **Ne jamais conclure d'une seule réponse qu'un arrêt
+    n'existe pas** : lire `homonymes`, et désambiguïser en citant toujours
+    la date et la formation (« Ass., 3 février 1989, n° 74052 »).
+
     Args:
         numero: numéro de pourvoi (ex : "497566", "358109")
 
     Returns:
-        Décision avec métadonnées, ou dict d'erreur structuré
-        `{error, error_category: "not_found"}` si introuvable dans les
-        deux bases.
+        Décision avec métadonnées — plus `homonymes` et `avertissement` si
+        d'autres décisions portent le même numéro. Ou dict d'erreur
+        structuré `{error, error_category: "not_found"}` si introuvable
+        dans les deux bases.
     """
     _record_call("get_ce_decision")
     result = await jade_remote.get_ce_decision(numero)
@@ -1401,6 +1413,13 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     d'État et les CAA : un numéro de TA peut alors ressortir « introuvable »
     alors qu'il existe. Dans ce cas, réessaie en nommant le tribunal.
 
+    ⚠️ **Numéros réutilisés dans le temps** : au-delà du partage entre
+    tribunaux, un même numéro désigne parfois plusieurs décisions de LA
+    MÊME juridiction, rendues à des époques différentes (7 938 numéros du
+    CE, mesuré le 29 août 2026). La réponse porte alors un champ
+    `avertissement` et un champ `homonymes`. **Ne jamais conclure d'une
+    seule réponse qu'une décision n'existe pas.**
+
     Args:
         numero: numéro de requête (ex : "2200433", "2116343", "497566")
         juridiction: identifiant de la juridiction. **Recommandé pour tout
@@ -1420,8 +1439,10 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
             le TA de Lyon renvoyait silencieusement la CAA de Lyon.
 
     Returns:
-        Décision avec métadonnées (id, juridiction, numero, date, titre),
-        ou `{"error": "introuvable"}` si aucun résultat dans JADE.
+        Décision avec métadonnées (id, juridiction, numero, date, titre) —
+        plus `homonymes` et `avertissement` si d'autres décisions du même
+        ordre de juridiction portent ce numéro. Ou `{"error": "introuvable"}`
+        si aucun résultat dans JADE.
 
     Exemples :
         get_admin_decision("2200433", juridiction="Tribunal Administratif de Lyon")

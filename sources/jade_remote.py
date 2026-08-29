@@ -66,13 +66,44 @@ def _filter_by_juridiction(results: list[dict], juridiction: str | None) -> list
     return [r for r in results if _juri_type(r.get("juridiction", "")) == want]
 
 
-def _pick_by_juridiction(results: list[dict], juridiction: str | None) -> dict | None:
-    """Retient la décision du bon ordre de juridiction, ou aucune.
+_CHAMPS_HOMONYME = ("id", "juridiction", "formation", "date", "numero", "titre")
 
-    Servir la voisine plausible est pire qu'échouer : le client cite alors
-    un arrêt de CAA en croyant tenir le jugement de TA."""
-    kept = _filter_by_juridiction(results, juridiction)
-    return kept[0] if kept else None
+
+def _signaler_homonymes(principal: dict, tous: list[dict]) -> dict:
+    """Annonce les autres décisions portant le MÊME numéro.
+
+    Le Conseil d'État a réutilisé ses numéros de pourvoi d'une époque à
+    l'autre. Mesuré le 29 août 2026 sur le bulk JADE : **7 938 numéros du
+    CE sont portés par plusieurs décisions**, soit 16 143 décisions
+    concernées. Le n° 74052 désigne ainsi à la fois un arrêt du 29 octobre
+    1969 (quotas d'écrasement d'un moulin) ET l'arrêt d'Assemblée du
+    3 février 1989 « Compagnie Alitalia ».
+
+    Le lookup rendait la première ligne venue — l'ordre des rowid, donc la
+    plus ancienne — et jetait les autres sans un mot. Conséquence
+    constatée : un agent a conclu qu'Alitalia n'existait pas dans la base
+    et l'a classée « invérifiable », alors qu'elle y est. Un silence sur
+    l'homonymie se lit comme une absence.
+
+    On ne choisit donc pas à la place de l'appelant : on sert la même
+    décision qu'avant (aucun changement de comportement) et on lui montre
+    les autres, pour qu'il tranche sur la date et la formation.
+    """
+    autres = [d for d in tous if d.get("id") != principal.get("id")]
+    if not autres:
+        return principal
+    out = dict(principal)
+    out["homonymes"] = [
+        {c: d.get(c) for c in _CHAMPS_HOMONYME if d.get(c)} for d in autres
+    ]
+    out["avertissement"] = (
+        f"{len(autres) + 1} décisions portent le numéro "
+        f"{principal.get('numero') or '?'} : les numéros anciens ont été "
+        f"réutilisés. Celle servie ici est du {principal.get('date') or '?'}. "
+        "Vérifier la date et la formation avant de citer — les autres sont "
+        "dans le champ `homonymes`, aucune n'est absente de la base."
+    )
+    return out
 
 
 def _normalize_hit(h: dict) -> dict:
@@ -163,9 +194,11 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
 
     # 1. Lookup SQL exact dans JADE bulk
     results = await wh.lookup_by_numero("jade", num_clean, juridiction=juridiction)
-    picked = _pick_by_juridiction(results, juridiction)
-    if picked:
-        return picked
+    # Les homonymes se signalent DANS l'ordre de juridiction demandé : on ne
+    # ressuscite pas la confusion TA/CAA que `_filter_by_juridiction` écarte.
+    kept = _filter_by_juridiction(results, juridiction)
+    if kept:
+        return _signaler_homonymes(kept[0], kept)
 
     # 2. Fallback sur API live (opendata.justice-administrative.fr)
     try:
@@ -221,7 +254,7 @@ async def get_ce_decision(numero: str) -> dict[str, Any] | None:
     # 1. Lookup SQL exact dans JADE
     results = await wh.lookup_by_numero("jade", num_clean, juridiction="Conseil d'Etat")
     if results:
-        return results[0]
+        return _signaler_homonymes(results[0], results)
 
     # 2. Fallback ArianeWeb (Sinequa) — pour les décisions hors bulk JADE
     try:
