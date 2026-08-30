@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+<script>/* theme resolver : évite le flash, doit rester avant les CSS */
 (function(){try{var s=localStorage.getItem("jl-theme");
 if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <title>Ressources & jeux de données ouverts - JusticeLibre</title>
@@ -92,7 +92,7 @@ footer.foot a:hover{color:var(--teal)}
 
 <section class="block">
   <h2>Thésaurus & vocabulaires contrôlés</h2>
-  <p class="intro">Utilisés par notre moteur d'expansion sémantique pour étendre vos requêtes (ex : « licenciement » → « mise à pied », « licenciement abusif »...). 19 138 concepts unifiés.</p>
+  <p class="intro">Utilisés par notre moteur d'expansion sémantique pour étendre vos requêtes (ex : « licenciement » → « mise à pied », « licenciement abusif »...). 20 968 concepts unifiés.</p>
   <div class="cards">
 
     <div class="card">
@@ -145,12 +145,12 @@ footer.foot a:hover{color:var(--teal)}
       <div class="meta">
         <span>JSON</span><span>FR</span><span>6 472 concepts</span><span>5 923 nommés</span><span class="lic">Etalab 2.0</span>
       </div>
-      <p class="desc">Reconstitué à partir des balises <code>&lt;SCT&gt;</code> (chaîne de rubriques) de 335 597 décisions JADE. Hiérarchie 7 niveaux et fréquences d'usage incluses. Le Conseil d'État ne publiant pas ce plan au format SKOS, il s'agit à ce jour de l'unique version structurée disponible en données ouvertes.<br><strong>Chaque entrée porte un niveau de confiance</strong> : <code>elevee</code> (3 771 — nom issu de la forme moderne, auto-validée par comptage des niveaux), <code>moyenne</code> (726 — réalignement de la forme ancienne sur les rubriques connues), <code>faible</code> (1 426 — repris de la version antérieure, non revérifié), <code>null</code> (549 — la source ne nomme pas ce niveau, aucun nom n'a été inventé).</p>
+      <p class="desc">Arborescence reconstituée par rétro-ingénierie des balises <code>&lt;SCT&gt;</code> (chaînes de rubriques) extraites de 335 597 décisions de la base JADE. Le Conseil d'État ne diffusant pas ce plan au standard SKOS, ce jeu de données constitue à ce jour l'unique version structurée accessible en open data (hiérarchie à 7 niveaux et fréquences d'usage incluses).<br><strong>Indicateur de fiabilité par entrée</strong> : <code>elevee</code> (3 771 : terminologie moderne, auto-validée par la profondeur de l'arborescence), <code>moyenne</code> (726 : réalignement des formes anciennes sur la nomenclature actuelle), <code>faible</code> (1 426 : donnée héritée de la version antérieure, non revérifiée), <code>null</code> (549 : niveau que la source ne nomme jamais, aucun libellé n'a été inventé).</p>
       <div class="actions">
         <a class="btn btn-primary" href="/data/pcja_reconstructed.json">Télécharger JSON (2 Mo)</a>
         <a class="btn btn-secondary" href="https://www.legifrance.gouv.fr/ceta/planclassement" target="_blank" rel="noopener">Plan navigable (Légifrance) ↗</a>
       </div>
-      <div class="backup-date">Reconstruit le 30 août 2026 depuis 335 597 décisions JADE. La version du 1er mai 2026 comportait 3 526 étiquettes non résolues sur 4 093 : elle est remplacée.</div>
+      <div class="backup-date">Généré le 30 août 2026 à partir de 335 597 décisions JADE. Cette mise à jour remplace l'itération du 1er mai 2026 et corrige son déficit de couverture (3 526 étiquettes orphelines sur 4 093).</div>
     </div>
 
     <div class="card" style="grid-column:1/-1;background:var(--teal-xl);border-color:var(--teal)">
@@ -425,7 +425,7 @@ footer.foot a:hover{color:var(--teal)}
   <h2>Données non diffusées par les autorités publiques</h2>
   <p class="intro">Ressources techniques dont la publication par les autorités compétentes fait actuellement défaut. Certaines existent en interne mais ne sont pas exposées en données ouvertes.</p>
   <div class="infobox">
-    <p>• <strong>PCJA au format SKOS-RDF.</strong> Le Conseil d'État maintient le Plan de Classement en interne mais ne publie pas la version SKOS associée à des URI stables — ni sous aucun autre format structuré. Notre version reconstituée compte 6 472 codes, dont 5 923 portent un nom. Nous ne pouvons pas mesurer sa couverture par rapport au plan officiel, faute d'accès à celui-ci : les 549 codes sans nom sont ceux que les analyses de décisions ne nomment jamais, et le champ de confiance indique, pour chaque entrée, comment son nom a été établi.</p>
+    <p>• <strong>PCJA au format SKOS-RDF.</strong> Le Conseil d'État maintient le Plan de Classement en interne mais ne publie pas la version SKOS associée à des URI stables, ni aucun autre format structuré. Notre version reconstituée compte 6 472 codes, dont 5 923 portent un nom. Nous ne pouvons pas mesurer sa couverture par rapport au plan officiel, faute d'accès à celui-ci : les 549 codes sans nom sont ceux que les analyses de décisions ne nomment jamais, et le champ de confiance indique, pour chaque entrée, comment son nom a été établi.</p>
     <p>• <strong>Absence de dépôts de code institutionnels</strong> pour le Conseil d'État, le Conseil constitutionnel, la CNIL, la CADA et le Défenseur des droits. Ces institutions exposent uniquement des API propriétaires (Sinequa, OpenCNIL) sans miroir code ou données associées sur GitHub.</p>
     <p>• <strong>Absence de schéma ECLI unifié</strong> et de table de correspondance entre la norme ECLI et les identifiants nationaux. JusticeLibre tente de combler cette lacune via son moteur de résolution croisée.</p>
   </div>
