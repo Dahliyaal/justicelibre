@@ -72,6 +72,20 @@ DECOUPAGES = (
 )
 
 
+# Longueur maximale d'une rubrique de nomenclature (cf. _est_rubrique).
+LONGUEUR_MAX_RUBRIQUE = 250
+# La passe de SECOURS est plus tolérante — c'est son rôle — mais elle doit
+# refuser une phrase. Sans ces bornes, 69 concepts se retrouvaient nommés
+# par du texte d'arrêt : « La loi 81-1160 du 30 décembre 1981 a prévu à son
+# article 23 que… » (356 caractères). Mesuré le 30 août 2026.
+LONGUEUR_MAX_SECOURS = 250
+PART_MAJUSCULES_SECOURS = 0.50
+# En deçà, un libellé en casse normale reste acceptable : certaines vraies
+# rubriques anciennes sont écrites ainsi (« Liberté du commerce et de
+# l'industrie (voir : …) »). Au-delà, on exige une allure d'intitulé.
+LONGUEUR_MAX_RUBRIQUE_COURTE = 120
+
+
 def profondeur(code: str) -> int:
     return len(code.split("-"))
 
@@ -98,8 +112,46 @@ def _est_rubrique(seg: str) -> bool:
     lettres = [c for c in seg if c.isalpha()]
     if len(lettres) < 3:
         return False
+    # Une rubrique est COURTE. Un résumé d'affaire est long, et il est écrit
+    # en majuscules lui aussi — le seul filtre de casse le laissait donc
+    # passer. Constaté le 30 août 2026 après une première intégration : 127
+    # concepts avaient pour nom principal un texte de plus de 200
+    # caractères, du genre « GREFFIERS. - GREFFIERS DES TRIBUNAUX DE
+    # COMMERCE - EXERCICE DU DROIT DE PRÉSENTATION - 1) DROIT ENFERMÉ… ».
+    # Bornes observées : rubriques légitimes jusqu'à 93 caractères
+    # (« CONVENTION EUROPEENNE DE SAUVEGARDE DES DROITS DE L'HOMME ET DES
+    # LIBERTES FONDAMENTALES »), résumés à partir de 142. On coupe à 100.
+    if len(seg) > LONGUEUR_MAX_RUBRIQUE:
+        return False
     hautes = sum(1 for c in lettres if c.isupper())
     return hautes / len(lettres) >= 0.75
+
+
+def _rubrique_plausible(seg: str) -> bool:
+    """Contrôle allégé, pour la passe de SECOURS.
+
+    Le secours doit rester tolérant — c'est sa raison d'être — mais il ne
+    doit pas avaler une PHRASE. Sans ce contrôle, il nommait des concepts
+    avec du texte d'arrêt en clair : « En renvoyant ainsi, pour la
+    détermination des règles applicables au recouvrement… » (729
+    caractères), « La loi 81-1160 du 30 décembre 1981 a prévu… » (356).
+    Mesuré le 30 août 2026 : 181 noms dépassaient 100 caractères, dont la
+    moitié étaient de la prose.
+
+    On garde donc les libellés courts quelle que soit leur casse — certaines
+    rubriques anciennes sont en casse normale, « Liberté du commerce et de
+    l'industrie (voir : …) » en est une — mais dès qu'un segment s'allonge,
+    on exige qu'il ressemble à un intitulé, pas à une phrase.
+    """
+    if len(seg) > LONGUEUR_MAX_SECOURS:
+        return False
+    lettres = [c for c in seg if c.isalpha()]
+    if len(lettres) < 3:
+        return False
+    if len(seg) <= LONGUEUR_MAX_RUBRIQUE_COURTE:
+        return True
+    hautes = sum(1 for c in lettres if c.isupper())
+    return hautes / len(lettres) >= PART_MAJUSCULES_SECOURS
 
 
 def _nettoie(seg: str) -> str:
@@ -112,6 +164,73 @@ def _nettoie(seg: str) -> str:
     return seg.strip(" .-–—\t")
 
 
+# Signatures d'un titre d'analyse, jamais d'une rubrique de nomenclature.
+# Chacune mesurée sur un échantillon de 112 libellés classés à la main le
+# 30 août 2026 : précision de 90 à 100 % selon le marqueur.
+MARQUEURS_ANALYSE = re.compile(r"|".join((
+    r"\b[1-9]\)\s",                 # énumération « 1) », « 2) »
+    r"\b[AB]\)\s",                  # sous-énumération « a) », « b) »
+    r"\[RJ|,RJ|\bRJ[123]\b",        # renvoi de jurisprudence
+    r"–|—",                         # tirets demi-cadratin (format moderne)
+    r"«|»",                         # guillemets
+    r"\s{4,}",                      # colonnes de l'ancien format
+)))
+
+# Mots par lesquels le Conseil d'État conclut une analyse. Employés seuls,
+# ce ne sont jamais des rubriques de nomenclature. Mesuré le 30 août 2026 :
+# 184 concepts avaient pour nom entier l'un d'eux — dont 70 « EXISTENCE » et
+# 70 « ABSENCE ». « OUI » et « NON » sont volontairement ABSENTS de la liste
+# (« PROFESSIONS NON ORGANISEES EN ORDRES… » est une vraie rubrique).
+MOTS_VERDICT = {
+    "ABSENCE", "EXISTENCE", "INCLUSION", "EXCLUSION", "ILLUSTRATION",
+    "CONSEQUENCE", "CONSÉQUENCE", "ILLEGALITE", "ILLÉGALITÉ",
+    "IRREGULARITE", "IRRÉGULARITÉ",
+}
+
+
+def _porte_marqueur(seg: str) -> bool:
+    """Le segment porte-t-il une signature de titre d'analyse ?"""
+    if MARQUEURS_ANALYSE.search(seg):
+        return True
+    if seg.strip().upper().strip(" .-") in MOTS_VERDICT:
+        return True
+    if seg.count("(") != seg.count(")") or seg.count("[") != seg.count("]"):
+        return True
+    return False
+
+
+def coupe_titre_analyse(reste: str) -> str:
+    """Retire le titre d'analyse, ne garde que la chaîne hiérarchique.
+
+    C'EST LA CORRECTION CENTRALE (30 août 2026). Le PCJA écrit d'abord la
+    hiérarchie en capitales, puis le titre de l'analyse — lui aussi en
+    capitales dans le format moderne. Sans cette coupe, quand la hiérarchie
+    compte MOINS de segments que le code n'a de niveaux, le découpage
+    déborde et affecte des morceaux du titre aux niveaux profonds.
+
+    Conséquence mesurée avant correction : 70 codes nommés « EXISTENCE »,
+    70 « ABSENCE », 184 concepts nommés par un simple mot-verdict. Un seuil
+    de longueur n'y pouvait rien : « ABSENCE » fait sept caractères.
+
+        format ancien   : « … - GREFFIERS -Indemnité de suppression… »
+                          → le titre commence au tiret NON précédé d'espace
+        format moderne  : « PROCÉDURE. … MOYEN PROPRE À CRÉER UN DOUTE. -
+                            POSSIBILITÉ DE SUBORDONNER… »
+                          → le titre commence au premier « . - » ou « - »
+                            qui suit une chaîne à séparateurs « . »
+    """
+    # Format ancien : tiret collé au mot suivant.
+    m = re.search(r"\s-(?=\S)", reste)
+    coupe = m.start() if m else len(reste)
+    # Format moderne : la chaîne est séparée par des points ; le premier
+    # « - » entouré d'espaces ouvre alors le titre d'analyse.
+    if re.search(r"\.\s+[A-ZÀ-ÜŒÆ]", reste[:coupe]):
+        m2 = re.search(r"\.\s*-\s|\s-\s", reste[:coupe])
+        if m2:
+            coupe = m2.start()
+    return reste[:coupe].strip()
+
+
 def niveaux(reste: str, attendu: int, strict: bool = True) -> list[str] | None:
     """Découpe `reste` en `attendu` niveaux, ou None si aucun découpage ne colle.
 
@@ -120,21 +239,27 @@ def niveaux(reste: str, attendu: int, strict: bool = True) -> list[str] | None:
     découpage qui en produit moins — mieux vaut ne rien nommer que nommer
     un niveau avec le libellé d'un autre.
     """
+    hierarchie = coupe_titre_analyse(reste)
+    if not hierarchie:
+        return None
     meilleur: list[str] | None = None
     for motif in DECOUPAGES:
-        parts = [_nettoie(p) for p in motif.split(reste)]
+        parts = [_nettoie(p) for p in motif.split(hierarchie)]
         parts = [p for p in parts
-                 if len(p) >= 2 and (not strict or _est_rubrique(p))]
-        if len(parts) >= attendu:
-            candidat = parts[:attendu]
-            # Un niveau vide ou numérique n'est pas un nom.
-            if all(c and not c.isdigit() for c in candidat):
-                # On garde le découpage le plus « serré » (le premier qui
-                # atteint exactement le compte attendu est préféré).
-                if len(parts) == attendu:
-                    return candidat
-                if meilleur is None:
-                    meilleur = candidat
+                 if len(p) >= 2 and not p.isdigit()
+                 and not _porte_marqueur(p)
+                 and (_est_rubrique(p) if strict else _rubrique_plausible(p))]
+        if not parts:
+            continue
+        # ⚠️ On ne comble JAMAIS un niveau manquant. Si la hiérarchie compte
+        # moins de segments que le code n'a de niveaux, on nomme ce qu'on a
+        # et on laisse le reste sans nom — c'est ainsi qu'on évite
+        # d'attribuer un morceau de titre d'analyse à un niveau profond.
+        candidat = parts[:attendu]
+        if len(parts) == attendu:
+            return candidat
+        if meilleur is None or len(candidat) > len(meilleur):
+            meilleur = candidat
     return meilleur
 
 
@@ -186,14 +311,16 @@ def main() -> int:
                 freq[code] += 1
                 anc = ancetres(code)
                 noms = niveaux(reste, len(anc), strict=True)
-                if noms is not None:
+                if noms:
                     n_ok += 1
+                    # zip s'arrête au plus court : les niveaux que la
+                    # hiérarchie ne nomme pas restent simplement sans nom.
                     for a, nom in zip(anc, noms):
                         libelles[a][nom] += 1
                     continue
                 n_ko += 1
                 laches = niveaux(reste, len(anc), strict=False)
-                if laches is not None:
+                if laches:
                     for a, nom in zip(anc, laches):
                         secours[a][nom] += 1
         if n_dec % 50000 == 0:
