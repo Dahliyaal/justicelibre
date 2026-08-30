@@ -2136,18 +2136,38 @@ async def search_all(
     limit: int = 30,
     expand_synonyms: bool = True,
 ) -> dict[str, Any]:
-    """Recherche fédérée pondérée par pertinence sur toutes les sources.
+    """Recherche fédérée sur toutes les sources, par ENTRELACEMENT.
 
     Tool ONE-STOP quand on ne sait pas où chercher : interroge en parallèle
-    les sources locales (DILA judic, JADE admin, LEGI, CEDH, CJUE) et
-    retourne une liste fusionnée triée par score BM25 avec un bonus
-    d'autorité (CE/Cass/CEDH > CAA > TA/CA).
+    les sources locales (DILA judic, JADE admin, LEGI, CEDH, CJUE).
+
+    ⚠️ **Il n'y a pas de score global, et c'est délibéré.** Les scores BM25
+    ne sont pas comparables d'une source à l'autre : la rareté d'un mot est
+    calculée sur chaque corpus séparément, si bien qu'un même terme n'a pas
+    le même poids dans 76 000 arrêts CEDH et dans 1,5 M de décisions
+    judiciaires. Les résultats sont donc ENTRELACÉS — le 1er de chaque
+    source, puis le 2e de chaque source, etc., les sources les plus faisant
+    autorité en tête à rang égal. L'ordre interne de chaque source est
+    préservé, et aucune source ne peut être affamée par une autre.
+
+    Un champ `score` valant 1.0 était renvoyé pour tous les résultats : il
+    ne mesurait rien et laissait croire à un tri par pertinence. Supprimé le
+    30 août 2026. Pour connaître la position d'un résultat DANS sa source,
+    lire `source_rank` (0 = le mieux classé par cette source).
+
+    ⚠️ **AND implicite** : tous les termes sont exigés simultanément. Une
+    question rédigée en langage naturel (10 mots et plus) renverra
+    fréquemment 0 sur les fonds français. Préférer 2 à 5 mots distinctifs.
 
     Args:
         query: mots-clés (ou phrase). Si `expand_synonyms=True` (défaut),
             les termes du thésaurus juridique FR sont automatiquement
             étendus à leurs équivalents (ex: "harcèlement" → aussi
-            "intimidation", "vexation morale", etc.)
+            "intimidation", "vexation morale", etc.). Les mots trop courants
+            du vocabulaire juridique (« État », « justice », « droit »,
+            « responsabilité »…) ne sont PAS étendus : leurs « synonymes »
+            de thésaurus sont des rubriques de classement, pas des
+            équivalents, et ils noyaient les termes porteurs de sens.
         sources: liste optionnelle parmi ["dila", "jade", "legi", "cedh",
             "cjue"]. None = toutes.
         sort: "relevance" (défaut) ou "date_desc"
@@ -2202,12 +2222,23 @@ async def search_all(
                     # `dila.search` renvoie `titre`, pas `title` : lire la
                     # mauvaise clé donnait un titre None sur TOUS les
                     # résultats DILA de search_all (23 août 2026).
+                    # ⚠️ `dila.search` nomme l'extrait `snippet`, pas
+                    # `extract`. Le titre avait été corrigé le 23 août 2026,
+                    # l'extrait juste à côté ne l'avait pas été : TOUS les
+                    # résultats DILA de search_all sortaient avec
+                    # `extract: null` — sur la source la plus utile du
+                    # serveur. Signalé par un usage réel le 30 août 2026,
+                    # impossible de trier sans ouvrir chaque décision.
+                    # `solution` est remonté aussi : sans lui, on confond
+                    # « la cour retient une faute lourde » et « les demandeurs
+                    # invoquaient une faute lourde ».
                     hits = [{"source": "dila", "id": h.get("id"),
                              "juridiction": h.get("juridiction"),
                              "date": h.get("date"),
                              "title": h.get("titre") or h.get("title"),
-                             "extract": h.get("extract"),
-                             "score": 1.0} for h in d.get("decisions", [])]
+                             "extract": h.get("snippet") or h.get("extract"),
+                             "solution": h.get("solution") or None,
+                             } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "jade":
                     d = await jade_remote.search(query=q, sort=sort,
@@ -2216,7 +2247,7 @@ async def search_all(
                              "juridiction": h.get("juridiction"),
                              "date": h.get("date"), "title": h.get("titre"),
                              "extract": h.get("extract"),
-                             "score": 1.0} for h in d.get("decisions", [])]
+                             } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "legi":
                     from sources import warehouse as wh
@@ -2226,7 +2257,7 @@ async def search_all(
                              "juridiction": "Articles de loi",
                              "date": h.get("date"), "title": f"Article {h.get('num')} — {h.get('titre')}",
                              "extract": h.get("extract"),
-                             "score": 1.0} for h in d.get("results", [])]
+                             } for h in d.get("results", [])]
                     return src, d.get("total", 0), hits
                 if src == "cedh":
                     d = await asyncio.to_thread(
@@ -2238,7 +2269,7 @@ async def search_all(
                              "date": h.get("date"),
                              "title": h.get("docname") or h.get("title"),
                              "extract": h.get("extract"),
-                             "score": 1.0} for h in d.get("decisions", [])]
+                             } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "cjue":
                     d = await asyncio.to_thread(
@@ -2247,7 +2278,7 @@ async def search_all(
                              "juridiction": "CJUE",
                              "date": h.get("date"), "title": h.get("title"),
                              "extract": h.get("extract"),
-                             "score": 1.0} for h in d.get("decisions", [])]
+                             } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
             except Exception as e:
                 errors[src] = {

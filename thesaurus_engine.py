@@ -44,6 +44,45 @@ def normalize(s: str) -> str:
     return unidecode(s).upper().strip()
 
 
+# ── Garde-fous d'expansion (30 août 2026) ────────────────────────────────
+#
+# Signalés par un usage réel : la requête « refus d'enregistrement requête
+# greffe déni de justice responsabilité État » produisait
+#     justice        → ADMINISTRATION PENITENTIAIRE, JUSTICE MILITAIRE, PEINE…
+#     responsabilité → "<inconnu 37-04-04-02>", dommage, indemnisation…
+#     État           → État confédéral, ETAT FEDERAL, symbole de l'État…
+# soit une requête illisible, où le bruit noyait les trois termes qui
+# portaient vraiment le sens (« greffe », « enregistrement », « déni »).
+
+# 1. Les mots trop courants du vocabulaire juridique. Les étendre n'apporte
+#    rien : ils figurent dans presque toutes les décisions, et leurs
+#    « synonymes » thésaurus sont en réalité des RUBRIQUES de classement
+#    (« JUSTICE MILITAIRE » n'est pas un synonyme de « justice »). On les
+#    laisse tels quels — l'utilisateur les a écrits, ils sont littéraux.
+_MOTS_TROP_COURANTS = {
+    normalize(m) for m in (
+        "état", "justice", "droit", "droits", "responsabilité", "juge",
+        "juges", "juridiction", "tribunal", "cour", "procédure", "instance",
+        "décision", "jugement", "arrêt", "requête", "demande", "action",
+        "loi", "règle", "texte", "acte", "partie", "parties", "affaire",
+        "personne", "personnes", "public", "publique", "administration",
+    )
+}
+
+# 2. Les étiquettes non résolues. `scripts/reconstruct_pcja.py` écrit
+#    `<inconnu 37-04-04-02>` quand il ne sait pas nommer un code — et ces
+#    chaînes sont ensuite parties dans les requêtes FTS5 comme si c'étaient
+#    des synonymes. Mesuré le 30 août 2026 : 3 526 étiquettes sur 29 755
+#    (11,8 % du thésaurus). Elles sont purgées de la base par
+#    `scripts/purge_thesaurus_inconnus.py`, mais ce filtre reste : une
+#    donnée douteuse ne doit jamais pouvoir atteindre une requête.
+_MOTIF_INVALIDE = re.compile(r"^\s*<.*>\s*$")
+
+
+def _EST_ETIQUETTE_INVALIDE(s: str) -> bool:
+    return not s or not s.strip() or bool(_MOTIF_INVALIDE.match(s))
+
+
 class ThesaurusEngine:
     """Charge thesaurus.db en mémoire et expose l'expansion."""
 
@@ -95,11 +134,18 @@ class ThesaurusEngine:
 
         Garantit ne jamais retourner le terme original. Limité à max_per_term
         pour éviter les requêtes BM25 explosives.
+
+        Deux garde-fous, ajoutés le 30 août 2026 après un rapport d'usage :
+        les mots trop courants du vocabulaire juridique ne sont pas étendus
+        (cf. _MOTS_TROP_COURANTS), et les étiquettes non résolues du thésaurus
+        sont écartées (cf. _EST_ETIQUETTE_INVALIDE).
         """
         if not self._loaded:
             self.load()
         norm = normalize(term)
         if not norm:
+            return set()
+        if norm in _MOTS_TROP_COURANTS:
             return set()
         out: set[str] = set()
         allowed = self._sources_for_scope(scope)
@@ -121,6 +167,8 @@ class ThesaurusEngine:
                 child = self._concepts.get((source, child_code))
                 if child and normalize(child["pref"]) != norm:
                     out.add(child["pref"])
+        # Écarter les étiquettes non résolues du thésaurus (cf. la constante).
+        out = {s for s in out if not _EST_ETIQUETTE_INVALIDE(s)}
         # tri & limite
         return set(sorted(out)[:max_per_term])
 
