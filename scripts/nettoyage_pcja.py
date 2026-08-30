@@ -155,6 +155,30 @@ def main() -> int:
         if e.get("parent"):
             freres[e["parent"]].add(p)
 
+    # ── Les VARIANTES aussi ─────────────────────────────────────────────
+    # Elles entrent dans le moteur comme SYNONYMES : une variante sale y est
+    # aussi nuisible qu'un libellé sale, en plus discret. Mesuré après la
+    # première intégration : 913 variantes finissaient par un tiret orphelin
+    # (« ACTES LEGISLATIFS - »), 151 commençaient par une minuscule ou une
+    # ponctuation. Une telle chaîne, mise entre guillemets dans une requête
+    # FTS5, ne peut rien trouver.
+    nettoyees = supprimees = 0
+    for e in d.values():
+        var = e.get("variantes") or {}
+        if not var:
+            continue
+        propre = {}
+        for v, n in var.items():
+            v2 = v.strip(" .,;:-–—\t")
+            if not v2 or contamine(v2):
+                supprimees += 1
+                continue
+            if v2 != v:
+                nettoyees += 1
+            propre[v2] = propre.get(v2, 0) + n
+        e["variantes"] = propre
+    print(f"variantes : {nettoyees} rognées, {supprimees} supprimées")
+
     # Champ de confiance, par entrée.
     for e in d.values():
         e.pop("_rejet", None)

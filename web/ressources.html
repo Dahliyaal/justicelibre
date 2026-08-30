@@ -143,27 +143,27 @@ footer.foot a:hover{color:var(--teal)}
       <span class="source">JusticeLibre · reconstruit</span>
       <span class="name">Plan de Classement de la Jurisprudence Administrative (PCJA)</span>
       <div class="meta">
-        <span>JSON</span><span>FR</span><span>~4 093 concepts</span><span class="lic">Etalab 2.0</span>
+        <span>JSON</span><span>FR</span><span>6 472 concepts</span><span>5 923 nommés</span><span class="lic">Etalab 2.0</span>
       </div>
-      <p class="desc">Reconstitué à partir des balises <code>&lt;ANALYSES&gt;</code> de 298 720 décisions JADE. Hiérarchie 7 niveaux et fréquences d'usage incluses. Le Conseil d'État ne publiant pas ce plan au format SKOS, il s'agit à ce jour de l'unique version structurée disponible en données ouvertes.</p>
+      <p class="desc">Reconstitué à partir des balises <code>&lt;SCT&gt;</code> (chaîne de rubriques) de 335 597 décisions JADE. Hiérarchie 7 niveaux et fréquences d'usage incluses. Le Conseil d'État ne publiant pas ce plan au format SKOS, il s'agit à ce jour de l'unique version structurée disponible en données ouvertes.<br><strong>Chaque entrée porte un niveau de confiance</strong> : <code>elevee</code> (3 771 — nom issu de la forme moderne, auto-validée par comptage des niveaux), <code>moyenne</code> (726 — réalignement de la forme ancienne sur les rubriques connues), <code>faible</code> (1 426 — repris de la version antérieure, non revérifié), <code>null</code> (549 — la source ne nomme pas ce niveau, aucun nom n'a été inventé).</p>
       <div class="actions">
-        <a class="btn btn-primary" href="/data/pcja_reconstructed.json">Télécharger JSON (1 Mo)</a>
+        <a class="btn btn-primary" href="/data/pcja_reconstructed.json">Télécharger JSON (2 Mo)</a>
         <a class="btn btn-secondary" href="https://www.legifrance.gouv.fr/ceta/planclassement" target="_blank" rel="noopener">Plan navigable (Légifrance) ↗</a>
       </div>
-      <div class="backup-date">Reconstruit le 1er mai 2026 depuis 298 720 sommaires JADE.</div>
+      <div class="backup-date">Reconstruit le 30 août 2026 depuis 335 597 décisions JADE. La version du 1er mai 2026 comportait 3 526 étiquettes non résolues sur 4 093 : elle est remplacée.</div>
     </div>
 
     <div class="card" style="grid-column:1/-1;background:var(--teal-xl);border-color:var(--teal)">
       <span class="source" style="color:var(--ink)">JusticeLibre · base unifiée</span>
       <span class="name">thesaurus_unified.db - les 4 thésaurus en une seule SQLite</span>
       <div class="meta">
-        <span>SQLite 3</span><span>19 138 concepts</span><span>29 755 labels</span><span>39 846 relations</span><span class="lic">Etalab 2.0</span>
+        <span>SQLite 3</span><span>20 968 concepts</span><span>35 098 labels</span><span>41 669 relations</span><span class="lic">Etalab 2.0</span>
       </div>
       <p class="desc">Tous les thésaurus ci-dessus parsés et fusionnés dans une seule base SQLite indexée par label normalisé (unidecode + uppercase). Tables : <code>thesaurus_concepts</code>, <code>thesaurus_labels</code>, <code>thesaurus_relations</code>. Prêt à requêter pour vos propres expansions sémantiques.</p>
       <div class="actions">
-        <a class="btn btn-primary" href="/data/thesaurus_unified.db">Télécharger SQLite (21 Mo)</a>
+        <a class="btn btn-primary" href="/data/thesaurus_unified.db">Télécharger SQLite (26 Mo)</a>
       </div>
-      <div class="backup-date">Construit le 1er mai 2026 depuis les 4 sources ci-dessus.</div>
+      <div class="backup-date">Construit le 30 août 2026 depuis les 4 sources ci-dessus, avec le PCJA reconstruit ce jour.</div>
     </div>
 
   </div>
@@ -425,7 +425,7 @@ footer.foot a:hover{color:var(--teal)}
   <h2>Données non diffusées par les autorités publiques</h2>
   <p class="intro">Ressources techniques dont la publication par les autorités compétentes fait actuellement défaut. Certaines existent en interne mais ne sont pas exposées en données ouvertes.</p>
   <div class="infobox">
-    <p>• <strong>PCJA au format SKOS-RDF.</strong> Le Conseil d'État maintient le Plan de Classement en interne mais ne publie pas la version SKOS associée à des URI stables. Notre version reconstituée (4 093 concepts) couvre environ 80 % du plan officiel.</p>
+    <p>• <strong>PCJA au format SKOS-RDF.</strong> Le Conseil d'État maintient le Plan de Classement en interne mais ne publie pas la version SKOS associée à des URI stables — ni sous aucun autre format structuré. Notre version reconstituée compte 6 472 codes, dont 5 923 portent un nom. Nous ne pouvons pas mesurer sa couverture par rapport au plan officiel, faute d'accès à celui-ci : les 549 codes sans nom sont ceux que les analyses de décisions ne nomment jamais, et le champ de confiance indique, pour chaque entrée, comment son nom a été établi.</p>
     <p>• <strong>Absence de dépôts de code institutionnels</strong> pour le Conseil d'État, le Conseil constitutionnel, la CNIL, la CADA et le Défenseur des droits. Ces institutions exposent uniquement des API propriétaires (Sinequa, OpenCNIL) sans miroir code ou données associées sur GitHub.</p>
     <p>• <strong>Absence de schéma ECLI unifié</strong> et de table de correspondance entre la norme ECLI et les identifiants nationaux. JusticeLibre tente de combler cette lacune via son moteur de résolution croisée.</p>
   </div>

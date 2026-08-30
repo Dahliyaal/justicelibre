@@ -112,6 +112,12 @@ def main() -> int:
             "freq_as_leaf": c.get("freq", 0),
             "label_variants": c.get("variantes", {}),
             "freq_cumulative": cumul.get(code, 0),
+            # Champ de confiance, exigé par l'audit du 30 août 2026 : 28 %
+            # des codes ne sont pas vérifiables contre la source. Publier
+            # l'ensemble au même niveau de certitude serait trompeur pour un
+            # fichier présenté comme l'unique reconstruction publique du PCJA.
+            "confiance": c.get("confiance"),
+            "attestations": c.get("attestations", 0),
         }
     inconnus_restants = sum(1 for v in publie.values()
                             if isinstance(v["label"], str) and v["label"].startswith("<"))
