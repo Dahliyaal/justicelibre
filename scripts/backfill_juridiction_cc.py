@@ -160,6 +160,37 @@ def main() -> int:
             print(f"  {code!r} → {attendu!r} : {cur.rowcount} lignes")
         conn.commit()
 
+        # ── Titres manquants ─────────────────────────────────────────────
+        # Mesuré le 30 août 2026 : 360 155 lignes sans titre, TOUTES parmi
+        # les lignes « cc ». Une décision sans titre sort de la recherche
+        # avec `title: null` — illisible dans une liste de résultats, et
+        # invisible pour qui trie à l'œil.
+        #
+        # Le titre se reconstruit exactement comme le fait l'ingestion
+        # (`judilibre_sync.map_to_row`) : « {juridiction}, {date}, n° {numero} ».
+        # On ne le fait qu'APRÈS le renommage : sinon on figerait « cc »
+        # dans le texte du titre.
+        sans_titre = conn.execute(
+            "SELECT COUNT(*) FROM decisions WHERE titre IS NULL OR titre = ''"
+        ).fetchone()[0]
+        if sans_titre:
+            print(f"\nTitres manquants : {sans_titre}")
+            cur = conn.execute("""
+                UPDATE decisions
+                   SET titre = juridiction || ', ' || date || ', n° ' || numero
+                 WHERE (titre IS NULL OR titre = '')
+                   AND juridiction IS NOT NULL AND juridiction <> ''
+                   AND date       IS NOT NULL AND date       <> ''
+                   AND numero     IS NOT NULL AND numero     <> ''
+            """)
+            conn.commit()
+            print(f"  titres reconstruits : {cur.rowcount}")
+            reste = conn.execute(
+                "SELECT COUNT(*) FROM decisions WHERE titre IS NULL OR titre = ''"
+            ).fetchone()[0]
+            print(f"  sans titre après coup : {reste} "
+                  f"(lignes dépourvues de date ou de numéro — rien à en tirer)")
+
         restant = compter(conn)
         print(f"\nContrôle après écriture — codes bruts restants : {restant or 'aucun'}")
         return 0 if not restant else 4
