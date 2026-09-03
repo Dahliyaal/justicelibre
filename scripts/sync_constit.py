@@ -136,15 +136,21 @@ def appliquer(chemin_ndjson: str, ecrire: bool) -> int:
 
         # Contrôle de l'index : une décision insérée doit être RETROUVABLE,
         # sinon on a rempli la table sans rien rendre cherchable.
-        if lignes:
-            temoin = lignes[-1]["id"]
+        # ⚠️ Chercher par `id` ne marche PAS : la colonne est déclarée
+        # UNINDEXED dans decisions_fts, donc stockée mais pas cherchable.
+        # (Erreur commise le 4 septembre 2026 : le contrôle criait au loup
+        # alors que les déclencheurs avaient parfaitement fait leur travail.)
+        # On interroge donc `numero`, qui est réellement indexé.
+        temoins = [l for l in lignes if (l.get("numero") or "").strip()]
+        if temoins:
+            t = temoins[-1]
             trouve = conn.execute(
                 "SELECT COUNT(*) FROM decisions_fts f JOIN decisions d "
                 "ON d.rowid = f.rowid WHERE f.decisions_fts MATCH ? AND d.id = ?",
-                (f'"{temoin}"', temoin),
+                (f'numero:"{t["numero"]}"', t["id"]),
             ).fetchone()[0]
-            etat = "✓ indexée" if trouve else "⛔ ABSENTE DE L'INDEX"
-            print(f"contrôle FTS       : {temoin} → {etat}")
+            etat = "✓ retrouvable" if trouve else "⛔ ABSENTE DE L'INDEX"
+            print(f"contrôle FTS       : n° {t['numero']} → {etat}")
             if not trouve:
                 return 4
         return 0
