@@ -170,6 +170,27 @@ def _save_stats():
         pass
 
 
+# ── Lecture tolérante des résultats de source ────────────────────────────
+#
+# Chaque source nomme ses champs à sa façon, et les adaptateurs lisaient un
+# nom fixe. Résultat : des champs vides sur 100 % des résultats, sans qu'une
+# seule ligne de code ne paraisse fautive.
+#     dila.search        → titre,   snippet
+#     jade / warehouse   → titre,   extract
+#     european.search_cedh → docname, snippet
+#     european.search_cjue → title,   snippet
+# Corrigé sur DILA le 30 août 2026 au matin ; un audit fonctionnel a montré
+# le même jour que CEDH, CJUE et search_decisions_citing étaient restés
+# cassés — une branche sur trois avait été traitée. D'où ces deux fonctions,
+# à utiliser PARTOUT plutôt qu'un `h.get("extract")` écrit à la main.
+def _extrait(h: dict) -> str | None:
+    return h.get("extract") or h.get("snippet") or None
+
+
+def _titre(h: dict) -> str | None:
+    return h.get("title") or h.get("titre") or h.get("docname") or None
+
+
 def _record_call(tool_name: str):
     paris = timezone(timedelta(hours=2))
     now = datetime.now(paris)
@@ -1795,7 +1816,7 @@ async def search_legi(
                 "legitext": h.get("legitext"),
                 "etat": h.get("etat"),
                 "date_debut": h.get("date"),
-                "extract": h.get("extract"),
+                "extract": _extrait(h),
             }
             for h in data.get("results", [])
         ],
@@ -2053,8 +2074,8 @@ async def search_decisions_citing(
                 results.append({
                     "source": "dila", "id": h.get("id"),
                     "juridiction": h.get("juridiction"),
-                    "date": h.get("date"), "title": h.get("title"),
-                    "extract": h.get("extract"),
+                    "date": h.get("date"), "title": _titre(h),
+                    "extract": _extrait(h),
                 })
             per_source["dila"] = d.get("total", 0)
         except Exception as e:
@@ -2068,8 +2089,8 @@ async def search_decisions_citing(
                 results.append({
                     "source": "jade", "id": h.get("id"),
                     "juridiction": h.get("juridiction"),
-                    "date": h.get("date"), "title": h.get("titre"),
-                    "extract": h.get("extract"),
+                    "date": h.get("date"), "title": _titre(h),
+                    "extract": _extrait(h),
                 })
             per_source["jade"] = d.get("total", 0)
         except Exception as e:
@@ -2084,8 +2105,8 @@ async def search_decisions_citing(
                 results.append({
                     "source": "cedh", "id": h.get("id"),
                     "juridiction": "Cour EDH",
-                    "date": h.get("date"), "title": h.get("title"),
-                    "extract": h.get("extract"),
+                    "date": h.get("date"), "title": _titre(h),
+                    "extract": _extrait(h),
                 })
             per_source["cedh"] = d.get("total", 0)
         except Exception as e:
@@ -2100,8 +2121,8 @@ async def search_decisions_citing(
                 results.append({
                     "source": "cjue", "id": h.get("id"),
                     "juridiction": "CJUE",
-                    "date": h.get("date"), "title": h.get("title"),
-                    "extract": h.get("extract"),
+                    "date": h.get("date"), "title": _titre(h),
+                    "extract": _extrait(h),
                 })
             per_source["cjue"] = d.get("total", 0)
         except Exception as e:
@@ -2235,8 +2256,8 @@ async def search_all(
                     hits = [{"source": "dila", "id": h.get("id"),
                              "juridiction": h.get("juridiction"),
                              "date": h.get("date"),
-                             "title": h.get("titre") or h.get("title"),
-                             "extract": h.get("snippet") or h.get("extract"),
+                             "title": _titre(h) or h.get("title"),
+                             "extract": _extrait(h),
                              "solution": h.get("solution") or None,
                              } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
@@ -2245,8 +2266,8 @@ async def search_all(
                         date_min=date_min or None, date_max=date_max or None, limit=limit)
                     hits = [{"source": "jade", "id": h.get("id"),
                              "juridiction": h.get("juridiction"),
-                             "date": h.get("date"), "title": h.get("titre"),
-                             "extract": h.get("extract"),
+                             "date": h.get("date"), "title": _titre(h),
+                             "extract": _extrait(h),
                              } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "legi":
@@ -2256,7 +2277,7 @@ async def search_all(
                     hits = [{"source": "legi", "id": h.get("id"),
                              "juridiction": "Articles de loi",
                              "date": h.get("date"), "title": f"Article {h.get('num')} — {h.get('titre')}",
-                             "extract": h.get("extract"),
+                             "extract": _extrait(h),
                              } for h in d.get("results", [])]
                     return src, d.get("total", 0), hits
                 if src == "cedh":
@@ -2267,8 +2288,8 @@ async def search_all(
                     hits = [{"source": "cedh", "id": h.get("id"),
                              "juridiction": "Cour EDH",
                              "date": h.get("date"),
-                             "title": h.get("docname") or h.get("title"),
-                             "extract": h.get("extract"),
+                             "title": _titre(h),
+                             "extract": _extrait(h),
                              } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
                 if src == "cjue":
@@ -2276,8 +2297,8 @@ async def search_all(
                         european.search_cjue, query=q, limit=limit)
                     hits = [{"source": "cjue", "id": h.get("id"),
                              "juridiction": "CJUE",
-                             "date": h.get("date"), "title": h.get("title"),
-                             "extract": h.get("extract"),
+                             "date": h.get("date"), "title": _titre(h),
+                             "extract": _extrait(h),
                              } for h in d.get("decisions", [])]
                     return src, d.get("total", 0), hits
             except Exception as e:
