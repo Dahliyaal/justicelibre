@@ -1306,6 +1306,14 @@ async def build_source_url(identifier: str, legitext: str = "", date: str = "") 
     _record_call("build_source_url")
     if not identifier.strip():
         return _tool_error("identifier requis", category="validation")
+    # Même famille que get_law_article : une date mal formée était ignorée en
+    # silence et l'URL construite sans elle — donc pointant vers la version
+    # COURANTE, exactement ce contre quoi la docstring ci-dessus met en garde
+    # (« sinon Légifrance affiche la version courante même si l'article a été
+    # abrogé depuis »). L'outil produisait le piège qu'il annonce.
+    _bad = _check_dates(date=date)
+    if _bad:
+        return _bad
     from sources import warehouse as wh
     url = await wh.build_url(identifier, legitext or None, date or None)
     if not url:
@@ -1949,6 +1957,19 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
         l'inventer — renvoyer vers Légifrance si l'utilisateur la demande.
     """
     _record_call("get_law_article")
+    # Une date mal formée était acceptée EN SILENCE et rendait la version
+    # COURANTE de l'article (mesuré le 4 septembre 2026) :
+    #   date="15/06/1992" → texte issu de la réforme de 2016, avec une note
+    #     affirmant « Aucune version en vigueur à 15/06/1992 » — faux, la
+    #     version de 1992 existe et sort bien avec "1992-06-15" ;
+    #   date="2016-13-45" → texte courant, et AUCUNE note.
+    # C'est le seul chemin par lequel ce serveur peut servir un texte de loi
+    # faux avec l'air d'être bon : le format français JJ/MM/AAAA est le
+    # réflexe naturel d'un justiciable, et la réponse a l'apparence d'une
+    # version datée. On refuse, comme les six autres tools à filtre de date.
+    _bad = _check_dates(date=date)
+    if _bad:
+        return _bad
     result = await legi.get_article(code, num, date or None)
     if isinstance(result, dict) and "error" not in result:
         from sources import warehouse as _wh
