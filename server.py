@@ -26,7 +26,7 @@ import os
 import re
 import threading
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date as _date
 from pathlib import Path
 from typing import Any
 
@@ -315,7 +315,7 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _check_dates(**dates: str):
-    """Refuse une date non ISO. Renvoie une erreur structurée, ou None.
+    """Refuse une date non ISO ou inexistante. Renvoie une erreur, ou None.
 
     Les filtres de date sont comparés en SQL comme des CHAÎNES : « 01/01/2020 »
     ne borne alors strictement rien et la recherche renvoie le fonds entier,
@@ -323,13 +323,36 @@ def _check_dates(**dates: str):
     sans filtre, avec des décisions de 2019 dans les résultats). Un filtre
     silencieusement inopérant est pire qu'un refus : le client croit avoir
     restreint sa période et cite une décision hors sujet.
+
+    ⚠️ La FORME ne suffit pas (mesuré le 4 septembre 2026). Le seul contrôle
+    par expression régulière laissait passer « 2016-13-45 » — quatre chiffres,
+    tiret, deux chiffres, tiret, deux chiffres : la forme est bonne, la date
+    n'existe pas. Conséquences constatées :
+      · `get_law_article(CC, 1128, date="2016-13-45")` rendait le texte
+        COURANT, sans la moindre note, avec une `source_url` bâtie sur le
+        45 du mois 13 ;
+      · `search_judiciaire_libre(date_min="2020-13-45")` faisait passer le
+        total de 62 212 à 41 209 — la borne était appliquée comme une
+        comparaison de chaînes, donc « tout ce qui est ≥ 2021 ».
+    On valide donc la date au calendrier, pas seulement au gabarit.
     """
     for name, value in dates.items():
-        if value and not _ISO_DATE_RE.match(value):
+        if not value:
+            continue
+        valide = bool(_ISO_DATE_RE.match(value))
+        if valide:
+            try:
+                _date.fromisoformat(value)
+            except ValueError:
+                valide = False
+        if not valide:
             return _tool_error(
-                f"{name}={value!r} n'est pas une date ISO. Format attendu : "
-                "AAAA-MM-JJ (ex. 2020-01-01). Un autre format ne filtrerait "
-                "rien et te renverrait le fonds entier comme s'il était filtré.",
+                f"{name}={value!r} n'est pas une date du calendrier au format "
+                "ISO. Format attendu : AAAA-MM-JJ (ex. 2020-01-01). Une date "
+                "mal formée n'est pas rejetée par les bases : elle est "
+                "comparée comme du texte, et te renverrait soit le fonds "
+                "entier comme s'il était filtré, soit la version actuelle "
+                "d'un article présentée comme celle de ta date.",
                 category="validation", parametre=name, valeur_recue=value,
             )
     return None
