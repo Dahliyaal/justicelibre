@@ -346,10 +346,29 @@ def search(
                 params + [int(limit), int(offset)],
             ).fetchall()
 
-            total = conn.execute(
-                f"SELECT COUNT(*) FROM decisions_fts f JOIN decisions d ON d.rowid = f.rowid WHERE {where_sql}",
-                params,
-            ).fetchone()[0]
+            # Le COUNT n'a besoin de la jointure QUE si un filtre porte sur une
+            # colonne de `decisions`. Sans filtre, la jointure va chercher
+            # chaque ligne correspondante — texte intégral compris — dans un
+            # fichier de 28 Go, uniquement pour la compter.
+            # Mesuré en production le 4 septembre 2026, terme « bail » :
+            #     COUNT sur l'index seul       0,02 s → 134 774
+            #     COUNT avec la jointure      81,32 s → 134 774
+            # Le résultat est le même : la jointure coûtait 81 secondes pour
+            # rien. C'est ce qui faisait expirer search_judiciaire_libre chez
+            # les clients (90 s et 102 s au banc, timeout à 15 s), donc pas
+            # « lent » mais bel et bien sans réponse.
+            if len(where) > 1:
+                total = conn.execute(
+                    "SELECT COUNT(*) FROM decisions_fts f "
+                    "JOIN decisions d ON d.rowid = f.rowid "
+                    f"WHERE {where_sql}",
+                    params,
+                ).fetchone()[0]
+            else:
+                total = conn.execute(
+                    "SELECT COUNT(*) FROM decisions_fts WHERE decisions_fts MATCH ?",
+                    (fts_query,),
+                ).fetchone()[0]
         except sqlite3.OperationalError as e:
             return _fts_syntax_error_result(e)
 
