@@ -2583,7 +2583,20 @@ async def search_annuaire(
     src_f = (source or "").strip().lower() or None
     limit = max(1, min(limit or 20, 200))
 
-    matches: list[tuple[int, dict]] = []
+    # La recherche cherchait la requête ENTIÈRE comme une seule sous-chaîne
+    # (`q in mail_l`). Or dans les champs, le type d'organe et le lieu sont
+    # toujours séparés (« Tribunal administratif - Lille », « Cour
+    # administrative d'appel - Douai ») : « greffe caa douai » ou « tribunal
+    # administratif lille » — la forme naturelle d'un juriste — n'existaient
+    # nulle part d'un seul tenant, donc 0 silencieux. Mesuré le 5 septembre
+    # 2026 : 4 des 5 exemples de cette docstring renvoyaient 0, et plus de
+    # 80 % des requêtes « organe + lieu » échouaient sur des adresses pourtant
+    # présentes. On découpe donc en mots et on exige que CHACUN figure
+    # quelque part dans la fiche (sémantique ET), en gardant le classement
+    # mail > organisme > service. Une requête d'un seul mot se comporte
+    # exactement comme avant : rétrocompatible.
+    tokens = q.split()
+    matches: list[tuple[int, int, dict]] = []
     for r in rows:
         if cat_f and cat_f not in (r["categorie_slug"] or "").lower() and cat_f not in (r["categorie"] or "").lower():
             continue
@@ -2592,20 +2605,30 @@ async def search_annuaire(
         mail_l = r["mail"].lower()
         org_l = (r["organisme"] or "").lower()
         svc_l = (r["service"] or "").lower()
-        if q in mail_l:
-            score = 3
-        elif q in org_l:
-            score = 2
-        elif q in svc_l:
-            score = 1
-        else:
+        score = 0
+        tous = True
+        for tok in tokens:
+            if tok in mail_l:
+                score += 3
+            elif tok in org_l:
+                score += 2
+            elif tok in svc_l:
+                score += 1
+            else:
+                tous = False
+                break
+        if not tous:
             continue
-        matches.append((score, r))
-    matches.sort(key=lambda x: -x[0])
+        # Bonus si la requête entière est contiguë dans un champ : garde en
+        # tête les correspondances exactes (« tribunal judiciaire ») devant
+        # les correspondances éclatées à score de tokens égal.
+        contigu = 1 if (q in mail_l or q in org_l or q in svc_l) else 0
+        matches.append((score, contigu, r))
+    matches.sort(key=lambda x: (-x[0], -x[1]))
     return {
         "total": len(matches),
         "returned": min(len(matches), limit),
-        "results": [m[1] for m in matches[:limit]],
+        "results": [m[2] for m in matches[:limit]],
     }
 # ─── RESOURCES MCP — catalogues consultables sans appel de tool ──────
 # Les clients MCP peuvent lire ces catalogues directement (pattern
