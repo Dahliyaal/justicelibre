@@ -35,9 +35,81 @@ _ISO_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 _ARIANE_LECTURE_RE = re.compile(
     r"[Ll]ecture d[ue]\s+(?:\w+\s+)?(\d{1,2})(?:er)?\s+([a-zéûôA-Z]+)\s+(\d{4})")
 
+# --- En-tête « long » : juridiction, publication, formation, président,
+# --- rapporteur. Ajoutés le 8 septembre 2026 (rapport M, § 13) : ces cinq
+# --- mentions sont en clair dans les 200 premiers caractères de CHAQUE
+# --- décision ArianeWeb et n'étaient extraites nulle part.
+#
+# La zone d'en-tête s'arrête à « REPUBLIQUE FRANCAISE » : au-delà commence le
+# corps de l'arrêt, où « rapporteur » et « président » réapparaissent dans des
+# phrases (« le rapporteur public a conclu … ») et donneraient des faux.
+_ARIANE_FIN_ENTETE_RE = re.compile(
+    r"R[EÉ]PUBLIQUE\s+FRAN[CÇ]AISE|AU\s+NOM\s+DU\s+PEUPLE", re.IGNORECASE)
+_ARIANE_ENTETE_MAX = 1500
+
+_ARIANE_JURIDICTION_RE = re.compile(
+    r"(Conseil d['’]\s?[EÉ]tat"
+    r"|Cour administrative d['’]appel de [A-ZÉÈ][\w'’\- ]{2,30}"
+    r"|Tribunal administratif de [A-ZÉÈ][\w'’\- ]{2,30}"
+    r"|Tribunal des conflits)")
+
+# Le corpus contient une coquille de la source : « Mentionné AU tables ».
+_ARIANE_PUBLICATION_RE = re.compile(
+    r"(Publi[ée] au recueil Lebon"
+    r"|Mentionn[ée] au[x]? tables du recueil Lebon"
+    r"|In[ée]dit au recueil Lebon)", re.IGNORECASE)
+
+# « M. Stirn, président » — on borne à ce qui précède sur la même ligne, sans
+# virgule : sinon la capture remonte jusqu'au début de l'en-tête.
+#
+# ⚠️ Le féminin est écrit en toutes lettres depuis ~2020 (« présidente »,
+# « rapporteure », « rapporteure publique ») : un `président\b` nu manque
+# ces lignes-là en silence (20 rapporteures et 6 présidentes ratées sur
+# 1 527 en-têtes lors du premier essai).
+_ARIANE_PRESIDENT_RE = re.compile(r"([^\n,;]{2,60}?)\s*,\s*pr[ée]sidente?\b")
+# « M. Brice Bohuon, rapporteur » — mais JAMAIS « …, rapporteur public », qui
+# désigne une autre personne (l'ancien commissaire du gouvernement).
+_ARIANE_RAPPORTEUR_RE = re.compile(
+    r"([^\n,;]{2,60}?)\s*,\s*rapporteure?\b(?!\s*publi)")
+_ARIANE_RAPPORTEUR_PUBLIC_RE = re.compile(
+    r"([^\n,;]{2,60}?)\s*,\s*rapporteure?\s+publi(?:c|que)\b")
+
+# Formations rencontrées dans le fonds (sondage du 8/09/2026 sur 2 027
+# en-têtes réels) : « Section du Contentieux », « 6 SS », « 1 / 4 SSR »,
+# « 3ème - 8ème chambres réunies », « 4ème chambre », « Juge des référés »,
+# « PRESIDENT DE LA SECTION DU CONTENTIEUX », « Assemblée ».
+_ARIANE_FORMATION_RE = re.compile(
+    r"(Assembl[ée]e(?:\s+du\s+contentieux)?"
+    r"|Section du Contentieux"
+    r"|PRESIDENT DE LA SECTION DU CONTENTIEUX"
+    r"|Juge des r[ée]f[ée]r[ée]s"
+    r"|\d+\s*/\s*\d+\s*SSR?"
+    r"|\d+\s*SSR?\b"
+    r"|\d+\s*[a-zè]{0,3}\s*(?:-|et|/)\s*\d+\s*[a-zè]{0,3}\s*(?:chambres|sous-sections)"
+    r"(?:\s+r[ée]unies)?"
+    r"|\d+\s*[a-zè]{0,3}\s*(?:chambre|sous-section)"
+    r"(?:\s+jugeant\s+seule)?)", re.IGNORECASE)
+
+_ARIANE_ROLE_LIGNE_RE = re.compile(
+    r",\s*(?:pr[ée]sidente?|rapporteure?(?:\s+publi(?:c|que))?|avocats?)\s*$",
+    re.IGNORECASE)
+
+
+def entete(text: str) -> str:
+    """Renvoie la seule zone d'en-tête d'une décision ArianeWeb.
+
+    Tout ce qui suit « REPUBLIQUE FRANCAISE » est le corps de l'arrêt : y
+    chercher « président » ou « rapporteur » ramène des phrases, pas des noms.
+    """
+    if not text:
+        return ""
+    zone = text[:_ARIANE_ENTETE_MAX]
+    fin = _ARIANE_FIN_ENTETE_RE.search(zone)
+    return zone[: fin.start()] if fin else zone
+
 
 def parse_header(text: str) -> dict[str, str]:
-    """Extrait n° de requête, ECLI et date ISO de l'en-tête d'un arrêt ArianeWeb.
+    """Extrait les métadonnées de l'en-tête d'un arrêt ArianeWeb.
 
     Le plugin Sinequa ne renvoie QUE du texte brut : ni le numéro, ni la date
     ne sont exposés en champ. Sans cette extraction, les enregistrements
@@ -47,6 +119,15 @@ def parse_header(text: str) -> dict[str, str]:
 
     Deux sources pour la date : l'ECLI (fiable, mais absent des arrêts
     anciens) puis la mention « Lecture du … » en toutes lettres.
+
+    Clés renvoyées (toutes facultatives — une clé absente signifie
+    « introuvable », jamais « vide ») : `numero`, `ecli`, `date`,
+    `juridiction`, `publication`, `formation`, `president`, `rapporteur`,
+    `rapporteur_public`.
+
+    ⚠️ `numero`, `ecli` et `date` sont cherchés dans TOUT le texte (comportement
+    d'origine, préservé) ; les cinq mentions ajoutées le 8/09/2026 sont
+    cherchées dans la seule zone d'en-tête (cf. `entete`).
     """
     out: dict[str, str] = {}
     if not text:
@@ -67,7 +148,52 @@ def parse_header(text: str) -> dict[str, str]:
             mois = _MOIS_FR.get(lm.group(2).lower())
             if mois:
                 out["date"] = f"{lm.group(3)}-{mois}-{int(lm.group(1)):02d}"
+
+    zone = entete(text)
+    m = _ARIANE_JURIDICTION_RE.search(zone)
+    if m:
+        out["juridiction"] = re.sub(r"\s+", " ", m.group(1)).strip()
+    m = _ARIANE_PUBLICATION_RE.search(zone)
+    if m:
+        out["publication"] = re.sub(r"\s+", " ", m.group(1)).strip()
+    for cle, motif in (("president", _ARIANE_PRESIDENT_RE),
+                       ("rapporteur", _ARIANE_RAPPORTEUR_RE),
+                       ("rapporteur_public", _ARIANE_RAPPORTEUR_PUBLIC_RE)):
+        pm = motif.search(zone)
+        if pm:
+            nom = re.sub(r"\s+", " ", pm.group(1)).strip()
+            if nom:
+                out[cle] = nom
+    formation = _formation(zone, out.get("publication", ""))
+    if formation:
+        out["formation"] = formation
     return out
+
+
+def _formation(zone: str, publication: str) -> str:
+    """La formation est la ligne qui SUIT la mention de publication.
+
+    C'est la règle de mise en page d'ArianeWeb, et elle attrape les libellés
+    hors catalogue (« 7ème sous-section jugeant seule »). Repli sur un
+    catalogue de motifs quand l'en-tête arrive sur une seule ligne (cas des
+    textes déjà ré-espacés) ou quand la publication manque.
+    """
+    lignes = [ligne.strip() for ligne in zone.split("\n")]
+    lignes = [ligne for ligne in lignes if ligne]
+    if publication:
+        for i, ligne in enumerate(lignes[:-1]):
+            if publication.lower() not in ligne.lower():
+                continue
+            suivante = lignes[i + 1]
+            # La ligne suivante est parfois déjà un rôle (« M. X, président »)
+            # quand la formation manque : ne pas la prendre pour une formation.
+            if _ARIANE_ROLE_LIGNE_RE.search(suivante):
+                break
+            if len(suivante) <= 80 and not suivante.lower().startswith("lecture"):
+                return re.sub(r"\s+", " ", suivante)
+            break
+    m = _ARIANE_FORMATION_RE.search(zone)
+    return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
 
 
 def _clean_extract(raw: str) -> str:

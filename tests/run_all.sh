@@ -26,8 +26,11 @@ run tests/test_prompts_resources.py
 run tests/test_error_contract.py
 run tests/test_sse_escape.py
 run tests/test_ariane_header.py
+run tests/test_enrich_europe.py
+run tests/test_enrich_ariane_cada.py
 run tests/test_homonymes_numero.py
 run tests/test_juridictions.py
+run tests/test_parse_dila_champs.py
 run tests/test_no_dead_code.py
 
 # Tests qui interrogent la prod live (justicelibre.org) : à ne pas lancer en

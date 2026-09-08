@@ -1,0 +1,47 @@
+[
+ {
+  "cas": "ssr",
+  "ariane_id": "/Ariane_Web/AW_DCE/|95000",
+  "entete": "Conseil d'État \n\nN° 327211 \nECLI:FR:CESSR:2009:327211.20090703 \nInédit au recueil Lebon\nSection du Contentieux \nM. Stirn, président\nM. Brice Bohuon, rapporteur\nMme Burguburu Julie, rapporteur public\n\nLecture du vendredi 3 juillet 2009 "
+ },
+ {
+  "cas": "sans_president",
+  "ariane_id": "/Ariane_Web/AW_DCE/|95167",
+  "entete": "Conseil d'État \n\nN° 332288 \nECLI:FR:CEORD:2009:332288.20090928 \nInédit au recueil Lebon\nSection du Contentieux \n\nLecture du lundi 28 septembre 2009 "
+ },
+ {
+  "cas": "publie",
+  "ariane_id": "/Ariane_Web/AW_DCE/|96253",
+  "entete": "Conseil d'État \n\nN° 315980 \nECLI:FR:CESSR:2010:315980.20100630 \nPublié au recueil Lebon\nSection du Contentieux \nM. Vigouroux, président\nM. Michel Thenault, rapporteur\nM. Guyomar Mattias, rapporteur public\nSCP DE CHAISEMARTIN, COURJON, avocats\n\nLecture du mercredi 30 juin 2010 "
+ },
+ {
+  "cas": "mentionne",
+  "ariane_id": "/Ariane_Web/AW_DCE/|114881",
+  "entete": "Conseil d'État \n\nN° 320036 \nECLI:FR:CESSR:2010:320036.20101027 \nMentionné au tables du recueil Lebon\n7ème et 2ème sous-sections réunies \nM. Vigouroux, président\nMme Agnès Fontana, rapporteur\nM. Dacosta Bertrand, rapporteur public\nBALAT, avocats\n\nLecture du mercredi 27 octobre 2010 "
+ },
+ {
+  "cas": "sans_formation",
+  "ariane_id": "/Ariane_Web/AW_DCE/|121313",
+  "entete": "Conseil d'État \n\nN° 198350 \nECLI:FR:CEORD:2001:198350.20010404 \nInédit au recueil Lebon\n\nMme Picard, rapporteur\nM. Schwartz, commissaire du gouvernement\n\nLecture du 4 avril 2001 "
+ },
+ {
+  "cas": "sans_ecli",
+  "ariane_id": "/Ariane_Web/AW_DCE/|178452",
+  "entete": "Conseil d'État \n\nN° 13862 \nInédit au recueil Lebon\n6ème - 2ème SSR \nM. Teissier du Cros, rapporteur\nM. Franc, commissaire du gouvernement\n\nLecture du vendredi 26 février 1982 "
+ },
+ {
+  "cas": "chambres_reunies",
+  "ariane_id": "/Ariane_Web/AW_DCE/|207021",
+  "entete": "Conseil d'État \n\nN° 385545 \nECLI:FR:CECHR:2016:385545.20160502 \nMentionné aux tables du recueil Lebon\n5ème - 4ème chambres réunies \nMme Manon Perrière, rapporteur\nMme Laurence Marion, rapporteur public\nBALAT, avocats\n\nLecture du lundi 2 mai 2016 "
+ },
+ {
+  "cas": "feminin",
+  "ariane_id": "/Ariane_Web/AW_DCE/|272179",
+  "entete": "Conseil d'État \n\nN° 489701 \nECLI:FR:CECHS:2024:489701.20240716 \nInédit au recueil Lebon\n9ème chambre \nMme Anne Egerszegi, présidente\nM. Bastien Lignereux, rapporteur\nMme Céline Guibé, rapporteure publique\nSCP CELICE, TEXIDOR, PERIER, avocats\n\nLecture du mardi 16 juillet 2024 "
+ },
+ {
+  "cas": "presidente",
+  "ariane_id": "/Ariane_Web/AW_DCE/|276188",
+  "entete": "Conseil d'État \n\nN° 496476 \nECLI:FR:CECHS:2024:496476.20241021 \nInédit au recueil Lebon\n4ème chambre \nMme Maud Vialettes, présidente\nMme Thalia Breton, rapporteure\nM. Jean-François de Montgolfier, rapporteur public\nSCP GADIOU, CHEVALLIER, avocats\n\nLecture du lundi 21 octobre 2024 "
+ }
+]

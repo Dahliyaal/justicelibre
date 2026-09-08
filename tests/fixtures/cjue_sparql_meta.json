@@ -1,0 +1,229 @@
+{
+ "head": {
+  "link": [],
+  "vars": [
+   "celex",
+   "ecli",
+   "date",
+   "rtype",
+   "title",
+   "erecueil",
+   "avocat_general",
+   "juges",
+   "formation",
+   "procjur",
+   "type_procedure",
+   "matieres",
+   "matieres_legal",
+   "pays",
+   "langue_procedure"
+  ]
+ },
+ "results": {
+  "distinct": false,
+  "ordered": true,
+  "bindings": [
+   {
+    "celex": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "62019CC0030"
+    },
+    "ecli": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "ECLI:EU:C:2020:374"
+    },
+    "date": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#date",
+     "value": "2020-05-14"
+    },
+    "rtype": {
+     "type": "uri",
+     "value": "http://publications.europa.eu/resource/authority/resource-type/OPIN_AG"
+    },
+    "title": {
+     "type": "literal",
+     "xml:lang": "fr",
+     "value": "Conclusions de l'avocat général M. H. Saugmandsgaard Øe, présentées le 14 mai 2020.#Diskrimineringsombudsmannen contre Braathens Regional Aviation AB.#Demande de décision préjudicielle, introduite par la Högsta domstolen.#Renvoi préjudiciel – Égalité de traitement entre les personnes sans distinction de race ou d’origine ethnique – Directive 2000/43/CE – Article 7 – Défense des droits – Article 15 – Sanctions – Recours en indemnité fondé sur une allégation de discrimination – Acquiescement du défendeur à la demande d’indemnité, sans reconnaissance de sa part de l’existence de la discrimination alléguée – Lien entre l’indemnité versée et la discrimination alléguée – Article 47 de la charte des droits fondamentaux de l’Union européenne – Droit à une protection juridictionnelle effective – Règles procédurales nationales empêchant la juridiction saisie du recours de se prononcer sur l’existence de la discrimination alléguée malgré la demande expresse du requérant.#Affaire C-30/19."
+    },
+    "erecueil": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+     "value": "1"
+    },
+    "avocat_general": {
+     "type": "literal",
+     "value": "Saugmandsgaard Øe"
+    },
+    "juges": {
+     "type": "literal",
+     "value": ""
+    },
+    "formation": {
+     "type": "literal",
+     "value": ""
+    },
+    "procjur": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/procjur/REFER_PREL"
+    },
+    "type_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/fd_100/PREJ"
+    },
+    "matieres": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/case-law-subject-matter/DFON|http://publications.europa.eu/resource/authority/case-law-subject-matter/PRIN"
+    },
+    "matieres_legal": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/subject-matter/DFON|http://publications.europa.eu/resource/authority/subject-matter/PRIN"
+    },
+    "pays": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/country/SWE"
+    },
+    "langue_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/language/SWE"
+    }
+   },
+   {
+    "celex": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "62019CJ0030"
+    },
+    "ecli": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "ECLI:EU:C:2021:269"
+    },
+    "date": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#date",
+     "value": "2021-04-15"
+    },
+    "rtype": {
+     "type": "uri",
+     "value": "http://publications.europa.eu/resource/authority/resource-type/JUDG"
+    },
+    "title": {
+     "type": "literal",
+     "xml:lang": "fr",
+     "value": "Arrêt de la Cour (grande chambre) du 15 avril 2021.#Diskrimineringsombudsmannen contre Braathens Regional Aviation AB.#Demande de décision préjudicielle, introduite par la Högsta domstolen.#Renvoi préjudiciel – Égalité de traitement entre les personnes sans distinction de race ou d’origine ethnique – Directive 2000/43/CE – Article 7 – Défense des droits – Article 15 – Sanctions – Recours en indemnité fondé sur une allégation de discrimination – Acquiescement du défendeur à la demande d’indemnité, sans reconnaissance de sa part de l’existence de la discrimination alléguée – Lien entre l’indemnité versée et la discrimination alléguée – Article 47 de la charte des droits fondamentaux de l’Union européenne – Droit à une protection juridictionnelle effective – Règles procédurales nationales empêchant la juridiction saisie du recours de se prononcer sur l’existence de la discrimination alléguée malgré la demande expresse du requérant.#Affaire C-30/19."
+    },
+    "erecueil": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+     "value": "1"
+    },
+    "avocat_general": {
+     "type": "literal",
+     "value": "Saugmandsgaard Øe"
+    },
+    "juges": {
+     "type": "literal",
+     "value": "von Danwitz"
+    },
+    "formation": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/formjug/CHAMB_GD_C"
+    },
+    "procjur": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/procjur/REFER_PREL"
+    },
+    "type_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/fd_100/PREJ"
+    },
+    "matieres": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/case-law-subject-matter/DFON|http://publications.europa.eu/resource/authority/case-law-subject-matter/PRIN"
+    },
+    "matieres_legal": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/subject-matter/DFON|http://publications.europa.eu/resource/authority/subject-matter/PRIN"
+    },
+    "pays": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/country/SWE"
+    },
+    "langue_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/language/SWE"
+    }
+   },
+   {
+    "celex": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "62016CJ0414"
+    },
+    "ecli": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#string",
+     "value": "ECLI:EU:C:2018:257"
+    },
+    "date": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#date",
+     "value": "2018-04-17"
+    },
+    "rtype": {
+     "type": "uri",
+     "value": "http://publications.europa.eu/resource/authority/resource-type/JUDG"
+    },
+    "title": {
+     "type": "literal",
+     "xml:lang": "fr",
+     "value": "Arrêt de la Cour (grande chambre) du 17 avril 2018.#Vera Egenberger contre Evangelisches Werk für Diakonie und Entwicklung eV.#Demande de décision préjudicielle, introduite par le Bundesarbeitsgericht.#Renvoi préjudiciel – Politique sociale – Directive 2000/78/CE – Égalité de traitement – Différence de traitement fondée sur la religion ou les convictions – Activités professionnelles d’églises ou d’autres organisations dont l’éthique est fondée sur la religion ou les convictions – Religion ou convictions constituant une exigence professionnelle essentielle, légitime et justifiée eu égard à l’éthique de l’organisation – Notion – Nature des activités et contexte dans lequel elles sont exercées – Article 17 TFUE – Articles 10, 21 et 47 de la charte des droits fondamentaux de l’Union européenne.#Affaire C-414/16."
+    },
+    "erecueil": {
+     "type": "literal",
+     "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+     "value": "1"
+    },
+    "avocat_general": {
+     "type": "literal",
+     "value": "Tanchev"
+    },
+    "juges": {
+     "type": "literal",
+     "value": "Biltgen"
+    },
+    "formation": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/formjug/CHAMB_GD_C"
+    },
+    "procjur": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/procjur/REFER_PREL"
+    },
+    "type_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/fd_100/PREJ"
+    },
+    "matieres": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/case-law-subject-matter/PRIN|http://publications.europa.eu/resource/authority/case-law-subject-matter/PSOC"
+    },
+    "matieres_legal": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/subject-matter/PRIN|http://publications.europa.eu/resource/authority/subject-matter/SOPO"
+    },
+    "pays": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/country/DEU"
+    },
+    "langue_procedure": {
+     "type": "literal",
+     "value": "http://publications.europa.eu/resource/authority/language/DEU"
+    }
+   }
+  ]
+ }
+}
