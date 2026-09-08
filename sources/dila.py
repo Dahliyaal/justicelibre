@@ -12,6 +12,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+import juridictions  # module racine, partagé avec le warehouse
+
 DB_PATH = Path("/opt/justicelibre/dila/judiciaire.db")
 CONSTIT_DB = Path("/opt/justicelibre/dila/constit.db")
 
@@ -96,10 +98,6 @@ _JURI_ALIASES = {
     "conseil constitutionnel": "constit", "cons const": "constit",
     "conseil constit": "constit",
 }
-
-
-# Code Judilibre brut resté en base faute de libellé (cf. le filtre plus bas).
-_CODE_BRUT = {"cassation": "cc", "appel": "ca", "tj": "tj", "tcom": "tcom"}
 
 
 def resolve_juridiction(value: str | None) -> str | None:
@@ -189,7 +187,7 @@ def search(
                 "decisions": [
                     {
                         "id": r["id"], "titre": r["titre"], "date": r["date"],
-                        "juridiction": r["juridiction"], "solution": r["solution"],
+                        "juridiction": juridictions.libelle_affiche(r["juridiction"]), "solution": r["solution"],
                         "numero": r["numero"], "formation": r["formation"],
                         "ecli": r["ecli"], "nature": r["nature"], "snippet": "",
                     }
@@ -238,7 +236,7 @@ def search(
                 "decisions": [
                     {
                         "id": r["id"], "titre": r["titre"], "date": r["date"],
-                        "juridiction": r["juridiction"], "solution": r["solution"],
+                        "juridiction": juridictions.libelle_affiche(r["juridiction"]), "solution": r["solution"],
                         "numero": r["numero"], "formation": r["formation"],
                         "ecli": r["ecli"], "nature": r["nature"], "snippet": "",
                     }
@@ -307,19 +305,29 @@ def search(
         params: list = [fts_query]
         _juri_key = resolve_juridiction(juridiction)
         if _juri_key:
-            # ⚠️ La colonne `juridiction` contient DEUX étiquetages pour la
-            # Cour de cassation : « Cour de cassation » (ingestion DILA) et le
-            # code brut « cc » (ingestion Judilibre, dont la taxonomie ne
-            # couvre pas les codes de juridiction eux-mêmes). Mesuré le
-            # 23 août 2026 : 560 492 lignes « cc » au total, et pour les seules
-            # décisions depuis 2024, 36 619 « cc » contre 12 849 « Cour de
-            # cassation » — le LIKE seul en ratait donc les trois quarts, en
-            # silence. Correction de fond = renommer les lignes (script
-            # scripts/backfill_juridiction_cc.py) ; en attendant, on accepte
-            # les deux écritures pour ne pas amputer les résultats.
-            where.append("(d.juridiction LIKE ? OR d.juridiction = ?)")
-            params.append(f"%{JURIDICTIONS[_juri_key]}%")
-            params.append(_CODE_BRUT.get(_juri_key, "\x00"))
+            # La colonne `juridiction` écrit la même cour de plusieurs façons
+            # (« cc » sur 556 422 lignes ET « Cour de cassation » sur 536 473 ;
+            # « Tribunal judiciaire de … » mais aussi les anciens « Tribunal de
+            # grande instance de … »). La famille demandée est traduite en
+            # écritures EXACTES + intervalles de préfixe (data/juridictions_
+            # map.json, 8 septembre 2026) : utilise idx_decisions_juridiction
+            # là où le LIKE '%…%' d'avant balayait la table, et n'exclut pas
+            # une juridiction nouvelle. Rien n'est réécrit en base.
+            # ⚠️ Pas en WHERE : avec l'index de la colonne, SQLite attaquait
+            # par lui (1,09 M de lignes pour la Cour de cassation) et sondait
+            # l'index plein texte ligne à ligne — plus de dix minutes au banc
+            # du 8 septembre 2026. La colonne est déjà dans `decisions_fts` :
+            # le filtre s'exprime DANS la requête FTS5, au prix d'un mot.
+            _f = juridictions.fts_judiciaire(_juri_key)
+            if _f:
+                fts_query = f"({fts_query}) AND {_f}"
+                params[0] = fts_query
+                # Le filtre est un terme de la requête : la sélection
+                # automatique de colonne du snippet (-1) choisissait alors la
+                # colonne `juridiction` et rendait « <em>Conseil
+                # constitutionnel</em> » comme extrait. On ancre l'extrait sur
+                # le texte (colonne 6) dès qu'un filtre de famille est actif.
+                SNIPPET_SQL = "snippet(decisions_fts, 6, '<em>', '</em>', '…', 28)"
         if date_min:
             where.append("d.date >= ?")
             params.append(date_min)
@@ -377,7 +385,7 @@ def search(
                 "id": r["id"],
                 "titre": r["titre"],
                 "date": r["date"],
-                "juridiction": r["juridiction"],
+                "juridiction": juridictions.libelle_affiche(r["juridiction"]),
                 "solution": r["solution"],
                 "numero": r["numero"],
                 "formation": r["formation"],
@@ -451,7 +459,7 @@ def search_cc(
             return _fts_syntax_error_result(e)
         decisions = [{
             "id": r["id"], "titre": r["titre"], "date": r["date"],
-            "juridiction": r["juridiction"], "solution": r["solution"],
+            "juridiction": juridictions.libelle_affiche(r["juridiction"]), "solution": r["solution"],
             "numero": r["numero"], "nature": r["nature"], "ecli": r["ecli"],
             "snippet": r["snip"] or "",
         } for r in rows]
@@ -518,7 +526,7 @@ def get_cc_decision(numero: str, nature: str | None = None) -> dict[str, Any] | 
         r = rows[0]
         return {
             "id": r["id"], "titre": r["titre"], "date": r["date"],
-            "juridiction": r["juridiction"], "nature": r["nature"],
+            "juridiction": juridictions.libelle_affiche(r["juridiction"]), "nature": r["nature"],
             "numero": r["numero"],          # numéro RÉELLEMENT servi
             "numero_demande": numero.strip(),
             "ecli": r["ecli"], "text": r["text"],
@@ -575,7 +583,7 @@ def lookup_by_field(field: str, value: str, limit: int = 5) -> list[dict[str, An
                 "id": r["id"],
                 "titre": r["titre"],
                 "date": r["date"],
-                "juridiction": r["juridiction"],
+                "juridiction": juridictions.libelle_affiche(r["juridiction"]),
                 "solution": r["solution"],
                 "numero": r["numero"],
                 "formation": r["formation"],
@@ -607,7 +615,7 @@ def get_decision(decision_id: str) -> dict[str, Any] | None:
             "id": row["id"],
             "titre": row["titre"],
             "date": row["date"],
-            "juridiction": row["juridiction"],
+            "juridiction": juridictions.libelle_affiche(row["juridiction"]),
             "solution": row["solution"],
             "numero": row["numero"],
             "formation": row["formation"],
