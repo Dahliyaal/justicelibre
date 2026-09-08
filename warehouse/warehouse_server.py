@@ -344,9 +344,9 @@ def resolve_law_number(numero: str) -> dict | None:
     r = rows[0]
     legitext = r["legitext"]
     # Count total articles of this text
+    _k, _kp = _legi_key(c, legitext)
     total = c.execute(
-        "SELECT COUNT(*) FROM legi_articles WHERE legitext = ?",
-        (legitext,),
+        f"SELECT COUNT(*) FROM legi_articles WHERE {_k}", _kp,
     ).fetchone()[0]
     return {
         "numero": numero,
@@ -377,31 +377,34 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
     nums = _num_candidates(num)
     ph = ", ".join("?" * len(nums))
     c = _conn("legi")
+    key, kp = _legi_key(c, legitext)
+    _extra = ("jorftext, hierarchie" if "jorftext" in _legi_cols(c)
+              else "NULL AS jorftext, NULL AS hierarchie")
     # Strategy 1: exact legitext match + num + date in range
     row = c.execute(
         f"""
-        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
+        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota, {_extra}
         FROM legi_articles
-        WHERE legitext = ? AND num IN ({ph})
+        WHERE {key} AND num IN ({ph})
           AND (date_debut IS NULL OR date_debut = '' OR date_debut <= ?)
           AND (date_fin IS NULL OR date_fin = '' OR date_fin >= ?)
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, *nums, target, target),
+        (*kp, *nums, target, target),
     ).fetchone()
     if row:
         return _law_row_to_dict(row, code, legitext, at_date=target_date)
     # Strategy 2: if no match at date, return current version
     row = c.execute(
         f"""
-        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
+        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota, {_extra}
         FROM legi_articles
-        WHERE legitext = ? AND num IN ({ph}) AND etat = 'VIGUEUR'
+        WHERE {key} AND num IN ({ph}) AND etat = 'VIGUEUR'
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, *nums),
+        (*kp, *nums),
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
@@ -410,13 +413,13 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
     # Strategy 3: look for any version (abrogated, etc.)
     row = c.execute(
         f"""
-        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
+        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota, {_extra}
         FROM legi_articles
-        WHERE legitext = ? AND num IN ({ph})
+        WHERE {key} AND num IN ({ph})
         ORDER BY date_debut DESC
         LIMIT 1
         """,
-        (legitext, *nums),
+        (*kp, *nums),
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
@@ -439,14 +442,17 @@ def law_versions(code: str, num: str) -> list[dict]:
     nums = _num_candidates(num)
     ph = ", ".join("?" * len(nums))
     c = _conn("legi")
+    key, kp = _legi_key(c, legitext)
+    _extra = ("jorftext, hierarchie" if "jorftext" in _legi_cols(c)
+              else "NULL AS jorftext, NULL AS hierarchie")
     rows = c.execute(
         f"""
-        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota
+        SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota, {_extra}
         FROM legi_articles
-        WHERE legitext = ? AND num IN ({ph})
+        WHERE {key} AND num IN ({ph})
         ORDER BY date_debut ASC
         """,
-        (legitext, *nums),
+        (*kp, *nums),
     ).fetchall()
     return [_law_row_to_dict(r, code, legitext) for r in rows]
 
@@ -472,6 +478,46 @@ def law_batch(refs: list[dict], target_date: str | None) -> list[dict]:
     return out
 
 
+_LEGI_COLS: set[str] | None = None
+
+
+def _legi_cols(c: sqlite3.Connection) -> set[str]:
+    """Colonnes de legi_articles, lues une fois : `jorftext`/`hierarchie` n'existent
+    qu'après la migration du 8 septembre 2026."""
+    global _LEGI_COLS
+    if _LEGI_COLS is None:
+        _LEGI_COLS = {r[1] for r in c.execute("PRAGMA table_info(legi_articles)")}
+    return _LEGI_COLS
+
+
+def _legi_key(c: sqlite3.Connection, legitext: str, prefix: str = "") -> tuple[str, list]:
+    """`legi_articles.legitext` portait un JORFTEXT pour les textes non codifiés
+    (jointure morte, 8 sept. 2026) ; après ré-ingestion il porte le LEGITEXT et
+    le JORFTEXT va dans `jorftext`. Cette clause répond juste dans les DEUX
+    états : on cherche l'identifiant dans les deux colonnes quand la seconde
+    existe."""
+    if "jorftext" in _legi_cols(c):
+        return f"({prefix}legitext = ? OR {prefix}jorftext = ?)", [legitext, legitext]
+    return f"{prefix}legitext = ?", [legitext]
+
+
+def _titre_section(row: sqlite3.Row) -> str | None:
+    """Dernier niveau de la hiérarchie LEGISCTA (chapitre / section) quand la
+    colonne `hierarchie` existe et est remplie ; sinon None, jamais le titre du
+    code déguisé en section."""
+    try:
+        h = row["hierarchie"]
+    except (IndexError, KeyError):
+        return None
+    if not h:
+        return None
+    try:
+        niveaux = json.loads(h)
+        return (niveaux[-1].get("titre") or None) if niveaux else None
+    except Exception:
+        return None
+
+
 def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | None = None) -> dict:
     # Si on n'a pas de date explicite, on utilise la date_debut de la version
     # retournée pour que Légifrance affiche bien cette version-là (et pas la
@@ -488,14 +534,23 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
         # en se faisant passer pour une section — faux et plausible, le pire
         # des cas. On dit désormais ce qu'on a, et null pour ce qu'on n'a pas.
         "titre_texte": row["titre_text"],
-        "titre_section": None,
+        "titre_section": _titre_section(row),
         "etat": row["etat"],
         "date_debut": row["date_debut"] or None,
         "date_fin": row["date_fin"] or None,
         "texte": row["texte"],
         "nota": row["nota"] or None,
-        "source_url": _build_source_url(row["legiarti"], legitext=legitext, at_date=effective_date),
+        # Après ré-ingestion, le JORFTEXT du texte parent est dans `jorftext` :
+        # c'est lui qui décide de /loda/ (loi non codifiée) contre /codes/.
+        "source_url": _build_source_url(row["legiarti"], legitext=(_col(row, "jorftext") or legitext), at_date=effective_date),
     }
+
+
+def _col(row: sqlite3.Row, name: str):
+    try:
+        return row[name]
+    except (IndexError, KeyError):
+        return None
 
 
 def _normalize_num(num: str) -> str:
@@ -616,8 +671,9 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         where.append(f"m.{date_col} <= ?")
         params.append(date_max)
     if filter_legitext and fond == "legi":
-        where.append("m.legitext = ?")
-        params.append(filter_legitext)
+        _k, _kp = _legi_key(c, filter_legitext, prefix="m.")
+        where.append(_k)
+        params.extend(_kp)
     if filter_juridiction and fond == "jade":
         # Vrai filtre d'origine (8 septembre 2026). Avant, le nom de la
         # juridiction était ajouté à la requête FTS en `AND` : « Tribunal
