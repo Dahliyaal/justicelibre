@@ -109,6 +109,23 @@ def inv_all_match(field: str, expected: str):
     return check
 
 
+def inv_any_match(field: str, *expected: str):
+    """Comme inv_all_match, mais la valeur peut être l'UNE des formes attendues :
+    un filtre de famille (« tj » = tribunaux judiciaires + anciens TGI/TI) ou
+    une juridiction écrite de plusieurs façons en base (« CAA de DOUAI » et
+    « Cour administrative d'appel de Douai »)."""
+    def check(p, args):
+        rows = p.get("articles") or p.get("decisions") or p.get("results")
+        if rows is None:
+            rows = [p] if p.get(field) is not None else []
+        assert rows, "aucun résultat : invariant non évaluable (élargir la requête du test)"
+        bad = [r for r in rows
+               if not any(e.lower() in str(r.get(field, "")).lower() for e in expected)]
+        assert not bad, (f"{len(bad)}/{len(rows)} résultats hors filtre "
+                         f"{field}∈{expected!r} — ex. {bad[0].get(field)!r}")
+    return check
+
+
 def inv_date_range(dmin: str | None = None, dmax: str | None = None):
     def check(p, args):
         rows = p.get("decisions") or p.get("results") or p.get("articles") or []
@@ -213,17 +230,28 @@ CASES: list[tuple[str, dict, list, bool]] = [
     # — les filtres doivent FILTRER (bug ② du 22 août) —
     ("search_legi", {"query": "chambre disciplinaire", "code": "CSP", "limit": 5},
      [inv_pagination, inv_all_match("legitext", "LEGITEXT000006072665")], False),
-    # ⚠️ `juridiction` de search_admin n'est PAS un filtre : c'est un terme
-    # ajouté à la requête FTS5 (une décision du CE citant « Douai » matche).
-    # C'est documenté, mais le nom promet autre chose. Ne pas durcir ce test
-    # sans changer d'abord le comportement — sinon il échouera à raison.
+    # Depuis le 8 septembre 2026, `juridiction` de search_admin est un VRAI
+    # filtre d'origine : code, nom ou forme courte → écritures exactes de la
+    # base (113 formes pour 45 juridictions). Une valeur non reconnue (ville
+    # nue) garde l'ancien comportement (mot-clé) ET le dit dans `note`.
+    ("search_admin", {"query": "permis de construire", "juridiction": "CAA59", "limit": 5},
+     [inv_pagination, inv_any_match("juridiction", "CAA de DOUAI",
+                                    "Cour administrative d'appel de Douai")], False),
+    ("search_admin", {"query": "permis de construire", "juridiction": "TA Lille", "limit": 5},
+     [inv_pagination, inv_any_match("juridiction", "Tribunal administratif de Lille",
+                                    "Tribunal administratif Lille",
+                                    "Tribunal Administratif de Lille")], False),
     ("search_admin", {"query": "permis de construire", "juridiction": "DOUAI", "limit": 5},
-     [inv_pagination], False),
-    # Le lookup judiciaire, lui, filtre vraiment :
+     [inv_pagination, inv_nonempty("note")], False),
+    # Le filtre judiciaire est une FAMILLE : « tj » englobe les anciens TGI et
+    # tribunaux d'instance (fusionnés en 2020), « appel » les 36 cours d'appel.
     ("search_judiciaire_libre", {"query": "bail", "juridiction": "appel", "limit": 5},
      [inv_pagination, inv_all_match("juridiction", "Cour d'appel")], False),
     ("search_judiciaire_libre", {"query": "divorce", "juridiction": "tj", "limit": 5},
-     [inv_pagination, inv_all_match("juridiction", "Tribunal judiciaire")], False),
+     [inv_pagination, inv_any_match("juridiction", "Tribunal judiciaire",
+                                    "Tribunal de grande instance", "Tribunal d'instance")], False),
+    ("search_judiciaire_libre", {"query": "licenciement", "juridiction": "cassation", "limit": 5},
+     [inv_pagination, inv_all_match("juridiction", "Cour de cassation")], False),
 
     # — les filtres de date doivent borner —
     ("search_admin", {"query": "urbanisme", "date_min": "2024-01-01",
@@ -307,6 +335,11 @@ CASES: list[tuple[str, dict, list, bool]] = [
     # Lyon doit échouer, pas servir la CAA (constaté le 23 août 2026).
     ("get_admin_decision", {"numero": "19LY02575", "juridiction": "CAA de Lyon"},
      [inv_all_match("juridiction", "LYON")], False),
+    # Un CODE de juridiction doit trouver une décision présente (avant le
+    # 8 septembre 2026 : « introuvable », le code ne matchait aucune écriture).
+    ("get_admin_decision", {"numero": "0003503", "juridiction": "TA69"},
+     [inv_equals(numero="0003503", date="2002-03-28")], False),
+    ("get_admin_decision", {"numero": "0003503", "juridiction": "CAA69"}, [], True),
     ("get_admin_decision",
      {"numero": "19LY02575", "juridiction": "Tribunal administratif de Lyon"},
      [], True),
