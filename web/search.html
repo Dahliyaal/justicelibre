@@ -48,6 +48,12 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
    incliquable (le clic ouvrait le menu Pertinence). Vu au navigateur le
    8 septembre 2026. */
 .sb-primary .cs-wrap{min-width:0}
+/* Même cause dans le panneau avancé : le menu « Juridiction » (260 px imposés)
+   débordait de sa colonne de 180 px et recouvrait « Date (à partir de) »,
+   dont on ne voyait plus que « d/yyyy ». Vu sur le site le 9 septembre 2026. */
+.sb-advanced .cs-wrap{min-width:0;width:100%;display:block}
+.sb-advanced .field input[type=date]{min-width:0}
+.sb-advanced .thes-toggle span{white-space:nowrap}
 .sb-primary .cs-display-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-primary input[type=text],
 .sb-primary select{
