@@ -201,8 +201,26 @@ def map_to_row(d: dict, conn: sqlite3.Connection, force_id: str | None = None) -
         "loi_def": "",
         "liens_textes": "",
         "numero_rg_norm": rg_norm,
+        # Tout ce que Judilibre livre en plus et que l'on jetait (constaté le
+        # 8 septembre 2026) : sections du texte (zones), textes visés (visa),
+        # nomenclature (nac), titrage, chronologie de l'affaire, décisions
+        # contestée/suivante… Conservé en JSON compact ; ~300 o à 1 Ko par
+        # décision. Colonne `judilibre_meta` (ALTER TABLE du 8/09/2026).
+        "judilibre_meta": judilibre_meta(d),
     }
     return new_id, row
+
+
+_META_KEYS = ("zones", "visa", "nac", "themes", "titlesAndSummaries", "timeline",
+              "contested", "forward", "particularInterest", "legacy", "solution_alt",
+              "source", "update_date", "publication", "numbers", "location",
+              "portalis", "partial", "rapprochements", "files")
+
+
+def judilibre_meta(d: dict) -> str:
+    """JSON compact des champs Judilibre non mappés en colonnes (vides omis)."""
+    meta = {k: d.get(k) for k in _META_KEYS if d.get(k) not in (None, [], {}, "", False)}
+    return json.dumps(meta, ensure_ascii=False, separators=(",", ":")) if meta else ""
 
 
 def upsert(conn: sqlite3.Connection, row: dict) -> str:
