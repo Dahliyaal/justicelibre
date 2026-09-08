@@ -35,6 +35,12 @@ from urllib.parse import parse_qs, urlparse
 
 sys.stdout.reconfigure(line_buffering=True)
 
+# Traduction « demande » → « écritures stockées » du champ juridiction
+# (data/juridictions_map.json). Le module vit à la racine du dépôt, à côté
+# de query_intent.py, pour être partagé avec le serveur MCP.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import juridictions  # noqa: E402
+
 # ─── CONFIG ──────────────────────────────────────────────────────────
 
 DB_DIR = Path(os.environ.get("JL_WAREHOUSE_DB_DIR", "/opt/justicelibre/dila"))
@@ -565,7 +571,8 @@ def _fts_query(q: str) -> str:
 
 def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
                date_min: str | None, date_max: str | None,
-               filter_legitext: str | None = None) -> dict:
+               filter_legitext: str | None = None,
+               filter_juridiction: str | None = None) -> dict:
     if fond not in FONDS:
         raise ValueError(f"unknown fond: {fond}")
     q_clean = _fts_query(q)
@@ -611,6 +618,22 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
     if filter_legitext and fond == "legi":
         where.append("m.legitext = ?")
         params.append(filter_legitext)
+    if filter_juridiction and fond == "jade":
+        # Vrai filtre d'origine (8 septembre 2026). Avant, le nom de la
+        # juridiction était ajouté à la requête FTS en `AND` : « Tribunal
+        # Administratif de Melun » renvoyait 1 506 décisions dont aucune de
+        # Melun (des CAA qui le CITAIENT). La demande est traduite en
+        # écritures exactes de la base — 113 formes pour 45 juridictions —
+        # et tombe sur `m.juridiction IN (...)`. Valeur inconnue = ValueError
+        # (400 côté client), jamais un filtre ignoré en silence.
+        _w = juridictions.where_admin(filter_juridiction, col="m.juridiction")
+        if not _w:
+            raise ValueError(
+                f"juridiction inconnue: {filter_juridiction!r} — attendu un code "
+                "(CE, CAA59, TA69, TC), un nom (« Tribunal administratif de "
+                "Lille ») ou une forme courte (« TA Lille », « CAA Douai »)")
+        where.append(_w[0])
+        params.extend(_w[1])
 
     # Sort: relevance (BM25) by default, chronological fallback
     order = "bm25(" + fts_table + ") ASC"
@@ -834,8 +857,10 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                         "error": f"code inconnu: {filter_code!r}",
                         "hint": "passer un sigle connu ou un LEGITEXT/JORFTEXT direct",
                     })
+            filter_juridiction = _q(q, "juridiction") or None
             try:
-                result = fts_search(fond, query, limit, offset, sort, date_min, date_max, filter_legitext)
+                result = fts_search(fond, query, limit, offset, sort, date_min, date_max,
+                                    filter_legitext, filter_juridiction)
                 return self._json(200, result)
             except ValueError as e:
                 return self._json(400, {"error": str(e)})
@@ -867,7 +892,14 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             c = _conn(fond)
             sql = f"SELECT * FROM {cfg['decision_table']} WHERE numero = ?"
             params = [numero]
-            if juridiction:
+            _exact = juridictions.where_admin(juridiction) if juridiction else None
+            if _exact:
+                # Demande reconnue (code « TA69 », nom, forme courte) → les
+                # écritures EXACTES de la base. Avant, « TA69 » ne matchait
+                # rien : « introuvable » pour une décision présente.
+                sql += " AND " + _exact[0]
+                params.extend(_exact[1])
+            elif juridiction:
                 # Tolérance : la forme stockée ("CAA de PARIS") diffère souvent
                 # du nom canonique passé par les LLM ("Cour administrative
                 # d'appel de Paris"). On matche sur (exact) OU (accent-insensible)
@@ -898,7 +930,12 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                     vals.append(f"%{city}%")
                 sql += " AND (" + " OR ".join(conds) + ")"
                 params.extend(vals)
-            sql += " LIMIT 5"
+            # 20 et non 5 : six numéros du CE portent plus de cinq décisions
+            # (mesuré le 5 septembre 2026), et le client promet « aucune n'est
+            # absente ». L'ordre reste celui des rowid (la plus ancienne
+            # d'abord) : la décision SERVIE ne change pas, seule la liste des
+            # homonymes s'allonge.
+            sql += " LIMIT 20"
             rows = c.execute(sql, params).fetchall()
             if not rows:
                 return self._json(404, {"error": f"no match for numero {numero!r} in {fond}"})

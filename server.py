@@ -527,8 +527,12 @@ async def list_juridictions() -> dict[str, Any]:
     incluant les juridictions d'outre-mer) accompagnées de leur nomenclature
     canonique.
 
-    Consulter impérativement cette liste pour déterminer le code exact à
-    fournir à l'outil `search_admin`.
+    Ces codes sont acceptés par `search_admin(juridiction=…)`,
+    `get_admin_decision(juridiction=…)` et `search_admin_recent`. Les noms
+    complets et les formes courtes (« TA Lille », « CAA Douai ») le sont
+    aussi. S'y ajoutent, dans le bulk JADE seulement : `TC` (Tribunal des
+    conflits, 1 831 décisions) et `CDBF` (Cour de discipline budgétaire et
+    financière, 68).
     """
     _record_call("list_juridictions")
     return {
@@ -922,6 +926,10 @@ async def search_judiciaire_libre(
             `"phrase exacte"`, `mot1 AND mot2`, `mot*` (préfixe). Optionnel
             si `numero_rg` est fourni.
         juridiction: filtre optionnel : "cassation" / "appel" / "tj" / "tcom" / "constit".
+            `tj` englobe les anciens tribunaux de grande instance et d'instance
+            (fusionnés en 2020) ; `tcom` les tribunaux des activités économiques
+            (nouveau nom depuis 2025). Toutes les écritures de la base sont
+            couvertes (« cc » et « Cour de cassation » désignent la même cour).
         numero_rg: numéro RG d'un arrêt CA (ex: "21/05835"). Lookup direct
             qui matche toutes les variantes typographiques.
         date_min: date min ISO (YYYY-MM-DD), optionnel
@@ -1479,10 +1487,11 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
             - **Nom long (recommandé)** : "Cour administrative d'appel de Lyon",
               "Tribunal administratif de Paris", "Conseil d'État" (avec ou sans
               accent, casse libre). Matching tolérant via extraction de ville.
-            - **Code court** : "TA69", "TA75", "CAA69", "CE", "CE-CAA".
-              ⚠️ Les codes courts peuvent rater les arrêts anciens (id
-              CETATEXT* historiques) pour lesquels le mapping interne échoue.
-              Si tu sais le nom long, préfère-le.
+            - **Code court** : "TA69", "TA75", "CAA69", "CE", "TC" — et
+              formes courtes "TA Lyon", "CAA Douai". Depuis le 8 septembre
+              2026, code, nom et forme courte sont traduits en écritures
+              EXACTES de la base (113 formes pour 45 juridictions) : un code
+              ne rate plus les arrêts anciens.
             Note : "Lyon" seul reste ambigu (TA Lyon ou CAA Lyon) et n'écarte
             ni l'un ni l'autre. Dès que le nom porte l'ordre de juridiction
             ("Tribunal administratif de…", "CAA…", "Conseil d'État"), il est
@@ -1751,20 +1760,17 @@ async def search_admin(
 
     Args:
         query: mots-clés (opérateurs FTS5 : AND/OR/NOT, "phrase exacte", mot*)
-        juridiction: ⚠️ **ce n'est PAS un filtre** — malgré son nom. Le
-            fragment est ajouté à la requête plein texte en `AND`, donc il
-            matche aussi les décisions qui se contentent de **citer** cette
-            juridiction. Mesuré le 23 août 2026 :
-            `juridiction="Tribunal Administratif de Melun"` renvoie 1 506
-            résultats dont AUCUN des cinq premiers n'émane de Melun (des CAA
-            de Paris et un CE, qui statuaient sur des appels venus de Melun).
-            Le `total` n'est donc pas la volumétrie de la juridiction.
-            Utilise-le pour ORIENTER la recherche, jamais pour t'assurer de
-            l'origine d'une décision : vérifie le champ `juridiction` de
-            chaque résultat. Pour un tri réellement par juridiction, passer
-            par `search_admin_recent(juridiction_code=…)` ou
-            `get_admin_decision(numero, juridiction=…)`, qui, eux, contrôlent
-            l'ordre de juridiction.
+        juridiction: filtre d'ORIGINE (depuis le 8 septembre 2026). Accepte
+            un code (`CE`, `CAA59`, `TA69`, `TC`), un nom complet (« Tribunal
+            administratif de Lille ») ou une forme courte (« TA Lille »,
+            « CAA Douai »). La base écrit la même cour de plusieurs façons
+            (« CAA de LYON », « Cour administrative d'appel de Lyon »…) : le
+            filtre les couvre toutes, et ne renvoie QUE des décisions rendues
+            par cette juridiction. La réponse porte `juridiction_filtre`
+            quand le filtre est actif. ⚠️ Valeur NON reconnue (une ville nue
+            « Lyon », une faute de frappe) : elle est alors ajoutée comme
+            mot-clé à la requête — les décisions qui la CITENT remontent
+            aussi — et la réponse le dit dans `note`. Codes : `list_juridictions`.
         sort: "relevance" (défaut, BM25) ou "date_desc" / "date_asc"
         date_min: limite inférieure ISO YYYY-MM-DD (optionnel)
         date_max: limite supérieure ISO YYYY-MM-DD (optionnel)

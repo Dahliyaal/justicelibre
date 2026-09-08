@@ -249,9 +249,12 @@ async def search_fond(
     date_min: str | None = None,
     date_max: str | None = None,
     code: str | None = None,
+    juridiction: str | None = None,
 ) -> dict:
     """Full-text search on a specific fond."""
     params = {"q": query, "limit": limit, "offset": offset, "sort": sort}
+    if juridiction:
+        params["juridiction"] = juridiction
     if date_min:
         params["date_min"] = date_min
     if date_max:

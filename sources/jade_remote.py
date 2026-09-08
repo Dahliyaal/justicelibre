@@ -19,6 +19,7 @@ import unicodedata
 from typing import Any
 
 from query_intent import match_admin_docket, normalize_numero
+import juridictions
 
 from . import warehouse as wh
 
@@ -153,20 +154,43 @@ async def search(
         # Fallback FTS5 si le lookup exact ne trouve rien (numéro cité dans le texte ?)
 
     q = query
-    if juridiction:
+    filtre = None
+    note = None
+    resolu = juridictions.resoudre_admin(juridiction) if juridiction else None
+    if resolu:
+        # Vrai filtre d'origine (8 septembre 2026) : la demande (code, nom,
+        # forme courte) est traduite côté warehouse en écritures exactes.
+        filtre = resolu["code"]
+    elif juridiction:
+        # Valeur non reconnue (« Lyon » nu, faute de frappe…) : comportement
+        # d'avant, le terme oriente la recherche plein texte sans garantir
+        # l'origine — et on le DIT, au lieu de le laisser passer pour un filtre.
         q = f"({query}) AND \"{juridiction}\""
+        note = (f"juridiction {juridiction!r} non reconnue : utilisée comme "
+                "mot-clé, PAS comme filtre d'origine (les décisions qui la "
+                "citent remontent aussi). Formes reconnues : code (TA69, CAA59, "
+                "CE), nom complet, ou « TA Lille » / « CAA Douai ».")
     data = await wh.search_fond(
         "jade", q,
         limit=limit, offset=offset, sort=sort,
         date_min=date_min, date_max=date_max,
+        juridiction=filtre,
     )
-    return {
+    if data.get("error"):
+        return {"total": 0, "returned": 0, "limit": limit, "offset": offset,
+                "decisions": [], "error": data["error"]}
+    out = {
         "total": data.get("total", 0),
         "returned": len(data.get("results", [])),
         "limit": limit,
         "offset": offset,
         "decisions": [_normalize_hit(h) for h in data.get("results", [])],
     }
+    if resolu:
+        out["juridiction_filtre"] = {"code": resolu["code"], "nom": resolu["nom"]}
+    if note:
+        out["note"] = note
+    return out
 
 
 async def get_decision(decision_id: str) -> dict[str, Any] | None:
