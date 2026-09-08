@@ -61,26 +61,49 @@ def libre_go(path: str = "/mnt/digesta") -> float:
     return shutil.disk_usage(path).free / 1024 ** 3
 
 
+def _token_robuste() -> str:
+    """PISTE OAuth répond parfois 400 de façon transitoire (constaté 3 fois le
+    8 septembre 2026, à chaque fois fatal pour la chaîne). On insiste."""
+    for i, pause in enumerate((0, 5, 15, 45, 120)):
+        if pause:
+            time.sleep(pause)
+        try:
+            return JS.get_token()
+        except Exception as e:  # httpx.HTTPStatusError 400/5xx, réseau…
+            print(f"  jeton PISTE : {type(e).__name__} (essai {i + 1}/5)", flush=True)
+    raise RuntimeError("jeton PISTE impossible à obtenir après 5 essais")
+
+
 def export_batch(client: httpx.Client, batch: int, juri: str, d1: str, d2: str, size: int) -> dict:
-    """Un lot /export, avec ré-authentification sur 401 et attente sur 429."""
-    for attempt in range(4):
-        r = client.get(f"{JS.JUDILIBRE_URL}/export", params={
-            "batch": batch, "batch_size": size, "jurisdiction": juri,
-            "date_start": d1, "date_end": d2}, timeout=180)
-        if r.status_code == 401 and attempt == 0:
-            client.headers["Authorization"] = f"Bearer {JS.get_token()}"
+    """Un lot /export ; ré-authentifie sur 401, attend sur 429, réessaie sur 5xx
+    et erreurs réseau ; 416 = au-delà de la plage → lot vide."""
+    derniere = None
+    for attempt in range(6):
+        try:
+            r = client.get(f"{JS.JUDILIBRE_URL}/export", params={
+                "batch": batch, "batch_size": size, "jurisdiction": juri,
+                "date_start": d1, "date_end": d2}, timeout=180)
+        except httpx.HTTPError as e:
+            derniere = e
+            time.sleep(10 * (attempt + 1))
+            continue
+        if r.status_code == 401:
+            client.headers["Authorization"] = f"Bearer {_token_robuste()}"
             continue
         if r.status_code == 429:
             wait = int(r.headers.get("Retry-After", "30"))
             print(f"  429, attente {wait}s", flush=True)
             time.sleep(wait)
             continue
-        if r.status_code >= 500:
+        if r.status_code == 416:
+            return {"total": 0, "results": []}
+        if r.status_code >= 500 or r.status_code in (403, 408):
+            derniere = RuntimeError(f"HTTP {r.status_code}")
             time.sleep(10 * (attempt + 1))
             continue
         r.raise_for_status()
         return r.json()
-    raise RuntimeError(f"export batch {batch} : échec après 4 tentatives")
+    raise RuntimeError(f"export lot {batch} {juri} {d1}→{d2} : échec après 6 tentatives ({derniere})")
 
 
 def main() -> int:
@@ -94,7 +117,7 @@ def main() -> int:
     args = ap.parse_args()
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    client = httpx.Client(headers={"Authorization": f"Bearer {JS.get_token()}"})
+    client = httpx.Client(headers={"Authorization": f"Bearer {_token_robuste()}"})
     conn = sqlite3.connect(DB, timeout=600)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA recursive_triggers=ON")
@@ -108,11 +131,29 @@ def main() -> int:
         print(f"plage découpée en {len(plages)} sous-plages (plafond 10 000/requête) : "
               f"{plages[0][0]}→{plages[0][1]} … {plages[-1][0]}→{plages[-1][1]}", flush=True)
     rc = 0
+    ratees: list[str] = []
     for (d1, d2) in plages:
-        rc = traiter(args, client, conn, d1, d2)
-        if rc:
+        # Une erreur transitoire (jeton, réseau) ne doit plus tuer la chaîne :
+        # on réessaie la sous-plage après une pause, puis on passe à la suivante
+        # en la notant. Le contrôle de couverture de nuit rattrapera le reste.
+        for essai in range(3):
+            try:
+                rc = traiter(args, client, conn, d1, d2)
+                break
+            except Exception as e:
+                print(f"  ! {d1}→{d2} : {type(e).__name__}: {e} (essai {essai + 1}/3)", flush=True)
+                conn.rollback()
+                time.sleep(60 * (essai + 1))
+                client.headers["Authorization"] = f"Bearer {_token_robuste()}"
+        else:
+            ratees.append(f"{d1}→{d2}")
+            rc = 1
+            continue
+        if rc == 3:
             break
     conn.close()
+    if ratees:
+        print(f"⚠️ sous-plages en échec (à relancer) : {', '.join(ratees)}", flush=True)
     return rc
 
 
