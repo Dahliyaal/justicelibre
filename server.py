@@ -767,7 +767,11 @@ async def get_decision_text(decision_id: str = "", id: str = "") -> dict[str, An
         decision_id: identifiant de la décision (avec ou sans suffixe .xml)
 
     Returns:
-        Dict comportant les métadonnées complètes et `full_text` (texte
+        Dict comportant les métadonnées complètes, `texte_integral` (booléen :
+        ⚠️ quand il vaut false, `full_text` n'est QUE le sommaire du Centre de
+        documentation — 68 % des décisions administratives d'avant 1990 n'ont
+        pas de texte dans la source ouverte ; `note_texte` le dit en clair ;
+        ne jamais citer ce champ comme un extrait de la décision) et `full_text` (texte
         intégral). Si la décision est introuvable, dict d'erreur structuré
         `{error, error_category: "not_found", retryable}` avec les tools
         alternatifs à essayer.
@@ -854,6 +858,7 @@ async def get_decision_text(decision_id: str = "", id: str = "") -> dict[str, An
                 "titre": row.get("titre"),
                 "sommaire": row.get("sommaire") or "",
                 "full_text": text,
+                **dila.note_texte_integral(text, row.get("sommaire")),
             }
             _dec_cache_put(f"text:{decision_id}", result)
             return result

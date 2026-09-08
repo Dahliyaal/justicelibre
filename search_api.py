@@ -912,6 +912,7 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                 return {
                     **_norm_jade_bulk(r),
                     "full_text": r.get("texte", "") or "",
+                    **dila.note_texte_integral(r.get("texte"), r.get("sommaire")),
                     "sommaire": r.get("sommaire", "") or "",  # legacy concat (fallback)
                     # Sections sémantiques séparées (issu de enrich_dila)
                     "abstrats": r.get("abstrats", "") or "",

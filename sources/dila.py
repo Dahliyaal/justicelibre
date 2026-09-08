@@ -618,6 +618,48 @@ def lookup_by_field(field: str, value: str, limit: int = 5) -> list[dict[str, An
         conn.close()
 
 
+_CODE_PCJA_RE = re.compile(r"^\s*\d{2,3}(?:-\d{2,3}){1,5}\s+[A-ZÉÈÀ]")
+_MARQUEURS_DECISION = ("considérant", "considerant", "vu la requête", "vu la requete",
+                       "vu la procédure", "vu la procedure", "décide", "decide", "par ces motifs",
+                       "attendu", "la cour", "le tribunal", "article 1")
+
+
+def texte_est_sommaire(text: str | None, sommaire: str | None) -> bool:
+    """Vrai quand le « texte » servi n'est PAS la décision mais son résumé.
+
+    Mesuré le 8 septembre 2026 sur le bulk JADE : sur 5 000 décisions d'avant
+    1990, 3 422 ont pour texte leur propre sommaire (le Centre de documentation
+    n'a numérisé que l'abstract) ; sur 5 000 de 2024, aucune. Servir ça sous
+    `full_text` sans le dire, c'est faire citer un abstract comme un jugement.
+    """
+    t = (text or "").strip()
+    if not t:
+        return True
+    s = (sommaire or "").strip()
+    if s and (t == s or (len(t) < 1200 and t in s)):
+        return True
+    # Un « texte » qui commence par un code de classement PCJA (« 335-04-03
+    # ETRANGERS - EXTRADITION… ») est l'abstract du Centre de documentation,
+    # jamais une décision (vérifié sur CETATEXT000008050846, 8 sept. 2026).
+    if _CODE_PCJA_RE.match(t):
+        return True
+    tl = t.lower()
+    if len(t) < 600 and not any(m in tl for m in _MARQUEURS_DECISION):
+        return True
+    return False
+
+
+def note_texte_integral(text: str | None, sommaire: str | None) -> dict[str, Any]:
+    """Champs à joindre à toute décision servie : `texte_integral` + `note` si faux."""
+    if texte_est_sommaire(text, sommaire):
+        return {"texte_integral": False,
+                "note_texte": "⚠️ Le champ full_text n'est PAS le texte intégral de la décision "
+                              "mais son sommaire (résumé du Centre de documentation) : la source "
+                              "ouverte ne contient pas le texte. Ne pas citer comme un extrait "
+                              "de la décision ; vérifier sur Légifrance."}
+    return {"texte_integral": True}
+
+
 def get_decision(decision_id: str) -> dict[str, Any] | None:
     conn = _get_conn()
     try:
@@ -645,6 +687,7 @@ def get_decision(decision_id: str) -> dict[str, Any] | None:
             "president": row["president"],
             "avocats": row["avocats"],
             "full_text": row["text"],
+            **note_texte_integral(row["text"], opt("sommaire")),
             "source": "DILA (archives publiques, sans authentification)",
             # Nouvelles sections sémantiques (DILA XML SCT/ANA/CITATION_JP)
             "sommaire": opt("sommaire"),
