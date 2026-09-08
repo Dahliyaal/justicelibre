@@ -1,0 +1,397 @@
+{
+ "_doc": [
+  "Correspondance entre les écritures du champ `juridiction` telles qu'elles existent EN BASE et la juridiction réelle.",
+  "Construite le 8 septembre 2026 sur jade.db (113 écritures, 570 882 décisions) et judiciaire.db (333 écritures), contre-vérifiée à l'aveugle (scratchpad/audit/I_contre_visite_juridictions.md).",
+  "Aucune ligne de base n'est réécrite : les outils traduisent une demande (code, nom, écriture) en `juridiction IN (...)`. Marche arrière = git revert.",
+  "Cas tranchés par le préfixe du numéro de dossier : « Cour administrative d'appel » nu (639, tous 09BX/12BX = Bordeaux), « CAA de VERSAILLESS » (16, 17VE = Versailles), « CAA de Montpellier » (1, 99MA01704 = Marseille ; cette cour n'existe pas), « Section du Contentieux » (2, formation du CE). L'ordonnance TA Montpellier 1983 est attribuée par son libellé (numéro vide).",
+  "Une écriture nouvelle en base n'est PAS perdue : elle reste cherchable sans filtre, et scripts/controle_juridictions.py la signale chaque nuit."
+ ],
+ "ecritures_anormales": {
+  "Cour administrative d'appel": "sans ville ; 639 décisions de 2013, toutes 09BX/12BX = Bordeaux (CAA33)",
+  "CAA de VERSAILLESS": "faute de frappe ; 16 décisions 17VE = Versailles (CAA78)",
+  "Cour administrative d'appel de Montpellier": "cour inexistante ; n° 99MA01704 = Marseille (CAA13). Ne JAMAIS en dériver un alias « CAA de Montpellier »",
+  "Section du Contentieux": "formation du Conseil d'État, pas une juridiction (CE)",
+  "Tribunal administratif Montpellier ordonnance du president": "type de décision accolé ; TA de Montpellier (TA34), numéro vide"
+ },
+ "admin": {
+  "CE": {
+   "nom": "Conseil d'État",
+   "ecritures": [
+    "Conseil d'Etat",
+    "Conseil d'État",
+    "Section du Contentieux"
+   ]
+  },
+  "CAA13": {
+   "nom": "Cour administrative d'appel de Marseille",
+   "ecritures": [
+    "CAA de MARSEILLE",
+    "Cour Administrative d'Appel de Marseille",
+    "Cour administrative d'appel de Marseille",
+    "Cour administrative d'appel de Montpellier"
+   ]
+  },
+  "CAA31": {
+   "nom": "Cour administrative d'appel de Toulouse",
+   "ecritures": [
+    "CAA de TOULOUSE",
+    "Cour administrative d'appel de Toulouse",
+    "cour administrative d'appel de Toulouse"
+   ]
+  },
+  "CAA33": {
+   "nom": "Cour administrative d'appel de Bordeaux",
+   "ecritures": [
+    "CAA de BORDEAUX",
+    "CAA de Bordeaux",
+    "Cour Administrative d'Appel de Bordeaux",
+    "Cour administrative d'appel",
+    "Cour administrative d'appel de Bordeaux"
+   ]
+  },
+  "CAA44": {
+   "nom": "Cour administrative d'appel de Nantes",
+   "ecritures": [
+    "CAA de NANTES",
+    "CAA de Nantes",
+    "Cour Administrative d'Appel de Nantes",
+    "Cour administrative d'appel de Nantes"
+   ]
+  },
+  "CAA54": {
+   "nom": "Cour administrative d'appel de Nancy",
+   "ecritures": [
+    "CAA de NANCY",
+    "CAA de Nancy",
+    "COUR ADMINISTRATIVE D'APPEL DE NANCY",
+    "Cour Administrative d'Appel de Nancy",
+    "Cour administrative d'appel de Nancy"
+   ]
+  },
+  "CAA59": {
+   "nom": "Cour administrative d'appel de Douai",
+   "ecritures": [
+    "CAA de DOUAI",
+    "Cour administrative d'appel de Douai"
+   ]
+  },
+  "CAA69": {
+   "nom": "Cour administrative d'appel de Lyon",
+   "ecritures": [
+    "CAA de LYON",
+    "CAA de Lyon",
+    "COUR ADMINISTRATIVE D'APPEL DE LYON",
+    "Cour administrative d'appel de Lyon"
+   ]
+  },
+  "CAA75": {
+   "nom": "Cour administrative d'appel de Paris",
+   "ecritures": [
+    "CAA de PARIS",
+    "CAA de Paris",
+    "Cour Administrative d'Appel de Paris",
+    "Cour administrative d'appel de Paris"
+   ]
+  },
+  "CAA78": {
+   "nom": "Cour administrative d'appel de Versailles",
+   "ecritures": [
+    "CAA de VERSAILLES",
+    "CAA de VERSAILLESS",
+    "Cour Administrative d'Appel de Versailles",
+    "Cour administrative d'appel de Versailles"
+   ]
+  },
+  "CDBF": {
+   "nom": "Cour de discipline budgétaire et financière",
+   "ecritures": [
+    "Cour de discipline budgétaire et financière"
+   ]
+  },
+  "TA06": {
+   "nom": "Tribunal administratif de Nice",
+   "ecritures": [
+    "Tribunal administratif Nice",
+    "Tribunal administratif de Nice"
+   ]
+  },
+  "TA101": {
+   "nom": "Tribunal administratif de La Réunion",
+   "ecritures": [
+    "Tribunal administratif Saint-Denis de la Réunion",
+    "Tribunal administratif de Saint-Denis de la Réunion"
+   ]
+  },
+  "TA102": {
+   "nom": "Tribunal administratif de la Martinique",
+   "ecritures": [
+    "Tribunal administratif Fort-de-France",
+    "Tribunal administratif de Fort-de-France"
+   ]
+  },
+  "TA103": {
+   "nom": "Tribunal administratif de la Polynésie française",
+   "ecritures": [
+    "Tribunal administratif Papeete",
+    "Tribunal administratif de Papeete"
+   ]
+  },
+  "TA104": {
+   "nom": "Tribunal administratif de Nouvelle-Calédonie",
+   "ecritures": [
+    "Tribunal administratif Nouméa",
+    "Tribunal administratif de Nouméa"
+   ]
+  },
+  "TA105": {
+   "nom": "Tribunal administratif de la Guadeloupe",
+   "ecritures": [
+    "Tribunal administratif Basse-Terre"
+   ]
+  },
+  "TA106": {
+   "nom": "Tribunal administratif de la Guyane",
+   "ecritures": [
+    "Tribunal administratif Cayenne"
+   ]
+  },
+  "TA13": {
+   "nom": "Tribunal administratif de Marseille",
+   "ecritures": [
+    "Tribunal Administratif de Marseille",
+    "Tribunal administratif Marseille",
+    "Tribunal administratif de Marseille"
+   ]
+  },
+  "TA14": {
+   "nom": "Tribunal administratif de Caen",
+   "ecritures": [
+    "Tribunal Administratif de Caen",
+    "Tribunal administratif Caen",
+    "Tribunal administratif de Caen"
+   ]
+  },
+  "TA20": {
+   "nom": "Tribunal administratif de Bastia",
+   "ecritures": [
+    "Tribunal administratif Bastia"
+   ]
+  },
+  "TA21": {
+   "nom": "Tribunal administratif de Dijon",
+   "ecritures": [
+    "Tribunal administratif Dijon",
+    "Tribunal administratif de Dijon"
+   ]
+  },
+  "TA25": {
+   "nom": "Tribunal administratif de Besançon",
+   "ecritures": [
+    "Tribunal administratif Besançon",
+    "Tribunal administratif de Besançon"
+   ]
+  },
+  "TA31": {
+   "nom": "Tribunal administratif de Toulouse",
+   "ecritures": [
+    "Tribunal administratif Toulouse",
+    "Tribunal administratif de Toulouse"
+   ]
+  },
+  "TA33": {
+   "nom": "Tribunal administratif de Bordeaux",
+   "ecritures": [
+    "Tribunal administratif Bordeaux",
+    "Tribunal administratif de Bordeaux"
+   ]
+  },
+  "TA34": {
+   "nom": "Tribunal administratif de Montpellier",
+   "ecritures": [
+    "Tribunal administratif Montpellier",
+    "Tribunal administratif Montpellier ordonnance du president",
+    "Tribunal administratif de Montpellier"
+   ]
+  },
+  "TA35": {
+   "nom": "Tribunal administratif de Rennes",
+   "ecritures": [
+    "Tribunal administratif Rennes",
+    "Tribunal administratif de Rennes"
+   ]
+  },
+  "TA38": {
+   "nom": "Tribunal administratif de Grenoble",
+   "ecritures": [
+    "Tribunal administratif Grenoble",
+    "Tribunal administratif de Grenoble"
+   ]
+  },
+  "TA44": {
+   "nom": "Tribunal administratif de Nantes",
+   "ecritures": [
+    "Tribunal Administratif de Nantes",
+    "Tribunal administratif Nantes",
+    "Tribunal administratif de Nantes"
+   ]
+  },
+  "TA45": {
+   "nom": "Tribunal administratif d'Orléans",
+   "ecritures": [
+    "Tribunal Administratif d'Orléans",
+    "Tribunal administratif Orléans",
+    "Tribunal administratif d'Orléans"
+   ]
+  },
+  "TA51": {
+   "nom": "Tribunal administratif de Châlons-en-Champagne",
+   "ecritures": [
+    "Tribunal administratif Châlons-sur-Marne",
+    "Tribunal administratif de Châlons-en-Champagne",
+    "Tribunal administratif de Châlons-sur-Marne"
+   ]
+  },
+  "TA54": {
+   "nom": "Tribunal administratif de Nancy",
+   "ecritures": [
+    "Tribunal administratif Nancy",
+    "Tribunal administratif de Nancy"
+   ]
+  },
+  "TA59": {
+   "nom": "Tribunal administratif de Lille",
+   "ecritures": [
+    "Tribunal Administratif de Lille",
+    "Tribunal administratif Lille",
+    "Tribunal administratif de Lille"
+   ]
+  },
+  "TA63": {
+   "nom": "Tribunal administratif de Clermont-Ferrand",
+   "ecritures": [
+    "Tribunal administratif Clermont-Ferrand",
+    "Tribunal administratif de Clermont-Ferrand"
+   ]
+  },
+  "TA64": {
+   "nom": "Tribunal administratif de Pau",
+   "ecritures": [
+    "Tribunal administratif Pau",
+    "Tribunal administratif de Pau"
+   ]
+  },
+  "TA67": {
+   "nom": "Tribunal administratif de Strasbourg",
+   "ecritures": [
+    "Tribunal administratif Strasbourg",
+    "Tribunal administratif de Strasbourg"
+   ]
+  },
+  "TA69": {
+   "nom": "Tribunal administratif de Lyon",
+   "ecritures": [
+    "Tribunal administratif Lyon",
+    "Tribunal administratif de Lyon"
+   ]
+  },
+  "TA75": {
+   "nom": "Tribunal administratif de Paris",
+   "ecritures": [
+    "Tribunal Administratif de Paris",
+    "Tribunal administratif Paris",
+    "Tribunal administratif de Paris"
+   ]
+  },
+  "TA76": {
+   "nom": "Tribunal administratif de Rouen",
+   "ecritures": [
+    "Tribunal administratif Rouen",
+    "Tribunal administratif de Rouen"
+   ]
+  },
+  "TA77": {
+   "nom": "Tribunal administratif de Melun",
+   "ecritures": [
+    "Tribunal Administratif de MELUN"
+   ]
+  },
+  "TA78": {
+   "nom": "Tribunal administratif de Versailles",
+   "ecritures": [
+    "Tribunal administratif Versailles",
+    "Tribunal administratif de Versailles"
+   ]
+  },
+  "TA80": {
+   "nom": "Tribunal administratif d'Amiens",
+   "ecritures": [
+    "Tribunal Administratif d'Amiens",
+    "Tribunal administratif Amiens",
+    "Tribunal administratif d'Amiens"
+   ]
+  },
+  "TA86": {
+   "nom": "Tribunal administratif de Poitiers",
+   "ecritures": [
+    "Tribunal administratif Poitiers",
+    "Tribunal administratif de Poitiers"
+   ]
+  },
+  "TA87": {
+   "nom": "Tribunal administratif de Limoges",
+   "ecritures": [
+    "Tribunal Administratif de Limoges",
+    "Tribunal administratif Limoges",
+    "Tribunal administratif de Limoges"
+   ]
+  },
+  "TC": {
+   "nom": "Tribunal des conflits",
+   "ecritures": [
+    "Tribunal des Conflits",
+    "Tribunal des conflits"
+   ]
+  }
+ },
+ "judiciaire": {
+  "cassation": {
+   "nom": "Cour de cassation",
+   "exact": [
+    "cc",
+    "Cour de cassation"
+   ]
+  },
+  "constit": {
+   "nom": "Conseil constitutionnel",
+   "exact": [
+    "Conseil constitutionnel"
+   ]
+  },
+  "appel": {
+   "nom": "Cours d'appel",
+   "prefixes": [
+    "Cour d'appel "
+   ]
+  },
+  "tj": {
+   "nom": "Tribunaux judiciaires (y compris les anciens tribunaux de grande instance et d'instance, fusionnés en 2020)",
+   "prefixes": [
+    "Tribunal judiciaire ",
+    "Tribunal de grande instance ",
+    "Tribunal d'instance "
+   ]
+  },
+  "tcom": {
+   "nom": "Tribunaux de commerce (y compris les tribunaux des activités économiques, nouveau nom depuis 2025)",
+   "prefixes": [
+    "Tribunal de commerce ",
+    "Tribunal des activités économiques "
+   ]
+  }
+ },
+ "libelles_affiches": {
+  "cc": "Cour de cassation",
+  "Tribunal judiciaire de tj2b033": "Tribunal judiciaire de Bastia",
+  "Tribunal judiciaire de tj2a004": "Tribunal judiciaire d'Ajaccio"
+ }
+}
