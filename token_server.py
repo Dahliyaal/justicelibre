@@ -309,7 +309,10 @@ class TokenHandler(BaseHTTPRequestHandler):
         if len(q) > 500:
             return self._json_response(400, {"error": "Requête trop longue (max. 500 caractères)."})
         # Whitelist stricte sur juridiction et sources
-        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "constit", "europ", "cedh", "cjue"}
+        # « tj » manquait (8 septembre 2026) : l'option existait dans la page,
+        # la liste blanche la remplaçait par "" → recherche NON filtrée servie
+        # comme filtrée. Un filtre inconnu ne doit plus être avalé en silence.
+        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "constit", "europ", "cedh", "cjue"}
         juri = (qs.get("juridiction", [""])[0] or "").strip().lower()
         if juri not in ALLOWED_JURI:
             juri = ""

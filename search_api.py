@@ -224,6 +224,7 @@ JURI_DISPATCH = {
     "judic":   ["dila"],
     "cass":    ["dila"],
     "ca":      ["dila"],
+    "tj":      ["dila"],
     "constit": ["dila"],
     "europ":   ["cedh", "cjue"],
     "cedh":    ["cedh"],
@@ -412,11 +413,13 @@ def _dispatch_dila_sync(
     intent: QueryIntent, juridiction: str, limit: int, offset: int,
     date_min: str | None = None, date_max: str | None = None,
 ) -> list[dict]:
-    juri_filter = None
-    if juridiction == "cass":
-        juri_filter = "cassation"
-    elif juridiction == "ca":
-        juri_filter = "appel"
+    # Filtre UI → famille dila. « tj » et « constit » n'y figuraient pas
+    # (8 septembre 2026, vu en testant le site au navigateur) : choisir
+    # « Tribunaux judiciaires » renvoyait la Cour de cassation et des cours
+    # d'appel, sans rien dire. Les familles sont celles de
+    # data/juridictions_map.json (tj englobe les anciens TGI/TI).
+    juri_filter = {"cass": "cassation", "ca": "appel",
+                   "tj": "tj", "constit": "constit"}.get(juridiction)
     out = []
     seen = set()
 

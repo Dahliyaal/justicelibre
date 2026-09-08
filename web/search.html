@@ -41,8 +41,14 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
 }
 .searchbar-inner{max-width:1400px;margin:0 auto}
 .sb-primary{
-  display:grid;grid-template-columns:1fr 180px 170px auto auto;gap:.5rem;
+  display:grid;grid-template-columns:1fr 200px 190px auto auto;gap:.5rem;
 }
+/* components.css impose min-width:260px aux menus : dans une colonne de
+   180 px, ils débordaient sur le bouton « Filtres », qui devenait
+   incliquable (le clic ouvrait le menu Pertinence). Vu au navigateur le
+   8 septembre 2026. */
+.sb-primary .cs-wrap{min-width:0}
+.sb-primary .cs-display-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-primary input[type=text],
 .sb-primary select{
   font-family:var(--sans);font-size:.95rem;
@@ -63,7 +69,7 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
 }
 .sb-primary button.submit:hover{background:var(--teal-l)}
 .sb-primary button.toggle-adv{
-  padding:.75rem 1rem;background:transparent;color:var(--muted);
+  padding:.75rem 1rem;background:transparent;color:var(--ink);white-space:nowrap;
   font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
   border:1px solid var(--line);border-radius:3px;cursor:pointer;
   display:flex;align-items:center;gap:.4rem;
@@ -695,7 +701,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
         </div>
       </div>
 
-      <button class="toggle-adv" id="toggleAdv">Filtres <span class="chev">▾</span></button>
+      <button class="toggle-adv" id="toggleAdv" title="Juridiction précise, dates, thésaurus">Filtres avancés <span class="chev">▾</span></button>
       <button class="submit">Chercher</button>
     </div>
 
@@ -724,7 +730,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
             </div>
             <div class="cs-item cs-sub" data-value="cass" data-label="Cour de cassation">Cour de cassation</div>
             <div class="cs-item cs-sub" data-value="ca" data-label="Cours d'appel">Cours d'appel</div>
-            <div class="cs-item cs-sub" data-value="tj" data-label="Tribunaux judiciaires">Tribunaux judiciaires <span class="hint">~2k, en cours</span></div>
+            <div class="cs-item cs-sub" data-value="tj" data-label="Tribunaux judiciaires">Tribunaux judiciaires <span class="hint">et anciens TGI / TI</span></div>
             <div class="cs-item cs-sub" data-value="constit" data-label="Conseil constitutionnel">Conseil constitutionnel</div>
 
             <div class="cs-group" data-value="europ" data-label="Tout européen">
@@ -2148,6 +2154,7 @@ function juridictionToSourceSet(juri) {
     'judic':   ['dila'],
     'cass':    ['dila'],
     'ca':      ['dila'],
+    'tj':      ['dila'],
     'constit': ['dila'],
     'europ':   ['cedh', 'cjue'],
     'cedh':    ['cedh'],
