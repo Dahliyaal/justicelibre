@@ -100,6 +100,21 @@ _JURI_ALIASES = {
 }
 
 
+# Chambres de la Cour de cassation : le fonds écrit la formation de deux
+# façons (« CHAMBRE_SOCIALE » côté DILA, « soc » côté Judilibre). Le filtre
+# s'exprime dans la colonne `formation` de l'index plein texte.
+FORMATIONS_CASS = {
+    "Chambre civile 1": ["CHAMBRE_CIVILE_1", "civ1"],
+    "Chambre civile 2": ["CHAMBRE_CIVILE_2", "civ2"],
+    "Chambre civile 3": ["CHAMBRE_CIVILE_3", "civ3"],
+    "Chambre commerciale": ["CHAMBRE_COMMERCIALE", "comm"],
+    "Chambre sociale": ["CHAMBRE_SOCIALE", "soc"],
+    "Chambre criminelle": ["CHAMBRE_CRIMINELLE", "cr"],
+    "Assemblée plénière": ["ASSEMBLEE_PLENIERE", "pl"],
+    "Chambre mixte": ["CHAMBRE_MIXTE", "mi"],
+}
+
+
 def resolve_juridiction(value: str | None) -> str | None:
     """Clé canonique de JURIDICTIONS, ou None si la valeur est inconnue.
 
@@ -151,6 +166,7 @@ def search(
     limit: int = 20,
     offset: int = 0,
     juridiction_like: list[str] | None = None,
+    formation: str | None = None,
 ) -> dict[str, Any]:
     # Chemin "tranche de dates" sans query : lookup SQL direct via
     # idx_decisions_date (une journée = quelques milliers de lignes max),
@@ -328,6 +344,11 @@ def search(
                 # constitutionnel</em> » comme extrait. On ancre l'extrait sur
                 # le texte (colonne 6) dès qu'un filtre de famille est actif.
                 SNIPPET_SQL = "snippet(decisions_fts, 6, '<em>', '</em>', '…', 28)"
+        _ff = FORMATIONS_CASS.get((formation or "").strip()) if formation else None
+        if _ff:
+            fts_query = f"({fts_query}) AND formation:({' OR '.join(chr(34) + t + chr(34) for t in _ff)})"
+            params[0] = fts_query
+            SNIPPET_SQL = "snippet(decisions_fts, 6, '<em>', '</em>', '…', 28)"
         if date_min:
             where.append("d.date >= ?")
             params.append(date_min)

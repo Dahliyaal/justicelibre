@@ -147,15 +147,90 @@ def _norm_ariane(raw: dict) -> dict:
         "relevance": raw.get("relevance"),
     }
 
+def _dedupe_ecli(rows: list[dict]) -> list[dict]:
+    """Un arrêt, une carte : clé ECLI, et à défaut numéro normalisé + date
+    (la ligne JURITEXT ancienne n'a souvent pas d'ECLI alors que sa jumelle
+    Judilibre en a un — les deux portent le même numéro et la même date)."""
+    vus: set[str] = set()
+    out = []
+    for r in rows:
+        cles = []
+        e = (r.get("ecli") or "").strip().upper()
+        if e:
+            cles.append("E:" + e)
+        n = re.sub(r"[.\s/-]", "", str(r.get("numero") or ""))
+        d = (r.get("date") or "")[:10]
+        if n and d:
+            cles.append(f"N:{n}@{d}")
+        if any(c in vus for c in cles):
+            continue
+        vus.update(cles)
+        out.append(r)
+    return out
+
+
+def _admin_query(intent: QueryIntent) -> str:
+    """Requête pour l'API live opendata : un espace y vaut OU, pas ET.
+
+    Mesuré le 8 septembre 2026 : « licenciement zzzqqq » rendait les mêmes
+    trois décisions que « licenciement » — les mots tapés étaient facultatifs
+    sur cette source seule, les quatre autres exigeant tous les mots. On
+    relie donc les termes par AND explicite (que l'API honore), en respectant
+    les guillemets, les parenthèses (groupes OR du thésaurus) et les
+    opérateurs déjà écrits (NOT, OR).
+    """
+    q = intent.fts_query or intent.value or ""
+    parts, buf, depth, quote = [], "", 0, False
+    for ch in q:
+        if ch == '"':
+            quote = not quote
+        elif not quote:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+        if ch == " " and depth == 0 and not quote:
+            if buf:
+                parts.append(buf)
+                buf = ""
+            continue
+        buf += ch
+    if buf:
+        parts.append(buf)
+    if len(parts) < 2:
+        return q
+    out: list[str] = []
+    prev_op = True          # rien avant le 1er terme
+    for tok in parts:
+        if tok in ("AND", "OR", "NOT"):
+            if out and not prev_op:
+                out.append(tok)
+            prev_op = True
+            continue
+        if not prev_op:
+            out.append("AND")
+        out.append(tok)
+        prev_op = False
+    return " ".join(out)
+
+
+def _admin_name(raw: dict) -> str:
+    code = (raw.get("juridiction_code") or "").upper()
+    return juriadmin.VALID_JURI.get(code) or raw.get("juridiction_name", "") or ""
+
+
 def _norm_admin(raw: dict) -> dict:
     return {
         "id": raw.get("id") or "",
         "source": "admin",
         "source_label": SOURCE_LABELS["admin"],
-        "title": f"{raw.get('juridiction_name', '')} — n° {raw.get('numero_dossier', '—')}",
-        "juridiction": raw.get("juridiction_name", ""),
+        "title": f"{_admin_name(raw)} — n° {raw.get('numero_dossier', '—')}",
+        # L'API live nomme parfois la FORMATION à la place de la juridiction
+        # (« Section du Contentieux » pour un arrêt du CE) : on sert le nom de
+        # la juridiction d'après son code, et la forme brute reste en formation.
+        "juridiction": _admin_name(raw),
         "date": _clean_date(raw.get("date_lecture", "")),
-        "formation": raw.get("formation", ""),
+        "formation": "" if raw.get("formation") in (None, "undefined") else raw.get("formation", ""),
         "numero": raw.get("numero_dossier", ""),
         "ecli": raw.get("ecli") or "",
         "extract": "",
@@ -178,6 +253,12 @@ def _norm_jade_bulk(raw: dict) -> dict:
         "extract": "",
     }
 
+def _cedh_numero(ecli: str) -> str:
+    # ECLI HUDOC : …JUD001485218 = requête n° 14852/18 (7 chiffres + année).
+    m = re.search(r"(?:JUD|DEC)(\d{7})(\d{2})$", ecli or "")
+    return f"{int(m.group(1))}/{m.group(2)}" if m else ""
+
+
 def _norm_cedh(raw: dict) -> dict:
     return {
         "id": raw["id"],
@@ -187,7 +268,9 @@ def _norm_cedh(raw: dict) -> dict:
         "juridiction": "Cour EDH",
         "date": _clean_date(raw.get("date", "")),
         "formation": raw.get("doctype", ""),
-        "numero": "",
+        # Le n° de requête n'est pas dans la ligne mais dans l'ECLI
+        # (…JUD002847322 → 28473/22) : avant, « n° - » sur toutes les cartes.
+        "numero": _cedh_numero(raw.get("ecli", "")),
         "ecli": raw.get("ecli", ""),
         "extract": raw.get("snippet", "") or "",
         "article": raw.get("article", ""),
@@ -347,6 +430,34 @@ async def _dispatch_admin(
                 return out
         except Exception as e:
             print(f"[admin dce_id err] {e}")
+    # 1quater) ECLI du Conseil d'État (ECLI:FR:CECHR:2024:469696.20241108) :
+    # le numéro de requête y est inscrit ; on le cherche dans le bulk JADE.
+    # Avant : 0 résultat pour un ECLI que le site affiche lui-même.
+    if intent.kind == "ecli" and intent.value.upper().startswith("ECLI:FR:CE"):
+        m = re.search(r":(\d{4,7})(?:\.|$)", intent.value)
+        if m:
+            try:
+                from sources import warehouse as wh
+                hits = await wh.lookup_by_numero("jade", m.group(1), juridiction="CE")
+                hits = [h for h in hits or []
+                        if not (h.get("ecli") or "").strip()
+                        or (h.get("ecli") or "").strip().upper() == intent.value.upper()]
+                if hits:
+                    return [_norm_jade_bulk(h) for h in hits[:limit]]
+            except Exception as e:
+                print(f"[admin ecli err] {e}")
+        return []
+    # 1ter) Id JADE (CETATEXT…) → lecture directe dans le bulk, comme le fait
+    # get_decision_text côté MCP. Le site, lui, ne le savait pas.
+    if intent.kind == "cetatext":
+        try:
+            from sources import warehouse as wh
+            r = await wh.get_decision_remote("jade", intent.value)
+            if r:
+                return [{**_norm_jade_bulk(r), "extract": ""}]
+        except Exception as e:
+            print(f"[admin cetatext err] {e}")
+        return []
     # 1bis) Si l'intent est dossier_admin (TA Paris 21XXXXX ou CAA codifié
     # XXNCXXXXX, XXDAXXXXX, XXPAXXXXX…) → lookup SQL exact dans JADE bulk.
     # JADE couvre les anciens numéros que l'API live opendata (post-2022) rate.
@@ -371,6 +482,13 @@ async def _dispatch_admin(
     # 2) Routage du code juridiction selon contexte (fan-out vs single)
     # Si dates demandées, on bascule sur le bulk JADE (warehouse) qui supporte
     # date_min/date_max nativement, sinon l'API live juriadmin (BM25 sans dates).
+    # L'API live opendata n'a pas de pagination : au-delà de la première page,
+    # le fan-out rendait les 30 mêmes décisions (49 doublons après deux
+    # « charger plus », 8 septembre 2026). Une page vide vaut mieux qu'une
+    # page en double ; en ciblage simple (CE ou lieu précis) on sur-lit et on
+    # découpe.
+    if offset and not (date_min or date_max) and not (juridiction == "ce" or lieu):
+        return out
     try:
         if date_min or date_max:
             from sources import jade_remote
@@ -383,27 +501,28 @@ async def _dispatch_admin(
             out.extend([_norm_jade_bulk(h) for h in r.get("decisions", [])])
         elif juridiction == "ta" and not lieu:
             r = await juriadmin.search_many(
-                client, query=intent.fts_query, juridictions=ALL_TA, limit_per_court=1,
+                client, query=_admin_query(intent), juridictions=ALL_TA, limit_per_court=1,
             )
             out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
         elif juridiction == "caa" and not lieu:
             r = await juriadmin.search_many(
-                client, query=intent.fts_query, juridictions=ALL_CAA,
+                client, query=_admin_query(intent), juridictions=ALL_CAA,
                 limit_per_court=max(1, limit // 3),
             )
             out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
         elif juridiction in ("", "admin") and not lieu:
             fanout = ["CE-CAA"] + ALL_CAA + ALL_TA
             r = await juriadmin.search_many(
-                client, query=intent.fts_query, juridictions=fanout, limit_per_court=1,
+                client, query=_admin_query(intent), juridictions=fanout, limit_per_court=1,
             )
             out.extend([_norm_admin(d) for d in r.get("decisions", [])][:limit])
         else:
             code = _admin_juri_code(juridiction, lieu) or "CE"
             r = await juriadmin.search(
-                client, query=intent.fts_query, juridiction=code, limit=limit,
+                client, query=_admin_query(intent), juridiction=code,
+                limit=min(100, limit + offset),
             )
-            out.extend([_norm_admin(d) for d in r.get("decisions", [])])
+            out.extend([_norm_admin(d) for d in r.get("decisions", [])][offset:offset + limit])
     except Exception as e:
         print(f"[admin fts err] {e}")
     return out
@@ -412,6 +531,7 @@ async def _dispatch_admin(
 def _dispatch_dila_sync(
     intent: QueryIntent, juridiction: str, limit: int, offset: int,
     date_min: str | None = None, date_max: str | None = None,
+    formation: str | None = None,
 ) -> list[dict]:
     # Filtre UI → famille dila. « tj » et « constit » n'y figuraient pas
     # (8 septembre 2026, vu en testant le site au navigateur) : choisir
@@ -460,6 +580,7 @@ def _dispatch_dila_sync(
                 query=intent.fts_query, juridiction=juri_filter,
                 date_min=date_min, date_max=date_max,
                 limit=limit, offset=offset,
+                formation=formation,
             )
             for d in r.get("decisions", []):
                 if d["id"] not in seen:
@@ -546,6 +667,7 @@ async def search_federated(
     date_max: str | None = None,
     sort: str = "pertinence",
     expand: bool = False,
+    formation: str | None = None,
 ) -> dict[str, Any]:
     """Interroge en parallèle les sources pertinentes, fusionne et trie.
 
@@ -604,7 +726,8 @@ async def search_federated(
         if "dila" not in sources_to_query:
             return []
         return _dispatch_dila_sync(intent, juridiction, limit_per_source, offset,
-                                    date_min=date_min, date_max=date_max)
+                                    date_min=date_min, date_max=date_max,
+                                    formation=formation)
 
     def _q_cedh_sync():
         if "cedh" not in sources_to_query:
@@ -645,6 +768,10 @@ async def search_federated(
         ariane_r, admin_r, dila_r, cedh_r, cjue_r = await asyncio.gather(
             ariane_task, admin_task, dila_task, cedh_task, cjue_task,
         )
+    # Le même arrêt existe souvent deux fois dans le fonds judiciaire (ligne
+    # Judilibre à id hexadécimal + ligne JURITEXT, même ECLI) : on n'en montre
+    # qu'un. Le dédoublonnage en base est un chantier à part.
+    dila_r = _dedupe_ecli(dila_r)
 
     per_source = {
         "ariane": len(ariane_r), "admin": len(admin_r),
@@ -688,16 +815,17 @@ async def search_federated(
         merged.sort(key=lambda r: r.get("date", "") or "9999-12-31", reverse=False)
         final = list(merged)
     else:
-        # pertinence (défaut) — Sinequa score d'abord, sinon date desc
-        def _sort_key(r):
-            rel = r.get("relevance")
-            if rel is not None:
-                return (0, -float(rel), r.get("date", ""))
-            return (1, r.get("date", "") or "0000-00-00",)
-        merged.sort(key=_sort_key, reverse=False)
-        with_rel = [r for r in merged if r.get("relevance") is not None]
+        # pertinence (défaut). Les résultats sans score (dila, cedh, cjue,
+        # admin) arrivent DÉJÀ classés par leur moteur (BM25 côté dila) : on
+        # garde cet ordre. Avant, ils étaient re-triés par date — « Pertinence »
+        # voulait dire « le plus récent » pour tout le judiciaire, et
+        # « expulsion trêve hivernale » rendait dix jugements de TJ de 2026 au
+        # lieu des arrêts de principe (banc de référence Judilibre, 8 sept.
+        # 2026 : recouvrement 1,4/10). Les scores Sinequa (ariane), eux,
+        # restent triés entre eux.
+        with_rel = sorted([r for r in merged if r.get("relevance") is not None],
+                          key=lambda r: -float(r["relevance"]))
         without_rel = [r for r in merged if r.get("relevance") is None]
-        without_rel.sort(key=lambda r: r.get("date", ""), reverse=True)
         final = [*with_rel, *without_rel]
     # Boost final : remonte en haut les hits avec numéro exact match
     if _candidates_for_exact:
@@ -732,6 +860,10 @@ async def search_federated(
 # ─── RÉCUPÉRATION DU TEXTE INTÉGRAL ────────────────────────────────
 
 async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None:
+    # Une source inconnue renvoyait 200 avec un corps vide : le client croyait
+    # tenir une décision. Introuvable, franchement (8 septembre 2026).
+    if source not in ("dila", "cedh", "cjue", "admin", "ariane"):
+        return None
     if source == "dila":
         r = dila.get_decision(decision_id)
         if not r:

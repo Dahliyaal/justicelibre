@@ -64,6 +64,10 @@ _RE_DOSSIER_ADMIN = re.compile(r"^(?:2\d{6}|\d{2}[A-Z]{2}\d{4,6})$", re.IGNORECA
 _RE_DCE = re.compile(r"^D(CE|TA|CAA)_[A-Z0-9_]+$", re.IGNORECASE)
 _RE_HUDOC = re.compile(r"^00[0-9]-\d{4,6}$")
 _RE_JURITEXT = re.compile(r"^(JURI|CONST|ARRETS)\w*$", re.IGNORECASE)
+# Ids JADE (Conseil d'État, CAA, TA) : « CETATEXT000007641393 ». Un visiteur
+# qui colle l'id Légifrance d'un arrêt du CE n'obtenait RIEN (8 septembre
+# 2026) : l'id tombait en recherche plein texte, où il n'apparaît jamais.
+_RE_CETATEXT = re.compile(r"^CETATEXT\d{6,}$", re.IGNORECASE)
 
 
 # ─── HELPERS PUBLICS ───────────────────────────────────────────────
@@ -331,6 +335,8 @@ def detect_intent(q: str) -> QueryIntent:
         return QueryIntent(kind="itemid_hudoc", value=raw, fts_query=normalize_fts_query(raw))
     if _RE_JURITEXT.match(raw):
         return QueryIntent(kind="juritext", value=raw.upper(), fts_query=normalize_fts_query(raw))
+    if _RE_CETATEXT.match(raw):
+        return QueryIntent(kind="cetatext", value=raw.upper(), fts_query=normalize_fts_query(raw))
     if _RE_ECLI.match(raw):
         return QueryIntent(kind="ecli", value=raw.upper(), fts_query=normalize_fts_query(raw))
     if _RE_CELEX.match(raw):
@@ -383,6 +389,7 @@ SOURCE_CAPABILITIES = {
     },
     "admin": {
         "dce_id",          # -> get_decision direct
+        "cetatext",        # id JADE bulk -> warehouse direct
         "dossier_admin",   # dans text + numero_dossier
         "ariane_id",       # le vrai n° dossier CE peut être 6-7 chiffres
         "pourvoi",         # parfois cité dans le texte

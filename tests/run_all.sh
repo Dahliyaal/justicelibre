@@ -36,6 +36,7 @@ if [[ $OFFLINE_ONLY -eq 0 ]]; then
     run tests/test_search.py
     run tests/test_v2.py
     run tests/test_contracts.py
+    run tests/test_site_search.py
 else
     echo "(--offline : test_search.py et test_v2.py skippés — ils tapent la prod live)"
 fi

@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import re
+from datetime import date as _date
 import sys
 import time
 import urllib.parse
@@ -313,8 +314,11 @@ class TokenHandler(BaseHTTPRequestHandler):
         # la liste blanche la remplaçait par "" → recherche NON filtrée servie
         # comme filtrée. Un filtre inconnu ne doit plus être avalé en silence.
         ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "constit", "europ", "cedh", "cjue"}
+        filtres_ignores: list[dict] = []
         juri = (qs.get("juridiction", [""])[0] or "").strip().lower()
         if juri not in ALLOWED_JURI:
+            filtres_ignores.append({"parametre": "juridiction", "valeur": juri,
+                                    "raison": f"valeur inconnue (attendu : {', '.join(sorted(ALLOWED_JURI - {''}))}) ; filtre NON appliqué"})
             juri = ""
         lieu = (qs.get("lieu", [""])[0] or "").strip()[:40]
         # lieu : format attendu [A-Z0-9]+ (TA75, CAA69, etc.)
@@ -331,6 +335,11 @@ class TokenHandler(BaseHTTPRequestHandler):
             offset = 0
         offset = max(0, min(offset, 10000))
         sources_only = [s.strip() for s in (qs.get("sources", [""])[0] or "").split(",") if s.strip()]
+        _inconnues = [s for s in sources_only if s not in ("dila", "ariane", "admin", "cedh", "cjue")]
+        if _inconnues:
+            filtres_ignores.append({"parametre": "sources", "valeur": ",".join(_inconnues),
+                                    "raison": "source(s) inconnue(s) (attendu : dila, ariane, admin, cedh, cjue) ; ignorée(s)"})
+            sources_only = [s for s in sources_only if s not in _inconnues]
         try:
             timeout_s = float(qs.get("timeout", ["12"])[0])
         except ValueError:
@@ -341,14 +350,23 @@ class TokenHandler(BaseHTTPRequestHandler):
         # entier en croyant l'avoir borné, ce qui est exactement le scénario
         # où l'on cite une décision hors période (23 août 2026). On la
         # signale dans `filtres_ignores`.
-        date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        # Au calendrier, pas seulement au gabarit : « 2026-13-45 » passait la
+        # regex et s'appliquait en comparaison de chaînes (8 septembre 2026).
+        def _date_ok(v: str) -> bool:
+            if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
+                return False
+            try:
+                _date.fromisoformat(v)
+                return True
+            except ValueError:
+                return False
         date_min_raw = (qs.get("date_min", [""])[0] or "").strip()
         date_max_raw = (qs.get("date_max", [""])[0] or "").strip()
-        date_min = date_min_raw if date_re.match(date_min_raw) else None
-        date_max = date_max_raw if date_re.match(date_max_raw) else None
-        filtres_ignores = [
+        date_min = date_min_raw if _date_ok(date_min_raw) else None
+        date_max = date_max_raw if _date_ok(date_max_raw) else None
+        filtres_ignores += [
             {"parametre": nom, "valeur": brut,
-             "raison": "format attendu AAAA-MM-JJ ; filtre NON appliqué"}
+             "raison": "date attendue AAAA-MM-JJ et existante au calendrier ; filtre NON appliqué"}
             for nom, brut, retenu in (("date_min", date_min_raw, date_min),
                                       ("date_max", date_max_raw, date_max))
             if brut and not retenu
@@ -362,7 +380,25 @@ class TokenHandler(BaseHTTPRequestHandler):
         # Tri : pertinence (défaut) / date_desc / date_asc
         sort = (qs.get("sort", ["pertinence"])[0] or "pertinence").strip().lower()
         if sort not in {"pertinence", "date_desc", "date_asc"}:
+            filtres_ignores.append({"parametre": "sort", "valeur": sort,
+                                    "raison": "attendu pertinence, date_desc ou date_asc ; tri par pertinence appliqué"})
             sort = "pertinence"
+        # Chambre / formation : n'existe que pour la Cour de cassation (la page
+        # proposait le menu pour 6 juridictions et n'envoyait rien : « Chambre
+        # sociale » rendait des arrêts de la chambre criminelle, 8 sept. 2026).
+        formation = (qs.get("formation", [""])[0] or "").strip()[:40]
+        if formation and juri != "cass":
+            filtres_ignores.append({"parametre": "formation", "valeur": formation,
+                                    "raison": "le filtre par chambre n'existe que pour la Cour de cassation (juridiction=cass) ; NON appliqué"})
+            formation = ""
+        if date_min and date_max and date_min > date_max:
+            filtres_ignores.append({"parametre": "date_min/date_max", "valeur": f"{date_min} > {date_max}",
+                                    "raison": "bornes inversées ; aucun filtre de date appliqué"})
+            date_min = date_max = None
+        # citation_only=1 : la page envoie un éclaireur pour savoir si la saisie
+        # est une référence. Avant, cet éclaireur lançait TOUTE la recherche
+        # fédérée (5,4 s de plus par recherche, pour rien).
+        citation_only = (qs.get("citation_only", ["0"])[0] or "0").strip() in ("1", "true")
         # Si on interroge une seule source, limit_per_source = limit entier
         lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
         try:
@@ -380,6 +416,8 @@ class TokenHandler(BaseHTTPRequestHandler):
                             return cit
                     except Exception:
                         logger.exception("citation_search failed, fallback pipeline")
+                if citation_only:
+                    return {"citation_match": False, "total": 0, "results": [], "per_source": {}}
                 return await search_federated(
                     q=q, juridiction=juri, lieu=lieu, limit=limit,
                     limit_per_source=lps,
@@ -389,6 +427,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                     date_min=date_min, date_max=date_max,
                     sort=sort,
                     expand=expand,
+                    formation=formation or None,
                 )
             data = asyncio.run(_run())
             if filtres_ignores and isinstance(data, dict):

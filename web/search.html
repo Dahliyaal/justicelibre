@@ -126,6 +126,9 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
 }
 .exp-label{font-style:italic;flex-shrink:0}
 .exp-pills{display:flex;flex-wrap:wrap;gap:.4rem;flex:1;min-width:0}
+@media (max-width:600px){.exp-pills{max-height:5.4rem;overflow-y:auto}}
+.adv-count{display:inline-block;min-width:1.2em;padding:0 .35em;margin-left:.2rem;border-radius:9px;background:var(--teal);color:#fff;font-size:.7rem;line-height:1.5}
+.adv-count:empty{display:none}
 .exp-pill{
   display:inline-flex;align-items:center;gap:.3rem;
   padding:.18rem .55rem;background:var(--white);
@@ -144,6 +147,7 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
 .exp-pill button:hover{color:var(--ink)}
 .exp-pill.removed{opacity:.4;text-decoration:line-through}
 .exp-disable{
+  margin-left:auto;flex-shrink:0;
   border:none;background:none;cursor:pointer;
   color:var(--muted);font-size:.78rem;
   text-decoration:underline;padding:0 .3rem;
@@ -701,7 +705,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
         </div>
       </div>
 
-      <button class="toggle-adv" id="toggleAdv" title="Juridiction précise, dates, thésaurus">Filtres avancés <span class="chev">▾</span></button>
+      <button class="toggle-adv" id="toggleAdv" title="Juridiction précise, dates, thésaurus">Filtres avancés<span class="adv-count" id="advCount"></span> <span class="chev">▾</span></button>
       <button class="submit">Chercher</button>
     </div>
 
@@ -804,7 +808,7 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
   <div class="expansion-inner">
     <span class="exp-label">Recherche élargie aux termes voisins :</span>
     <div class="exp-pills" id="expPills"></div>
-    <button class="exp-disable" id="expDisable" type="button" title="Désactiver l'expansion sémantique pour cette session">Désactiver</button>
+    <button class="exp-disable" id="expDisable" type="button" title="Désactiver l'élargissement par le thésaurus (mémorisé sur cet appareil)">Désactiver</button>
   </div>
 </div>
 
@@ -892,12 +896,17 @@ document.querySelectorAll('.result-card').forEach(card => {
 });
 
 /* ─── Formations / chambres connues par juridiction ─── */
+// Seule la Cour de cassation est réellement filtrable par chambre (le
+// serveur ne sait pas le faire pour les autres : le menu promettait un
+// filtre qu'il n'appliquait pas, 8 septembre 2026).
 const FORMATIONS = {
   cass: [
     "Chambre civile 1", "Chambre civile 2", "Chambre civile 3",
     "Chambre commerciale", "Chambre sociale", "Chambre criminelle",
     "Assemblée plénière", "Chambre mixte",
   ],
+};
+const _FORMATIONS_NON_FILTRABLES = {
   ce: [
     "Assemblée du contentieux", "Section du contentieux",
     "1re chambre", "2e chambre", "3e chambre", "4e chambre", "5e chambre",
@@ -1482,8 +1491,17 @@ function renderResults(data, query) {
     if (retryingNow.length) {
       parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} lent - nouvelle tentative en cours (timeout 60 s) <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></div>`);
     } else {
-      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} n'a pas répondu (12 s puis 60 s). Affinez la requête pour y accéder.</div>`);
+      parts.push(`<div class="source-warning"><strong>⚠</strong> ${slowLabels} ${slow.length > 1 ? "n'ont" : "n'a"} pas répondu (12 s puis 60 s). Affinez la requête pour y accéder.</div>`);
     }
+  }
+  // Refus déterministes du serveur (requête trop longue, paramètre invalide) :
+  // affichés tels quels — avant, ils passaient pour un délai dépassé.
+  const erreurs = [...new Set(Object.values(lastSearchState?.erreurs || {}))];
+  if (erreurs.length) {
+    parts.push(`<div class="source-warning"><strong>⚠</strong> ${escapeHtml(erreurs.join(' · '))}</div>`);
+  }
+  for (const f of (lastSearchState?.avertissements?.values() || [])) {
+    parts.push(`<div class="source-warning"><strong>⚠</strong> Filtre non appliqué — ${escapeHtml(f.parametre)} = ${escapeHtml(String(f.valeur))} : ${escapeHtml(f.raison)}</div>`);
   }
   if (!results.length) {
     // N'affiche "Aucun résultat" QUE si toutes les sources ont fini (pendingSources vide).
@@ -1518,11 +1536,11 @@ function renderResults(data, query) {
     if (hasJuri && hasFormation) {
       // n'ajoute la formation que si elle apporte de l'info utile (≠ codes opaques courts type HFJUD/JUDG sans intérêt user)
       // mais on l'affiche quand même - l'utilisateur jugera
-      juriDisplay = `${r.juridiction}, ${r.formation}`;
+      juriDisplay = `${r.juridiction}, ${fmtFormation(r.formation)}`;
     }
 
     parts.push(`<div class="meta-line">`);
-    parts.push(`<span class="src-badge ${badge}">${escapeHtml(r.source_label)}</span>`);
+    parts.push(`<span class="src-badge ${badge}">${escapeHtml(r.juridiction === 'Conseil constitutionnel' ? 'CONSTIT' : r.source_label)}</span>`);
 
     // Juridiction (+ formation)
     if (hasJuri) {
@@ -1559,7 +1577,7 @@ function renderResults(data, query) {
     }
 
     parts.push(`</div>`);
-    parts.push(`<h3 class="title">${escapeHtml(r.title || '(sans titre)')}</h3>`);
+    parts.push(`<h3 class="title">${escapeHtml(prettifyTitle(r.title))}</h3>`);
     if (r.extract) parts.push(`<p class="extract">${highlightExtract(r.extract, query)}</p>`);
 
     // Tags secondaires : seuls les champs spécifiques non déjà exposés en meta-line
@@ -1575,7 +1593,7 @@ function renderResults(data, query) {
   // Bouton "Charger plus" si la dernière page était pleine
   const canLoadMore = !lastSearchState?.pendingSources?.size && lastSearchState?.lastChunkSize >= PAGE_SIZE;
   if (canLoadMore) {
-    parts.push(`<div class="load-more-wrap"><button class="load-more" id="loadMoreBtn">Charger ${PAGE_SIZE} de plus</button></div>`);
+    parts.push(`<div class="load-more-wrap"><button class="load-more" id="loadMoreBtn">Charger la suite</button></div>`);
   }
 
   resultsList.innerHTML = parts.join('');
@@ -1656,11 +1674,11 @@ async function loadDecision(source, id) {
       html.push(`</small>`);
       html.push(`</div>`);
     }
-    html.push(`<h1>${escapeHtml(d.title || '(sans titre)')}</h1>`);
+    html.push(`<h1>${escapeHtml(prettifyTitle(d.title))}</h1>`);
     html.push(`<div class="doc-meta">`);
     if (d.juridiction) html.push(`<span><strong>Juridiction :</strong> ${escapeHtml(d.juridiction)}</span>`);
     if (d.date) html.push(`<span><strong>Date :</strong> ${escapeHtml(fmtDate(d.date))}</span>`);
-    if (d.formation) html.push(`<span><strong>Formation :</strong> ${escapeHtml(d.formation)}</span>`);
+    if (d.formation && d.formation !== 'undefined') html.push(`<span><strong>Formation :</strong> ${escapeHtml(fmtFormation(d.formation))}</span>`);
     if (d.numero) html.push(`<span><strong>N° :</strong> ${escapeHtml(d.numero)}</span>`);
     if (d.ecli) html.push(`<span><strong>ECLI :</strong> ${escapeHtml(d.ecli)}</span>`);
     html.push(`<span><strong>ID :</strong> ${escapeHtml(d.id)}</span>`);
@@ -2136,6 +2154,26 @@ function renderAriane(data) {
 const PAGE_SIZE = 30;
 let lastSearchState = null; // { q, juri, lieu, offset, accumulated }
 
+const FORMATION_LABELS = {
+  CHAMBRE_SOCIALE: 'Chambre sociale', soc: 'Chambre sociale',
+  CHAMBRE_CIVILE_1: '1re chambre civile', civ1: '1re chambre civile',
+  CHAMBRE_CIVILE_2: '2e chambre civile', civ2: '2e chambre civile',
+  CHAMBRE_CIVILE_3: '3e chambre civile', civ3: '3e chambre civile',
+  CHAMBRE_COMMERCIALE: 'Chambre commerciale', comm: 'Chambre commerciale',
+  CHAMBRE_CRIMINELLE: 'Chambre criminelle', cr: 'Chambre criminelle',
+  ASSEMBLEE_PLENIERE: 'Assemblée plénière', pl: 'Assemblée plénière',
+  CHAMBRE_MIXTE: 'Chambre mixte', mi: 'Chambre mixte',
+  ORDONNANCE_PREMIER_PRESIDENT: 'Ordonnance du premier président', ordo: 'Ordonnance',
+  HFJUD: 'Arrêt', HFDEC: 'Décision', HFCOMOLD: 'Rapport de la Commission',
+  JUDG: 'Arrêt', ORDER: 'Ordonnance', OPIN_AG: "Conclusions de l'avocat général",
+};
+function fmtFormation(f) { return FORMATION_LABELS[f] || f; }
+function prettifyTitle(t) {
+  if (!t) return '(sans titre)';
+  // Les titres reconstruits à l'ingestion portent la date en ISO
+  // (« …, 2026-07-29, n° … ») : on l'écrit comme la ligne méta.
+  return String(t).replace(/\b(\d{4}-\d{2}-\d{2})\b/g, m => fmtDate(m));
+}
 const SOURCE_NAMES = {
   'dila':   'DILA',
   'ariane': 'Conseil d\'État (ArianeWeb)',
@@ -2262,13 +2300,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+let searchInFlight = false;
 async function runSearch(append = false) {
+  append = (append === true);
+  // Double-clic sur « Chercher » (ou Entrée répétée) : la même recherche
+  // partait deux fois et doublait les cartes (8 septembre 2026).
+  const qNow = queryInput.value.trim();
+  if (searchInFlight && !append && lastSearchState && lastSearchState.q === qNow) return;
+  searchInFlight = true;
+  submitBtn.disabled = true;
+  try { return await _runSearchInner(append); }
+  finally { searchInFlight = false; submitBtn.disabled = false; }
+}
+
+function updateAdvCount() {
+  const n = ['juridiction', 'lieu', 'formation', 'dateMin', 'dateMax']
+    .filter(id => (document.getElementById(id)?.value || '').trim()).length;
+  const el = document.getElementById('advCount');
+  if (el) el.textContent = n ? String(n) : '';
+}
+
+function syncUrl(q, juri, lieu, formation, dateMin, dateMax, tri) {
+  // L'URL suit la recherche : partageable, citable, et « Problème ? » pointe
+  // vers la bonne page. Avant, elle ne bougeait jamais.
+  const p = new URLSearchParams();
+  p.set('q', q);
+  if (juri) p.set('juridiction', juri);
+  if (lieu) p.set('lieu', lieu);
+  if (formation) p.set('formation', formation);
+  if (dateMin) p.set('date_min', dateMin);
+  if (dateMax) p.set('date_max', dateMax);
+  if (tri && tri !== 'pertinence') p.set('sort', tri);
+  try { history.replaceState(null, '', '?' + p.toString()); } catch (e) {}
+}
+
+async function _runSearchInner(append = false) {
   // Le bouton "Chercher" appelle runSearch en handler de clic : le navigateur
   // passe alors l'ÉVÉNEMENT comme 1er argument (truthy !). Seul `true`
   // explicite signifie "charger plus".
   append = (append === true);
   const q = queryInput.value.trim();
-  if (!q) return;
+  if (!q) {
+    // Avant : ne faisait rien et laissait les résultats précédents affichés
+    // comme s'ils répondaient à la (non-)requête.
+    resultsList.innerHTML = `<div style="padding:2rem;color:var(--muted)">Saisissez une requête pour lancer une recherche.</div>`;
+    lastSearchState = null;
+    return;
+  }
+  updateAdvCount();
   if (q.length < 3) {
     resultsList.innerHTML = `<div style="padding:2rem;color:var(--muted)">Merci d'entrer au moins 3 caractères.</div>`;
     return;
@@ -2282,13 +2361,14 @@ async function runSearch(append = false) {
   // pas de fan-out). Sinon, parcours classique inchangé.
   if (!append && !juri) {
     try {
-      const pre = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`);
+      const pre = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30&citation_only=1`);
       const preData = pre.ok ? await pre.json() : null;
       if (preData && preData.citation_match) {
-        lastSearchState = { q, juri, lieu: '', dateMin: '', dateMax: '', offset: 0,
+        lastSearchState = { q, juri, lieu: '', formation: '', dateMin: '', dateMax: '', offset: 0,
           accumulated: preData.results || [], perSource: preData.per_source || {},
           noResult: [], pendingSources: new Set(), lastChunkSize: 0,
-          previousSize: (preData.results || []).length };
+          previousSize: (preData.results || []).length, erreurs: {}, avertissements: new Map() };
+        syncUrl(q, '', '', '', '', '', 'pertinence');
         document.getElementById('expansionBar')?.style && (document.getElementById('expansionBar').style.display = 'none');
         renderResults(preData, q);
         finalizeHeader();
@@ -2306,15 +2386,23 @@ async function runSearch(append = false) {
   // Lance l'expansion sémantique en parallèle (non-bloquant)
   fetchExpansion(q, juridictionToScope(juri));
   const lieu = document.getElementById('lieu').value;
+  const formation = (juri === 'cass') ? (document.getElementById('formation')?.value || '') : '';
   const dateMin = (document.getElementById('dateMin')?.value || '').trim();
   const dateMax = (document.getElementById('dateMax')?.value || '').trim();
   const sources = juridictionToSourceSet(juri);
+  if (!append) syncUrl(q, juri, lieu, formation, dateMin, dateMax, document.getElementById('tri')?.value || 'pertinence');
 
   // Reset si nouvelle recherche
   const isNew = !append || !lastSearchState || lastSearchState.q !== q || lastSearchState.juri !== juri
-                || lastSearchState.lieu !== lieu || lastSearchState.dateMin !== dateMin || lastSearchState.dateMax !== dateMax;
+                || lastSearchState.lieu !== lieu || lastSearchState.dateMin !== dateMin || lastSearchState.dateMax !== dateMax
+                || lastSearchState.formation !== formation;
   if (isNew) {
-    lastSearchState = { q, juri, lieu, dateMin, dateMax, offset: 0, accumulated: [], perSource: {}, noResult: [], pendingSources: new Set(sources) };
+    lastSearchState = { q, juri, lieu, formation, dateMin, dateMax, offset: 0, accumulated: [], perSource: {}, noResult: [],
+                        pendingSources: new Set(sources), erreurs: {}, avertissements: new Map() };
+    // Nouvelle recherche : le panneau de droite ne garde pas la décision
+    // précédente (il la montrait en entier sous « Aucun résultat »).
+    textViewer.classList.add('empty');
+    document.getElementById('textViewerBody').innerHTML = '<div>Sélectionnez une décision dans la liste<br>pour afficher son texte intégral.</div>';
     resultsList.innerHTML = '<div class="results-header" id="resultsHeader"><span>0 résultats <span class="dots-inline" id="hdrDots"><span>.</span><span>.</span><span>.</span><span>.</span></span></span></div>';
   } else {
     lastSearchState.pendingSources = new Set(sources);
@@ -2356,6 +2444,7 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
     if (lieu) params.set('lieu', lieu);
     if (dateMin) params.set('date_min', dateMin);
     if (dateMax) params.set('date_max', dateMax);
+    if (lastSearchState?.formation) params.set('formation', lastSearchState.formation);
     // La case « Recherche élargie » ne servait qu'à afficher les pastilles de
     // termes voisins : elle n'était JAMAIS transmise à la recherche, qui
     // partait toujours avec la requête brute (29 août 2026). On l'envoie.
@@ -2366,11 +2455,24 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
+    if (r.status >= 400 && r.status < 500) {
+      // Refus déterministe (requête trop longue, paramètre invalide) : on le
+      // montre tel quel. Avant, il passait pour « n'a pas répondu (12 s puis
+      // 60 s) » et déclenchait 5 nouvelles requêtes vouées au même refus.
+      if (lastSearchState.erreurs) lastSearchState.erreurs[src] = data.error || `HTTP ${r.status}`;
+      return false;
+    }
     if (data.error) throw new Error(data.error);
-    const count = (data.results || []).length;
+    if (Array.isArray(data.filtres_ignores) && lastSearchState.avertissements) {
+      for (const f of data.filtres_ignores) lastSearchState.avertissements.set(f.parametre, f);
+    }
+    // Jamais deux fois la même carte (double-clic, source qui ignore l'offset).
+    const deja = new Set(lastSearchState.accumulated.map(x => `${x.source}:${x.id}`));
+    const fresh = (data.results || []).filter(x => !deja.has(`${x.source}:${x.id}`));
+    const count = fresh.length;
     if (count > 0) {
       lastSearchState.perSource[src] = (lastSearchState.perSource[src] || 0) + count;
-      lastSearchState.accumulated.push(...(data.results || []));
+      lastSearchState.accumulated.push(...fresh);
       // Si la retry a réussi, retire le warning
       lastSearchState.noResult = lastSearchState.noResult.filter(s => s !== src);
       return true; // success
@@ -2394,7 +2496,7 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
 
 async function retryTimedOutSources() {
   if (!lastSearchState) return;
-  const toRetry = [...lastSearchState.noResult];
+  const toRetry = [...lastSearchState.noResult].filter(s => !(lastSearchState.erreurs || {})[s]);
   if (!toRetry.length) return;
   console.log(`[retry] ${toRetry.join(', ')} avec timeout 60s`);
   for (const src of toRetry) {
@@ -2412,13 +2514,13 @@ function updateHeader(currentSrc) {
   if (!hdr) return;
   const count = lastSearchState?.accumulated?.length || 0;
   const hasMore = lastSearchState?.lastChunkSize >= PAGE_SIZE;
-  const countStr = `${count}${hasMore ? '+' : ''} résultats`;
+  const countStr = `${count}${hasMore ? '+' : ''} résultat${count > 1 ? 's' : ''}`;
   if (pending.length) {
     const srcName = SOURCE_NAMES[currentSrc || pending[0]] || pending[0];
     hdr.innerHTML = `<span>${countStr} · chargement <em style="font-style:normal">${srcName}</em> <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span></span>`;
   } else {
     const srcCount = Object.values(lastSearchState?.perSource || {}).filter(n => n > 0).length;
-    hdr.innerHTML = `<span>${countStr} · ${srcCount} sources</span>`;
+    hdr.innerHTML = `<span>${countStr} · ${srcCount} source${srcCount > 1 ? 's' : ''}</span>`;
   }
 }
 
@@ -2427,7 +2529,13 @@ function finalizeHeader() {
 }
 
 submitBtn.addEventListener('click', runSearch);
-queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+// Entrée lance la recherche. Vu morte au clavier le 8 septembre 2026 (deux
+// testeurs indépendants) : on accepte toutes les formes de l'événement
+// (key 'Enter' ou 'Return', keyCode 13) et on écoute keydown ET keypress —
+// le garde-fou de runSearch empêche un double départ.
+const _estEntree = e => e.key === 'Enter' || e.key === 'Return' || e.keyCode === 13 || e.which === 13;
+queryInput.addEventListener('keydown', e => { if (_estEntree(e)) { e.preventDefault(); runSearch(); } });
+queryInput.addEventListener('keypress', e => { if (_estEntree(e)) { e.preventDefault(); runSearch(); } });
 // Auto-search sur chargement si la query est préremplie
 if (queryInput.value.trim()) setTimeout(runSearch, 100);
 
@@ -2470,6 +2578,39 @@ juriEl.addEventListener('change', () => {
   // Décodage : URLSearchParams a déjà décodé une fois, mais on accepte aussi
   // les ID avec slashes/pipes (ex: /Ariane_Web/AW_DCE/|215894)
   loadDecision(source, id);
+})();
+
+// ─── ?q=… (et filtres) dans l'URL : pré-remplir ET lancer ───
+// Avant, `search.html?q=bail` n'affichait rien : aucune recherche n'était
+// partageable (8 septembre 2026).
+(function handleQueryParam() {
+  const p = new URLSearchParams(window.location.search);
+  const q = (p.get('q') || '').trim();
+  if (!q || p.get('id')) return;
+  const setCs = (wrapId, hiddenId, value) => {
+    if (!value) return;
+    const hidden = document.getElementById(hiddenId);
+    const wrap = document.getElementById(wrapId);
+    const item = wrap?.querySelector(`.cs-item[data-value="${CSS.escape(value)}"]`);
+    if (!hidden || !item) return;
+    hidden.value = value;
+    wrap.querySelectorAll('.cs-item').forEach(i => i.classList.toggle('selected', i === item));
+    const disp = wrap.querySelector('.cs-display-text');
+    if (disp) disp.textContent = item.dataset.label || item.textContent;
+    hidden.dispatchEvent(new Event('change'));
+  };
+  queryInput.value = q;
+  setCs('juriCs', 'juridiction', p.get('juridiction') || '');
+  setCs('lieuCs', 'lieu', p.get('lieu') || '');
+  setCs('formationCs', 'formation', p.get('formation') || '');
+  setCs('triPrimaryCs', 'tri', p.get('sort') || '');
+  const dm = p.get('date_min'), dM = p.get('date_max');
+  if (dm && document.getElementById('dateMin')) document.getElementById('dateMin').value = dm;
+  if (dM && document.getElementById('dateMax')) document.getElementById('dateMax').value = dM;
+  if (p.get('juridiction') || p.get('lieu') || dm || dM || p.get('formation')) {
+    document.getElementById('toggleAdv')?.click();
+  }
+  setTimeout(runSearch, 50);
 })();
 </script>
 
