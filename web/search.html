@@ -52,6 +52,8 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
    débordait de sa colonne de 180 px et recouvrait « Date (à partir de) »,
    dont on ne voyait plus que « d/yyyy ». Vu sur le site le 9 septembre 2026. */
 .sb-advanced .cs-wrap{min-width:0;width:100%;display:block}
+.sb-advanced .field{flex:1 1 180px;min-width:0}
+.sb-advanced .sb-help{flex:1 1 100%}
 .sb-advanced .field input[type=date]{min-width:0}
 .sb-advanced .thes-toggle span{white-space:nowrap}
 .sb-primary .cs-display-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -86,7 +88,11 @@ html[data-theme="dark"] .result-card .extract em{background:rgba(212,176,80,.2)}
 
 /* Filtres avancés */
 .sb-advanced{
-  display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:.5rem;
+  /* Les champs se partagent TOUTE la largeur (4 champs = 4 quarts, 6 = 6 sixièmes).
+     La grille auto-fit d'avant figeait 7 colonnes de 193 px parce que le bloc
+     d'aide occupait toutes les pistes : les champs restaient tassés à gauche.
+     Vu par elle le 9 septembre 2026. */
+  display:flex;flex-wrap:wrap;gap:.5rem;
   max-height:0;overflow:hidden;
   transition:max-height .25s ease, padding .25s ease;
 }
