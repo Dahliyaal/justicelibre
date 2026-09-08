@@ -94,22 +94,59 @@ def main() -> int:
     args = ap.parse_args()
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    state_path = STATE_DIR / f"{args.jurisdiction}_{args.date_start}_{args.date_end}.json"
-    state = json.loads(state_path.read_text()) if (state_path.exists() and args.apply) else {}
-    batch = int(state.get("next_batch", 0))
-    stats = state.get("stats", {"inserted": 0, "updated": 0, "unchanged": 0, "errors": 0})
-
     client = httpx.Client(headers={"Authorization": f"Bearer {JS.get_token()}"})
     conn = sqlite3.connect(DB, timeout=600)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA recursive_triggers=ON")
     conn.execute("PRAGMA synchronous=NORMAL")
 
-    first = export_batch(client, batch, args.jurisdiction, args.date_start, args.date_end, args.batch_size)
+    # Judilibre plafonne /export à 10 000 décisions par requête (lot 10 → 416,
+    # constaté le 8 septembre 2026 sur ca 2022 : 75 268 annoncées). On coupe
+    # donc la plage en deux, récursivement, jusqu'à passer sous le plafond.
+    plages = decouper(client, args.jurisdiction, args.date_start, args.date_end, args.batch_size)
+    if len(plages) > 1:
+        print(f"plage découpée en {len(plages)} sous-plages (plafond 10 000/requête) : "
+              f"{plages[0][0]}→{plages[0][1]} … {plages[-1][0]}→{plages[-1][1]}", flush=True)
+    rc = 0
+    for (d1, d2) in plages:
+        rc = traiter(args, client, conn, d1, d2)
+        if rc:
+            break
+    conn.close()
+    return rc
+
+
+PLAFOND = 9500
+
+
+def total_plage(client, juri, d1, d2) -> int:
+    return int(export_batch(client, 0, juri, d1, d2, 1).get("total") or 0)
+
+
+def decouper(client, juri, d1, d2, size) -> list[tuple[str, str]]:
+    from datetime import date as _date, timedelta as _td
+    t = total_plage(client, juri, d1, d2)
+    if t <= PLAFOND or d1 >= d2:
+        return [(d1, d2)]
+    a, b = _date.fromisoformat(d1), _date.fromisoformat(d2)
+    m = a + (b - a) / 2
+    m1, m2 = m.isoformat(), (m + _td(days=1)).isoformat()
+    return decouper(client, juri, d1, m1, size) + decouper(client, juri, m2, d2, size)
+
+
+def traiter(args, client, conn, d1, d2) -> int:
+    state_path = STATE_DIR / f"{args.jurisdiction}_{d1}_{d2}.json"
+    state = json.loads(state_path.read_text()) if (state_path.exists() and args.apply) else {}
+    if state.get("done"):
+        print(f"  {d1}→{d2} déjà terminé ({state['stats']}), sauté", flush=True)
+        return 0
+    batch = int(state.get("next_batch", 0))
+    stats = state.get("stats", {"inserted": 0, "updated": 0, "unchanged": 0, "errors": 0})
+    first = export_batch(client, batch, args.jurisdiction, d1, d2, args.batch_size)
     total = int(first.get("total") or 0)
     nb_batches = (total + args.batch_size - 1) // args.batch_size
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    print(f"{stamp} {args.jurisdiction} {args.date_start}→{args.date_end} : Judilibre annonce {total} décisions "
+    print(f"{stamp} {args.jurisdiction} {d1}→{d2} : Judilibre annonce {total} décisions "
           f"({nb_batches} lots de {args.batch_size}) ; reprise au lot {batch} ; "
           f"{'ÉCRITURE' if args.apply else 'ESSAI À BLANC'} ; disque libre {libre_go():.1f} Go", flush=True)
     if not args.apply:
@@ -178,11 +215,11 @@ def main() -> int:
             break
         if not data.get("next_batch") or batch >= nb_batches:
             break
-        data = export_batch(client, batch, args.jurisdiction, args.date_start, args.date_end, args.batch_size)
+        data = export_batch(client, batch, args.jurisdiction, d1, d2, args.batch_size)
 
     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    conn.close()
-    print(f"TERMINÉ {args.jurisdiction} {args.date_start}→{args.date_end} : "
+    state_path.write_text(json.dumps({"next_batch": batch, "stats": stats, "total": total, "done": True}))
+    print(f"TERMINÉ {args.jurisdiction} {d1}→{d2} : "
           f"{stats['inserted']} insérées, {stats['updated']} mises à jour, "
           f"{stats['unchanged']} inchangées, {stats['errors']} erreurs — "
           f"Judilibre annonçait {total}.", flush=True)
