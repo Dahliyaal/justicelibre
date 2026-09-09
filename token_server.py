@@ -191,6 +191,8 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._handle_law(qs)
         if parsed.path == "/api/law/versions":
             return self._handle_law_versions(qs)
+        if parsed.path == "/api/recent":
+            return self._handle_recent(qs)
         # SSR routes pour Google + LLM (HTML indexable)
         # Le %-encodé est nécessaire pour les ids ArianeWeb ("/Ariane_Web/AW_DCE/|209395")
         # que les sitemaps publient URL-encodés — sans ça, 113k pages sitemap → 404.
@@ -299,6 +301,96 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(200, {"code": code, "num": num, "versions": versions})
         except Exception:
             logger.exception('handler failed')
+            return self._json_response(500, {"error": "Erreur interne."})
+
+    @staticmethod
+    def _debut_lisible(txt: str | None, n: int = 300) -> str:
+        """Premières phrases utiles du texte d'une décision.
+
+        Les décisions DILA commencent par un bloc d'en-tête (numéro de RG,
+        chambre, mentions de greffe) qui ne dit rien : on saute les lignes
+        courtes et tout en majuscules avant de couper.
+        """
+        if not txt:
+            return ""
+        lignes = [l.strip() for l in str(txt).splitlines()]
+        utiles = [l for l in lignes if len(l) > 60 and not l.isupper()]
+        corps = " ".join(utiles) if utiles else " ".join(l for l in lignes if l)
+        corps = " ".join(corps.split())
+        if len(corps) <= n:
+            return corps
+        coupe = corps[:n]
+        point = max(coupe.rfind(". "), coupe.rfind(" ; "))
+        return (coupe[: point + 1] if point > n // 2 else coupe.rstrip()) + "…"
+
+    def _handle_recent(self, qs: dict):
+        """Dernières décisions publiées, sans requête : flux de la page d'accueil.
+
+        Lecture directe de l'index (date DESC) : coût constant, pas de FTS. La
+        borne haute exclut les dates aberrantes du fonds (des décisions datées
+        2999-01-01 existent) ; la borne basse évite un balayage sur les dates
+        vides. Un sommaire officiel est renvoyé quand il existe, jamais un
+        résumé fabriqué.
+
+        `ordre=hasard` déplace la borne haute sur une date tirée au sort plutôt
+        que d'utiliser ORDER BY RANDOM() (qui lirait les 2,6 millions de lignes)
+        ou un grand OFFSET (qui parcourt l'index) : on reste sur une recherche
+        d'index, à coût constant.
+        """
+        import datetime as _dt
+        import random as _rd
+        try:
+            limit = max(1, min(int(qs.get("limit", ["24"])[0]), 50))
+        except ValueError:
+            limit = 24
+        try:
+            offset = max(0, min(int(qs.get("offset", ["0"])[0]), 2000))
+        except ValueError:
+            offset = 0
+        juri = (qs.get("juridiction", [""])[0] or "").strip().lower()
+        try:
+            from sources import dila
+            import juridictions
+            borne = _dt.date.today()
+            if (qs.get("ordre", [""])[0] or "").strip().lower() == "hasard":
+                # Tirage sur l'intervalle réellement couvert par le fonds.
+                debut = _dt.date(1960, 1, 1)
+                borne = debut + _dt.timedelta(days=_rd.randint(0, (borne - debut).days))
+            where, params = "date <= ? AND date >= ?", [borne.isoformat(), "1800-01-01"]
+            if juri:
+                # Même registre que la recherche : familles judiciaires
+                # (cassation, appel, tj, tcom, constit), en intervalles indexés.
+                clause = juridictions.where_judiciaire(juri)
+                if clause is None:
+                    connues = ", ".join(sorted(juridictions.familles_judiciaires()))
+                    return self._json_response(400, {"error": f"juridiction inconnue : {juri} (attendu : {connues})"})
+                where += " AND " + clause[0]
+                params += clause[1]
+            conn = dila._get_conn()
+            rows = conn.execute(
+                "SELECT id, titre, juridiction, date, formation, numero, ecli, sommaire, "
+                "substr(text, 1, 1200) AS debut "
+                f"FROM decisions WHERE {where} ORDER BY date DESC LIMIT ? OFFSET ?",
+                params + [limit, offset],
+            ).fetchall()
+            out = []
+            for r in rows:
+                d = dict(r)
+                out.append({
+                    "id": d["id"], "source": "dila", "source_label": "JUDICIAIRE",
+                    "title": d.get("titre") or f"{d.get('juridiction','')} — n° {d.get('numero','—')}",
+                    "juridiction": d.get("juridiction", ""), "date": d.get("date", ""),
+                    "formation": d.get("formation", ""), "numero": d.get("numero", ""),
+                    "ecli": d.get("ecli", ""), "sommaire": (d.get("sommaire") or "")[:600],
+                    # Sans requête il n'y a pas d'extrait pertinent : on montre le
+                    # DÉBUT du texte, étiqueté comme tel. La plupart des décisions
+                    # récentes n'ont pas de sommaire officiel (elles ne sont pas publiées).
+                    "debut": _debut_lisible(d.get("debut")), "extract": "",
+                })
+            return self._json_response(200, {"results": out, "offset": offset, "limit": limit,
+                                             "a_jour": out[0]["date"] if out else ""})
+        except Exception:
+            logger.exception("handler failed")
             return self._json_response(500, {"error": "Erreur interne."})
 
     def _handle_search(self, qs: dict):

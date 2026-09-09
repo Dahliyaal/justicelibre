@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JusticeLibre — hub (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;
+ --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
+@media (prefers-color-scheme:dark){:root{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
+a{color:var(--teal);text-decoration:none}a:hover{color:var(--teal-l);text-decoration:underline}
+.serif{font-family:"DM Serif Display",Georgia,serif;font-weight:400}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+.h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* ── structure ── */
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--line);background:var(--white);position:sticky;top:0;z-index:5}
+.logo{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--teal)}
+.logo span{color:var(--muted)}
+.nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nav a{color:inherit}.nav a.on{color:var(--teal);font-weight:600}
+.app{display:flex;min-height:calc(100% - 56px)}
+.rail{width:248px;flex:none;border-right:1px solid var(--line);background:var(--white);padding:10px 8px 12px;display:flex;flex-direction:column;gap:1px;position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto;transition:width .15s}
+.rail.mini{width:60px}
+.rail.mini .lbl,.rail.mini .n,.rail.mini .chev,.rail.mini .sub,.rail.mini .sec,.rail.mini .facets{display:none}
+.rail .hd{display:flex;align-items:center;gap:10px;padding:8px 10px 10px;color:var(--muted)}
+.rail .sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--ink);width:100%;text-align:left}
+.ri:hover{background:var(--cream)}
+.ri.on{background:var(--teal-xl);color:var(--teal);font-weight:600}
+.ri svg{flex:none}
+.ri .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);font-weight:400}
+.ri .chev{margin-left:6px;color:var(--muted);font-size:12px;transition:transform .15s}
+.ri.on .chev{transform:rotate(90deg)}
+.subs{overflow:hidden}
+.subs.opening{animation:unfold .22s ease-out}
+.subs.closing{animation:fold .16s ease-in forwards}
+@keyframes unfold{from{max-height:0;opacity:0;transform:translateY(-4px)}to{max-height:600px;opacity:1;transform:none}}
+@keyframes fold{from{max-height:600px;opacity:1}to{max-height:0;opacity:0}}
+.ri,.sub{transition:background .15s,color .15s}
+.body>*{animation:appear .2s ease-out}
+@keyframes appear{from{transform:translateY(6px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.subs.opening,.subs.closing,.body>*{animation:none}}
+.feed{max-width:1100px;margin:72px auto 0}
+.feed-h{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px;margin-bottom:16px;font-family:"DM Serif Display",Georgia,serif;font-size:22px;letter-spacing:0;text-transform:none;color:var(--ink);font-weight:400}
+.feed-h .s{font-family:"DM Sans",system-ui,sans-serif;font-size:13px;color:var(--muted)}
+
+.cards{display:flex;flex-direction:column}
+.card2{display:block;padding:15px 0;border-bottom:1px solid var(--line);color:inherit}
+a.card2:hover{text-decoration:none}
+.card2 .jour{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);white-space:nowrap}
+.card2 .top2{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.card2 .top2 .qui{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card2 .ttl{font-family:"DM Serif Display",Georgia,serif;font-size:19px;line-height:1.2;color:var(--ink);margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+a.card2:hover .ttl{color:var(--teal)}
+a.card2:hover .ttl{color:var(--teal)}
+.card2 .res{font-size:13px;line-height:1.5;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:105ch}
+.card2 .res em{font-style:normal;background:var(--teal-xl);padding:0 2px}
+.card2 .bas{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;font-size:11px;color:var(--muted)}
+
+.sk{border-bottom:1px solid var(--line);padding:15px 0;opacity:.5}
+.sk div{height:10px;border-radius:3px;background:var(--line);margin-bottom:8px;animation:pulse 1.2s ease-in-out infinite}
+.sk div:nth-child(1){width:30%}.sk div:nth-child(2){width:56%;height:14px}.sk div:nth-child(3){width:88%}
+.sk div:nth-child(4){width:64%}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:.85}}
+.feed-end{color:var(--muted);font-size:11.5px;padding:14px 0}
+details.recent{max-width:880px;margin:22px auto 0;font-size:12.5px}
+details.recent summary{cursor:pointer;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:6px;user-select:none}
+details.recent summary::-webkit-details-marker{display:none}
+details.recent summary b{font-weight:400;display:inline-block;transition:transform .15s}
+details.recent[open] summary b{transform:rotate(180deg)}
+details.recent summary:hover{color:var(--teal)}
+details.recent .rec{font-size:12.5px;padding:6px 0}
+.sub{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 38px;font-size:12.5px;color:var(--ink);border-radius:6px;width:100%;text-align:left}
+.sub:hover{background:var(--cream)}
+.sub.on{background:var(--cream);font-weight:600;color:var(--teal)}
+.sub .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);font-weight:400}
+.sub.soon{color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
+.dot.soon{background:transparent;border:1px solid var(--muted)}
+.body{flex:1;min-width:0;padding:32px 56px 80px}
+@media (max-width:900px){.body{padding:20px 18px 80px}.rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}.rail.mini{width:52px}}
+
+/* ── éléments ── */
+.hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:80ch}
+.sbar{display:flex;flex:1;border:1.5px solid var(--teal);border-radius:4px;background:var(--white);overflow:hidden;max-width:880px}
+.sbar input{flex:1;padding:12px 16px;font-size:16px;border:0;outline:0;background:transparent;min-width:0}
+.sbar input::placeholder{color:var(--muted)}
+.sbar .go{background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:0 22px}
+.sbar .dt{border-left:1px solid var(--line);padding:0 10px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.sbar .dt input{padding:4px 6px;font-size:13px;width:120px;font-family:"JetBrains Mono",monospace}
+.kb{font-family:"JetBrains Mono",monospace;background:var(--teal-xl);padding:1px 6px;border-radius:3px;color:var(--ink);font-size:12px;cursor:pointer}
+.kb:hover{background:var(--teal);color:#fff}
+.hint{color:var(--muted);font-size:12.5px;margin-top:10px}
+.vcenter{min-height:calc(100vh - 56px - 112px);display:flex;flex-direction:column;justify-content:center;padding-bottom:8vh}
+.vcenter>*{width:100%}
+.center{max-width:880px;margin:0 auto;text-align:center}
+.center .hero{font-size:36px}
+.center .lead{margin-left:auto;margin-right:auto}
+.sbox{max-width:880px;margin:0 auto;text-align:left;flex:1;min-width:0}
+.sbar .advt{border-left:1px solid var(--line);padding:0 12px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.sbar .advt.on{color:var(--teal);background:var(--teal-xl)}
+.sbar .advt b{display:inline-block;transition:transform .15s;font-weight:400}
+.sbar .advt.on b{transform:rotate(180deg)}
+.adv{background:var(--white);border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;padding:14px 16px 12px;max-width:880px;margin:0 auto}
+.adv[hidden]{display:none}
+.fams{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.fam{padding:0}
+.fam .fh{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink);background:var(--teal-xl);padding:7px 10px;border-radius:5px;margin-bottom:6px}
+.fam .all{width:16px;height:16px;border:1.5px solid var(--teal);border-radius:3px;flex:none;position:relative;background:transparent}
+.fam .all:hover{background:var(--white)}
+.fam .all.on{background:var(--teal)}
+.fam .all.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.fam .all.half::after{content:"";position:absolute;left:3px;right:3px;top:6px;height:2px;background:var(--teal)}
+.fch{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:12.5px;padding:5px 8px;border-radius:4px;color:var(--ink)}
+.fch:hover{background:var(--teal-xl)}
+.fch i{width:13px;height:13px;border:1.5px solid var(--muted);border-radius:3px;flex:none;position:relative;box-sizing:border-box}
+.fch.on i{background:var(--teal);border-color:var(--teal)}
+.fch.on i::after{content:"";position:absolute;left:3px;top:0;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.fch.on{color:var(--teal);font-weight:600}
+.fch .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted)}
+.fch.soon{color:var(--muted);cursor:default;font-style:italic}.fch.soon i{border-style:dashed;opacity:.6}
+.adv-row{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.quand-bloc{border-top:1px solid var(--line);padding-top:12px}
+.adv-row .lb{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);background:var(--cream);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--teal)}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip.x{padding-right:7px}
+.chip.add{border-style:dashed;color:var(--muted)}
+.adv input.dt{font:inherit;font-family:"JetBrains Mono",monospace;font-size:12px;padding:4px 7px;width:104px;border:1px solid var(--line);border-radius:4px;background:var(--cream);color:var(--ink)}
+.adv input.dt::placeholder{color:var(--muted);font-size:11px}
+.adv input.dt.bad{border-color:var(--bad)}
+.range{position:relative;height:50px;margin:6px 6px 0}
+.range input[type=range]{position:absolute;left:0;right:0;top:8px;width:100%;margin:0;pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;height:20px}
+.range input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:18px;height:18px;border-radius:50%;background:var(--white);border:2.5px solid var(--teal);cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.range input[type=range]::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;background:var(--white);border:2.5px solid var(--teal);cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.range input[type=range]::-moz-range-track{background:transparent}
+.range .track{position:absolute;left:9px;right:9px;top:16px;height:4px;border-radius:2px;background:var(--line)}
+.range .fill{position:absolute;top:0;bottom:0;background:var(--teal);border-radius:2px}
+.range .ticks{position:absolute;left:9px;right:9px;top:34px;display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:9.5px;color:var(--muted)}
+.presets{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.presets .sep{display:none}
+.presets .precis{display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding-left:16px;border-left:1px solid var(--line)}
+.preset{color:var(--ink);background:var(--teal-xl);padding:5px 12px;border-radius:5px;font-size:12px}
+.preset:hover{color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal)}
+.preset.on{background:var(--teal);color:#fff;font-weight:600}
+.dtwrap{position:relative;display:inline-block}
+.cal{position:absolute;left:0;top:calc(100% + 6px);z-index:20;background:var(--white);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px;width:248px;font-size:12.5px}
+.cal .ch{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+.cal .ch button{padding:2px 8px;border-radius:4px;color:var(--teal);font-weight:600}
+.cal .ch button:hover{background:var(--teal-xl)}
+.cal .ch select{font:inherit;font-size:12px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:var(--cream);color:var(--ink)}
+.cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal .grid .wd{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+.cal .grid button{padding:4px 0;border-radius:4px;font-size:12px;color:var(--ink)}
+.cal .grid button:hover{background:var(--teal-xl)}
+.cal .grid button.out{color:var(--line)}
+.cal .grid button.sel{background:var(--teal);color:#fff;font-weight:600}
+.cal .cf{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--muted)}
+.cal .cf button{color:var(--teal);font-weight:600}
+.rlab{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--teal);font-weight:500;margin:0 6px 4px}
+.adv .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
+.advCount{background:var(--teal);color:#fff;border-radius:10px;font-size:10px;padding:0 6px;font-family:"JetBrains Mono",monospace}
+.advsum{max-width:1100px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:12px}
+@media (max-width:1100px){.fams{grid-template-columns:1fr 1fr}}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:var(--white);color:var(--ink)}
+.pill.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.pill.x{padding-right:8px}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid currentColor;color:var(--c)}
+.tile{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:block;color:inherit;text-align:left;width:100%}
+a.tile:hover,button.tile:hover{text-decoration:none;border-color:var(--teal)}
+.tile .tt{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.tile .ts{font-size:12.5px;color:var(--muted);margin-top:3px}
+.tile .tn{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:6px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.codes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px}
+.codes .tile{display:flex;align-items:baseline;gap:8px;padding:8px 11px;border-radius:5px;border:1px solid transparent;background:transparent}
+.codes .tile:hover{background:var(--teal-xl);border-color:var(--teal)}
+.codes .cn{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.codes .cs{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);flex:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:36px;margin-top:26px}
+@media (max-width:1100px){.two,.grid3{grid-template-columns:1fr}}
+.rec{display:flex;gap:12px;font-size:13px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.rec .d{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:11.5px;width:96px;flex:none}
+.note{background:var(--warn-bg);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-size:12.5px}
+.alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
+.alert b{color:var(--bad)}
+.ta{width:100%;background:var(--white);border:1.5px dashed var(--teal);border-radius:6px;padding:14px;min-height:160px;resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:4px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* résultats */
+.topline{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;font-size:12px}
+.seg button{padding:4px 10px;color:var(--muted)}.seg button.on{background:var(--teal);color:#fff}
+.item{padding:14px 0;border-top:1px solid var(--line)}
+.item .meta{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.item .t{font-family:"DM Serif Display",Georgia,serif;font-size:18px;margin:0 0 4px}
+.item .t a{color:var(--ink)}.item .t a:hover{color:var(--teal)}
+.item .sum{font-size:13.5px;margin:0 0 6px;max-width:80ch;white-space:pre-line}
+.item .sum em{font-style:normal;background:var(--teal-xl);padding:0 2px}
+.item .ref{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+.off{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--teal);color:var(--teal);padding:1px 6px;border-radius:3px}
+.warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px}
+.facets{padding:2px 10px 6px 38px}
+.facets .h5{padding:8px 0 2px}
+.frow{display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0;width:100%;text-align:left;border-radius:4px}
+.frow:hover{color:var(--teal)}.frow.on{color:var(--teal);font-weight:600}
+.frow .n{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:11px;font-weight:400}
+.hist{display:flex;align-items:flex-end;gap:2px;height:34px;margin:4px 0}
+.hist i{flex:1;display:block;background:var(--teal);opacity:.3;min-height:1px}
+.hist i.h{opacity:.9}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.src-state{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 4px}
+.src-state span{display:inline-flex;align-items:center;gap:5px}
+.src-state i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--line)}
+.src-state i.ok{background:var(--ok)}.src-state i.ko{background:var(--bad)}.src-state i.run{background:var(--warn)}
+
+/* lecteur */
+.reader{max-width:900px}
+.reader pre{white-space:pre-wrap;font-family:"DM Sans",system-ui,sans-serif;font-size:14.5px;line-height:1.6;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:20px 24px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:4px 14px;font-size:13px;margin:12px 0}
+.kv b{color:var(--muted);font-weight:500}
+.back{font-size:12.5px;margin-bottom:12px;display:inline-block}
+
+/* article / filiation */
+.tl{position:relative;margin:18px 0 0 10px;padding-left:22px;border-left:2px solid var(--line)}
+.tl .ev{position:relative;padding:0 0 18px}
+.tl .ev::before{content:"";position:absolute;left:-29px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--white);border:2px solid var(--teal)}
+.tl .ev.bad::before{background:var(--bad);border-color:var(--bad)}
+.tl .ev.soon::before{border-style:dashed;border-color:var(--muted)}
+.tl .when{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted)}
+.tl .what{font-weight:600;font-size:14px}
+.tl .txt{font-size:13px;margin-top:4px;max-width:80ch;color:var(--ink)}
+.tl .txt.clip{max-height:64px;overflow:hidden;position:relative}
+.tl .txt.clip::after{content:"";position:absolute;inset:auto 0 0 0;height:28px;background:linear-gradient(transparent,var(--cream))}
+.sim{font-family:"JetBrains Mono",monospace;font-size:11px}
+.diff{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:18px 22px;font-size:14.5px;line-height:1.7;white-space:pre-wrap}
+.diff del{background:var(--bad-bg);color:var(--bad);text-decoration:line-through}
+.diff ins{background:#dff0e3;color:var(--ok);text-decoration:none}
+@media (prefers-color-scheme:dark){.diff ins{background:#1d3a28}}
+select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink)}
+table.tb{border-collapse:collapse;font-size:13px;width:100%}
+table.tb td,table.tb th{border-top:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">justicelibre<span>.org</span></div>
+  <div class="nav"><a href="#/">Accueil</a><a href="#/juris" class="on">Recherche</a><a href="#/manque">Couverture</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+</div>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <main class="body" id="body"></main>
+</div>
+<div class="proto">prototype local · données réelles de justicelibre.org</div>
+
+<script>
+/* ───────────────────────── configuration ───────────────────────── */
+const API = (location.hostname === 'justicelibre.org') ? '' : 'https://justicelibre.org';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function fmtDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3]} ${MOIS[+m[2]-1]} ${m[1]}`; }
+function nb(n){ return Number(n).toLocaleString('fr-FR'); }
+
+const ICO = {
+  menu:'M4 7h16M4 12h16M4 17h16', home:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  scale:'M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zm10 0l-3 7a3 3 0 0 0 6 0l-3-7z',
+  book:'M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z',
+  chat:'M4 5h16v11H8l-4 4z', hall:'M3 21h18M5 21V10M19 21V10M9 21v-6h6v6M12 3l9 6H3z',
+  people:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8 0',
+  check:'M4 12l5 5L20 6', bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
+  eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  diff:'M4 6h7M4 12h7M4 18h7M13 6h7M13 12h7M13 18h7', tree:'M12 3v6M12 9l-6 4v8M12 9l6 4v8M6 21h0M18 21h0',
+  plug:'M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5',
+};
+const ico = k => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${ICO[k]}"/></svg>`;
+
+/* Sous-fonds : clé, couleur, libellé, volume affiché, paramètres RÉELS d'appel à /api/search
+   (sources = dila|ariane|admin|cedh|cjue ; juridiction = cass|ca|tj|constit|ce|caa|ta|cedh|cjue) */
+const SCOPES = [
+  {k:'', icon:'home', label:'Accueil'},
+  {k:'juris', icon:'scale', label:'Jurisprudence', n:'4,3 M', subs:[
+    {k:'cass', c:'jud', label:'Cour de cassation', n:'1,9 M', q:{sources:'dila', juridiction:'cass'}},
+    {k:'ca',   c:'jud', label:"Cours d'appel", n:'460 k', q:{sources:'dila', juridiction:'ca'}},
+    {k:'tj',   c:'jud', label:'Tribunaux judiciaires', n:'171 k', q:{sources:'dila', juridiction:'tj'}},
+    {k:'ce',   c:'adm', label:"Conseil d'État", n:'330 k', q:{sources:'ariane,admin', juridiction:'ce'}},
+    {k:'caa',  c:'adm', label:'CAA · TA (JADE)', n:'240 k', q:{sources:'admin', juridiction:'caa'}},
+    {k:'opendata', c:'adm', label:'Open data TA/CAA', n:'986 k', soon:'en base, pas encore cherchable'},
+    {k:'constit', c:'ce', label:'Conseil constitutionnel', n:'7 379', q:{sources:'dila', juridiction:'constit'}},
+    {k:'cedh', c:'eu', label:'Cour EDH', n:'76 k', q:{sources:'cedh', juridiction:'cedh'}},
+    {k:'cjue', c:'eu', label:'CJUE', n:'45 k', q:{sources:'cjue', juridiction:'cjue'}},
+  ]},
+  {k:'textes', icon:'book', label:'Textes', n:'3,4 M', subs:[
+    {k:'codes', c:'txt', label:'Codes', n:'76'},
+    {k:'legi', c:'txt', label:'Lois, décrets (LEGI)', n:'1,8 M', soon:'plein texte : pas encore exposé par l’API du site'},
+    {k:'jorf', c:'txt', label:'Journal officiel (JORF)', n:'1,3 M', soon:'idem'},
+    {k:'kali', c:'txt', label:'Conventions collectives', n:'305 k', soon:'titres en cours de ré-ingestion'},
+    {k:'bofip', c:'txt', label:'BOFiP', n:'6 301', soon:'MCP seulement'},
+  ]},
+  {k:'travaux', icon:'chat', label:'Travaux préparatoires', subs:[
+    {k:'dole', c:'doc', label:'Dossiers législatifs', soon:'à venir'},
+    {k:'debats', c:'doc', label:'Débats AN · Sénat', soon:'à venir'},
+    {k:'questions', c:'doc', label:'Questions au gouvernement', soon:'à venir'},
+    {k:'rapports', c:'doc', label:'Rapports, avis du CE', soon:'à venir'},
+  ]},
+  {k:'avis', icon:'hall', label:'Avis & doctrine', n:'109 k', subs:[
+    {k:'cada', c:'doc', label:'CADA', n:'61 k', soon:'MCP seulement (chantier 3)'},
+    {k:'ddd', c:'doc', label:'Défenseur des droits', n:'16 k', soon:'MCP seulement (chantier 3)'},
+    {k:'cnil', c:'doc', label:'CNIL', n:'27 k', soon:'MCP seulement'},
+    {k:'rp', c:'doc', label:'Rapporteurs publics', n:'9 138', soon:'servis nulle part'},
+  ]},
+  {k:'annuaire', icon:'people', label:'Annuaire', n:'75 k'},
+];
+const TOOLS = [
+  {k:'citations', icon:'check', label:'Vérifier mes citations'},
+  {k:'article', icon:'tree', label:'Un article : son histoire'},
+  {k:'suivre', icon:'bell', label:'Suivre une recherche'},
+  {k:'manque', icon:'eye', label:"Ce que nous n'avons pas"},
+];
+/* Codes : identifiant Légifrance (l’API du site ne résout pas les noms en clair) */
+// Les 75 codes servis par l'entrepôt (miroir de CODE_TO_LEGITEXT, 9/09/2026).
+const CODES = [
+  ['LEGITEXT000006070721',"Code civil",["c. civ.", "cc", "cciv", "code civil"]],
+  ['LEGITEXT000006070719',"Code pénal",["c. pén.", "code pénal", "cp"]],
+  ['LEGITEXT000006070716',"Code de procédure civile",["c. pr. civ.", "code de procédure civile", "cpc"]],
+  ['LEGITEXT000006071154',"Code de procédure pénale",["code de procédure pénale", "cpp"]],
+  ['LEGITEXT000006072050',"Code du travail",["c. trav.", "code du travail", "ct", "ctrav"]],
+  ['LEGITEXT000006072665',"Code de la santé publique",["code de la santé publique", "csp"]],
+  ['LEGITEXT000006070933',"Code de justice administrative",["cja", "code de justice administrative"]],
+  ['LEGITEXT000006070633',"Code général des collectivités territoriales",["cgct", "code général des collectivités territoriales"]],
+  ['LEGITEXT000006070162',"Code des communes (obsolète, remplacé par CGCT)",["ccom2", "code des communes (obsolète, remplacé par cgct)"]],
+  ['LEGITEXT000031366350',"Relations public-administration",["crpa", "relations public-administration"]],
+  ['LEGITEXT000006069414',"Propriété intellectuelle",["cpi", "propriété intellectuelle"]],
+  ['LEGITEXT000006074069',"Action sociale et familles",["action sociale et familles", "casf"]],
+  ['LEGITEXT000006072026',"Monétaire et financier",["cmf", "monétaire et financier"]],
+  ['LEGITEXT000005634379',"Commerce",["c.com", "commerce"]],
+  ['LEGITEXT000006069565',"Consommation",["c.cons", "consommation"]],
+  ['LEGITEXT000006071191',"Éducation",["c.éduc", "éducation"]],
+  ['LEGITEXT000006074075',"Urbanisme",["cu", "urbanisme"]],
+  ['LEGITEXT000006074220',"Environnement",["c.env", "environnement"]],
+  ['LEGITEXT000006071367',"Rural et pêche maritime",["cr", "rural et pêche maritime"]],
+  ['LEGITEXT000006069577',"Code général des impôts (PRINCIPAL)",["cgi", "code général des impôts (principal)"]],
+  ['LEGITEXT000006070158',"Entrée/séjour étrangers",["ceseda", "entrée/séjour étrangers"]],
+  ['LEGITEXT000006073189',"Sécurité sociale",["css", "sécurité sociale"]],
+  ['LEGITEXT000006074096',"Construction et habitation",["cch", "construction et habitation"]],
+  ['LEGITEXT000023086525',"Transports",["ctransp", "transports"]],
+  ['LEGITEXT000006073984',"Assurances",["assurances", "cass"]],
+  ['LEGITEXT000006071307',"Défense",["cdef", "défense"]],
+  ['LEGITEXT000025503132',"Sécurité intérieure",["csi", "sécurité intérieure"]],
+  ['LEGITEXT000023983208',"Énergie",["cener", "énergie"]],
+  ['LEGITEXT000020908868',"Cinéma et image animée",["cciné", "cinéma et image animée"]],
+  ['LEGITEXT000006071318',"Sport",["csport", "sport"]],
+  ['LEGITEXT000006070249',"Juridictions financières",["cjf", "juridictions financières"]],
+  ['LEGITEXT000006071164',"Organisation judiciaire",["coj", "organisation judiciaire"]],
+  ['LEGITEXT000006070987',"Postes et communications électroniques",["cpce", "postes et communications électroniques"]],
+  ['LEGITEXT000006070239',"Électoral",["celec", "électoral"]],
+  ['LEGITEXT000044416551',"Général de la fonction publique",["cgfp", "général de la fonction publique"]],
+  ['LEGITEXT000006069583',"Livre des procédures fiscales",["livre des procédures fiscales", "lpf"]],
+  ['LEGITEXT000006074228',"Route",["croute", "route"]],
+  ['LEGITEXT000006074236',"Patrimoine",["cpatr", "patrimoine"]],
+  ['LEGITEXT000006074067',"Mutualité",["cmut", "mutualité"]],
+  ['LEGITEXT000045476241',"Pénitentiaire",["cpénit", "pénitentiaire"]],
+  ['LEGITEXT000037701019',"Commande publique",["ccp", "commande publique"]],
+  ['LEGITEXT000006074234',"Aviation civile",["aviation civile", "cavciv"]],
+  ['LEGITEXT000044595989',"Impositions des biens et services",["cibs", "impositions des biens et services"]],
+  ['LEGITEXT000006071570',"Douanes",["cdouanes", "douanes"]],
+  ['LEGITEXT000025244092',"Forestier (nouveau)",["cforêt", "forestier (nouveau)"]],
+  ['LEGITEXT000006070299',"Propriété des personnes publiques",["cg3p", "propriété des personnes publiques"]],
+  ['LEGITEXT000006074073',"Tourisme",["ctou", "tourisme"]],
+  ['LEGITEXT000006071335',"Service national",["csn", "service national"]],
+  ['LEGITEXT000006071190',"Recherche",["crech", "recherche"]],
+  ['LEGITEXT000006074233',"Ports maritimes",["cportm", "ports maritimes"]],
+  ['LEGITEXT000006070208',"Domaine de l'État",["cde", "domaine de l'état"]],
+  ['LEGITEXT000023501962',"Minier",["cmin", "minier"]],
+  ['LEGITEXT000006071360',"Justice militaire",["cjm", "justice militaire"]],
+  ['LEGITEXT000006074224',"Expropriation",["cexpr", "expropriation"]],
+  ['LEGITEXT000006070667',"Voirie routière",["cvoir", "voirie routière"]],
+  ['LEGITEXT000039086952',"Justice pénale des mineurs",["cjpm", "justice pénale des mineurs"]],
+  ['LEGITEXT000006075116',"Artisanat",["artisanat", "cart"]],
+  ['LEGITEXT000006070302',"Pensions civiles et militaires de retraite",["cpcmr", "pensions civiles et militaires de retraite"]],
+  ['LEGITEXT000025024948',"Procédures civiles d'exécution",["cpcex", "procédures civiles d'exécution"]],
+  ['LEGITEXT000006069569',"CGI annexe II",["cgi annexe ii", "cgianii"]],
+  ['LEGITEXT000006069568',"CGI annexe I",["cgi annexe i", "cgiani"]],
+  ['LEGITEXT000006069574',"CGI annexe III",["cgi annexe iii", "cgianiii"]],
+  ['LEGITEXT000006069576',"CGI annexe IV",["cgi annexe iv", "cgianiv"]],
+  ['LEGITEXT000006071366',"Rural (ancien)",["crura", "rural (ancien)"]],
+  ['LEGITEXT000006070300',"Communes de la Nouvelle-Calédonie",["ccnc", "communes de la nouvelle-calédonie"]],
+  ['LEGITEXT000006071785',"Minier (ancien)",["cmina", "minier (ancien)"]],
+  ['LEGITEXT000006072637',"Famille et aide sociale (ancien)",["cfas", "famille et aide sociale (ancien)"]],
+  ['LEGITEXT000006071645',"Douanes de Mayotte",["cdoumay", "douanes de mayotte"]],
+  ['LEGITEXT000006074237',"Domaine public fluvial et navigation",["cdpfnav", "domaine public fluvial et navigation"]],
+  ['LEGITEXT000006072051',"Travail maritime",["ctravm", "travail maritime"]],
+  ['LEGITEXT000006071188',"Disciplinaire et pénal de la marine marchande",["cdpmm", "disciplinaire et pénal de la marine marchande"]],
+  ['LEGITEXT000006074066',"Pensions de retraite des marins",["cprm", "pensions de retraite des marins"]],
+  ['LEGITEXT000006074235',"Domaine de l'État à Mayotte",["cdemay", "domaine de l'état à mayotte"]],
+  ['LEGITEXT000006070666',"Instruments monétaires et médailles",["cimm", "instruments monétaires et médailles"]],
+  ['LEGITEXT000006074232',"Domaine de l'État (collectivités d'outre-mer)",["cda", "domaine de l'état (collectivités d'outre-mer)"]],
+];
+const FORMATION = {CHAMBRE_SOCIALE:'ch. soc.',soc:'ch. soc.',CHAMBRE_CIVILE_1:'1ʳᵉ civ.',civ1:'1ʳᵉ civ.',CHAMBRE_CIVILE_2:'2ᵉ civ.',civ2:'2ᵉ civ.',CHAMBRE_CIVILE_3:'3ᵉ civ.',civ3:'3ᵉ civ.',CHAMBRE_COMMERCIALE:'com.',comm:'com.',CHAMBRE_CRIMINELLE:'crim.',cr:'crim.',ASSEMBLEE_PLENIERE:'ass. plén.',pl:'ass. plén.',CHAMBRE_MIXTE:'ch. mixte',mi:'ch. mixte',ordo:'ord.',JUDG:'arrêt',ORDER:'ordonnance',HFJUD:'arrêt',HFDEC:'décision'};
+const SRC = {dila:'judiciaire (DILA)', ariane:"Conseil d'État (ArianeWeb)", admin:'justice administrative', cedh:'Cour EDH', cjue:'CJUE'};
+const FAM = r => r.source==='cedh'||r.source==='cjue' ? 'eu' : (r.source==='dila' ? (/constitutionnel/i.test(r.juridiction) ? 'ce' : 'jud') : 'adm');
+const FAMLABEL = {jud:'Judiciaire', adm:'Administratif', ce:'Constitutionnel', eu:'Européen'};
+
+/* ───────────────────────── état + routeur ───────────────────────── */
+const state = { scope:'', sub:'', q:'', mode:'sommaire', sort:'pertinence', results:[], srcState:{}, facet:{}, railMini:false, page:{}, adv:{} };
+const ADV_KEYS = ['juridiction','formation','date_min','date_max','sort'];
+const JURI_OPTS = [['','Toutes juridictions'],['cass','Cour de cassation'],['ca',"Cours d'appel"],['tj','Tribunaux judiciaires'],['constit','Conseil constitutionnel'],['ce',"Conseil d'État"],['caa','Cours administratives d’appel'],['ta','Tribunaux administratifs'],['cedh','Cour EDH'],['cjue','CJUE']];
+const FORM_OPTS = [['','Toute formation'],['soc','Chambre sociale'],['civ1','1ʳᵉ chambre civile'],['civ2','2ᵉ chambre civile'],['civ3','3ᵉ chambre civile'],['comm','Chambre commerciale'],['cr','Chambre criminelle'],['pl','Assemblée plénière'],['mi','Chambre mixte']];
+const JURI_SOURCES = {cass:'dila',ca:'dila',tj:'dila',constit:'dila',ce:'ariane,admin',caa:'admin',ta:'admin',cedh:'cedh',cjue:'cjue'};
+// Volumes mesurés en base le 9 septembre 2026 (COUNT(*) par famille, prod + al-uzza).
+// À remplacer par le fichier écrit chaque nuit par le contrôle de couverture.
+const FAMILLES = [
+  {k:'jud', label:'Judiciaire', fonds:[['cass','Cour de cassation',1092897],['ca',"Cours d'appel",601745],['tj','Tribunaux judiciaires',716809]]},
+  {k:'adm', label:'Administratif', fonds:[['ce',"Conseil d'État",173812],['caa','Cours admin. d’appel',388654],['ta','Tribunaux administratifs',6514],['opendata','Open data TA/CAA',985996,'bientôt']]},
+  {k:'ce',  label:'Constitutionnel', fonds:[['constit','Conseil constitutionnel',7388]]},
+  {k:'eu',  label:'Européen', fonds:[['cedh','Cour EDH',76062],['cjue','CJUE',44665]]},
+];
+// Tout ce qu'une recherche sans filtre atteint réellement (judiciaire 2 594 344,
+// JADE 570 881, CEDH 76 062, CJUE 44 665). L'open data TA/CAA n'y est pas : pas encore cherchable.
+const TOTAL_TOUT = 3285952;
+const fmtN = n => n >= 1e6 ? (n/1e6).toFixed(1).replace('.', ',') + ' M' : n >= 10000 ? Math.round(n/1000) + ' k' : nb(n);
+function totalCoche(sel){ if (!sel.size) return TOTAL_TOUT; let t = 0; for (const f of FAMILLES) for (const x of f.fonds) if (sel.has(x[0]) && !x[3]) t += x[2]; return t; }
+const JURI_LABEL = Object.fromEntries(FAMILLES.flatMap(f => f.fonds.map(x => [x[0], x[1]])));
+const PRESETS = [['12m','12 derniers mois'],['2020','depuis 2020'],['5a','5 ans'],['','tout']];
+const AN_MAX = new Date().getFullYear();
+// Première année réellement en base, par fonds (mesuré le 9 septembre 2026, MIN(date) par juridiction).
+// Première année RÉELLEMENT en base, par fonds (MIN(date) mesuré le 9 septembre 2026).
+// La frise ne descend jamais plus bas : elle ne laisse pas croire à un fonds qu'on n'a pas.
+const AN_DEBUT = {cass:1805, ca:1996, tj:2002, ce:1875, caa:1989, ta:1965,
+                  constit:1958, cedh:1959, cjue:1954, opendata:2021};
+function anMin(sel){ const ks = [...sel].filter(k => AN_DEBUT[k]); return Math.min(...(ks.length ? ks : Object.keys(AN_DEBUT)).map(k => AN_DEBUT[k])); }
+let AN_MIN = anMin(new Set());
+try { const v = localStorage.getItem('jl.railMini'); state.railMini = v === null ? window.innerWidth < 900 : v === '1'; } catch(e){ state.railMini = window.innerWidth < 900; }
+
+function route(){
+  const h = location.hash.replace(/^#\/?/, '');
+  const [path, qs] = h.split('?');
+  const p = new URLSearchParams(qs || '');
+  const seg = path.split('/').filter(Boolean);
+  state.q = p.get('q') || '';
+  state.page = {seg, p};
+  state.adv = {}; for (const k of ADV_KEYS) if (p.get(k)) state.adv[k] = p.get(k);
+  if (state.adv.sort) state.sort = state.adv.sort;
+  const head = seg[0] || '';
+  if (head === 'decision') { state.scope='juris'; renderRail(); showDecision(seg[1], seg.slice(2).join('/')); return; }
+  if (head === 'article')  { state.scope='textes'; state.sub='codes'; renderRail(); showArticle(seg[1], seg[2], p.get('date')); return; }
+  if (['citations','article-tool','suivre','manque'].includes(head)) { state.scope = head==='article-tool' ? 'article' : head; state.sub=''; renderRail(); renderTool(head); return; }
+  if (head === 'recherche') { state.scope = p.get('scope') || 'juris'; state.sub = p.get('sub') || ''; renderRail(); runSearch(); return; }
+  state.scope = head; state.sub = seg[1] || '';
+  renderRail(); renderScope();
+}
+window.addEventListener('hashchange', route);
+function go(h){ location.hash = h; }
+
+/* ───────────────────────── volet ───────────────────────── */
+function renderRail(){
+  const r = $('#rail'); r.className = 'rail' + (state.railMini ? ' mini' : '');
+  let h = `<button class="hd" id="railToggle" title="Replier / déplier">${ico('menu')}<span class="logo lbl" style="font-size:18px">justicelibre</span></button><div class="sec">Chercher dans</div>`;
+  for (const s of SCOPES) {
+    const on = state.scope === s.k;
+    h += `<button class="ri${on?' on':''}" data-go="#/${s.k}" title="${esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span>${s.n?`<span class="n">${s.n}</span>`:''}</button>`;
+    if (false) {
+      h += `<div class="subs${state.railAnim===s.k?' opening':''}" data-subs="${s.k}">`;
+      for (const u of s.subs) {
+        const uon = state.sub === u.k;
+        h += `<button class="sub${uon?' on':''}${u.soon?' soon':''}" data-go="#/${s.k}/${u.k}" title="${esc(u.soon||u.label)}"><span class="dot${u.soon?' soon':''}" style="--c:var(--${u.c})"></span><span>${esc(u.label)}</span><span class="n">${u.soon?'bientôt':(u.n||'')}</span></button>`;
+      }
+      if (on && s.k==='juris' && state.results.length) h += renderFacets();
+      h += `</div>`;
+    }
+  }
+  h += `<div class="sec">Outils</div>`;
+  for (const t of TOOLS) h += `<button class="ri${state.scope===t.k?' on':''}" data-go="#/${t.k==='article'?'article-tool':t.k}" title="${esc(t.label)}">${ico(t.icon)}<span class="lbl">${esc(t.label)}</span></button>`;
+  h += `<div style="flex:1"></div><a class="ri" style="color:var(--muted);font-size:12px" href="https://justicelibre.org/mcp.html">${ico('plug')}<span class="lbl">API · MCP · GitHub</span></a>`;
+  r.innerHTML = h;
+  state.railAnim = '';
+  r.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+  r.querySelectorAll('[data-facet]').forEach(b => b.addEventListener('click', () => { const [k,v] = b.dataset.facet.split('='); state.facet[k] = state.facet[k]===v ? '' : v; renderRail(); renderResults(); }));
+  $('#railToggle').onclick = () => { state.railMini = !state.railMini; try{localStorage.setItem('jl.railMini', state.railMini?'1':'0')}catch(e){}; renderRail(); };
+}
+
+/* ───────────────────────── écrans de portée ───────────────────────── */
+function advCount(a){ return (a.juridiction ? a.juridiction.split(',').length : 0) + (a.formation?1:0) + ((a.date_min||a.date_max)?1:0); }
+function fmtAdv(a){
+  const out = [];
+  for (const j of (a.juridiction||'').split(',').filter(Boolean)) out.push({k:'juridiction', v:j, label:JURI_LABEL[j]||j});
+  if (a.formation) out.push({k:'formation', v:a.formation, label:(FORM_OPTS.find(x=>x[0]===a.formation)||[])[1]||a.formation});
+  const fd = iso => /-(01-01|12-31)$/.test(iso) ? iso.slice(0,4) : fmtDate(iso);
+  if (a.date_min || a.date_max) out.push({k:'dates', v:'', label: a.date_min && a.date_max ? `${fd(a.date_min)} → ${fd(a.date_max)}` : a.date_min ? `depuis ${fd(a.date_min)}` : `jusqu'à ${fd(a.date_max)}`});
+  return out;
+}
+function searchBar(ph, extra='', adv=true){
+  const a = state.adv; const sel = new Set((a.juridiction||'').split(',').filter(Boolean));
+  AN_MIN = anMin(sel);
+  const n = advCount(a);
+  const open = adv && (state.advOpen || (n>0 && !state.results.length && !state.page.seg?.[0]?.startsWith('recherche')));
+  const allState = f => { const ok = f.fonds.filter(x=>!x[3]); const n = ok.filter(x=>sel.has(x[0])).length; return n===ok.length ? 'on' : n ? 'half' : ''; };
+  const fam = f => `<div class="fam"><div class="fh">${f.label}<button type="button" class="all ${allState(f)}" data-fam="${f.k}" title="Tout / rien" aria-label="Tout sélectionner ${f.label}"></button></div>${f.fonds.map(x => `<button type="button" class="fch${sel.has(x[0])?' on':''}${x[3]?' soon':''}" data-j="${x[0]}" ${x[3]?'disabled title="'+x[3]+'"':''}><i></i><span>${x[1]}</span><span class="n">${x[3]?'bientôt':fmtN(x[2])}</span></button>`).join('')}</div>`;
+  const preset = (a.date_min && !a.date_max) ? (a.date_min==='2020-01-01'?'2020': a.date_min===isoAgo(12)?'12m': a.date_min===isoAgo(60)?'5a':'') : (!a.date_min && !a.date_max ? '' : 'x');
+  return `<div class="sbox"><form class="sbar" id="sform"><input id="q" placeholder="${esc(ph)}" value="${esc(state.q)}" autocomplete="off">${extra}${adv?`<button type="button" class="advt${(n||open)?' on':''}" id="advT" title="Où, quelle chambre, quand">Avancé ${n?`<span class="advCount">${n}</span>`:''}<b>▾</b></button>`:''}<button class="go">Chercher</button></form>
+  ${adv?`<div class="adv" id="advP" ${open?'':'hidden'}>
+    <div class="fams">${FAMILLES.map(fam).join('')}</div>
+    <div class="adv-row">
+      <div id="chambreBox" ${sel.has('cass')?'':'hidden'}><div class="lb">Chambre <span style="font-weight:400;text-transform:none;letter-spacing:0">(Cour de cassation)</span></div><div class="chips">${FORM_OPTS.slice(1).map(([v,l]) => `<button type="button" class="chip${a.formation===v?' on':''}" data-form="${v}">${l}</button>`).join('')}</div></div>
+      <div class="quand-bloc"><div class="lb">Rendues entre</div>
+      <div class="rlab"><span id="rAl">${a.date_min ? a.date_min.slice(0,4) : AN_MIN}</span><span id="rBl">${a.date_max ? a.date_max.slice(0,4) : AN_MAX}</span></div>
+      <div class="range"><div class="track"><div class="fill" id="rFill"></div></div><input type="range" id="rA" min="${AN_MIN}" max="${AN_MAX}" value="${a.date_min ? a.date_min.slice(0,4) : AN_MIN}"><input type="range" id="rB" min="${AN_MIN}" max="${AN_MAX}" value="${a.date_max ? a.date_max.slice(0,4) : AN_MAX}"><div class="ticks" id="rTicks">${ticks(AN_MIN)}</div></div>
+      <div class="presets" style="margin-top:18px">${PRESETS.map(([v,l],i) => `${i?'<span class="sep">·</span>':''}<button type="button" class="preset${preset===v?' on':''}" data-preset="${v}">${l}</button>`).join('')}<span class="precis"><span class="lb" style="margin:0 8px 0 0;width:auto">Précis</span><span class="muted">du</span><span class="dtwrap"><input class="dt" id="aMin" placeholder="aaaa · jj/mm/aaaa" value="${esc(frDate(a.date_min))}" autocomplete="off"></span><span>au</span><span class="dtwrap"><input class="dt" id="aMax" placeholder="aaaa · jj/mm/aaaa" value="${esc(frDate(a.date_max))}" autocomplete="off"></span></span></div></div>
+    </div>
+    <div class="foot"><span id="advSummary">${fmtAdv(a).map(x=>x.label).join(' · ') || 'Toute la jurisprudence, toutes dates.'}</span><button type="button" id="advClear" style="color:var(--teal);font-weight:600" ${n?'':'hidden'}>Tout effacer</button></div>
+  </div>`:''}</div>`;
+}
+function frDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); if(!m) return iso; if (m[2]==='01' && m[3]==='01') return m[1]; if (m[2]==='12' && m[3]==='31') return m[1]; return `${m[3]}/${m[2]}/${m[1]}`; }
+function parseDateLoose(txt, fin){
+  const t = String(txt||'').trim(); if (!t) return '';
+  let m;
+  if ((m = /^(\d{4})$/.exec(t))) return fin ? `${m[1]}-12-31` : `${m[1]}-01-01`;
+  if ((m = /^(\d{1,2})\/(\d{4})$/.exec(t))) { const mo = m[1].padStart(2,'0'); const last = new Date(+m[2], +m[1], 0).getDate(); return fin ? `${m[2]}-${mo}-${last}` : `${m[2]}-${mo}-01`; }
+  if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t))) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t))) return t;
+  return null;
+}
+function ticks(min){ const out = [min]; for (const y of [1900,1950,1980,2000,2010,2020]) if (y > min + 8 && y < AN_MAX - 4) out.push(y); out.push(AN_MAX); return out.map(y => `<span>${y}</span>`).join(''); }
+let calEl = null;
+function closeCal(){ if (calEl) { calEl.remove(); calEl = null; document.removeEventListener('mousedown', calOutside); } }
+function calOutside(e){ if (calEl && !calEl.contains(e.target) && !e.target.classList.contains('dt')) closeCal(); }
+function openCal(inp, fin){
+  closeCal();
+  const iso = parseDateLoose(inp.value, fin); const today = new Date();
+  let y = iso ? +iso.slice(0,4) : today.getFullYear(), m = iso ? +iso.slice(5,7) - 1 : today.getMonth();
+  const selIso = iso;
+  calEl = document.createElement('div'); calEl.className = 'cal'; inp.parentNode.appendChild(calEl);
+  const MOISC = MOIS.map(x => x[0].toUpperCase() + x.slice(1));
+  const draw = () => {
+    const first = new Date(y, m, 1); const start = (first.getDay() + 6) % 7; const days = new Date(y, m + 1, 0).getDate();
+    const years = []; for (let yy = AN_MAX; yy >= 1800; yy--) years.push(`<option value="${yy}" ${yy===y?'selected':''}>${yy}</option>`);
+    let h = `<div class="ch"><button type="button" data-nav="-1">‹</button><span><select data-month>${MOISC.map((n,i)=>`<option value="${i}" ${i===m?'selected':''}>${n}</option>`).join('')}</select> <select data-year>${years.join('')}</select></span><button type="button" data-nav="1">›</button></div><div class="grid">${['lu','ma','me','je','ve','sa','di'].map(w=>`<span class="wd">${w}</span>`).join('')}`;
+    for (let i = 0; i < start; i++) h += `<span></span>`;
+    for (let d = 1; d <= days; d++) { const di = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; h += `<button type="button" data-day="${di}" class="${di===selIso?'sel':''}">${d}</button>`; }
+    h += `</div><div class="cf"><button type="button" data-pick="${y}">Toute l'année ${y}</button><button type="button" data-pick="${String(m+1).padStart(2,'0')}/${y}">Tout ${MOISC[m].toLowerCase()}</button><button type="button" data-clear>Effacer</button></div>`;
+    calEl.innerHTML = h;
+    const set = v => { inp.value = v; inp.dispatchEvent(new Event('input')); closeCal(); };
+    calEl.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { m += +b.dataset.nav; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } draw(); });
+    calEl.querySelector('[data-month]').onchange = e => { m = +e.target.value; draw(); };
+    calEl.querySelector('[data-year]').onchange = e => { y = +e.target.value; draw(); };
+    calEl.querySelectorAll('[data-day]').forEach(b => b.onclick = () => set(frDate(b.dataset.day) === b.dataset.day.slice(0,4) ? b.dataset.day.split('-').reverse().join('/') : frDate(b.dataset.day)));
+    calEl.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => set(b.dataset.pick));
+    calEl.querySelector('[data-clear]').onclick = () => set('');
+  };
+  draw();
+  setTimeout(() => document.addEventListener('mousedown', calOutside), 0);
+}
+function isoAgo(months){ const d = new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); }
+function readAdv(){
+  const adv = {};
+  const sel = [...document.querySelectorAll('.fch.on')].map(b => b.dataset.j);
+  if (sel.length) adv.juridiction = sel.join(',');
+  const f = $('.chip.on[data-form]'); if (f && sel.includes('cass')) adv.formation = f.dataset.form;
+  const dmin = parseDateLoose($('#aMin')?.value, false), dmax = parseDateLoose($('#aMax')?.value, true);
+  if (dmin) adv.date_min = dmin; if (dmax) adv.date_max = dmax;
+  if (!dmin && !dmax && $('#rA')) { const ya = +$('#rA').value, yb = +$('#rB').value; if (ya > AN_MIN) adv.date_min = `${ya}-01-01`; if (yb < AN_MAX) adv.date_max = `${yb}-12-31`; }
+  if (state.sort && state.sort !== 'pertinence') adv.sort = state.sort;
+  return adv;
+}
+function advQuery(adv){ return Object.entries(adv).map(([k,v]) => `&${k}=${encodeURIComponent(v)}`).join(''); }
+function jurisUrl(q, adv){ return `#/recherche?q=${encodeURIComponent(q)}&scope=juris${advQuery(adv||readAdv())}`; }
+function bindAdv(){
+  const p = $('#advP'); if (!p) return;
+  const refresh = () => { const sel = new Set([...p.querySelectorAll('.fch.on')].map(b => b.dataset.j)); const nm = anMin(sel); if (nm !== AN_MIN) { const rA = $('#rA'), rB = $('#rB'); const wasMin = +rA.value <= AN_MIN; AN_MIN = nm; rA.min = nm; rB.min = nm; if (wasMin || +rA.value < nm) rA.value = nm; if (+rB.value < nm) rB.value = nm; $('#rTicks').innerHTML = ticks(nm); if (typeof paint === 'function') paint(); }
+    const jc = $('#juriCount'); if (jc) jc.textContent = `${nb(totalCoche(sel))} décisions`;
+    const a = readAdv(); $('#advSummary').textContent = fmtAdv(a).map(x=>x.label).join(' · ') || 'Toute la jurisprudence, toutes dates.'; const n = advCount(a); $('#advClear').hidden = !n; $('#advT').innerHTML = `Avancé ${n?`<span class="advCount">${n}</span>`:''}<b>▾</b>`; $('#chambreBox').hidden = ![...p.querySelectorAll('.fch.on')].some(b => b.dataset.j==='cass'); p.querySelectorAll('.all').forEach(bt => { const f = FAMILLES.find(x=>x.k===bt.dataset.fam); const ok = f.fonds.filter(x=>!x[3]); const n = ok.filter(x => p.querySelector(`.fch[data-j="${x[0]}"]`).classList.contains('on')).length; bt.className = 'all ' + (n===ok.length ? 'on' : n ? 'half' : ''); }); };
+  p.querySelectorAll('.fch:not(.soon)').forEach(b => b.onclick = () => { b.classList.toggle('on'); refresh(); });
+  p.querySelectorAll('.all').forEach(bt => bt.onclick = () => { const f = FAMILLES.find(x=>x.k===bt.dataset.fam); const on = !bt.classList.contains('on'); f.fonds.filter(x=>!x[3]).forEach(x => p.querySelector(`.fch[data-j="${x[0]}"]`).classList.toggle('on', on)); refresh(); });
+  p.querySelectorAll('[data-form]').forEach(c => c.onclick = () => { const was = c.classList.contains('on'); p.querySelectorAll('[data-form]').forEach(x => x.classList.remove('on')); if (!was) c.classList.add('on'); refresh(); });
+  const rA = $('#rA'), rB = $('#rB');
+  const paint = () => { let a = +rA.value, b = +rB.value; if (a > b) { [a, b] = [b, a]; } const pct = v => (v - AN_MIN) / (AN_MAX - AN_MIN) * 100; $('#rFill').style.left = pct(a) + '%'; $('#rFill').style.right = (100 - pct(b)) + '%'; $('#rAl').textContent = a; $('#rBl').textContent = b; };
+  const syncFromRange = () => { if (+rA.value > +rB.value) { const t = rA.value; rA.value = rB.value; rB.value = t; } $('#aMin').value = +rA.value > AN_MIN ? rA.value : ''; $('#aMax').value = +rB.value < AN_MAX ? rB.value : ''; $('#aMin').classList.remove('bad'); $('#aMax').classList.remove('bad'); p.querySelectorAll('[data-preset]').forEach(x => x.classList.toggle('on', x.dataset.preset==='' && +rA.value===AN_MIN && +rB.value===AN_MAX)); paint(); refresh(); };
+  rA.oninput = rB.oninput = syncFromRange;
+  const syncFromText = () => { const dmin = parseDateLoose($('#aMin').value, false), dmax = parseDateLoose($('#aMax').value, true); $('#aMin').classList.toggle('bad', dmin === null); $('#aMax').classList.toggle('bad', dmax === null); rA.value = dmin ? Math.max(AN_MIN, +dmin.slice(0,4)) : AN_MIN; rB.value = dmax ? Math.min(AN_MAX, +dmax.slice(0,4)) : AN_MAX; p.querySelectorAll('[data-preset]').forEach(x => x.classList.remove('on')); paint(); refresh(); };
+  $('#aMin').oninput = $('#aMax').oninput = syncFromText;
+  for (const id of ['#aMin','#aMax']) { const inp = $(id); inp.onfocus = () => openCal(inp, id === '#aMax'); inp.onclick = () => openCal(inp, id === '#aMax'); }
+  p.querySelectorAll('[data-preset]').forEach(c => c.onclick = () => { const v = c.dataset.preset; const iso = v==='12m' ? isoAgo(12) : v==='2020' ? '2020-01-01' : v==='5a' ? isoAgo(60) : ''; const today = new Date().toISOString().slice(0,10); $('#aMax').value = iso ? today.split('-').reverse().join('/') : ''; $('#aMin').value = iso ? iso.split('-').reverse().join('/') : ''; rA.value = iso ? +iso.slice(0,4) : AN_MIN; rB.value = AN_MAX; p.querySelectorAll('[data-preset]').forEach(x => x.classList.toggle('on', x===c)); paint(); refresh(); });
+  paint();
+  $('#advClear').onclick = () => { p.querySelectorAll('.fch.on, .chip.on, .preset.on').forEach(x => x.classList.remove('on')); $('#aMin').value = ''; $('#aMax').value = ''; rA.value = AN_MIN; rB.value = AN_MAX; paint(); refresh(); };
+}
+function kbs(list){ return list.map(x => `<span class="kb" data-q="${esc(x)}">${esc(x)}</span>`).join(' · '); }
+function bindSearch(onSubmit){
+  $('#sform')?.addEventListener('submit', e => { e.preventDefault(); onSubmit($('#q').value.trim()); });
+  $('#advT')?.addEventListener('click', () => { const p = $('#advP'); p.hidden = !p.hidden; state.advOpen = !p.hidden; $('#advT').classList.toggle('on', !p.hidden || advCount(readAdv())>0); });
+  bindAdv();
+  document.querySelectorAll('.kb[data-q]').forEach(k => k.onclick = () => { $('#q').value = k.dataset.q; onSubmit(k.dataset.q); });
+  $('#q')?.focus();
+}
+const RECENT = [
+  ['2026-09-08','jud','Judiciaire','Cass. soc., n° 24-17.246 — clause de non-concurrence', '#/recherche?q=24-17.246&scope=juris'],
+  ['2026-09-08','adm','Administratif','CAA Bordeaux, 24BX01473 — quarantaine d’un animal', '#/recherche?q=24BX01473&scope=juris'],
+  ['2026-09-04','adm','Administratif','CE, ord. n° 519247 — référé-liberté, hébergement d’urgence', '#/recherche?q=519247&scope=juris'],
+  ['2026-07-03','ce','Constitutionnel','Décision n° 2026-1180 QPC — art. 145 CPC', '#/recherche?q=2026-1180&scope=juris&sub=constit'],
+];
+const recs = rows => rows.map(([d,c,l,t,h]) => `<div class="rec"><span class="d">${fmtDate(d)}</span><span><span class="tag" style="--c:var(--${c})">${l}</span> <a href="${h}">${esc(t)}</a></span></div>`).join('');
+const COVER = `<div class="note" style="margin-top:18px">Contrôle de la nuit contre Judilibre (8 sept., 18 h 43) : <b class="mono" style="font-weight:500">28/28</b> années dans la marge. Sous la référence : TJ 2025 <span class="mono">−1,1 %</span>, tribunaux de commerce 2025 <span class="mono">−1,0 %</span>. <a href="#/manque">Détail →</a></div>`;
+
+function renderScope(){
+  const b = $('#body'); const s = state.scope;
+  if (s === '') {
+    state.advOpen = false;
+    b.innerHTML = `<div class="vcenter"><div class="center"><p class="hero">Le droit tel qu'il est publié. Sans compte.</p><p class="lead">Une barre pour tout : mots, numéro, ECLI, article, nom de juridiction. Le volet à gauche choisit où l'on cherche ; la page suit.</p></div>
+    ${searchBar('Mots-clés, numéro, ECLI, article…')}<div class="hint" style="text-align:center">Ça marche : ${kbs(['24-11.587','trouble anormal de voisinage','art. 1253 C. civ.','ECLI:FR:CCASS:2021:C300797','380374'])}</div></div>
+    `;
+    bindSearch(q => smartGo(q));
+  }
+  else if (s === 'juris') {
+    if (state.advOpen === undefined) state.advOpen = true;
+    b.innerHTML = `<div class="center"><p class="hero">Jurisprudence</p><p class="lead" id="juriCount">${nb(totalCoche(new Set((state.adv.juridiction||'').split(',').filter(Boolean))))} décisions</p></div>
+    ${searchBar('trouble anormal de voisinage · 04-10.362 · 380374 · 14852/18')}<div class="hint" style="text-align:center">Ou une référence : ${kbs(['04-10.362','ECLI:FR:CCASS:2021:C300797','380374','CETATEXT000030923','licenciement sans cause réelle et sérieuse'])}</div>
+    <div class="feed" id="feed"><div class="feed-h"><span>Nouveautés</span><span class="s" id="feedSub">les dernières décisions entrées en base</span></div><div class="cards" id="feedCards"></div><div class="feed-end" id="feedEnd"></div></div>`;
+    bindSearch(q => go(jurisUrl(q)));
+    initFeed();
+  }
+  else if (s === 'textes') {
+    b.innerHTML = `<div class="center"><p class="hero">Textes</p><p class="lead">Codes, lois, décrets, Journal officiel, conventions collectives — dans la rédaction en vigueur <b>à la date que vous choisissez</b>.</p></div>
+    ${searchBar('art. 145 CPC · L. 1234-9 C. trav. · 1253 code civil', `<label class="dt">au <input id="qdate" type="date" value="${esc(state.page.p?.get('date')||'')}"></label>`, false)}
+    <div class="hint" style="text-align:center">Ça marche : ${kbs(['art. 1253 C. civ.','art. 145 CPC','L. 1234-9 C. trav.','L. 521-2 CJA','art. 544 code civil'])} — le plein texte des lois et du JO n'est pas encore exposé par l'API du site (MCP seulement).</div>
+    <div style="max-width:1100px;margin:34px auto 0"><div class="feed-h" style="margin-bottom:12px">Codes<span class="s">${CODES.length} codes servis · cliquez pour préparer la recherche d'un article</span><input id="codeFiltre" placeholder="filtrer…" style="margin-left:auto;font:inherit;font-size:12.5px;padding:5px 10px;border:1px solid var(--line);border-radius:5px;background:var(--white);color:var(--ink);width:180px"></div>
+    <div class="codes" id="codesGrid">${CODES.map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(c[2][0])}</span></button>`).join('')}</div></div>`;
+    bindSearch(q => { const a = parseArticle(q); if (a) go(`#/article/${a.code}/${encodeURIComponent(a.num)}${$('#qdate').value?'?date='+$('#qdate').value:''}`); else $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>Je ne reconnais pas « ${esc(q)} » comme un article (<span class="mono">art. 1253 C. civ.</span>, <span class="mono">L. 1234-9 code du travail</span>). La recherche plein texte dans les lois n'est pas encore branchée sur le site.</div></div>`); });
+    document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + CODES.find(c=>c[0]===t.dataset.code)[2][0]; $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
+    $('#codeFiltre').oninput = e => { const v = normaliser(e.target.value); document.querySelectorAll('#codesGrid .tile').forEach(t => { t.hidden = !!v && !normaliser(t.dataset.nom).includes(v); }); };
+  }
+  else if (s === 'travaux') {
+    b.innerHTML = `<p class="hero">Travaux préparatoires</p><p class="lead">Ce qui a précédé la loi : exposé des motifs, avis du Conseil d'État, rapports, débats, questions. <span class="warnp">pas encore branché</span> — voici la forme prévue, sur un vrai exemple.</p>
+    <div class="two"><div><div class="h5">Loi n° 2024-346 du 15 avril 2024 → art. 1253 du code civil</div>${[['2023-12-13','Proposition de loi n° 1928 (AN) — exposé des motifs'],['2024-01-31','Rapport n° 2136 — commission des lois'],['2024-02-06','Débats, 1ʳᵉ séance — amendements'],['2024-03-21','Sénat, rapport n° 449'],['2024-04-15','Promulgation — JORF n° 0089']].map(([d,t])=>`<div class="rec"><span class="d">${fmtDate(d)}</span><span>${esc(t)}</span></div>`).join('')}<div style="margin-top:10px"><a href="#/article/LEGITEXT000006070721/1253">Voir l'article 1253 et son histoire →</a></div></div>
+    <div><div class="h5">Sources, toutes en licence ouverte</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${[['DOLE (DILA)','dossiers législatifs : motifs, avis du CE, étapes'],['DEBATS · QUESTIONS (DILA)','JO Débats AN et Sénat, réponses ministérielles'],['data.assemblee-nationale.fr · data.senat.fr','amendements, commissions, Dosleg, Ameli'],['Conseil constitutionnel','dossiers documentaires des décisions']].map(([t,s])=>`<div class="tile"><div class="tt"><span class="dot soon"></span>${esc(t)}</div><div class="ts">${esc(s)}</div></div>`).join('')}</div></div></div>`;
+  }
+  else if (s === 'avis') {
+    b.innerHTML = `<p class="hero">Avis &amp; doctrine</p><p class="lead">Ce que disent les autorités quand elles ne jugent pas : avis de la CADA, décisions du Défenseur des droits, délibérations CNIL, conclusions des rapporteurs publics. <span class="warnp">MCP seulement pour l'instant</span> — le site ne les sert pas encore (chantier 3).</p>
+    ${searchBar('communication du dossier médical · refus de communication', '', false)}
+    <div class="grid2" style="margin-top:22px">${[['CADA','60 941','avis et conseils 1984–2026, partie et objet lisibles, lien data.gouv'],['Défenseur des droits','15 864','décisions et avis, domaines et mots-clés'],['CNIL','26 737','délibérations, sanctions, avis sur les textes'],['Rapporteurs publics','9 138','conclusions devant le Conseil d’État — servies nulle part ailleurs']].map(([t,n,s])=>`<div class="tile"><div class="tt"><span class="dot" style="--c:var(--doc)"></span>${esc(t)}<span class="mono muted" style="margin-left:auto;font-size:11px;font-weight:400">${n}</span></div><div class="ts">${esc(s)}</div></div>`).join('')}</div>
+    <div class="note" style="margin-top:22px;max-width:880px">Ces textes ne sont pas des jugements : la page le dira et ne les mélangera jamais à la jurisprudence sans le signaler.</div>`;
+    bindSearch(q => $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>« ${esc(q)} » : la recherche dans les avis n'est pas encore exposée par l'API du site. Elle existe côté MCP (search_cnil ; CADA/DDD en chantier).</div></div>`));
+  }
+  else if (s === 'annuaire') {
+    b.innerHTML = `<p class="hero">Annuaire</p><p class="lead">Les boîtes fonctionnelles des greffes, parquets, cabinets — 75 000 adresses. <span class="warnp">MCP seulement pour l'instant</span> (search_annuaire).</p>${searchBar('tribunal judiciaire de Dunkerque · parquet de Lille · greffe', '', false)}
+    <div class="note" style="margin-top:22px;max-width:880px">Depuis une décision, le bouton « où déposer » ouvrira ici la juridiction concernée.</div>`;
+    bindSearch(q => $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>« ${esc(q)} » : l'annuaire n'est pas encore exposé par l'API du site.</div></div>`));
+  }
+  else b.innerHTML = `<p class="hero">?</p>`;
+}
+
+/* La barre de l'accueil devine : article → fiche article ; sinon jurisprudence. */
+function normaliser(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function parseArticle(q){
+  const s = q.trim().toLowerCase().replace(/^art(icle|\.)?\s*/,'').replace(/\s+du\s+/,' ').replace(/\s+/g,' ');
+  const m = /^((?:[lrd]\.?\s*)?[\d]+(?:-\d+)*(?:\s*[a-z]{0,2})?)\s+(.+)$/.exec(s);
+  if (!m) return null;
+  const num = m[1].replace(/\s+/g,'').replace(/^([lrd])\.?/, (x,l) => l.toUpperCase()+'. ').replace(/^([LRD])\. (\d)/, '$1$2').replace(/^([LRD])(\d)/,'$1. $2');
+  const cname = m[2].replace(/[.,]$/,'').trim();
+  for (const c of CODES) if (c[2].some(a => a.replace(/\.$/,'') === cname.replace(/\.$/,'')) || c[1].toLowerCase() === cname) return {code:c[0], num:num.replace('. ', '. ').replace(/^([LRD])\. /,'$1. ').replace(/^L\. /,'L').replace(/^R\. /,'R').replace(/^D\. /,'D'), label:c[1]};
+  return null;
+}
+function smartGo(q){
+  if (!q) return;
+  const a = parseArticle(q);
+  if (a) return go(`#/article/${a.code}/${encodeURIComponent(a.num)}`);
+  go(jurisUrl(q));
+}
+
+/* ── flux « dernières décisions » : cartes + défilement infini ── */
+// Aperçu du flux tant que /api/recent n'est pas déployé : décisions RÉELLES
+// tirées de l'API publique le 9 septembre 2026 (aucun texte inventé).
+const FEED_EXEMPLE = [{"id": "DCA_26NC01737_20260731", "source": "admin", "title": "Cour administrative d'appel de Nancy — n° 26NC01737", "juridiction": "Cour administrative d'appel de Nancy", "date": "2026-07-31", "formation": "Juge des référés", "numero": "26NC01737", "ecli": "", "sommaire": "", "debut": "Par une requête, enregistrée le 27 juillet 2026, M. A... B..., représenté par Me Dravigny, demande à la cour : 1°) de suspendre l’exécution des décisions portant refus de séjour et obligation de quitter le territoire français prise par le préfet du Jura le 9 décembre 2025 …"}, {"id": "DCA_26PA04068_20260715", "source": "admin", "title": "Cour administrative d'appel de Paris — n° 26PA04068", "juridiction": "Cour administrative d'appel de Paris", "date": "2026-07-15", "formation": "Juge des référés", "numero": "26PA04068", "ecli": "", "sommaire": "", "debut": "Le Samu social de Paris a demandé au juge des référés du tribunal administratif de Paris, statuant sur le fondement de l’article L. 521-3 du code de justice administrative, d’ordonner l’expulsion sans délai de Mme C... B...…"}, {"id": "6a47de3593c619cd1f41b53e", "source": "dila", "title": "Cour d'appel de Montpellier, 2026-06-23, n° 24/03174", "juridiction": "Cour d'appel de Montpellier", "date": "2026-06-23", "formation": "Chambre commerciale", "numero": "24/03174", "ecli": "", "sommaire": "", "debut": "Société FONCIERE CHABRIERES, société civile au capital variable, dont le siège social est [Adresse 1], immatriculée au RCS de PARIS sous le n°344 092 341, venant aux droits de la SCI SAINT LOU, représentée par son dirigeant légal en exercice domicilié en cette qualité au dit siège.…"}, {"id": "6a0caa52cdc6046d4739a471", "source": "dila", "title": "Tribunal judiciaire de Lille, 2026-04-30, n° 25/00497", "juridiction": "Tribunal judiciaire de Lille", "date": "2026-04-30", "formation": "Jex", "numero": "25/00497", "ecli": "", "sommaire": "", "debut": "représentée par Me Yanick JACQUET, avocat au barreau de LILLE MAGISTRAT TENANT L’AUDIENCE : Nicolas VERMEULEN, Juge du tribunal judiciaire de LILLE Juge de l’exécution par délégation de Madame la Présidente du tribunal judiciaire de LILLE DÉBATS : A l’audience publique du 20 Mars 2026, l’affaire a é…"}, {"id": "DCA_25NT02559_20260320", "source": "admin", "title": "Cour administrative d'appel de Nantes — n° 25NT02559", "juridiction": "Cour administrative d'appel de Nantes", "date": "2026-03-20", "formation": "Juge des référés", "numero": "25NT02559", "ecli": "", "sommaire": "", "debut": "Le préfet des Côtes d’Armor a demandé au juge des référés du tribunal administratif de Rennes, sur le fondement de l’article L. 521-3 du code de justice administrative, d’ordonner l’expulsion sans délai de M. A... D... C... B...…"}, {"id": "691aeec05222181ceeb815a2", "source": "dila", "title": "Tribunal judiciaire de Bordeaux, 2025-11-03, n° 24/05481", "juridiction": "Tribunal judiciaire de Bordeaux", "date": "2025-11-03", "formation": "CABINET JAF 8", "numero": "24/05481", "ecli": "", "sommaire": "", "debut": "Tribunal judiciaire de Bordeaux - Chambre de la famille - CABINET JAF 8 Monsieur Pierre REVARDEL, Vice-Président Juge aux affaires familiales, représenté par Me Laetitia ZHENDRE, avocat au barreau de BORDEAUX, avocat plaidant représentée par Me Kalina DENIAU, avocat au barreau de BORDEAUX, avocat pl…"}, {"id": "DCA_23TL00542_20250923", "source": "admin", "title": "Cour administrative d'appel de Toulouse — n° 23TL00542", "juridiction": "Cour administrative d'appel de Toulouse", "date": "2025-09-23", "formation": "2ème chambre", "numero": "23TL00542", "ecli": "", "sommaire": "", "debut": "M. C A a demandé au tribunal administratif de Montpellier de condamner le centre hospitalier de Perpignan à lui verser la somme de 127 568,99 euros en réparation des préjudices résultant d'une prise en charge post-opératoire fautive, de mettre à la charge de l'établissement public de santé les dépen…"}, {"id": "68b0a0dc2dbfd85c112dd7a9", "source": "dila", "title": "Tribunal judiciaire d'Arras, 2025-07-03, n° 22/01611", "juridiction": "Tribunal judiciaire d'Arras", "date": "2025-07-03", "formation": "1ère Chambre CIVILE", "numero": "22/01611", "ecli": "", "sommaire": "", "debut": "JUGEMENT de la Première Chambre civile du tribunal judiciaire d’ARRAS composée lors des débats et du délibéré de Monsieur JOUANNY, Vice Président, statuant en qualité de juge unique, PRONONCÉ par mise à disposition au greffe le 03 Juillet 2025, le présent jugement est signé par Monsieur JOUANNY, Vic…"}, {"id": "660f9505a40f8b0008cb764f", "source": "dila", "title": "Cour d'appel de Paris, 2024-04-04, n° 23/13690", "juridiction": "Cour d'appel de Paris", "date": "2024-04-04", "formation": "Pôle 5 - Chambre 9", "numero": "23/13690", "ecli": "", "sommaire": "", "debut": "Numéro d'inscription au répertoire général : N° RG 23/13690 - N° Portalis 35L7-V-B7H-CIDHB Décision déférée à la Cour : Ordonnance du 12 Juillet 2023 -Juge commissaire de Bobigny - RG n° représenté par Me Malik GUELLIL, avocat au barreau de PARIS, toque : PC 345 Maître [K] [S] en qualité de liquidat…"}, {"id": "62022CJ0740", "source": "cjue", "title": "Arrêt de la Cour (sixième chambre) du 7 mars 2024. — Endemol Shine Finland Oy. — Demande de décision préjudicielle, introduite par l'Itä-Suomen hovioikeus. — Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Articles 2, 4, 6, 10 et 86 – Données détenues par un tribunal relatives aux condamnations pénales d’une personne physique – Communication orale de telles données à une société commerciale en raison d’un concours organisée par celle-ci – Notion de “traitement de données à caractère personnel” – Réglementation nationale régissant l’accès auxdites données – Conciliation entre le droit du public à l’accès aux documents officiels et la protection des données à caractère personnel. — Affaire C-740/22.", "juridiction": "CJUE", "date": "2024-03-07", "formation": "JUDG", "numero": "62022CJ0740", "ecli": "ECLI:EU:C:2024:216", "sommaire": "", "debut": "« Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Articles 2, 4, 6, 10 et 86 – Données détenues par un tribunal relatives aux condamnations pénales d’une personne physique – Communication orale de telles données à une société commerciale en raison d’un c…"}, {"id": "6582c21cc22d28000892349e", "source": "dila", "title": "Cour d'appel de Paris, 2023-12-19, n° 23/14522", "juridiction": "Cour d'appel de Paris", "date": "2023-12-19", "formation": "Pôle 1 - Chambre 5", "numero": "23/14522", "ecli": "", "sommaire": "", "debut": "Numéro d'inscription au répertoire général : N° RG 23/14522 - N° Portalis 35L7-V-B7H-CIFPG Décision déférée à la Cour : Jugement du 22 Juin 2023 du Tribunal de Commerce de PARIS - RG n° 2022000355 NOUS, Hélène FILLIOL, Présidente de chambre, agissant par délégation du Premier Président de cette Cour…"}, {"id": "62021CJ0268", "source": "cjue", "title": "Arrêt de la Cour (troisième chambre) du 2 mars 2023. — Norra Stockholm Bygg AB contre Per Nycander AB. — Demande de décision préjudicielle, introduite par le Högsta domstolen. — Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Article 6, paragraphes 3 et 4 – Licéité du traitement – Production d’un document contenant des données à caractère personnel dans le cadre d’une procédure juridictionnelle civile – Article 23, paragraphe 1, sous f) et j) – Protection de l’indépendance de la justice et des procédures judiciaires – Exécution des demandes de droit civil – Exigences à respecter – Prise en compte de l’intérêt des personnes concernées – Pondération des intérêts opposés en présence – Article 5 – Minimisation des données à caractère personnel – Charte des droits fondamentaux de l’Union européenne – Article 7 – Droit au respect de la vie privée – Article 8 – Droit à la protection des données à caractère personnel – Article 47 – Droit à une protection juridictionnelle effective – Principe de proportionnalité. — Affaire C-268/21.", "juridiction": "CJUE", "date": "2023-03-02", "formation": "JUDG", "numero": "62021CJ0268", "ecli": "ECLI:EU:C:2023:145", "sommaire": "", "debut": "« Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Article 6, paragraphes 3 et 4 – Licéité du traitement – Production d’un document contenant des données à caractère personnel dans le cadre d’une procédure juridictionnelle civile – Article 23, paragraphe…"}, {"id": "62021CJ0154", "source": "cjue", "title": "Arrêt de la Cour (première chambre) du 12 janvier 2023. — RW contre Österreichische Post AG. — Demande de décision préjudicielle, introduite par l'Oberster Gerichtshof. — Renvoi préjudiciel – Protection des personnes physiques à l’égard du traitement des données à caractère personnel – Règlement (UE) 2016/679 – Article 15, paragraphe 1, sous c) – Droit d’accès de la personne concernée à ses données – Informations sur les destinataires ou catégories de destinataires auxquels les données à caractère personnel ont été ou seront communiquées – Limitations. — Affaire C-154/21.", "juridiction": "CJUE", "date": "2023-01-12", "formation": "JUDG", "numero": "62021CJ0154", "ecli": "ECLI:EU:C:2023:3", "sommaire": "", "debut": "« Renvoi préjudiciel – Protection des personnes physiques à l’égard du traitement des données à caractère personnel – Règlement (UE) 2016/679 – Article 15, paragraphe 1, sous c) – Droit d’accès de la personne concernée à ses données – Informations sur les destinataires ou catégories de destinataires…"}, {"id": "62021CC0487", "source": "cjue", "title": "Conclusions de l'avocat général M. G. Pitruzzella, présentées le 15 décembre 2022. — F.F. contre Österreichische Datenschutzbehörde. — Demande de décision préjudicielle, introduite par le Bundesverwaltungsgericht. — Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Droit d’accès de la personne concernée à ses données faisant l’objet d’un traitement – Article 15, paragraphe 3 – Fourniture d’une copie des données – Notion de “copie” – Notion d’“informations”. — Affaire C-487/21.", "juridiction": "CJUE", "date": "2022-12-15", "formation": "OPIN_AG", "numero": "62021CC0487", "ecli": "ECLI:EU:C:2022:1000", "sommaire": "", "debut": "[demande de décision préjudicielle formée par le Bundesverwaltungsgericht (tribunal administratif fédéral, Autriche)] « Renvoi préjudiciel – Protection des données à caractère personnel – Règlement (UE) 2016/679 – Article 15, paragraphe 3 – Droit d’accès de la personne concernée aux données à caract…"}, {"id": "631c28b4bd7923fcb00af848", "source": "dila", "title": "Cour de cassation — n° 22-19.147", "juridiction": "Cour de cassation", "date": "2022-09-06", "formation": "ordo", "numero": "22-19.147", "ecli": "ECLI:FR:CCASS:2022:OR31631", "sommaire": "", "debut": "Demanderesse : MJA SELAFA, représentée par Maître [V] [I], ès qualités de liquidateur judiciaire des sociétés ISIA FILMS et GLOBE AGISSANT d'office en vertu de l'article 1009 du code de procédure civile …"}, {"id": "62b6a63ccd29ea78c0c9fee5", "source": "dila", "title": "Cour d'appel de Douai, 2022-06-23, n° 21/01063", "juridiction": "Cour d'appel de Douai", "date": "2022-06-23", "formation": "CHAMBRE 2 SECTION 1", "numero": "21/01063", "ecli": "", "sommaire": "", "debut": "Jugement n°20/00343 rendu le 02 février 2021par le tribunal judiciaire de Boulogne sur Mer ayant son siège social 48 Grande Rue - 62200 Boulogne sur Mer représentée et assistée par Me Tania Normand, avocat au barreau de Boulogne-sur-Mer représenté par Me Yann Leupe, constitué aux lieu et place de Me…"}, {"id": "JURITEXT000044352240", "source": "dila", "title": "Cour de cassation, civile, Chambre civile 3, 17 novembre 2021, 19-19.311, Inédit", "juridiction": "Cour de cassation", "date": "2021-11-17", "formation": "CHAMBRE_CIVILE_3", "numero": "19-19311", "ecli": "ECLI:FR:CCASS:2021:C300797", "sommaire": "", "debut": "Mme [P] [V], épouse [I], domiciliée [Adresse 2], a formé le pourvoi n° G 19-19.311 contre l'arrêt rendu le 4 avril 2019 par la cour d'appel de Versailles (3e chambre civile), dans le litige l'opposant à la société TDF, société par actions simplifiée unipersonnelle, dont le siège est [Adresse 1], déf…"}, {"id": "JURITEXT000043566047", "source": "dila", "title": "Cour de cassation, civile, Chambre civile 3, 20 mai 2021, 20-11.926, Inédit", "juridiction": "Cour de cassation", "date": "2021-05-20", "formation": "CHAMBRE_CIVILE_3", "numero": "20-11926", "ecli": "ECLI:FR:CCASS:2021:C300435", "sommaire": "", "debut": "ont formé le pourvoi n° B 20-11.926 contre l&apos;arrêt rendu le 28 novembre 2019 par la cour d&apos;appel d&apos;Aix-en-Provence (chambre 1-5), dans le litige les opposant : Les demanderesses invoquent, à l&apos;appui de leur pourvoi, le moyen unique de cassation annexé au présent arrêt.…"}, {"id": "CONSTEXT000042671616", "source": "dila", "title": "SEN, Haute-Saône, M. André KORNMANN", "juridiction": "Conseil constitutionnel", "date": "2020-12-11", "formation": "", "numero": "2020-5684 SEN/", "ecli": "", "sommaire": "", "debut": "LE CONSEIL CONSTITUTIONNEL A ÉTÉ SAISI le 1er octobre 2020 d'une question prioritaire de constitutionnalité posée par M. André KORNMANN. Cette question a été enregistrée au secrétariat général du Conseil constitutionnel sous le n° 2020-5684 SEN/QPC.…"}, {"id": "JURITEXT000039465702", "source": "dila", "title": "Cour de cassation, civile, Chambre civile 1, 27 novembre 2019, 18-21.570, Publié au bulletin", "juridiction": "Cour de cassation", "date": "2019-11-27", "formation": "CHAMBRE_CIVILE_1", "numero": "18-21570", "ecli": "ECLI:FR:CCASS:2019:C100987", "sommaire": "PAIEMENT - Imputation - Pluralité de dettes - Droit de déclarer quelle dette est acquittée par le paiement - Exercice - Limites - Paiements partiels\n\n\nIl résulte des dispositions des articles 1244 et 1253 du code civil, dans leur rédaction antérieure à celle issue de l'ordonnance n° 2016-131 du 10 février 2016, que, si le débiteur de plusieurs dettes a le droit de déclarer, lorsqu'il paye, quelle dette il entend acquitter, l'exercice de ce droit implique, sauf accord de son créancier, qu'il procède au paiement intégral de cette dette. Ne sont dès lors pas fondés à se prévaloir de leur droit lé", "debut": "LA COUR DE CASSATION, PREMIÈRE CHAMBRE CIVILE, a rendu l'arrêt suivant : Attendu, selon l'arrêt attaqué (Aix-en-Provence, 18 mai 2018), que M. et Mme M...…"}, {"id": "/Ariane_Web/AW_DCE/|219782", "source": "ariane", "title": "Conseil d'État, n° 420427", "juridiction": "Conseil d'État", "date": "2019-04-30", "formation": "1ère CHS", "numero": "420427", "ecli": "ECLI:FR:CECHS:2019:420427.20190430", "sommaire": "", "debut": "SCP CAPRON ; SCP FOUSSARD, FROGER ; SCP MARLANGE, DE LA BURGADE, avocats M. et Mme H...B..., Mme A...I..., Mme O...J..., M. et Mme H...C..., M. F...E...et M.…"}, {"id": "/Ariane_Web/AW_DCE/|214932", "source": "ariane", "title": "Conseil d'État, n° 412438", "juridiction": "Conseil d'État", "date": "2018-12-05", "formation": "6-5  CHR", "numero": "412438", "ecli": "ECLI:FR:CECHR:2018:412438.20181205", "sommaire": "", "debut": "SCP ROUSSEAU, TAPIE ; SCP GASCHIGNARD ; SCP PIWNICA, MOLINIE, avocats La société FRP II a demandé au tribunal administratif de Rennes d'annuler pour excès de pouvoir l'arrêté du 28 juillet 2015 par lequel le maire de la commune de Pacé (Ille-et-Vilaine) a accordé à la SCI Georges un permis de constr…"}, {"id": "CONSTEXT000031634175", "source": "dila", "title": "M. Pierre G. [Demande de rectification d'erreur matérielle]", "juridiction": "Conseil constitutionnel", "date": "2015-12-11", "formation": "", "numero": "2015-491R", "ecli": "", "sommaire": "", "debut": "Le Conseil constitutionnel a été saisi d'une requête présentée par M. Pierre G., enregistrée le 29 octobre 2015 au secrétariat général du Conseil constitutionnel et tendant à la rectification pour erreur matérielle de la décision n° 2015-491 QPC du 14 octobre 2015 par laquelle le Conseil constitutio…"}, {"id": "JURITEXT000031543581", "source": "dila", "title": "Cour de cassation, civile, Chambre sociale, 26 novembre 2015, 14-14.617, Inédit", "juridiction": "Cour de cassation", "date": "2015-11-26", "formation": "CHAMBRE_SOCIALE", "numero": "14-14617", "ecli": "ECLI:FR:CCASS:2015:SO01984", "sommaire": "", "debut": "LA COUR DE CASSATION, CHAMBRE SOCIALE, a rendu l'arrêt suivant : Attendu, selon l'arrêt attaqué (Rennes, 29 janvier 2014), que Mme X..., engagée le 4 février 2008 par la société Keroler en qualité d'ouvrière de conditionnement et de fabrication, après une mise à pied de onze jours en avril 2009, a é…"}, {"id": "CONSTEXT000031349687", "source": "dila", "title": "M. Pierre G. [Demande tendant à la saisine directe du Conseil constitutionnel d'une question prioritaire de constitutionnalité]", "juridiction": "Conseil constitutionnel", "date": "2015-10-14", "formation": "", "numero": "2015-491", "ecli": "", "sommaire": "", "debut": "Le Conseil constitutionnel a été saisi, dans les conditions prévues à l'article 61-1 de la Constitution et sur le fondement de la dernière phrase du premier alinéa de l'article 23-7 de l'ordonnance n° 58-1067 du 7 novembre 1958 modifiée portant loi organique sur le Conseil constitutionnel, d'une que…"}, {"id": "JURITEXT000030629569", "source": "dila", "title": "Cour d'appel de Limoges, 21 mai 2015, 14/00554", "juridiction": "Cour d'appel de Limoges", "date": "2015-05-21", "formation": "CHAMBRE CIVILE", "numero": "14/00554", "ecli": "", "sommaire": "", "debut": "COUR D'APPEL DE LIMOGES CHAMBRE CIVILE --- = = oOo = =--- ARRET DU 21 MAI 2015 --- = = = oOo = = =--- Le VINGT ET UN MAI DEUX MILLE QUINZE la CHAMBRE CIVILE a rendu l'arrêt dont la teneur suit par mise à la disposition du public au greffe : Monsieur Thierry X...…"}, {"id": "CONSTEXT000025401371", "source": "dila", "title": "M. Zafer E.  [Demande tendant à la saisine directe du Conseil constitutionnel d'une question prioritaire de constitutionnalité]", "juridiction": "Conseil constitutionnel", "date": "2012-02-15", "formation": "", "numero": "2012-237", "ecli": "", "sommaire": "", "debut": "Le Conseil constitutionnel a été saisi le 2 février 2012 d'une demande présentée pour M. Zafer E. par Me Christophe Martin-Laviolette, avocat au barreau de Metz, tendant à ce que le Conseil constitutionnel se prononce sur la question prioritaire de constitutionnalité posée par lui devant le tribunal…"}, {"id": "JURITEXT000024568543", "source": "dila", "title": "Cour de cassation, civile, Chambre civile 3, 13 septembre 2011, 10-21.467, Inédit", "juridiction": "Cour de cassation", "date": "2011-09-13", "formation": "CHAMBRE_CIVILE_3", "numero": "10-21467", "ecli": "", "sommaire": "", "debut": "LA COUR DE CASSATION, TROISIÈME CHAMBRE CIVILE, a rendu l'arrêt suivant : Attendu qu'ayant retenu que nul ne disposait d'un droit acquis à une vue permanente totalement dégagée, surtout en milieu urbain, et constaté que les immeubles en cause étaient situés à Marseille, au centre ville, dans une zon…"}, {"id": "JURITEXT000020806785", "source": "dila", "title": "Cour de cassation, civile, Chambre sociale, 24 juin 2009, 08-40.607, Inédit", "juridiction": "Cour de cassation", "date": "2009-06-24", "formation": "CHAMBRE_SOCIALE", "numero": "08-40607", "ecli": "", "sommaire": "", "debut": "LA COUR DE CASSATION, CHAMBRE SOCIALE, a rendu l'arrêt suivant : Attendu, selon l'arrêt attaqué (Pau, 17 décembre 2007), que M. X..., salarié de la société Euro citernes (la société) depuis 1998, a été convoqué en octobre 2004 à un entretien préalable au licenciement …"}, {"id": "JURITEXT000006950316", "source": "dila", "title": "Tribunal d'instance de Saumur, CT0104, du 3 mai 2006", "juridiction": "Tribunal d'instance de Saumur", "date": "2006-05-03", "formation": "CT0104", "numero": "", "ecli": "", "sommaire": "", "debut": "TRIBUNAL D'INSTANCE DE SAUMUR JUGE DE L'EXECUTION JUGEMENT D'OUVERTURE D'UNE PROCEDURE DE RETABLISSEMENT PERSONNEL DU 3 MAI 2006 DEMANDEUR : Madame Dominique X... 459, rue du Chemin Vert, 49400 - SAUMUR, Assistée de Me BARON, avocat au barreau de SAUMUR. DEFENDEURS : B.N.P.…"}, {"id": "JURITEXT000007052697", "source": "dila", "title": "Cour de Cassation, Chambre civile 2, du 24 février 2005, 04-10.362, Publié au bulletin", "juridiction": "Cour de cassation", "date": "2005-02-24", "formation": "CHAMBRE_CIVILE_2", "numero": "04-10362", "ecli": "", "sommaire": "1°\nPROPRIETE - Droit de propriété - Atteinte - Applications diverses - Troubles anormaux de voisinage - Caractérisation - Cas - Stockage de paille faisant courir un risque indéniable à l'immeuble voisin.\n\n1°\nAprès avoir relevé que la paille possède un pouvoir de combustion particulièrement rapide et important et qu'une simple étincelle peut suffire à provoquer son inflammation, caractérise l'existence d'un trouble anormal de voisinage, une cour d'appel qui retient que le stockage de paille en limite de propriété et à proximité immédiate d'un immeuble d'habitation faisait courir un risque indén", "debut": "LA COUR DE CASSATION, DEUXIEME CHAMBRE CIVILE, a rendu l'arrêt suivant : Attendu, selon l'arrêt attaqué (Orléans, 10 novembre 2003), que M.et Mme X... ont fait assigner devant le tribunal de grande instance Mme Y...…"}, {"id": "JURITEXT000007048646", "source": "dila", "title": "Cour de Cassation, Chambre sociale, du 25 juin 2003, 01-40.235, Publié au bulletin", "juridiction": "Cour de cassation", "date": "2003-06-25", "formation": "CHAMBRE_SOCIALE", "numero": "01-40235", "ecli": "", "sommaire": "CONTRAT DE TRAVAIL, RUPTURE - Prise d'acte de la rupture - Prise d'acte par l'employeur - Obligation de l'employeur - Licenciement - Défaut - Portée.\n\n\nCONTRAT DE TRAVAIL, RUPTURE - Prise d'acte de la rupture - Prise d'acte par l'employeur - Cause - Manquements du salarié à ses obligations - Preuve - Absence d'influence\n\n\nCONTRAT DE TRAVAIL, RUPTURE - Licenciement - Nécessité - Applications diverses - Prise d'acte par l'employeur de la rupture - Condition\n\n\nCONTRAT DE TRAVAIL, RUPTURE - Licenciement - Cause - Cause réelle et sérieuse - Défaut - Applications diverses - Absence de procédure de l", "debut": "LA COUR DE CASSATION, CHAMBRE SOCIALE, a rendu l'arrêt suivant : Vu les articles L. 122-4, L. 122-14 et L. 122-14-3 du Code du travail ; Attendu que l'employeur qui prend l'initiative de rompre le contrat de travail, ou qui le considère comme rompu du fait du salarié, doit mettre en oeuvre la procéd…"}, {"id": "/Ariane_Web/AW_DCE/|57288", "source": "ariane", "title": "Conseil d'État, n° 99522", "juridiction": "Conseil d'État", "date": "1976-12-15", "formation": "Autres CHR", "numero": "99522", "ecli": "ECLI:FR:CESSR:1976:99522.19761215", "sommaire": "", "debut": "Conseil d'État N° 99522 ECLI:FR:CESSR:1976:99522.19761215 Publié au recueil Lebon Section du Contentieux M. Ducoux, président M. Négrier, rapporteur M. Labetoulle, commissaire du gouvernement Lecture du 15 décembre 1976 REPUBLIQUE FRANCAISE AU NOM DU PEUPLE FRANCAIS REQUETE DE LA SOCIETE KAUFMAN AND…"}, {"id": "/Ariane_Web/AW_DCE/|63122", "source": "ariane", "title": "Conseil d'État, n° 67637", "juridiction": "Conseil d'État", "date": "1967-10-25", "formation": "Autres CHR", "numero": "67637", "ecli": "ECLI:FR:CESSR:1967:67637.19671025", "sommaire": "", "debut": "Requête du sieur Y..., tendant à l'annulation d'un jugement du tribunal administratif de Marseille en date du 5 mai 1965, en ce qu'il a rejeté comme tardive sa demande tendant à l'annulation pour excès de pouvoir du permis de construire et de l'accord préalable accordés par le Préfet des Bouches-du-…"}];
+const feed = {off:0, busy:false, fini:false, obs:null, hasard:false, exemple:false};
+function initFeed(hasard){
+  feed.off = 0; feed.busy = false; feed.fini = false; feed.hasard = !!hasard; feed.exemple = false;
+  if ($('#feedCards')) $('#feedCards').innerHTML = '';
+  if ($('#feedEnd')) $('#feedEnd').textContent = '';
+  if ($('#feedSub')) $('#feedSub').textContent = 'les dernières décisions entrées en base';
+  if (feed.obs) { feed.obs.disconnect(); feed.obs = null; }
+  chargerFeed();
+  feed.obs = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) chargerFeed(); }, {rootMargin:'400px'});
+  feed.obs.observe($('#feedEnd'));
+}
+function tirerExemple(n){
+  const src = FEED_EXEMPLE.slice();
+  for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [src[i], src[j]] = [src[j], src[i]]; }
+  return src.slice(0, n);
+}
+function squelettes(n){ return Array.from({length:n}, () => `<div class="sk"><div style="width:40%"></div><div></div><div></div><div></div></div>`).join(''); }
+async function chargerFeed(){
+  if (feed.busy || feed.fini || !$('#feedCards')) return;
+  feed.busy = true;
+  const cards = $('#feedCards'); const end = $('#feedEnd');
+  cards.insertAdjacentHTML('beforeend', `<div id="skel" style="display:contents">${squelettes(feed.off ? 4 : 8)}</div>`);
+  try {
+    let d;
+    if (feed.exemple) { d = {results: tirerExemple(feed.off ? 12 : 24)}; }
+    else {
+      const r = await fetch(`${API}/api/recent?limit=${feed.off ? 12 : 24}&offset=${feed.off}${feed.hasard ? '&ordre=hasard' : ''}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      d = await r.json();
+    }
+    $('#skel')?.remove();
+    const rows = d.results || [];
+    if (!rows.length) { feed.fini = true; end.textContent = feed.off ? 'Fin du flux.' : 'Rien à afficher.'; return; }
+    cards.insertAdjacentHTML('beforeend', rows.map(carte).join(''));
+    feed.off += rows.length;
+
+    if (rows.length < 12) { feed.fini = true; end.textContent = 'Fin du flux.'; }
+  } catch(e) {
+    $('#skel')?.remove();
+    feed.busy = false;
+    // Route absente : on montre l'allure du flux avec de vraies décisions déjà lues.
+    feed.exemple = true;
+    $('#feedSub').innerHTML = `<span class="warnp">aperçu</span> décisions réelles, en attendant la route « nouveautés »`;
+    return chargerFeed();
+  } finally { feed.busy = false; }
+}
+function carte(r){
+  const fam = FAM(r); const f = FORMATION[r.formation] || r.formation || '';
+  const officiel = !!r.sommaire;
+  const txt = (r.sommaire || r.debut || r.extract || '').replace(/<(?!\/?em>)[^>]*>/g,'');
+  return `<a class="card2" href="#/decision/${r.source}/${encodeURIComponent(r.id)}">
+    <div class="top2"><span class="tag" style="--c:var(--${fam})">${FAMLABEL[fam]}</span><span class="qui">${esc(r.juridiction||'')}${f?' · '+esc(f):''}</span>${officiel?'<span class="off">sommaire officiel</span>':''}<span class="jour">${fmtDate(r.date)}</span></div>
+    <div class="ttl">${esc(prettyTitre(r))}</div>
+    ${txt ? `<div class="res">${txt}</div>` : ''}</a>`;
+}
+function prettyTitre(r){
+  const t = String(r.title||'').replace(/\b(\d{4}-\d{2}-\d{2})\b/g, m => fmtDate(m));
+  return t || `${r.juridiction||''} — n° ${r.numero||''}`;
+}
+
+/* ───────────────────────── recherche (appels réels) ───────────────────────── */
+let searchSeq = 0;
+async function runSearch(){
+  const q = state.q; const seq = ++searchSeq;
+  const adv = state.adv;
+  const juris = (adv.juridiction||'').split(',').filter(j => JURI_SOURCES[j]);
+  const plans = juris.length ? juris.map(j => ({sources: JURI_SOURCES[j], juridiction: j})) : [{sources:'dila'},{sources:'ariane'},{sources:'admin'},{sources:'cedh'},{sources:'cjue'}];
+  state.results = []; state.srcState = {}; state.facet = {}; state.warnings = [];
+  const b = $('#body');
+  state.advOpen = false;
+  const chips = fmtAdv(adv);
+  b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}<a class="pill" href="#/suivre?q=${encodeURIComponent(q)}">${ico('bell')} Suivre</a></div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
+  bindSearch(nq => go(jurisUrl(nq)));
+  $('#advAdd').onclick = () => $('#advT').click();
+  document.querySelectorAll('[data-rm]').forEach(c => c.onclick = () => { const [k,v] = c.dataset.rm.split(':'); const a = {...adv}; if (k==='juridiction') { a.juridiction = a.juridiction.split(',').filter(x=>x!==v).join(','); if (!a.juridiction) delete a.juridiction; if (!a.juridiction?.split(',').includes('cass')) delete a.formation; } else if (k==='formation') delete a.formation; else { delete a.date_min; delete a.date_max; } go(jurisUrl(q, a)); });
+  if (!q) { $('#list').innerHTML = `<p class="muted">Tapez quelque chose.</p>`; return; }
+  const planKey = pl => pl.juridiction ? (JURI_LABEL[pl.juridiction]||pl.juridiction) : (SRC[pl.sources]||pl.sources);
+  for (const pl of plans) state.srcState[planKey(pl)] = 'run';
+  renderSrcState();
+  await Promise.all(plans.map(async plan => {
+    const params = new URLSearchParams({q, limit:'30', sources:plan.sources, timeout:'20'});
+    if (plan.juridiction) params.set('juridiction', plan.juridiction);
+    if (adv.formation && plan.juridiction === 'cass') params.set('formation', adv.formation);
+    if (adv.date_min) params.set('date_min', adv.date_min);
+    if (adv.date_max) params.set('date_max', adv.date_max);
+    if (state.sort !== 'pertinence') params.set('sort', state.sort);
+    try {
+      const r = await fetch(`${API}/api/search?${params}`);
+      const d = await r.json();
+      if (seq !== searchSeq) return;
+      if (d.error) { state.srcState[planKey(plan)] = 'ko:'+d.error; }
+      else {
+        state.srcState[planKey(plan)] = plan.sources.split(',').every(s => (d.sources_no_result||[]).includes(s)) ? 'ko:pas de réponse' : 'ok';
+        (d.filtres_ignores||[]).forEach(f => state.warnings.push(f));
+        const seen = new Set(state.results.map(x => x.source+':'+x.id));
+        for (const x of d.results||[]) if (!seen.has(x.source+':'+x.id)) { seen.add(x.source+':'+x.id); state.results.push(x); }
+        const ORDER = ['dila','ariane','admin','cedh','cjue'];
+        if (state.sort === 'pertinence') state.results.sort((a,b) => ORDER.indexOf(a.source) - ORDER.indexOf(b.source));
+        else state.results.sort((a,b) => state.sort === 'date_desc' ? (b.date||'').localeCompare(a.date||'') : (a.date||'').localeCompare(b.date||''));
+      }
+    } catch(e) { state.srcState[planKey(plan)] = 'ko:'+e.message; }
+    renderSrcState(); renderRail(); renderResults();
+  }));
+}
+function renderSrcState(){
+  const el = $('#srcState'); if (!el) return;
+  el.innerHTML = Object.entries(state.srcState).map(([s,v]) => `<span><i class="${v==='ok'?'ok':v==='run'?'run':'ko'}"></i>${esc(s)}${v.startsWith('ko:')?' · <em>'+esc(v.slice(3))+'</em>':''}${v==='run'?' <span class="spin"></span>':''}</span>`).join('');
+}
+function filtered(){
+  return state.results.filter(r => (!state.facet.fam || FAM(r)===state.facet.fam) && (!state.facet.juri || r.juridiction===state.facet.juri) && (!state.facet.an || (r.date||'').slice(0,4)===state.facet.an) && (!state.facet.src || r.source===state.facet.src));
+}
+function renderFacets(){
+  const rows = filtered(); const all = state.results;
+  const count = (arr, f) => { const m = new Map(); for (const r of arr) { const k = f(r); if (k) m.set(k, (m.get(k)||0)+1); } return [...m].sort((a,b)=>b[1]-a[1]); };
+  const years = count(all, r => (r.date||'').slice(0,4)).sort((a,b)=>a[0].localeCompare(b[0]));
+  const max = Math.max(1, ...years.map(y=>y[1]));
+  const fr = (k, list, lim=8) => list.slice(0,lim).map(([v,n]) => `<button class="frow${state.facet[k]===v?' on':''}" data-facet="${k}=${esc(v)}"><span>${esc(v)}</span><span class="n">${n}</span></button>`).join('');
+  return `<div class="facets"><div class="h5">Sur les ${all.length} chargés</div>
+  <div class="h5">Années</div><div class="hist">${years.map(([y,n]) => `<i class="${state.facet.an===y?'h':''}" style="height:${Math.round(100*n/max)}%" title="${y} : ${n}"></i>`).join('')}</div><div class="mono muted" style="display:flex;justify-content:space-between;font-size:10px"><span>${years[0]?.[0]||''}</span><span>${years.at(-1)?.[0]||''}</span></div>${fr('an', years.slice().sort((a,b)=>b[0].localeCompare(a[0])), 4)}
+  <div class="h5">Famille</div>${fr('fam', count(all, FAM).map(([k,n])=>[k,n]).map(([k,n])=>[k,n]), 4).replace(/<span>(jud|adm|ce|eu)<\/span>/g, (m,k)=>`<span>${FAMLABEL[k]}</span>`)}
+  <div class="h5">Juridictions</div>${fr('juri', count(all, r=>r.juridiction))}
+  <div class="h5">Source</div>${fr('src', count(all, r=>r.source).map(([k,n])=>[k,n]))}
+  ${Object.values(state.facet).some(Boolean) ? `<button class="frow" data-facet="reset=" style="color:var(--teal);margin-top:6px">Tout effacer</button>` : ''}
+  <div class="muted" style="font-size:11px;padding-top:8px">Ces compteurs portent sur les résultats chargés, pas sur le fonds : les vraies facettes attendent la table auxiliaire.</div></div>`;
+}
+function renderResults(){
+  const list = $('#list'), tl = $('#topline'); if (!list) return;
+  if (state.facet.reset !== undefined) { state.facet = {}; }
+  const rows = filtered();
+  const tot = state.results.length;
+  tl.innerHTML = `<div class="topline"><span class="serif" style="font-size:20px">${nb(rows.length)}${rows.length!==tot?` <span class="muted" style="font-size:13px">sur ${nb(tot)} chargés</span>`:' résultats chargés'}</span><span class="muted" style="font-size:12px">mode <b style="color:var(--teal)">lexical</b> · tous les mots exigés</span><span class="seg"><button class="${state.mode==='sommaire'?'on':''}" data-mode="sommaire">Sommaire</button><button class="${state.mode==='extrait'?'on':''}" data-mode="extrait">Extrait</button></span><span class="seg"><button class="${state.sort==='pertinence'?'on':''}" data-sort="pertinence">Pertinence</button><button class="${state.sort==='date_desc'?'on':''}" data-sort="date_desc">Récent</button><button class="${state.sort==='date_asc'?'on':''}" data-sort="date_asc">Ancien</button></span></div>
+  ${(state.warnings||[]).map(w => `<div class="note" style="margin-bottom:8px">Filtre ignoré : <b>${esc(w.parametre)}</b> — ${esc(w.raison||w.message||'')}</div>`).join('')}`;
+  tl.querySelectorAll('[data-mode]').forEach(x => x.onclick = () => { state.mode = x.dataset.mode; renderResults(); });
+  tl.querySelectorAll('[data-sort]').forEach(x => x.onclick = () => { const adv = {...state.adv, sort: x.dataset.sort}; if (adv.sort === 'pertinence') delete adv.sort; go(jurisUrl(state.q, adv)); });
+  if (!rows.length) { list.innerHTML = `<p class="muted" style="margin-top:16px">${Object.values(state.srcState).some(v=>v==='run') ? 'Recherche en cours…' : 'Rien pour cette requête dans les sources interrogées.'}</p>`; return; }
+  list.innerHTML = rows.map(r => {
+    const fam = FAM(r); const f = FORMATION[r.formation] || r.formation || '';
+    const sum = state.mode==='sommaire' && r.sommaire ? r.sommaire : (r.extract || '');
+    const kind = state.mode==='sommaire' && r.sommaire ? '<span class="off">sommaire officiel</span>' : (r.extract ? '<span class="muted">extrait</span>' : '<span class="warnp">pas d’extrait renvoyé</span>');
+    return `<div class="item"><div class="meta"><span class="tag" style="--c:var(--${fam})">${FAMLABEL[fam]}</span><span>${esc(r.juridiction||'')}${f?' · '+esc(f):''}</span><span>${fmtDate(r.date)}</span></div>
+    <p class="t"><a href="#/decision/${r.source}/${encodeURIComponent(r.id)}">${esc(r.title||'(sans titre)').replace(/\b(\d{4}-\d{2}-\d{2})\b/g, m=>fmtDate(m))}</a></p>
+    ${sum?`<p class="sum">${sum.replace(/<(?!\/?em>)[^>]*>/g,'')}</p>`:''}
+    <div class="ref">${esc(r.ecli||r.numero||r.id)} · <span class="muted">${esc(SRC[r.source]||r.source)}</span> · ${kind}</div></div>`;
+  }).join('');
+}
+
+/* ───────────────────────── lecteur de décision ───────────────────────── */
+async function showDecision(source, id){
+  const b = $('#body');
+  b.innerHTML = `<a class="back" href="javascript:history.back()">← retour aux résultats</a><div class="reader"><p class="hero"><span class="spin"></span> Chargement…</p></div>`;
+  try {
+    const r = await fetch(`${API}/api/decision?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    const fam = FAM(d);
+    const kv = [['Juridiction', d.juridiction],['Formation', FORMATION[d.formation]||d.formation],['Date', fmtDate(d.date)],['Numéro', d.numero],['ECLI', d.ecli],['Publication', d.publi_bull||d.publi_recueil],['Rapporteur', d.rapporteur],['Textes visés', d.liens_textes],['Source', SRC[d.source]||d.source]].filter(x=>x[1]);
+    const txt = d.full_text || d.texte || '';
+    const sommaireOnly = !txt || (d.sommaire && txt.trim() === d.sommaire.trim());
+    b.innerHTML = `<a class="back" href="javascript:history.back()">← retour aux résultats</a><div class="reader">
+      <div class="meta" style="display:flex;gap:10px;font-size:12px;color:var(--muted)"><span class="tag" style="--c:var(--${fam})">${FAMLABEL[fam]}</span><span>${esc(d.juridiction||'')}</span><span>${fmtDate(d.date)}</span></div>
+      <p class="hero" style="font-size:26px">${esc(d.title||'')}</p>
+      <div class="kv">${kv.map(([k,v])=>`<b>${k}</b><span>${esc(v)}</span>`).join('')}</div>
+      ${sommaireOnly ? `<div class="alert">⚠ <div><b>Texte intégral : non.</b> Nous n'avons que le sommaire ou l'analyse de cette décision. La page ne fera jamais passer un résumé pour la décision.</div></div>` : ''}
+      ${d.sommaire ? `<div class="h5" style="margin-top:14px">Sommaire officiel</div><p style="max-width:80ch">${esc(d.sommaire)}</p>` : ''}
+      ${d.abstrats ? `<div class="h5" style="margin-top:14px">Abstrats</div><p style="max-width:80ch" class="muted">${esc(d.abstrats)}</p>` : ''}
+      ${txt && !sommaireOnly ? `<div class="h5" style="margin-top:14px">Texte intégral</div><pre>${esc(txt)}</pre>` : ''}
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" id="copyRef">Copier la référence</button><a class="btn ghost" href="https://justicelibre.org/search.html?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}">Page actuelle du site</a></div></div>`;
+    $('#copyRef').onclick = () => { navigator.clipboard?.writeText(`${d.juridiction}, ${fmtDate(d.date)}, n° ${d.numero}${d.ecli?', '+d.ecli:''}`); $('#copyRef').textContent = 'Copié'; };
+  } catch(e) { b.querySelector('.reader').innerHTML = `<div class="alert">⚠ <div>Impossible de charger cette décision : ${esc(e.message)}</div></div>`; }
+}
+
+/* ───────────────────────── article : histoire, recyclage, diff, cité par ───────────────────────── */
+const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
+function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
+function diffWords(a, b){
+  const A = a.split(/(\s+)/), B = b.split(/(\s+)/);
+  const n = A.length, m = B.length; const dp = Array.from({length:n+1}, () => new Uint16Array(m+1));
+  for (let i=n-1;i>=0;i--) for (let j=m-1;j>=0;j--) dp[i][j] = A[i]===B[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  let i=0,j=0,out='';
+  while (i<n && j<m) { if (A[i]===B[j]) { out += esc(A[i]); i++; j++; } else if (dp[i+1][j] >= dp[i][j+1]) { out += `<del>${esc(A[i])}</del>`; i++; } else { out += `<ins>${esc(B[j])}</ins>`; j++; } }
+  while (i<n) out += `<del>${esc(A[i++])}</del>`; while (j<m) out += `<ins>${esc(B[j++])}</ins>`;
+  return out;
+}
+async function showArticle(code, num, date){
+  const b = $('#body'); const cname = (CODES.find(c=>c[0]===code)||[])[1] || code;
+  b.innerHTML = `<a class="back" href="#/textes">← Textes</a><p class="hero">Art. ${esc(num)} · ${esc(cname)}</p><p class="lead"><span class="spin"></span> Chargement des rédactions…</p>`;
+  let versions = [];
+  try { const r = await fetch(`${API}/api/law/versions?code=${encodeURIComponent(code)}&num=${encodeURIComponent(num)}`); const d = await r.json(); if (d.error) throw new Error(d.error); versions = (d.versions||[]).slice().sort((x,y)=>(x.date_debut||'').localeCompare(y.date_debut||'')); }
+  catch(e) { b.innerHTML += `<div class="alert">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  if (!versions.length) { b.querySelector('.lead').innerHTML = `<span class="warnp">introuvable</span> — aucune rédaction de cet article dans LEGI (numéro inexistant, ou code non résolu).`; return; }
+  const today = new Date().toISOString().slice(0,10);
+  const at = date || today;
+  const cur = versions.find(v => v.date_debut <= at && (v.date_fin||'2999') > at) || versions.at(-1);
+  // recyclage : chaque rédaction comparée à la précédente
+  const events = versions.map((v, i) => { const prev = versions[i-1]; const sim = prev ? jaccard(prev.texte, v.texte) : null; return {v, sim, recycled: sim !== null && sim < 0.25}; });
+  const recycled = events.filter(e => e.recycled);
+  const vsel = (id, def) => `<select id="${id}">${versions.map((v,i)=>`<option value="${i}" ${i===def?'selected':''}>${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)} (${v.etat||''})</option>`).join('')}</select>`;
+  const ci = versions.indexOf(cur);
+  b.innerHTML = `<a class="back" href="#/textes">← Textes</a>
+  <p class="hero">Art. ${esc(num)} · ${esc(cname)}</p>
+  <p class="lead">${versions.length} rédaction${versions.length>1?'s':''} depuis le ${fmtDate(versions[0].date_debut)}. Rédaction lue : celle en vigueur au <b class="mono">${fmtDate(at)}</b> <label class="dt" style="display:inline-flex;gap:6px;align-items:center">· changer la date <input type="date" id="atDate" value="${at}" class="mono" style="padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)"></label></p>
+  ${recycled.map(e => `<div class="alert" style="margin-bottom:12px">⚠ <div><b>NUMÉRO RECYCLÉ le ${fmtDate(e.v.date_debut)}.</b> Le texte de l'article ${esc(num)} a changé du tout au tout (recouvrement de vocabulaire : <span class="sim">${Math.round(e.sim*100)} %</span>). Une décision qui cite « art. ${esc(num)} » avant cette date parle d'<b>un autre texte</b>.</div></div>`).join('')}
+  <div class="two" style="margin-top:16px"><div>
+    <div class="h5">Rédaction au ${fmtDate(at)} <span class="mono muted">${esc(cur.etat||'')} · ${esc(cur.legiarti||'')}</span></div>
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;line-height:1.6;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:18px 22px;margin-top:8px">${esc(cur.texte||'')}</pre>
+    ${cur.nota?`<div class="note"><b>Nota.</b> ${esc(cur.nota)}</div>`:''}
+    <div style="margin-top:8px;font-size:12px" class="muted">Source : <a href="${esc(cur.source_url||'#')}">Légifrance ${esc(cur.legiarti||'')}</a></div>
+    <div class="h5" style="margin-top:28px">Deux dates, côte à côte</div>
+    <div style="display:flex;gap:10px;align-items:center;margin:8px 0;flex-wrap:wrap">${vsel('vA', Math.max(0,ci-1))} <span class="muted">→</span> ${vsel('vB', ci)}</div>
+    <div class="diff" id="diffOut"></div>
+  </div><div>
+    <div class="h5">Histoire de l'article</div>
+    <div class="tl">
+      <div class="ev soon"><div class="when">avant</div><div class="what muted">Loi → décret → arrêté qui l'ont créé ou modifié</div><div class="txt muted" style="font-size:12px">Les liens (JORFTEXT modificateur, texte d'origine) sont conservés par le parseur réparé ; ils s'affichent ici après la ré-ingestion LEGI et l'exposition du champ <span class="mono">liens</span> par l'API.</div></div>
+      ${events.map(e => `<div class="ev${e.recycled?' bad':''}"><div class="when">${fmtDate(e.v.date_debut)} → ${fmtDate(e.v.date_fin)} · ${esc(e.v.etat||'')}${e.sim!==null?` · <span class="sim">${Math.round(e.sim*100)} % de mots en commun avec la précédente</span>`:''}</div><div class="what">${e.recycled?'⚠ Numéro recyclé : autre texte':(e.sim===null?'Rédaction d’origine':(e.sim>0.9?'Retouche':'Modification'))}</div><div class="txt clip">${esc(e.v.texte||'')}</div></div>`).join('')}
+      <div class="ev" id="citedBy"><div class="when">aujourd'hui</div><div class="what">Cité par <span class="spin"></span></div></div>
+    </div>
+  </div></div>`;
+  $('#atDate').onchange = e => go(`#/article/${code}/${encodeURIComponent(num)}?date=${e.target.value}`);
+  const redo = () => { const A = versions[+$('#vA').value], B = versions[+$('#vB').value]; $('#diffOut').innerHTML = A===B ? `<span class="muted">Même rédaction.</span>` : diffWords(A.texte||'', B.texte||''); };
+  $('#vA').onchange = redo; $('#vB').onchange = redo; redo();
+  document.querySelectorAll('.tl .txt.clip').forEach(t => t.onclick = () => t.classList.toggle('clip'));
+  // cité par (recherche de citation réelle)
+  try {
+    const short = (CODES.find(c=>c[0]===code)||[[],[],['']])[2][0];
+    const q = `"article ${num}" "${cname.toLowerCase()}"`;
+    const r = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&limit=10&sources=dila&timeout=20`);
+    const d = await r.json(); const rows = d.results||[];
+    if (!$('#citedBy')) return;
+    $('#citedBy').innerHTML = `<div class="when">aujourd'hui</div><div class="what">Cité par ${rows.length ? `au moins ${rows.length} décision${rows.length>1?'s':''}` : 'aucune décision trouvée (recherche lexicale « article ${esc(num)} » + « ${esc(cname.toLowerCase())} »)'}</div>${rows.slice(0,6).map(x => `<div class="txt"><a href="#/decision/${x.source}/${encodeURIComponent(x.id)}">${esc(x.title)}</a> <span class="muted">· ${fmtDate(x.date)}</span>${x.date && recycled.some(e => x.date < e.v.date_debut) ? ' <span class="warnp">avant le recyclage : autre texte</span>' : ''}</div>`).join('')}<div class="txt" style="margin-top:6px"><a href="#/recherche?q=${encodeURIComponent(q)}&scope=juris">Toutes les décisions qui citent cet article →</a></div>`;
+  } catch(e) { if ($('#citedBy')) $('#citedBy').innerHTML = `<div class="when">aujourd'hui</div><div class="what muted">Cité par : indisponible (${esc(e.message)})</div>`; }
+}
+
+/* ───────────────────────── outils ───────────────────────── */
+function renderTool(t){
+  const b = $('#body');
+  if (t === 'citations') {
+    b.innerHTML = `<p class="hero">Vérifier mes citations</p><p class="lead">Collez un mémoire, une requête, un article de doctrine, ou juste une phrase entre guillemets. Les références sont vérifiées (elles existent, à la date), et chaque passage cité est retrouvé à sa source : <b>correspond à</b> quand le texte y est mot pour mot, <b>susceptible de correspondre à</b> quand les mots y sont mais pas dans cet ordre, <b>non trouvé</b> sinon. <span class="warnp">prototype</span> : passages cherchés dans la jurisprudence et dans les articles cités du texte ; pas encore dans les lois entières ni les débats.</p>
+    <textarea class="ta" id="memo" placeholder="Collez votre texte ici. Rien n'est conservé.">Il résulte de l'article 1253 du code civil, tel qu'issu de la loi n° 2024-346, et de la jurisprudence constante (Cass. 2e civ., 24 février 2005, n° 04-10.362 ; Cass. 3e civ., 17 novembre 2021, n° 19-19.311 ; CE, 22 juillet 2015, n° 380374) que nul ne doit causer à autrui un trouble anormal de voisinage. L'article 145 du code de procédure civile permet d'obtenir une mesure d'instruction in futurum. Voir aussi Cass. soc., 12 janvier 2099, n° 99-99.999. Le texte dispose que « le propriétaire, le locataire, l'occupant sans titre, le bénéficiaire d'un titre ayant pour objet principal de l'autoriser à occuper ou à exploiter un fonds ». La Cour a jugé que « la paille possède un pouvoir de combustion particulièrement rapide et important ». Enfin, « nul ne peut être contraint de céder sa propriété sans juste compensation »…</textarea>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap"><button class="btn" id="verif">Vérifier</button><label class="dt" style="display:inline-flex;gap:6px;align-items:center;font-size:12.5px" class="muted">à la date du litige <input type="date" id="litDate" value="2019-03-12" class="mono" style="padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)"></label><span class="muted" style="font-size:12px">Sortie : tableau vert / rouge / non trouvé</span></div>
+    <div id="verifOut" style="margin-top:18px"></div>
+    <div class="two"><div><div class="h5">Ce qu'on vérifie</div>${[['Décision','existe · date · juridiction · numéro'],['Article','existe à la date · rédaction · numéro recyclé ?'],['Citation','les guillemets sont dans le texte, mot pour mot (étage 2)'],['Portée','le passage cité dit-il ce qu’on lui fait dire — avis, pas verdict (étage 2)']].map(([a,c])=>`<div class="rec"><span class="d">${a}</span><span>${c}</span></div>`).join('')}</div><div><div class="h5">Ce qu'on ne fait pas</div><div style="font-size:13px;margin-top:8px;line-height:1.6">Pas de note, pas de « score ». Un rouge est une phrase à relire, pas une faute.<br>Pas de mémoire des textes collés.<br>Pas de vérification contre des bases qu'on n'a pas — et on le dit.</div></div></div>`;
+    $('#verif').onclick = verifierCitations;
+  }
+  else if (t === 'article-tool') {
+    b.innerHTML = `<p class="hero">Un article, son histoire</p><p class="lead">Toutes les rédactions d'un article depuis sa création, l'alerte quand son numéro a été <b>recyclé</b> (même numéro, texte sans rapport), la comparaison mot à mot entre deux dates, et les décisions qui le citent — avec l'avertissement quand elles citent l'ancien texte.</p>
+    ${searchBar('art. 1253 C. civ. · art. 145 CPC · L. 1234-9 C. trav.', '', false)}<div class="hint">Essayez le cas d'école : ${kbs(['art. 1253 C. civ.','art. 145 CPC','art. 544 code civil','L. 521-2 CJA'])} — le 1253 est passé de l'imputation des paiements (1804) au trouble anormal de voisinage (2024).</div>
+    <div class="note" style="margin-top:22px;max-width:880px">La chaîne <b>loi → décret → arrêté → arrêté remplaçant</b> vient des liens LEGI/JORF (conservés par le parseur réparé) : elle s'affichera dans la frise dès que la ré-ingestion est finie et le champ exposé par l'API.</div>`;
+    bindSearch(q => { const a = parseArticle(q); if (a) go(`#/article/${a.code}/${encodeURIComponent(a.num)}`); else alert('Format attendu : art. 1253 C. civ.'); });
+  }
+  else if (t === 'suivre') {
+    const q = state.page.p?.get('q') || '';
+    b.innerHTML = `<p class="hero">Suivre une recherche</p><p class="lead">L'adresse est l'abonnement : pas de compte. Un flux RSS et un calendrier ICS par recherche, mis à jour chaque nuit après le contrôle de couverture. <span class="warnp">pas encore branché côté serveur</span></p>
+    ${searchBar('la recherche à suivre', '', false)}
+    <div class="grid2" style="margin-top:22px;max-width:880px"><div class="tile"><div class="tt">Flux RSS</div><div class="tn">https://justicelibre.org/suivre.rss?q=${esc(encodeURIComponent(q||'…'))}</div><div class="ts">Nouvelles décisions correspondant à la recherche, une entrée par décision.</div></div><div class="tile"><div class="tt">Calendrier ICS</div><div class="tn">https://justicelibre.org/suivre.ics?q=${esc(encodeURIComponent(q||'…'))}</div><div class="ts">Une entrée par date de décision, pour voir arriver les jugements dans votre agenda.</div></div></div>`;
+    bindSearch(nq => go(`#/suivre?q=${encodeURIComponent(nq)}`));
+  }
+  else if (t === 'manque') {
+    b.innerHTML = `<p class="hero">Ce que nous n'avons pas</p><p class="lead">La base est comparée chaque nuit à la référence officielle (Judilibre) année par année et juridiction par juridiction. Voici le dernier contrôle, tel quel. <span class="muted">Copié du contrôle du 8 septembre 2026, 18 h 43 — la page finale lira le journal du serveur.</span></p>
+    <table class="tb" style="max-width:880px"><tr><th>Juridiction</th><th>Année</th><th>Référence Judilibre</th><th>Chez nous</th><th>Écart</th></tr>
+    ${[['Cours d’appel','2025','—','—','−594 (−0,4 %)'],['Tribunaux judiciaires','2025','—','—','−3 383 (−1,1 %)'],['Tribunaux judiciaires','2026','—','—','−921'],['Tribunaux de commerce','2025','—','—','−1 139 (−1,0 %)'],['Toutes les autres lignes','2022–2026','28/28','dans la marge','']].map(r=>`<tr>${r.map(c=>`<td class="mono" style="font-size:12px">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>
+    <div class="h5" style="margin-top:28px">Fonds en base mais pas encore servis sur le site</div>
+    ${[['Open data TA/CAA','986 000 décisions','en base, moteur à brancher'],['CADA · Défenseur des droits','76 805 avis','MCP seulement, site en chantier 3'],['Rapporteurs publics','9 138 conclusions','servies nulle part'],['Conventions collectives','305 839 textes','titres et IDCC en cours de ré-ingestion'],['Travaux préparatoires','—','pas encore téléchargés']].map(([a,b2,c])=>`<div class="rec"><span class="d" style="width:220px">${a}</span><span class="mono" style="width:180px;flex:none;font-size:12px">${b2}</span><span class="muted">${c}</span></div>`).join('')}
+    <div class="h5" style="margin-top:28px">Ce que la page ne fait jamais</div><div style="font-size:13px;line-height:1.7;max-width:80ch">Afficher un résumé généré sans l'étiquette « automatique ».<br>Faire passer un sommaire pour le texte intégral.<br>Dire « complet » sans le tableau ci-dessus.</div>`;
+  }
+}
+
+/* étage 1 du vérificateur : repérer et résoudre, pour de vrai */
+async function verifierCitations(){
+  const txt = $('#memo').value; const out = $('#verifOut'); const lit = $('#litDate').value;
+  const found = [];
+  const reDec = /n[°º]\s*(\d{2}-\d{2}\.\d{3})/g; let m;
+  while ((m = reDec.exec(txt))) found.push({type:'décision', ref:m[1], ctx: txt.slice(Math.max(0,m.index-60), m.index)});
+  const reCE = /CE[^\n]{0,60}?n[°º]\s*(\d{5,6})/g;
+  while ((m = reCE.exec(txt))) found.push({type:'décision', ref:m[1], ctx:'CE'});
+  const reArt = /article\s+((?:[LRD]\.?\s*)?\d+(?:-\d+)*)\s+du\s+(code\s+[^,;.()]+?)(?=[,;.()]|\s+(?:tel|issu|permet|dispose|prévoit|dans))/gi;
+  while ((m = reArt.exec(txt))) { const a = parseArticle(`art. ${m[1]} ${m[2].trim()}`); found.push({type:'article', ref:`art. ${m[1]} ${m[2].trim()}`, art:a}); }
+  const reQ = /[«"“]\s*([^»"”]{25,400}?)\s*[»"”]/g;
+  while ((m = reQ.exec(txt))) found.push({type:'passage', ref:m[1].trim()});
+  if (!found.length) { out.innerHTML = `<p class="muted">Aucune référence ni passage entre guillemets reconnus (n° 04-10.362, n° 380374, article 1253 du code civil, « … »).</p>`; return; }
+  out.innerHTML = `<table class="tb"><tr><th>Type</th><th>Référence</th><th>Résultat</th><th>Détail</th></tr>${found.map((f,i)=>`<tr id="v${i}"><td>${f.type}</td><td class="${f.type==='passage'?'':'mono'}" style="max-width:32ch">${f.type==='passage'?'« '+esc(f.ref.slice(0,90))+(f.ref.length>90?'…':'')+' »':esc(f.ref)}</td><td><span class="spin"></span></td><td></td></tr>`).join('')}</table>`;
+  let next = 0;
+  const worker = async () => { while (next < found.length) { const i = next++; await verifierLigne(found[i], i); } };
+  const verifierLigne = async (f, i) => {
+    const row = $(`#v${i}`); const cells = row.querySelectorAll('td');
+    try {
+      if (f.type === 'passage') {
+        const norm = t => String(t||'').toLowerCase().replace(/<[^>]+>/g,'').replace(/[’']/g,"'").replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+        const needle = norm(f.ref);
+        const arts = found.filter(x => x.type==='article' && x.art);
+        let hit = null;
+        for (const a of arts) {
+          try { const r = await fetch(`${API}/api/law/versions?code=${a.art.code}&num=${encodeURIComponent(a.art.num)}`); const d = await r.json(); const v = (d.versions||[]).find(v => norm(v.texte).includes(needle)); if (v) { hit = {kind:'article', label:`${a.ref}, rédaction du ${fmtDate(v.date_debut)}${(v.date_fin||'2999')<'2999'?' au '+fmtDate(v.date_fin):''}`, href:`#/article/${a.art.code}/${encodeURIComponent(a.art.num)}?date=${v.date_debut}`}; break; } } catch(e){}
+        }
+        let maybe = [];
+        if (!hit) {
+          // tous les mots (la recherche « phrase » du site ne voit pas les sommaires), puis vérification mot pour mot dans la décision elle-même
+          const words = f.ref.replace(/[«»"“”]/g,' ').split(/\s+/).filter(w => w.length > 3).slice(0, 12).join(' ');
+          const r = await fetch(`${API}/api/search?q=${encodeURIComponent(words)}&limit=5&sources=dila&timeout=25`); const d = await r.json();
+          const rows = d.results||[];
+          for (const x of rows.slice(0,3)) {
+            try { const rd = await fetch(`${API}/api/decision?source=${x.source}&id=${encodeURIComponent(x.id)}`); const dd = await rd.json(); if (norm(dd.full_text).includes(needle) || norm(dd.sommaire).includes(needle)) { hit = {kind:'décision', label:x.title, href:`#/decision/${x.source}/${encodeURIComponent(x.id)}`, date:x.date}; break; } } catch(e){}
+          }
+          if (!hit) maybe = rows.slice(0,3);
+        }
+        if (hit) { cells[2].innerHTML = `<span style="color:var(--ok);font-weight:600">correspond à</span>`; cells[3].innerHTML = `<a href="${hit.href}">${esc(hit.label)}</a>${hit.date?' · '+fmtDate(hit.date):''}`; }
+        else if (maybe.length) { cells[2].innerHTML = `<span class="warnp">susceptible de correspondre à</span>`; cells[3].innerHTML = `<span class="muted">les mots y sont, pas la phrase telle quelle : </span>` + maybe.map(x => `<a href="#/decision/${x.source}/${encodeURIComponent(x.id)}">${esc(x.title)}</a>`).join(' · '); }
+        else { cells[2].innerHTML = `<span style="color:var(--bad);font-weight:600">NON TROUVÉ</span>`; cells[3].innerHTML = `<span class="muted">ni dans les articles cités, ni mot pour mot dans la jurisprudence judiciaire</span>`; }
+      } else if (f.type === 'décision') {
+        const r = await fetch(`${API}/api/search?q=${encodeURIComponent(f.ref)}&limit=5&timeout=20${f.ctx==='CE'?'&sources=ariane,admin':'&sources=dila'}`); const d = await r.json();
+        const norm = v => String(v||'').replace(/[\s.]/g,'');
+        const hit = (d.results||[]).find(x => norm(x.numero) === norm(f.ref) || norm(x.title).includes(norm(f.ref)));
+        if (hit) { cells[2].innerHTML = `<span style="color:var(--ok);font-weight:600">existe</span>`; cells[3].innerHTML = `<a href="#/decision/${hit.source}/${encodeURIComponent(hit.id)}">${esc(hit.title)}</a> · ${fmtDate(hit.date)}`; }
+        else { cells[2].innerHTML = `<span style="color:var(--bad);font-weight:600">NON TROUVÉ</span>`; cells[3].innerHTML = `<span class="muted">aucune décision portant ce numéro dans ${f.ctx==='CE'?'ArianeWeb / justice administrative':'le fonds judiciaire'}</span>`; }
+      } else {
+        if (!f.art) { cells[2].innerHTML = `<span class="warnp">code inconnu</span>`; cells[3].textContent = 'ajouter ce code à la table des identifiants'; return; }
+        const r = await fetch(`${API}/api/law/versions?code=${f.art.code}&num=${encodeURIComponent(f.art.num)}`); const d = await r.json();
+        const vs = (d.versions||[]).sort((x,y)=>x.date_debut.localeCompare(y.date_debut));
+        if (!vs.length) { cells[2].innerHTML = `<span style="color:var(--bad);font-weight:600">NON TROUVÉ</span>`; return; }
+        const atLit = vs.find(v => v.date_debut <= lit && (v.date_fin||'2999') > lit);
+        const cur = vs.find(v => (v.date_fin||'2999') > new Date().toISOString().slice(0,10));
+        const recyc = atLit && cur && atLit !== cur && jaccard(atLit.texte, cur.texte) < 0.25;
+        cells[2].innerHTML = recyc ? `<span style="color:var(--bad);font-weight:600">NUMÉRO RECYCLÉ</span>` : (atLit ? `<span style="color:var(--ok);font-weight:600">existe à la date</span>` : `<span class="warnp">inexistant au ${fmtDate(lit)}</span>`);
+        const before = vs.filter(v => (v.date_fin||'2999') <= lit).at(-1), after = vs.find(v => v.date_debut > lit);
+        cells[3].innerHTML = `${atLit ? `au ${fmtDate(lit)} : « ${esc((atLit.texte||'').slice(0,90))}… »` : (before ? `abrogé le ${fmtDate(before.date_fin)}${after ? `, recréé le ${fmtDate(after.date_debut)}${jaccard(before.texte, after.texte) < 0.25 ? ' <b>avec un autre texte</b>' : ''}` : ''}` : `n'existe que depuis le ${fmtDate(vs[0].date_debut)}`)}${recyc ? ` — <b>aujourd'hui, autre texte</b>` : ''} · <a href="#/article/${f.art.code}/${encodeURIComponent(f.art.num)}?date=${lit}">histoire →</a>`;
+      }
+    } catch(e) { cells[2].innerHTML = `<span class="warnp">erreur</span>`; cells[3].textContent = e.message; }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+}
+
+route();
+</script>
+</body>
+</html>
