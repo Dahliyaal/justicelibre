@@ -405,7 +405,13 @@ class TokenHandler(BaseHTTPRequestHandler):
         # « tj » manquait (8 septembre 2026) : l'option existait dans la page,
         # la liste blanche la remplaçait par "" → recherche NON filtrée servie
         # comme filtrée. Un filtre inconnu ne doit plus être avalé en silence.
-        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "constit", "europ", "cedh", "cjue"}
+        # « tcom » ajouté le 9 septembre 2026 : 174 418 décisions de tribunaux
+        # de commerce étaient en base et filtrables par le moteur, mais aucune
+        # requête ne pouvait les demander. Les trois autres points de la chaîne
+        # (l'option de la page, JURI_DISPATCH, la traduction UI→famille) sont
+        # modifiés dans le même mouvement : accepter la valeur ici sans traduire
+        # plus bas rendrait le filtre silencieux, c'est-à-dire pire qu'absent.
+        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "tcom", "constit", "europ", "cedh", "cjue"}
         filtres_ignores: list[dict] = []
         juri = (qs.get("juridiction", [""])[0] or "").strip().lower()
         if juri not in ALLOWED_JURI:

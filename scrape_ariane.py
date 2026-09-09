@@ -185,6 +185,15 @@ def main():
             "SELECT length(text) FROM ariane_decisions WHERE ariane_num=?", (num,)
         ).fetchone()
         if existing_row and existing_row[0] and existing_row[0] > 200:
+            # Une décision déjà en base PROUVE que cet identifiant est vivant :
+            # elle doit donc casser la série de 404, exactement comme un fetch
+            # réussi. Sans cette remise à zéro, une zone déjà moissonnée (donc
+            # saine) accumulait ses seuls trous et atteignait les 5 000 « 404
+            # consécutifs » — d'où un faux « fin du corpus ». Mesuré le
+            # 9/09/2026 : le balayage a déclaré morte la plage 238482-243481,
+            # alors que 238500, 239895, 241000, 243005 et 243400 répondent tous
+            # 200 — ils étaient simplement déjà en base.
+            consecutive_404 = 0
             consecutive_skipped += 1
             if consecutive_skipped % 1000 == 0:
                 print(f"  [skip x{consecutive_skipped}] at id={num}")
@@ -220,6 +229,10 @@ def main():
                       f"le corpus continue (id={vivant} répond) — on poursuit sans sauter")
                 consecutive_404 = 0
                 trous_franchis += 1
+            # Un 404 est une requête comme une autre : on tient la cadence
+            # annoncée. Sans cette pause, le balayage d'un trou partait à
+            # ~20 req/s, très au-delà des 3 req/s que l'en-tête promet.
+            time.sleep(SLEEP_BETWEEN_REQUESTS)
             continue
         consecutive_404 = 0
 

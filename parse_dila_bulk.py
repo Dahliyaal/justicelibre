@@ -1078,6 +1078,14 @@ def parse_kali(tarball: Path = None, db: Path = None):
         texte TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_kali_idcc ON kali_textes(idcc);
+    -- Sans cet index, le rattachement « repli par article » (plus bas) était
+    -- quadratique : SQLite rescannait les 343 142 lignes de kali_textes pour
+    -- CHACUNE des 56 094 lignes sans idcc, et deux fois (EXISTS + sous-requête).
+    -- Mesuré le 9 septembre 2026 : un delta de 90 textes brûlait un cœur à
+    -- 100 % depuis 5 h 32 sans avoir fini, et ce coût se répétait à l'identique
+    -- pour chacun des 234 deltas — la ré-ingestion n'avait aucune chance
+    -- d'atteindre capp, cass, inca, jade, legi et jorf.
+    CREATE INDEX IF NOT EXISTS idx_kali_texte_id ON kali_textes(texte_id);
     CREATE VIRTUAL TABLE IF NOT EXISTS kali_fts USING fts5(
         id UNINDEXED, idcc, titre, texte,
         content='kali_textes', content_rowid='rowid'

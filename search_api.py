@@ -308,6 +308,7 @@ JURI_DISPATCH = {
     "cass":    ["dila"],
     "ca":      ["dila"],
     "tj":      ["dila"],
+    "tcom":    ["dila"],
     "constit": ["dila"],
     "europ":   ["cedh", "cjue"],
     "cedh":    ["cedh"],
@@ -539,7 +540,7 @@ def _dispatch_dila_sync(
     # d'appel, sans rien dire. Les familles sont celles de
     # data/juridictions_map.json (tj englobe les anciens TGI/TI).
     juri_filter = {"cass": "cassation", "ca": "appel",
-                   "tj": "tj", "constit": "constit"}.get(juridiction)
+                   "tj": "tj", "tcom": "tcom", "constit": "constit"}.get(juridiction)
     out = []
     seen = set()
 
