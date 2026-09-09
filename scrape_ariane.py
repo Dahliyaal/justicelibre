@@ -44,7 +44,11 @@ MAX_CONSECUTIVE_404 = 5_000    # tolère les trous; déclenche une reconnaissanc
 # 222319 à chaque passage, donc le cron quotidien retombait dans le même trou :
 # aucune décision du Conseil d'État n'est entrée depuis le 12 décembre 2025.
 # Avant de conclure à la fin, on sonde loin devant ; on ne s'arrête que si TOUTES
-# les sondes sont vides.
+# les sondes sont vides. La sonde décide SEULEMENT s'il faut continuer : on ne
+# saute jamais par-dessus le trou. Les identifiants sont trop dispersés pour ça
+# (242000 est vide, 245000 vivant, 250000 vide, 251000 vivant) : sauter perdrait
+# des décisions en silence, ce qui est exactement le défaut qu'on répare.
+# Balayer un trou coûte 404 x 0,3 s, on peut se le permettre.
 SONDES = (2_000, 5_000, 10_000, 20_000, 40_000, 80_000)
 
 CHECKPOINT_FILE = "/tmp/scrape_ariane.checkpoint"
@@ -138,9 +142,8 @@ def reconnaitre(client, depuis: int) -> int | None:
 
     Six sondes espacées (2 k à 80 k) suffisent : le plus grand trou observé fait
     moins de 20 000 identifiants, et le sommet du corpus est autour de 250 000.
-    On rend l'identifiant de la sonde qui répond, pas celui d'avant : les quelques
-    décisions perdues entre le trou et la sonde seront reprises au passage suivant,
-    et mieux vaut avancer que boucler.
+    Sert uniquement à répondre « le corpus continue-t-il ? ». L'appelant ne saute
+    pas jusqu'à la sonde : il reprend son balayage là où il était.
     """
     for pas in SONDES:
         cible = depuis + pas
@@ -176,8 +179,7 @@ def main():
     start_t = time.time()
 
     trous_franchis = 0
-    compteur = itertools.count(start_at)
-    for num in compteur:
+    for num in itertools.count(start_at):
         # Skip si déjà en DB
         existing_row = conn.execute(
             "SELECT length(text) FROM ariane_decisions WHERE ariane_num=?", (num,)
@@ -208,19 +210,16 @@ def main():
         if text is None:
             consecutive_404 += 1
             if consecutive_404 >= MAX_CONSECUTIVE_404:
-                saut = reconnaitre(client, num)
-                if saut is None:
+                vivant = reconnaitre(client, num)
+                if vivant is None:
                     print(f"\n*** {MAX_CONSECUTIVE_404} x 404 puis {len(SONDES)} sondes vides jusqu'à "
                           f"id={num + SONDES[-1]} : fin du corpus.")
                     save_checkpoint(num)
                     break
                 print(f"  [trou] {consecutive_404} x 404 depuis id={num - consecutive_404 + 1} ; "
-                      f"reprise à id={saut}")
-                save_checkpoint(saut)
+                      f"le corpus continue (id={vivant} répond) — on poursuit sans sauter")
                 consecutive_404 = 0
                 trous_franchis += 1
-                for _ in range(saut - num - 1):
-                    next(compteur, None)
             continue
         consecutive_404 = 0
 
