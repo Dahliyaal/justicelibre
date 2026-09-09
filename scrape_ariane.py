@@ -36,7 +36,16 @@ MAX_CONSECUTIVE_ERRORS = 30    # circuit breaker (erreurs réseau/500)
 # jour). Chaque run re-détecte donc automatiquement le sommet courant.
 # Reprise via checkpoint.
 START_ID = 95_000
-MAX_CONSECUTIVE_404 = 5_000    # tolère les trous; détecte la fin réelle du corpus
+MAX_CONSECUTIVE_404 = 5_000    # tolère les trous; déclenche une reconnaissance
+# Les identifiants ArianeWeb ne sont pas contigus : le corpus comporte des trous
+# de PLUS de 5 000 identifiants. Constaté le 9 septembre 2026 : la moisson s'est
+# arrêtée à l'id 222319 en concluant « fin du corpus », alors que 223000, 230000,
+# 233000, 239895 et 245000 répondent tous 200. Le checkpoint était réécrit à
+# 222319 à chaque passage, donc le cron quotidien retombait dans le même trou :
+# aucune décision du Conseil d'État n'est entrée depuis le 12 décembre 2025.
+# Avant de conclure à la fin, on sonde loin devant ; on ne s'arrête que si TOUTES
+# les sondes sont vides.
+SONDES = (2_000, 5_000, 10_000, 20_000, 40_000, 80_000)
 
 CHECKPOINT_FILE = "/tmp/scrape_ariane.checkpoint"
 
@@ -124,6 +133,26 @@ def save_checkpoint(n: int):
         pass
 
 
+def reconnaitre(client, depuis: int) -> int | None:
+    """Cherche un identifiant vivant au-delà d'un trou. Renvoie None si le corpus est fini.
+
+    Six sondes espacées (2 k à 80 k) suffisent : le plus grand trou observé fait
+    moins de 20 000 identifiants, et le sommet du corpus est autour de 250 000.
+    On rend l'identifiant de la sonde qui répond, pas celui d'avant : les quelques
+    décisions perdues entre le trou et la sonde seront reprises au passage suivant,
+    et mieux vaut avancer que boucler.
+    """
+    for pas in SONDES:
+        cible = depuis + pas
+        try:
+            if fetch_one(client, cible) is not None:
+                return cible
+        except Exception as e:
+            print(f"  [sonde id={cible}] {e}")
+        time.sleep(SLEEP_BETWEEN_REQUESTS)
+    return None
+
+
 def main():
     print(f"[ariane] start ; UA = {USER_AGENT}")
     conn = sqlite3.connect(DB_PATH, timeout=120.0)
@@ -146,7 +175,9 @@ def main():
     added_session = 0
     start_t = time.time()
 
-    for num in itertools.count(start_at):
+    trous_franchis = 0
+    compteur = itertools.count(start_at)
+    for num in compteur:
         # Skip si déjà en DB
         existing_row = conn.execute(
             "SELECT length(text) FROM ariane_decisions WHERE ariane_num=?", (num,)
@@ -177,9 +208,19 @@ def main():
         if text is None:
             consecutive_404 += 1
             if consecutive_404 >= MAX_CONSECUTIVE_404:
-                print(f"\n*** {MAX_CONSECUTIVE_404} x 404 consécutifs at id={num}, fin du corpus probable.")
-                save_checkpoint(num)
-                break
+                saut = reconnaitre(client, num)
+                if saut is None:
+                    print(f"\n*** {MAX_CONSECUTIVE_404} x 404 puis {len(SONDES)} sondes vides jusqu'à "
+                          f"id={num + SONDES[-1]} : fin du corpus.")
+                    save_checkpoint(num)
+                    break
+                print(f"  [trou] {consecutive_404} x 404 depuis id={num - consecutive_404 + 1} ; "
+                      f"reprise à id={saut}")
+                save_checkpoint(saut)
+                consecutive_404 = 0
+                trous_franchis += 1
+                for _ in range(saut - num - 1):
+                    next(compteur, None)
             continue
         consecutive_404 = 0
 
@@ -204,7 +245,8 @@ def main():
 
     save_checkpoint(num)
     final = conn.execute("SELECT COUNT(*) FROM ariane_decisions").fetchone()[0]
-    print(f"\nDONE. Total ariane : {final} (+{added_session} cette session)")
+    print(f"\nDONE. Total ariane : {final} (+{added_session} cette session, "
+          f"{trous_franchis} trou(s) franchi(s))")
     conn.close()
 
 
