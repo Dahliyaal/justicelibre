@@ -529,6 +529,18 @@ async def _dispatch_admin(
     return out
 
 
+class _Hits(list):
+    """Liste de résultats qui garde le VRAI total de la source.
+
+    Avant, `total` dans la réponse de l'API valait `len(results)` : une
+    recherche « bail » en tribunal de commerce annonçait « total : 5 » sur un
+    fonds qui en compte 175 152, et l'usager concluait que la base était vide
+    sur ce point (audit du 10/09/2026). Le fonds dila connaît son total ; on le
+    transporte jusqu'à la réponse au lieu de le jeter.
+    """
+    total_base: int | None = None
+
+
 def _dispatch_dila_sync(
     intent: QueryIntent, juridiction: str, limit: int, offset: int,
     date_min: str | None = None, date_max: str | None = None,
@@ -543,6 +555,7 @@ def _dispatch_dila_sync(
                    "tj": "tj", "tcom": "tcom", "constit": "constit"}.get(juridiction)
     out = []
     seen = set()
+    total_base = None
 
     def _within_dates(hit: dict) -> bool:
         d = hit.get("date") or ""
@@ -587,9 +600,12 @@ def _dispatch_dila_sync(
                 if d["id"] not in seen:
                     out.append(_norm_dila(d))
                     seen.add(d["id"])
+            total_base = r.get("total")
     except Exception as e:
         print(f"[dila err] {e}")
-    return out
+    hits = _Hits(out)
+    hits.total_base = total_base if isinstance(total_base, int) else None
+    return hits
 
 
 def _date_in_range(date_str: str, date_min: str | None, date_max: str | None) -> bool:
@@ -781,6 +797,7 @@ async def search_federated(
     # Le même arrêt existe souvent deux fois dans le fonds judiciaire (ligne
     # Judilibre à id hexadécimal + ligne JURITEXT, même ECLI) : on n'en montre
     # qu'un. Le dédoublonnage en base est un chantier à part.
+    total_dila = getattr(dila_r, "total_base", None)   # AVANT le dédoublonnage, qui rend une liste neuve
     dila_r = _dedupe_ecli(dila_r)
 
     per_source = {
@@ -859,7 +876,12 @@ async def search_federated(
         "query_normalized": intent.fts_query,
         "intent": intent.kind,
         "expansion_appliquee": expansion_appliquee,
-        "total": len(merged),
+        # `total` = ce qui EXISTE en base quand la source le sait (dila seule
+        # interrogée), sinon ce qui a été rendu — et on dit lequel des deux.
+        "total": (total_dila if (total_dila is not None and list(sources_to_query) == ["dila"])
+                  else len(merged)),
+        "total_exact": bool(total_dila is not None and list(sources_to_query) == ["dila"]),
+        "total_rendus": len(final),
         "per_source": per_source,
         "sources_queried": sources_to_query,
         "sources_no_result": slow_sources,
