@@ -155,6 +155,41 @@ CODE_TO_LEGITEXT: dict[str, str] = {
     "LIL":       "JORFTEXT000000886460",  # Loi 78-17 Informatique et Libertés (474 articles)
     "LO58":      "JORFTEXT000000705065",  # Ordonnance 58-1067 organique Conseil constit. (95 art.)
     "L2005-102": "JORFTEXT000000809647",  # Loi 2005-102 handicap (123 articles)
+    # ── Codes historiques ou abrogés présents en base mais sans raccourci ──
+    # (audit du 10/09/2026 : 34 codes, 21 553 articles, atteignables seulement
+    # par LEGITEXT brut). Sigles suffixés « -ancien » quand un code vivant porte
+    # déjà le sigle : la page les affiche « abrogé » (ssr.py). Les 4 versions du
+    # code des marchés publics restent en LEGITEXT brut : leurs années ne sont
+    # pas établies, on ne leur invente pas de sigle.
+    "CTM":           "LEGITEXT000006072052",  # Code du travail applicable à Mayotte (5 209 art.)
+    "CPMIVG-ancien": "LEGITEXT000006074068",  # Pensions militaires d'invalidité, ancien (4 390 art.)
+    "CForêt-ancien": "LEGITEXT000006071514",  # Code forestier, ancien (3 375 art.)
+    "CRoute-ancien": "LEGITEXT000006074947",  # Code de la route, ancien (994 art.)
+    "CP1810":        "LEGITEXT000006071029",  # Ancien code pénal (771 art.)
+    "CJM-ancien":    "LEGITEXT000006070884",  # Code de justice militaire, ancien (729 art.)
+    "CTACAA":        "LEGITEXT000006071344",  # Code des TA et CAA, remplacé par le CJA (499 art.)
+    "CForêtM":       "LEGITEXT000006071556",  # Code forestier de Mayotte (469 art.)
+    "CCom-ancien":   "LEGITEXT000006069441",  # Code de commerce, ancien (442 art.)
+    "CNat":          "LEGITEXT000006071189",  # Code de la nationalité française (356 art.)
+    "CVin":          "LEGITEXT000006071657",  # Code du vin (353 art.)
+    "CLH":           "LEGITEXT000006071007",  # Légion d'honneur, Médaille militaire, ONM (343 art.)
+    "CDB":           "LEGITEXT000006075115",  # Débits de boissons et alcoolisme (237 art.)
+    "CPC1807":       "LEGITEXT000006070680",  # Code de procédure civile de 1807 (210 art.)
+    "CET":           "LEGITEXT000006071014",  # Code de l'enseignement technique (186 art.)
+    "CIC":           "LEGITEXT000006070882",  # Code de l'industrie cinématographique (169 art.)
+    "CDCD":          "LEGITEXT000006072636",  # Déontologie des chirurgiens-dentistes (152 art.)
+    "CDSF":          "LEGITEXT000006072635",  # Déontologie des sages-femmes (137 art.)
+    "CCE":           "LEGITEXT000006073422",  # Code des caisses d'épargne (136 art.)
+    "CDM":           "LEGITEXT000006072634",  # Code de déontologie médicale (117 art.)
+    "CBoissonsM":    "LEGITEXT000006069472",  # Boissons et alcoolisme, Mayotte (96 art.)
+    "CDMed":         "LEGITEXT000006072664",  # Code de déontologie des médecins (92 art.)
+    "CONIB":         "LEGITEXT000006071737",  # Office national interprofessionnel du blé (57 art.)
+    "CBlé":          "LEGITEXT000006071646",  # Code du blé (54 art.)
+    "CDV":           "LEGITEXT000006072360",  # Déontologie vétérinaire (54 art.)
+    "CDCAC":         "LEGITEXT000006071103",  # Déontologie des commissaires aux comptes (38 art.)
+    "CDEC":          "LEGITEXT000006074510",  # Déontologie de l'expertise comptable (33 art.)
+    "CDPM":          "LEGITEXT000006070159",  # Déontologie des agents de police municipale (22 art.)
+    "CDPN":          "LEGITEXT000006071071",  # Déontologie de la police nationale (20 art.)
 }
 
 
