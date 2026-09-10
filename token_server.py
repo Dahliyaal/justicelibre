@@ -385,7 +385,11 @@ class TokenHandler(BaseHTTPRequestHandler):
                     # Sans requête il n'y a pas d'extrait pertinent : on montre le
                     # DÉBUT du texte, étiqueté comme tel. La plupart des décisions
                     # récentes n'ont pas de sommaire officiel (elles ne sont pas publiées).
-                    "debut": _debut_lisible(d.get("debut")), "extract": "",
+                    # `self.` indispensable : une méthode statique appelée nue lève
+                    # NameError. La route a donc rendu 500 à CHAQUE appel depuis sa
+                    # livraison le 9/09, et le filtre par juridiction ajouté quelques
+                    # lignes plus haut n'a jamais pu s'exécuter une seule fois.
+                    "debut": self._debut_lisible(d.get("debut")), "extract": "",
                 })
             return self._json_response(200, {"results": out, "offset": offset, "limit": limit,
                                              "a_jour": out[0]["date"] if out else ""})
@@ -497,8 +501,16 @@ class TokenHandler(BaseHTTPRequestHandler):
         # est une référence. Avant, cet éclaireur lançait TOUTE la recherche
         # fédérée (5,4 s de plus par recherche, pour rien).
         citation_only = (qs.get("citation_only", ["0"])[0] or "0").strip() in ("1", "true")
-        # Si on interroge une seule source, limit_per_source = limit entier
-        lps = limit if sources_only and len(sources_only) == 1 else max(5, limit // 2)
+        # Si on interroge une seule source, limit_per_source = limit entier.
+        # Le filtre de juridiction restreint lui AUSSI le dispatch : « tcom »,
+        # « cass », « tj »… n'interrogent que dila. Ce cas n'était pas vu ici, et
+        # la division par deux s'appliquait comme si l'on fédérait cinq sources :
+        # qui demandait 100 décisions de tribunal de commerce en recevait 50,
+        # sans un mot (constaté le 10/09/2026). On compte donc les sources
+        # RÉELLEMENT interrogées, d'où qu'elles viennent.
+        from search_api import JURI_DISPATCH
+        srcs_effectives = sources_only or (JURI_DISPATCH.get(juri) if juri else None)
+        lps = limit if srcs_effectives and len(srcs_effectives) == 1 else max(5, limit // 2)
         try:
             async def _run():
                 # Aiguillage référence : si la query est une référence

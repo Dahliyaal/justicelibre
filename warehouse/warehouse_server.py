@@ -271,27 +271,57 @@ FONDS: dict[str, dict] = {
     },
 }
 
-# ─── SQLITE CONNECTION POOL (thread-local, read-only) ────────────────
+# ─── SQLITE CONNECTION POOL (partagé, read-only) ─────────────────────
+#
+# ⛔ CE POOL ÉTAIT THREAD-LOCAL, et c'était une FUITE, pas un pool.
+# ThreadingHTTPServer crée un thread PAR REQUÊTE ; le thread meurt, mais sa
+# connexion SQLite n'est jamais fermée. Chaque requête sur un fond neuf pour ce
+# thread consommait donc 2 descripteurs (.db + -wal) définitivement perdus.
+# Constaté le 10 septembre 2026 : le processus, lancé le 8 à 18 h 06, tenait
+# 1 023 descripteurs sur une limite de 1 024, dont 510 sur legi.db et 494 sur
+# legi.db-wal. Toute ouverture supplémentaire échouait, ce que SQLite rapporte
+# « unable to open database file » — d'où un 500 sur TOUTES les routes /v1/*,
+# donc toutes les pages /loi/... du site en 404, avec un message qui accusait
+# l'usager de s'être trompé de numéro. Aucune alarme, pendant deux jours.
+#
+# ⛔ NE PAS « réparer » ça par un redémarrage : le compteur repart de zéro et
+# remonte à 1 024. C'est le pool qu'il faut corriger, et c'est fait ici.
+#
+# Une connexion par fond pour TOUT le processus : le nombre de descripteurs est
+# désormais borné par le nombre de fonds (une dizaine), quel que soit le trafic.
+# Sûr : les connexions sont ouvertes en lecture seule et `sqlite3.threadsafety`
+# vaut 3 (SERIALIZED, vérifié sur la prod — Python 3.12.3 / SQLite 3.45.1), donc
+# une même connexion peut être utilisée par plusieurs threads.
 
-_tls = threading.local()
+_pool: dict[str, sqlite3.Connection] = {}
+_pool_lock = threading.Lock()
 
 
 def _conn(fond: str) -> sqlite3.Connection:
-    """Return a thread-local read-only SQLite connection for the given fond."""
+    """Connexion SQLite partagée, en lecture seule, pour le fond demandé."""
     if fond not in FONDS:
         raise ValueError(f"unknown fond: {fond}")
-    pool = getattr(_tls, "pool", None)
-    if pool is None:
-        pool = {}
-        _tls.pool = pool
-    conn = pool.get(fond)
-    if conn is None:
-        db_path = DB_DIR / FONDS[fond]["db"]
-        uri = f"file:{db_path}?mode=ro"
-        conn = sqlite3.connect(uri, uri=True, timeout=30.0, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        pool[fond] = conn
+    conn = _pool.get(fond)
+    if conn is not None:
+        return conn
+    with _pool_lock:
+        conn = _pool.get(fond)          # re-test : un autre thread a pu la créer
+        if conn is None:
+            db_path = DB_DIR / FONDS[fond]["db"]
+            uri = f"file:{db_path}?mode=ro"
+            conn = sqlite3.connect(uri, uri=True, timeout=30.0,
+                                   check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            _pool[fond] = conn
     return conn
+
+
+def _fd_ouverts() -> int:
+    """Nombre de descripteurs ouverts par le processus (-1 si indisponible)."""
+    try:
+        return len(os.listdir(f"/proc/{os.getpid()}/fd"))
+    except Exception:
+        return -1
 
 
 # ─── LAW (article version at date) ───────────────────────────────────
@@ -840,11 +870,29 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                     freshness[name] = datetime.fromtimestamp(
                         p.stat().st_mtime, tz=timezone.utc
                     ).isoformat()
+            # Descripteurs de fichiers : c'est leur saturation silencieuse qui a
+            # tué l'entrepôt pendant deux jours (10/09/2026, cf. _conn). On les
+            # expose pour qu'une prochaine dérive se voie AVANT la panne, au lieu
+            # de se manifester par un « article introuvable » qui accuse l'usager.
+            fd = _fd_ouverts()
+            plafond = -1
+            try:
+                import resource
+                plafond = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
+            except Exception:
+                pass
+            sature = fd >= 0 and plafond > 0 and fd > 0.8 * plafond
             return self._json(200, {
-                "status": "ok",
+                "status": "degraded" if sature else "ok",
                 "fonds": list(FONDS.keys()),
                 "codes": list(CODE_TO_LEGITEXT.keys()),
                 "last_updated": freshness,
+                "fd_ouverts": fd,
+                "fd_plafond": plafond,
+                "connexions_ouvertes": len(_pool),
+                **({"alerte": f"descripteurs à {fd}/{plafond} : saturation imminente, "
+                              f"l'entrepôt va répondre « unable to open database file »"}
+                   if sature else {}),
             })
 
         if path == "/v1/url":

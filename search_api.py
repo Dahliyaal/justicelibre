@@ -763,9 +763,18 @@ async def search_federated(
 
         ariane_task = _safe(_q_ariane(client), timeout_s, "ariane")
         admin_task  = _safe(_q_admin(client), timeout_s, "admin")
-        dila_task   = _safe(loop.run_in_executor(None, _q_dila_sync), max(5, timeout_s / 2), "dila")
-        cedh_task   = _safe(loop.run_in_executor(None, _q_cedh_sync), max(5, timeout_s / 2), "cedh")
-        cjue_task   = _safe(loop.run_in_executor(None, _q_cjue_sync), max(5, timeout_s / 2), "cjue")
+        # Les trois sources LOCALES avaient la MOITIÉ du budget des sources
+        # distantes, ce qui est exactement à l'envers : dila est le plus gros
+        # fonds (2,6 M de décisions, base de 28 Go) et une requête FTS5 à froid,
+        # index pas encore en cache, dépasse couramment 6 s. Mesuré le 10/09/2026 :
+        # même requête, 1er appel 6,4 s → dila en timeout → « aucun résultat » ;
+        # 2e appel 1,4 s → 10 résultats. Un faux négatif silencieux, le pire
+        # défaut possible pour chercher un précédent. Les tâches tournent en
+        # parallèle : leur donner le budget entier n'allonge PAS le cas courant
+        # (le mur, c'est le max, pas la somme), ça laisse seulement les lentes finir.
+        dila_task   = _safe(loop.run_in_executor(None, _q_dila_sync), timeout_s, "dila")
+        cedh_task   = _safe(loop.run_in_executor(None, _q_cedh_sync), timeout_s, "cedh")
+        cjue_task   = _safe(loop.run_in_executor(None, _q_cjue_sync), timeout_s, "cjue")
         ariane_r, admin_r, dila_r, cedh_r, cjue_r = await asyncio.gather(
             ariane_task, admin_task, dila_task, cedh_task, cjue_task,
         )

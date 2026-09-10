@@ -1525,6 +1525,18 @@ function renderResults(data, query) {
       parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem;display:flex;align-items:center;gap:.6rem">
         Recherche en cours <span class="dots-inline"><span>.</span><span>.</span><span>.</span><span>.</span></span>
       </div>`);
+    } else if (noResult.length) {
+      // ⛔ Ne JAMAIS dire « aucun résultat » quand une source n'a pas répondu :
+      // c'est un faux négatif, et sur un site de droit ça fait conclure qu'un
+      // précédent n'existe pas. On dit ce qui s'est passé, et on propose de
+      // relancer — le second appel aboutit presque toujours (index en cache).
+      const noms = noResult.map(s => SOURCE_NAMES[s] || s).join(', ');
+      parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem">
+        <strong style="color:var(--ink)">Recherche incomplète.</strong>
+        Le fonds <em style="font-style:normal">${noms}</em> n'a pas répondu à temps :
+        ce « rien » ne veut pas dire qu'il n'y a rien.
+        <button onclick="runSearch()" style="margin-left:.5rem;padding:.35rem .8rem;border:1px solid var(--line);background:var(--white);color:var(--teal);border-radius:4px;cursor:pointer;font:inherit">Relancer</button>
+      </div>`);
     } else {
       parts.push(`<div style="padding:2rem 1.2rem;color:var(--muted);font-size:.9rem">Aucun résultat. Essayez des mots-clés plus larges, ou enlevez certains filtres.</div>`);
     }
