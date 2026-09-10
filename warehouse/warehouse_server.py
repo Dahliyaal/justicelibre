@@ -686,7 +686,40 @@ def _fts_query(q: str) -> str:
     # 4. Restaurer les phrases utilisateur
     for i, p in enumerate(phrases):
         q = q.replace(f"\x01{i}\x01", p)
+    # Mots vides hors guillemets : « tous les efforts de formation et d
+    # adaptation » prenait 19,5 s sur legi_articles_fts (les listes de
+    # « de », « les », « et » font des millions d'entrées) et dépassait le
+    # délai du MCP → LEGI disparaissait en silence (audit du 10/09/2026). On
+    # ne retire les mots vides que s'il reste au moins un mot plein, et jamais
+    # à l'intérieur d'une phrase entre guillemets (l'usager l'a voulue exacte).
+    morceaux = re.split(r'("[^"]*")', q)
+    for k, part in enumerate(morceaux):
+        if part.startswith('"'):
+            continue
+        mots = part.split()
+        pleins = [m for m in mots if m.lower() not in _MOTS_VIDES and m.upper() not in ("AND", "OR", "NOT")]
+        if pleins or any(pp.startswith('"') for pp in morceaux):
+            morceaux[k] = " ".join(m for m in mots if m.lower() not in _MOTS_VIDES)
+    q = " ".join(" ".join(morceaux).split())
+    # Hygiène des opérateurs : un élargissement par thésaurus ou un mot retiré
+    # peut laisser « OR » en tête, en queue, ou doublé → « fts5: syntax error
+    # near "OR" » (HTTP 500 mesuré le 10/09/2026).
+    q = re.sub(r"\b(OR|AND|NOT)(\s+(OR|AND|NOT))+\b", lambda m: m.group(1), q)
+    q = re.sub(r"^(\s*(OR|AND)\b)+", "", q)
+    q = re.sub(r"(\b(OR|AND|NOT)\s*)+$", "", q)
+    q = re.sub(r"\b(OR|AND|NOT)\s*\)", ")", q)      # « (a OR ) »
+    q = re.sub(r"\(\s*(OR|AND)\b", "(", q)          # « ( OR a) »
+    q = re.sub(r"\(\s*\)", "", q)
     return q.strip()
+
+
+_MOTS_VIDES = {
+    "le", "la", "les", "l", "un", "une", "des", "du", "de", "d", "et", "ou", "à", "a",
+    "au", "aux", "en", "dans", "par", "pour", "sur", "sous", "avec", "sans", "que", "qui",
+    "qu", "ne", "pas", "ce", "ces", "cet", "cette", "son", "sa", "ses", "leur", "leurs",
+    "tout", "tous", "toute", "toutes", "est", "sont", "été", "être", "il", "elle", "ils",
+    "elles", "on", "se", "s", "y", "ainsi", "donc", "mais", "car", "ni", "lors", "dont",
+}
 
 
 def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,

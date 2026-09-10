@@ -294,7 +294,16 @@ def main(fetch_text: bool = True):
                 d_start = f"{y}-{m:02d}-01"
                 d_end = f"{y}-{m:02d}-{last_day:02d}"
                 pk = f"{juri}/{y}-{m:02d}"
-                if pk in done:
+                # Un mois « fait » n'est JAMAIS rouvert : les décisions publiées
+                # après le passage (l'open data met des semaines à les mettre en
+                # ligne) n'entrent donc jamais. Constaté le 10/09/2026 : base
+                # figée au 27 avril, et le journal disait « tout fini » chaque
+                # nuit avec le même total. Les 4 derniers mois sont donc
+                # toujours rejoués ; INSERT OR REPLACE rend le rejeu sans effet
+                # sur ce qui est déjà là.
+                _recent = (datetime.now().year, datetime.now().month)
+                _age_mois = (_recent[0] - y) * 12 + (_recent[1] - m)
+                if pk in done and _age_mois > 4:
                     continue
                 time.sleep(RATE_LIMIT_SLEEP)
                 n = crawl_partition(client, juri, "*", fetch_text=fetch_text,

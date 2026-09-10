@@ -113,6 +113,19 @@ def fetch_text(client, itemid):
             params={"library": "ECHR", "id": itemid, "filename": "x.docx", "logEvent": "False"},
             timeout=TIMEOUT_TEXTE,
         )
+        if r.status_code == 204:
+            # HUDOC répond 204 (corps vide) pour un document PAS ENCORE CONVERTI :
+            # typiquement les arrêts publiés depuis quelques jours. Comme on
+            # balaie par date DÉCROISSANTE, ce sont les tout premiers de chaque
+            # passage — et dix 204 d'affilée armaient le coupe-circuit AVANT
+            # d'atteindre un seul arrêt convertible. Résultat mesuré le
+            # 10/09/2026 : 104 exécutions, 0 succès depuis le 20 avril, mai-
+            # juin-juillet 2026 à zéro, 463 arrêts manquants — alors que les
+            # arrêts de mai se convertissaient très bien (HTTP 200, 33 Ko).
+            # Un 204 n'est donc PAS une panne de la source : on passe, on ne
+            # marque rien, on reprendra l'arrêt au passage suivant.
+            print(f"  [text {itemid}]: HTTP 204 — pas encore converti par HUDOC, on repassera")
+            return ""
         if r.status_code != 200:
             print(f"  [text {itemid}]: HTTP {r.status_code}")
             return None
@@ -142,6 +155,7 @@ def main():
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
     echecs_source = 0
+    non_convertis = 0   # HTTP 204 : documents pas encore convertis par HUDOC, repris plus tard
 
     # Peek overall total
     first = list_batch(client, QUERY_BASE, 0)
@@ -204,6 +218,12 @@ def main():
                     time.sleep(min(30, 2 * echecs_source))
                     continue
                 echecs_source = 0
+                if not text:
+                    # Pas encore converti (204) ou réellement vide : on n'écrit
+                    # PAS de ligne sans texte (22 340 arrêts CEDH sans texte en
+                    # base le 10/09/2026 venaient de là) ; l'arrêt sera repris.
+                    non_convertis += 1
+                    continue
                 row_data = (
                     itemid,
                     c.get("docname", ""),

@@ -750,6 +750,10 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
             <div class="cs-item cs-sub" data-value="tcom" data-label="Tribunaux de commerce">Tribunaux de commerce <span class="hint">et tribunaux des activités économiques</span></div>
             <div class="cs-item cs-sub" data-value="constit" data-label="Conseil constitutionnel">Conseil constitutionnel</div>
 
+            <div class="cs-group" data-value="legi" data-label="Articles de loi">
+              <span>Articles de loi</span><span class="hint">codes et textes consolidés (LEGI)</span>
+            </div>
+
             <div class="cs-group" data-value="doctrine" data-label="Avis et doctrine">
               <span>Avis et doctrine</span><span class="hint">CADA, Défenseur des droits, rapporteurs publics, BOFiP</span>
             </div>
@@ -1136,7 +1140,7 @@ function cacheKey(src, id) { return src + ':' + id; }
 
 const SRC_BADGES = {
   ariane: 'ce', admin: 'admin', dila: 'jud', cedh: 'cedh', cjue: 'cjue',
-  doctrine: 'admin',
+  doctrine: 'admin', legi: 'admin',
 };
 
 /**
@@ -1449,7 +1453,7 @@ function fmtDate(d, opts) {
 function renderResults(data, query) {
   let results = data.results || [];
   const perSource = data.per_source || {};
-  const noResult = data.sources_no_result || [];
+  const noResult = data.sources_en_echec || data.sources_no_result || [];   // sources qui n'ont PAS RÉPONDU, pas « rien trouvé »
   const parts = [];
 
   // Tri global côté client : le SPA fetch chaque source en parallèle, donc
@@ -2211,12 +2215,14 @@ const SOURCE_NAMES = {
   'cedh':   'Cour EDH',
   'cjue':   'CJUE',
   'doctrine': 'avis et doctrine',
+  'legi':   'articles de loi',
 };
 
 function juridictionToSourceSet(juri) {
   const MAP = {
-    '':        ['dila', 'ariane', 'admin', 'cedh', 'cjue', 'doctrine'],
+    '':        ['dila', 'ariane', 'admin', 'cedh', 'cjue', 'doctrine', 'legi'],
     'doctrine': ['doctrine'],
+    'legi':    ['legi'],
     'admin':   ['ariane', 'admin'],
     'ce':      ['ariane', 'admin'],
     'caa':     ['admin'],

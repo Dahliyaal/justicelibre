@@ -63,6 +63,7 @@ SOURCE_LABELS = {
     "cedh":   "CEDH",
     "cjue":   "CJUE",
     "doctrine": "DOCTRINE",
+    "legi":   "LOI",
 }
 
 _JURI_LABELS = {
@@ -300,7 +301,11 @@ def _norm_cjue(raw: dict) -> dict:
 
 # Valeurs du filtre "fine" juridiction → sources à interroger
 JURI_DISPATCH = {
-    "":        ["dila", "ariane", "admin", "cedh", "cjue", "doctrine"],  # toutes
+    "":        ["dila", "ariane", "admin", "cedh", "cjue", "doctrine", "legi"],  # toutes
+    # Articles de loi (LEGI, 1,83 M d'articles) : le site s'annonçait
+    # « jurisprudence + lois » sans jamais interroger LEGI (audit du 10/09/2026 :
+    # « article 1240 du code civil » → 20 résultats, 0 article de loi).
+    "legi":    ["legi"],
     # Avis et doctrine (CADA, Défenseur des droits, rapporteurs publics, BOFiP,
     # Code du travail numérique) : 107 273 documents indexés, servis nulle part
     # avant le 10/09/2026.
@@ -604,6 +609,44 @@ def _norm_opendata(raw: dict) -> dict:
     }
 
 
+def _norm_legi(raw: dict) -> dict:
+    """Un article LEGI (hit de l'entrepôt) au format des cartes de résultat."""
+    code = raw.get("titre") or ""            # titre du TEXTE parent (« Code civil »)
+    num = raw.get("num") or ""
+    etat = (raw.get("etat") or "").upper()
+    return {
+        "id": raw.get("id") or "",           # LEGIARTI…
+        "source": "legi",
+        "source_label": SOURCE_LABELS["legi"],
+        "title": f"Article {num} — {code}" if code else f"Article {num}",
+        "juridiction": code,
+        "formation": {"VIGUEUR": "en vigueur", "ABROGE": "abrogé", "MODIFIE": "modifié",
+                      "VIGUEUR_DIFF": "en vigueur (différé)", "ABROGE_DIFF": "abrogation à venir"}.get(etat, etat.lower()),
+        "etat": etat,
+        "date": _clean_date(raw.get("date", "") or ""),
+        "numero": num,
+        "legitext": raw.get("legitext", "") or "",
+        "ecli": "",
+        "extract": raw.get("extract", "") or "",
+    }
+
+
+async def _dispatch_legi(intent, limit: int, offset: int,
+                         date_min: str | None, date_max: str | None) -> list[dict]:
+    """Recherche plein texte dans les articles de loi via l'entrepôt."""
+    from sources import warehouse as wh
+    try:
+        r = await wh.search_fond("legi", intent.fts_query, limit=limit, offset=offset,
+                                 date_min=date_min, date_max=date_max)
+    except Exception as e:
+        print(f"[legi err] {e}")
+        return []
+    hits = _Hits(_norm_legi(h) for h in r.get("results", []))
+    t = r.get("total")
+    hits.total_base = t if isinstance(t, int) else None
+    return hits
+
+
 async def _dispatch_doctrine(intent, juridiction: str, limit: int, offset: int,
                              date_min: str | None, date_max: str | None) -> list[dict]:
     """Recherche plein texte dans la doctrine via l'entrepôt."""
@@ -864,6 +907,11 @@ async def search_federated(
                                     date_min=date_min, date_max=date_max,
                                     formation=formation)
 
+    async def _q_legi():
+        if "legi" not in sources_to_query:
+            return []
+        return await _dispatch_legi(intent, limit_per_source, offset, date_min, date_max)
+
     async def _q_doctrine():
         if "doctrine" not in sources_to_query:
             return []
@@ -912,29 +960,41 @@ async def search_federated(
         # défaut possible pour chercher un précédent. Les tâches tournent en
         # parallèle : leur donner le budget entier n'allonge PAS le cas courant
         # (le mur, c'est le max, pas la somme), ça laisse seulement les lentes finir.
-        dila_task   = _safe(loop.run_in_executor(None, _q_dila_sync), timeout_s, "dila")
+        # 30 s minimum pour le fonds judiciaire : l'audit total du 10/09 a mesuré
+        # « contrat » en TJ à 16,0 s et en tcom à 22,2 s à froid, et une requête
+        # identique rejouée 4 fois rendait 37/40/40/47 selon que dila passait
+        # ou non sous les 12 s. Un zéro silencieux coûte plus qu'une attente.
+        dila_task   = _safe(loop.run_in_executor(None, _q_dila_sync), max(timeout_s, 30.0), "dila")
         cedh_task   = _safe(loop.run_in_executor(None, _q_cedh_sync), timeout_s, "cedh")
         cjue_task   = _safe(loop.run_in_executor(None, _q_cjue_sync), timeout_s, "cjue")
         doctrine_task = _safe(_q_doctrine(), timeout_s, "doctrine")
-        ariane_r, admin_r, dila_r, cedh_r, cjue_r, doctrine_r = await asyncio.gather(
-            ariane_task, admin_task, dila_task, cedh_task, cjue_task, doctrine_task,
+        legi_task = _safe(_q_legi(), timeout_s, "legi")
+        ariane_r, admin_r, dila_r, cedh_r, cjue_r, doctrine_r, legi_r = await asyncio.gather(
+            ariane_task, admin_task, dila_task, cedh_task, cjue_task, doctrine_task, legi_task,
         )
     # Le même arrêt existe souvent deux fois dans le fonds judiciaire (ligne
     # Judilibre à id hexadécimal + ligne JURITEXT, même ECLI) : on n'en montre
     # qu'un. Le dédoublonnage en base est un chantier à part.
     total_dila = getattr(dila_r, "total_base", None)   # AVANT le dédoublonnage, qui rend une liste neuve
+    # Total EXACT seulement quand une seule source est interrogée et qu'elle
+    # connaît son total (dila, legi, doctrine transportent `total_base`).
+    _totaux = {"dila": total_dila,
+               "legi": getattr(legi_r, "total_base", None),
+               "doctrine": getattr(doctrine_r, "total_base", None)}
+    _seule = list(sources_to_query)[0] if len(list(sources_to_query)) == 1 else None
+    total_exact_val = _totaux.get(_seule) if _seule else None
     dila_r = _dedupe_ecli(dila_r)
 
     per_source = {
         "ariane": len(ariane_r), "admin": len(admin_r),
         "dila": len(dila_r), "cedh": len(cedh_r), "cjue": len(cjue_r),
-        "doctrine": len(doctrine_r),
+        "doctrine": len(doctrine_r), "legi": len(legi_r),
     }
     # Sources qui ont timeout ou erreur (DISTINCT des sources qui ont juste rien trouvé)
     slow_sources = [s for s in sources_to_query if s in timed_out]
 
     # Merge, tri : priorité Sinequa score si dispo, sinon date desc
-    merged = [*ariane_r, *admin_r, *dila_r, *cedh_r, *cjue_r, *doctrine_r]
+    merged = [*ariane_r, *admin_r, *dila_r, *cedh_r, *cjue_r, *doctrine_r, *legi_r]
 
     # BOOST : si la query contient un numéro de décision précis (Cass 19-19.122,
     # RG 23/00456, Constit 2008-562...), on remonte en pos 1 les hits dont le
@@ -1004,12 +1064,16 @@ async def search_federated(
         "expansion_appliquee": expansion_appliquee,
         # `total` = ce qui EXISTE en base quand la source le sait (dila seule
         # interrogée), sinon ce qui a été rendu — et on dit lequel des deux.
-        "total": (total_dila if (total_dila is not None and list(sources_to_query) == ["dila"])
-                  else len(merged)),
-        "total_exact": bool(total_dila is not None and list(sources_to_query) == ["dila"]),
+        "total": total_exact_val if total_exact_val is not None else len(merged),
+        "total_exact": total_exact_val is not None,
         "total_rendus": len(final),
         "per_source": per_source,
         "sources_queried": sources_to_query,
+        # ⛔ « sources_no_result » faisait lire « ce fonds n'a rien » alors qu'il
+        # n'a PAS RÉPONDU À TEMPS (294 239 décisions derrière un zéro, audit du
+        # 10/09/2026). Le nom honnête est `sources_en_echec` ; l'ancien reste
+        # servi tant que des clients le lisent.
+        "sources_en_echec": slow_sources,
         "sources_no_result": slow_sources,
         "results": final,
     }
@@ -1020,8 +1084,25 @@ async def search_federated(
 async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None:
     # Une source inconnue renvoyait 200 avec un corps vide : le client croyait
     # tenir une décision. Introuvable, franchement (8 septembre 2026).
-    if source not in ("dila", "cedh", "cjue", "admin", "ariane", "doctrine"):
+    if source not in ("dila", "cedh", "cjue", "admin", "ariane", "doctrine", "legi"):
         return None
+    if source == "legi":
+        from sources import warehouse as wh
+        try:
+            r = await wh.get_decision_remote("legi", decision_id)
+        except Exception as e:
+            return {"error": str(e)}
+        if not r:
+            return None
+        base = _norm_legi({**r, "id": r.get("legiarti") or decision_id, "titre": r.get("titre_text", ""),
+                           "date": r.get("date_debut", "")})
+        return {
+            **base,
+            "full_text": r.get("texte", "") or "",
+            "date_fin": r.get("date_fin", "") or "",
+            "nota": r.get("nota", "") or "",
+            "text_segments": [],
+        }
     if source == "doctrine":
         from sources import warehouse as wh
         try:

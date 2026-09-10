@@ -386,6 +386,7 @@ SOURCE_CAPABILITIES = {
     # Sans cette entrée, sources_for_intent() la retirait en silence de toute
     # recherche — le défaut exact qu'on répare partout ailleurs (10/09/2026).
     "doctrine": {"phrase", "fts"},
+    "legi": {"phrase", "fts"},
     "ariane": {
         "ariane_id",       # lookup direct par ID via plugin
         "dossier_admin",   # rare mais possible via plugin

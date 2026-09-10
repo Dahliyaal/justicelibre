@@ -18,6 +18,7 @@ Routes câblées dans token_server.py :
 from __future__ import annotations
 
 import asyncio
+import datetime as _dt
 import html
 import re
 import sqlite3
@@ -971,6 +972,33 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 </html>"""
 
 
+def _subline_statut(statut: str, date_debut: str, date_fin: str, etat: str, note: str) -> str:
+    """La phrase sous le titre d'un article de loi : dit d'abord s'il s'applique.
+
+    Un abrogé s'annonce comme tel, en rouge, AVANT le texte — pas dans une
+    ligne de tableau en majuscules brutes sous une phrase qui dit le contraire.
+    La « note » de l'API (« aucune version en vigueur à cette date… ») est
+    rendue : elle n'apparaissait nulle part dans la page.
+    """
+    deb = esc(_format_fr_date(date_debut)) if date_debut else ""
+    fin = esc(_format_fr_date(date_fin)) if date_fin and date_fin != "2999-01-01" else ""
+    if statut == "abroge":
+        libelle = "Article abrogé" if (etat or "").upper() in ("ABROGE", "") else f"Article {esc((etat or '').lower())}"
+        periode = f" — version en vigueur du {deb} au {fin}" if (deb and fin) else (f" le {fin}" if fin else "")
+        html_ = (f'<p class="subline subline-abroge" style="color:#a33;font-weight:600">'
+                 f'⚠ {libelle}{periode}. Ce texte ne s\'applique plus.</p>')
+    elif statut == "abroge_diff":
+        html_ = (f'<p class="subline">Article en vigueur depuis le {deb}'
+                 f'{(" — abrogation à effet du " + fin) if fin else ""}.</p>')
+    elif statut == "vigueur":
+        html_ = f'<p class="subline">Article en vigueur{(" depuis le " + deb) if deb else ""}.</p>'
+    else:
+        html_ = f'<p class="subline">Article — état : {esc(etat or "inconnu")}{(", depuis le " + deb) if deb else ""}.</p>'
+    if note:
+        html_ += f'<p class="subline subline-note" style="color:var(--muted,#6b6b6b)">{esc(note)}</p>'
+    return html_
+
+
 def _format_fr_date(iso: str) -> str:
     """`2023-02-14` → `14 février 2023`. Robuste à des formats variés."""
     if not iso or len(iso) < 7:
@@ -1010,6 +1038,25 @@ def render_law(code: str, num: str, data: dict) -> str:
     etat = data.get("etat", "")
     date_debut = data.get("date_debut", "")
     date_fin = data.get("date_fin", "")
+    note = data.get("note", "") or ""
+    # Un article n'est « en vigueur » que si son état le dit ET que sa fin de
+    # validité n'est pas passée. Avant le 10/09/2026, la page écrivait
+    # « Article en vigueur depuis le … » pour TOUT article ayant une date de
+    # début — 26 abrogés testés, 26 affichés en vigueur (ex. C. trav. L. 321-1,
+    # abrogé le 1er mai 2008, « en vigueur depuis le 19 janvier 2005 »). 75 312
+    # articles des codes servis (32,5 %) n'ont aucune version courante et
+    # rendaient cette page. L'API, le MCP et le panneau latéral disaient vrai ;
+    # seule cette page mentait, et c'est l'URL que llms.txt donne pour citer.
+    _fin_passee = bool(date_fin) and date_fin != "2999-01-01" and date_fin <= _dt.date.today().isoformat()
+    _etat_maj = (etat or "").upper()
+    if _etat_maj in ("ABROGE", "PERIME", "TRANSFERE", "ANNULE") or _fin_passee:
+        statut = "abroge"
+    elif _etat_maj == "ABROGE_DIFF":
+        statut = "abroge_diff"        # abrogation à venir : encore en vigueur aujourd'hui
+    elif _etat_maj in ("VIGUEUR", "VIGUEUR_DIFF", "MODIFIE", "MODIFIE_MORT_NE") or not _etat_maj:
+        statut = "vigueur"
+    else:
+        statut = "inconnu"
     nota = data.get("nota", "") or ""
     source_url = data.get("source_url", "")
     legitext = data.get("legitext", "")
@@ -1038,7 +1085,10 @@ def render_law(code: str, num: str, data: dict) -> str:
         "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence",
         "isPartOf": {"@type": "Legislation", "name": code_label},
         "publisher": {"@type": "Organization", "name": SITE_NAME, "url": BASE_URL},
-        "legislationLegalForce": "InForce" if etat == "VIGUEUR" else "PartiallyInForce",
+        # schema.org : NotInForce pour un abrogé (avant : « PartiallyInForce »,
+        # faux pour un article qui n'a plus aucune version applicable).
+        "legislationLegalForce": {"vigueur": "InForce", "abroge": "NotInForce",
+                                  "abroge_diff": "InForce"}.get(statut, "PartiallyInForce"),
         "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
@@ -1098,7 +1148,7 @@ def render_law(code: str, num: str, data: dict) -> str:
 <main class="wrap">
   <div class="kicker">{esc(code_label)}</div>
   <h1>Article <em>{esc(num)}</em></h1>
-  <p class="subline">Article{(' en vigueur depuis le ' + esc(_format_fr_date(date_debut))) if date_debut else ''}.</p>
+  {_subline_statut(statut, date_debut, date_fin, etat, note)}
   <table class="meta-table">{meta_html}</table>
   <article>{text_html}{nota_html}</article>
   <footer class="page-footer">
