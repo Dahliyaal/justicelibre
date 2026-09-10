@@ -422,7 +422,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "1_arianeweb": {
                 "tools": ["search_conseil_etat"],
-                "volume": "~270 000 décisions du Conseil d'État",
+                "volume": "≥ 153 000 décisions du Conseil d'État (10/09/2026, moisson du bas du corpus en cours ; le chiffre « ~270 000 » annoncé avant était faux). ⚠️ Le corpus ArianeWeb lui-même n'a plus rien publié depuis le 12/12/2025 : pour 2026, utiliser `search_admin` (JADE + open data).",
                 "strengths": "Moteur sémantique Sinequa natif (pertinence). Complémentaire à `search_admin` pour CE seulement.",
                 "id_format": "/Ariane_Web/AW_DCE/|XXXXXX",
                 "id_compatible_with": "(pas de get_decision_*)",
