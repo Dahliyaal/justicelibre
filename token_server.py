@@ -755,7 +755,36 @@ class TokenHandler(BaseHTTPRequestHandler):
         pass  # Silence logs
 
 
+def _prechauffer_index() -> None:
+    """Chauffe le cache de l'index FTS5 judiciaire juste après le démarrage.
+
+    Après un redémarrage, la PREMIÈRE recherche sur la base de 28 Go dépasse le
+    budget (mesuré le 10/09/2026 : 0 résultat puis, au second appel, 2 résultats
+    sur 11 503). Le site dit désormais « recherche incomplète » au lieu de
+    « aucun résultat », mais mieux vaut que le premier usager ne tombe pas
+    dessus : on joue quelques requêtes représentatives dans un fil d'arrière-
+    plan, ce qui amène l'index en mémoire du système. Tout échec est affiché,
+    jamais avalé.
+    """
+    import threading as _th
+    import time as _tm
+
+    def _run():
+        for q, juri in (("licenciement nul", "cassation"), ("permis de construire", None),
+                        ("bail commercial", "tcom"), ("trouble anormal de voisinage", "appel"),
+                        ("responsabilité", "tj")):
+            t0 = _tm.time()
+            try:
+                r = dila.search(query=q, juridiction=juri, limit=5)
+                print(f"[préchauffage] {q!r} ({juri or 'tous'}) : {r.get('total', '?')} "
+                      f"en {_tm.time() - t0:.1f} s", flush=True)
+            except Exception as e:
+                print(f"[préchauffage] {q!r} : ÉCHEC {type(e).__name__}: {e}", flush=True)
+    _th.Thread(target=_run, name="prechauffage-fts", daemon=True).start()
+
+
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", 8766), TokenHandler)
     print("API server on http://127.0.0.1:8766/api/{token,search,decision}")
+    _prechauffer_index()
     server.serve_forever()
