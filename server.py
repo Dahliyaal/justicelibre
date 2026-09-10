@@ -57,7 +57,7 @@ requête floue ou multi-source.
 
 SOURCES DE JURISPRUDENCE (pertinence BM25) :
 • `search_admin` — ~570 k décisions JADE (CE + Tribunal des conflits + CAA, TA partiels) full text
-• `search_judiciaire_libre` — ~1,3 M (Cass, CA, TJ, trib. de commerce, Conseil constit.)
+• `search_judiciaire_libre` — 2,6 M (Cass, CA, TJ 717 756, trib. de commerce 175 152, Conseil constit.)
 • `search_conseil_etat` — 270 k+ CE via Sinequa (moteur sémantique natif)
 • `search_cedh` — 76 k décisions Cour EDH
 • `search_cjue` — 44 k arrêts CJUE + Tribunal UE
@@ -418,7 +418,7 @@ async def about_justicelibre() -> dict[str, Any]:
         "sources": {
             "0_unified": {
                 "tools": ["search_all"],
-                "strengths": "Tool one-stop : fan-out sur DILA + JADE + LEGI + CEDH + CJUE en parallèle, tri par pertinence BM25 avec bonus d'autorité (CE/Cass/CEDH > CAA > TA/CA). Utilise le thésaurus juridique FR (expand_synonyms=True par défaut). **À utiliser en priorité** quand on ne sait pas d'avance où chercher.",
+                "strengths": "Tool one-stop : fan-out sur DILA + JADE + LEGI + CEDH + CJUE en parallèle. Les résultats sont ENTRELACÉS par source, sans score global ni bonus d'autorité (supprimés le 30/08/2026 : ils ne mesuraient rien). Utilise le thésaurus juridique FR (expand_synonyms=True par défaut). **À utiliser en priorité** quand on ne sait pas d'avance où chercher. Hors de `search_all` : KALI (`search_kali`), JORF (`search_jorf`), CNIL (`search_cnil`), avis et doctrine (`search_doctrine`), open data TA/CAA (dans `search_admin`).",
             },
             "1_arianeweb": {
                 "tools": ["search_conseil_etat"],
@@ -440,7 +440,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "3_dila_judiciaire": {
                 "tools": ["search_judiciaire_libre", "get_decision_judiciaire_libre"],
-                "volume": "~1,3 M décisions : Cour de cassation, 36 cours d'appel, tribunaux judiciaires (~68 000, surtout depuis 2023), tribunaux de commerce (~40 000) et Conseil constitutionnel (archives DILA locales + sync quotidienne Judilibre)",
+                "volume": "2 596 246 décisions (comptées le 10/09/2026) : Cour de cassation 1 092 897, cours d'appel 601 745, tribunaux judiciaires 717 756 (anciens TGI/TI compris), tribunaux de commerce et des activités économiques 175 152, Conseil constitutionnel 7 388 (archives DILA locales + synchronisation quotidienne Judilibre). ⚠️ L'ancienne fiche annonçait « ~68 000 » jugements de TJ : c'était faux d'un facteur 10 — chercher un jugement de TJ ici est pertinent.",
                 "strengths": "Index local FTS5, aucune auth. Opérateurs FTS5 (phrase exacte, AND, OR, préfixe*).",
                 "id_format": "JURITEXT*, CONSTEXT*, JURI*",
                 "id_compatible_with": "get_decision_judiciaire_libre",
@@ -501,7 +501,7 @@ async def about_justicelibre() -> dict[str, Any]:
                 "Cours d'appel / Cours administratives d'appel (appel)",
                 "Tribunaux de première instance (TA, TJ, etc.)",
             ],
-            "note": "`search_all` applique automatiquement un bonus d'autorité lors du tri.",
+            "note": "Guide de LECTURE, pas un tri : `search_all` n'applique AUCUN bonus d'autorité (supprimé le 30/08/2026, les résultats sont entrelacés par source). C'est à l'assistant de hiérarchiser ce qu'il cite.",
         },
         "workflow_recommande": [
             "1. **Query floue, on ne sait pas où** → `search_all(query)` : fan-out + pertinence + thésaurus FR.",
@@ -900,15 +900,14 @@ async def search_judiciaire_libre(
     gouvernementale.
 
     Exploite l'index FTS5 des archives publiques DILA enrichies par la
-    synchronisation quotidienne Judilibre (~1,3 M décisions : Cour de
-    cassation, 36 cours d'appel, tribunaux judiciaires, tribunaux de
-    commerce, Conseil constitutionnel). Scoring
-    BM25 disponible mais tri appliqué par ordre chronologique décroissant.
+    synchronisation quotidienne Judilibre (2 596 246 décisions au 10/09/2026 :
+    Cour de cassation 1 092 897, cours d'appel 601 745, tribunaux judiciaires
+    717 756, tribunaux de commerce 175 152, Conseil constitutionnel 7 388).
+    Scoring BM25 disponible mais tri appliqué par ordre chronologique décroissant.
 
-    **Couverture connue** : la base contient un sous-ensemble des arrêts
-    publiés en open data (~86 000 arrêts CA depuis 2007, ~68 000 décisions
-    de tribunaux judiciaires et ~40 000 de tribunaux de commerce surtout
-    depuis 2023 via Judilibre). Tous les arrêts ne sont PAS dans la base ; un faux négatif
+    **Couverture connue** : la base contient ce que DILA et Judilibre publient
+    en open data ; les juridictions du fond (TJ, tribunaux de commerce) y sont
+    surtout depuis 2023, la cassation depuis 1805. Tous les arrêts ne sont PAS dans la base ; un faux négatif
     n'implique donc pas que l'arrêt n'existe pas. En cas de bredouille,
     suggérer à l'utilisateur de chercher sur Légifrance ou via PISTE
     (`search_judiciaire`).
@@ -1032,7 +1031,7 @@ _NO_CREDS_MSG = (
     "L'accès via PISTE requiert une authentification OAuth2 (gratuite). "
     "Dans la majorité des cas, privilégier `search_judiciaire_libre` ou "
     "`get_decision_judiciaire_libre`, qui interrogent l'archive locale "
-    "DILA (~1,3 M décisions, sans authentification). Ne recourir à "
+    "DILA (2,6 M décisions, sans authentification). Ne recourir à "
     "l'API PISTE qu'en cas de besoin avéré des toutes dernières décisions "
     "non encore archivées. Deux méthodes : 1) obtenir un session token "
     "temporaire sur https://justicelibre.org/tutoriel-piste.html et le "
@@ -2261,7 +2260,12 @@ async def search_decisions_citing(
     out = {
         "code": code, "num": num,
         "query_built": query,
-        "total": len(results),
+        # `total` = ce qui EXISTE (somme des comptes par source), pas ce qui est
+        # rendu : « total: 12 » avec per_source dila=19 303 faisait lire « douze
+        # décisions citent L. 1152-1 » (audit du 10/09/2026). Même convention
+        # que l'API REST du site (total / total_rendus).
+        "total": sum(int(v or 0) for v in per_source.values()),
+        "total_rendus": len(results[:limit * len(allowed)]),
         "per_source": per_source,
         "decisions": results[:limit * len(allowed)],
     }
