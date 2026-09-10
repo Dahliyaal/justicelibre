@@ -123,18 +123,43 @@ def fetch_one(client, num: int) -> str | None:
     return text
 
 
-def load_checkpoint() -> int:
+def load_checkpoint(conn=None) -> int:
+    """Point de reprise : le PLUS GRAND du fichier et du sommet réel en base.
+
+    La base fait autorité, le fichier n'est qu'un raccourci. Le 9 septembre 2026
+    la moisson a tourné en root alors que le fichier appartient à l'utilisateur
+    justicelibre : l'écriture a échoué, l'échec était avalé (`except: pass`), et
+    le fichier est resté à 243481 alors que le balayage était monté à 330749.
+    La tâche quotidienne serait repartie 87 000 identifiants en arrière, soit
+    environ 7 h de balayage pour n'ajouter rien du tout.
+    """
+    depuis_fichier = START_ID
     try:
-        return int(Path(CHECKPOINT_FILE).read_text().strip())
-    except Exception:
-        return START_ID
+        depuis_fichier = int(Path(CHECKPOINT_FILE).read_text().strip())
+    except Exception as e:
+        print(f"[ariane] pas de checkpoint lisible ({e}) — on se fie à la base")
+    depuis_base = 0
+    if conn is not None:
+        try:
+            depuis_base = conn.execute(
+                "SELECT COALESCE(MAX(ariane_num), 0) FROM ariane_decisions").fetchone()[0]
+        except Exception as e:
+            print(f"[ariane] sommet en base illisible ({e})")
+    if depuis_base > depuis_fichier:
+        print(f"[ariane] checkpoint {depuis_fichier} en retard sur la base "
+              f"({depuis_base}) — on repart du sommet réel")
+        return depuis_base
+    return depuis_fichier
 
 
 def save_checkpoint(n: int):
+    # ⛔ ne JAMAIS taire l'échec : c'est lui qui a fait repartir la moisson
+    # 87 000 identifiants en arrière le 9 septembre 2026, sans un mot.
     try:
         Path(CHECKPOINT_FILE).write_text(str(n))
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  [checkpoint NON ENREGISTRÉ id={n}] {e} — "
+              f"la reprise se fera sur le sommet en base")
 
 
 def reconnaitre(client, depuis: int) -> int | None:
@@ -168,7 +193,7 @@ def main():
     existing = conn.execute("SELECT COUNT(*) FROM ariane_decisions").fetchone()[0]
     print(f"[ariane] DB existing : {existing}")
 
-    start_at = load_checkpoint()
+    start_at = load_checkpoint(conn)
     print(f"[ariane] resume from id={start_at}")
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
