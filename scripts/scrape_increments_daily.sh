@@ -29,7 +29,10 @@ timeout 1800 sudo -u justicelibre python3 -u scrape_cjue.py >> $LOG 2>&1 \
   && echo "[$(date -u '+%H:%M:%S')] CJUE OK" >> $LOG \
   || echo "[$(date -u '+%H:%M:%S')] CJUE timeout/error (non-fatal)" >> $LOG
 
-# ArianeWeb : checkpoint dans /tmp/scrape_ariane.checkpoint, reprend là où ça s'était arrêté
+# ArianeWeb : checkpoint dans /opt/justicelibre/scrape_ariane.checkpoint (PLUS dans
+# /tmp : `fs.protected_regular = 2` y interdisait l'écriture, en silence, et /tmp
+# est vidé au redémarrage). La reprise se fait de toute façon sur le plus grand
+# de ce fichier et de MAX(ariane_num) en base : la base fait autorité.
 echo "[$(date -u '+%H:%M:%S')] ArianeWeb..." >> $LOG
 timeout 1800 sudo -u justicelibre python3 -u scrape_ariane.py >> $LOG 2>&1 \
   && echo "[$(date -u '+%H:%M:%S')] ArianeWeb OK" >> $LOG \
