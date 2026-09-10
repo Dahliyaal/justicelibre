@@ -770,6 +770,7 @@ def _prechauffer_index() -> None:
     import time as _tm
 
     def _run():
+        from sources import dila   # importé localement ailleurs dans ce fichier, pas au niveau du module
         for q, juri in (("licenciement nul", "cassation"), ("permis de construire", None),
                         ("bail commercial", "tcom"), ("trouble anormal de voisinage", "appel"),
                         ("responsabilité", "tj")):
