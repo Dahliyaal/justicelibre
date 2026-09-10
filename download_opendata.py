@@ -275,12 +275,16 @@ def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: boo
                 continue
             text = None
             if fetch_text:
-                # Ne pas re-télécharger un texte déjà en base : le rejeu des 4
-                # derniers mois (chaque nuit) ne doit coûter que les décisions
-                # NOUVELLES, pas ~100 000 appels de détail.
-                deja = c.execute("SELECT length(texte) FROM opendata_decisions WHERE id = ?",
+                # On re-télécharge le texte si : la décision est nouvelle, ou
+                # sans texte, ou MODIFIÉE à la source depuis notre passage
+                # (`lastModified` plus récent) — c'est le cas d'une version
+                # ré-anonymisée, qui DOIT remplacer l'ancienne (RGPD ; rappelé
+                # par elle le 10/09/2026). Sinon on garde le texte en base, et
+                # le rejeu des 4 derniers mois ne coûte que les nouveautés.
+                deja = c.execute("SELECT length(texte), last_modified FROM opendata_decisions WHERE id = ?",
                                  (decision_id,)).fetchone()
-                if deja and deja[0]:
+                modifie = bool(deja) and (src.get("lastModified") or "") > (deja[1] or "")
+                if deja and deja[0] and not modifie:
                     text = None          # insert_decision conserve alors le texte existant
                 else:
                     text = fetch_full_text(client, decision_id)
