@@ -180,7 +180,16 @@ def insert_decision(c: sqlite3.Connection, hit: dict, full_text: str | None):
         "SELECT rowid, id, juridiction_name, numero_dossier, texte "
         "FROM opendata_decisions WHERE id = ?", (decision_id,)
     ).fetchone()
-    if old and old[4]:  # ancienne entrée FTS présente seulement si texte non vide
+    # ⛔ Un rejeu SANS texte ne doit jamais effacer un texte déjà en base :
+    # `full_text or ""` écrasait le texte à chaque passage quotidien en mode
+    # métadonnées (constaté le 10/09/2026, avant le rejeu des 4 derniers mois).
+    if not full_text and old and old[4]:
+        full_text = old[4]
+    # L'index FTS est entretenu par les déclencheurs AFTER INSERT/UPDATE/DELETE
+    # de la table (schéma réel en prod : content='opendata_decisions'). Le
+    # commentaire « contentless » ci-dessus décrit un ancien schéma : on ne
+    # touche l'index à la main QUE s'il n'y a pas de déclencheurs.
+    if not _fts_par_declencheurs(c) and old and old[4]:
         c.execute(
             "INSERT INTO opendata_fts(opendata_fts, rowid, id, juridiction, "
             "numero_dossier, texte) VALUES ('delete', ?, ?, ?, ?, ?)", old
@@ -204,13 +213,26 @@ def insert_decision(c: sqlite3.Connection, hit: dict, full_text: str | None):
         full_text or "",
         datetime.utcnow().isoformat() + "Z",
     ))
-    if full_text:
+    if full_text and not _fts_par_declencheurs(c):
         c.execute("""
             INSERT OR REPLACE INTO opendata_fts(rowid, id, juridiction, numero_dossier, texte)
             VALUES ((SELECT rowid FROM opendata_decisions WHERE id = ?), ?, ?, ?, ?)
         """, (decision_id, decision_id, src.get("Nom_Juridiction") or "",
               src.get("Numero_Dossier") or "", full_text))
     return True
+
+
+_FTS_TRIGGERS: bool | None = None
+
+
+def _fts_par_declencheurs(c: sqlite3.Connection) -> bool:
+    """Vrai si l'index FTS est maintenu par des déclencheurs (schéma actuel)."""
+    global _FTS_TRIGGERS
+    if _FTS_TRIGGERS is None:
+        _FTS_TRIGGERS = bool(c.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='opendata_ai'").fetchone())
+        print(f"[fts] index entretenu par déclencheurs : {_FTS_TRIGGERS}", flush=True)
+    return _FTS_TRIGGERS
 
 
 def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: bool = True,
@@ -253,8 +275,16 @@ def crawl_partition(client: httpx.Client, juri: str, query: str, fetch_text: boo
                 continue
             text = None
             if fetch_text:
-                text = fetch_full_text(client, decision_id)
-                time.sleep(RATE_LIMIT_SLEEP)
+                # Ne pas re-télécharger un texte déjà en base : le rejeu des 4
+                # derniers mois (chaque nuit) ne doit coûter que les décisions
+                # NOUVELLES, pas ~100 000 appels de détail.
+                deja = c.execute("SELECT length(texte) FROM opendata_decisions WHERE id = ?",
+                                 (decision_id,)).fetchone()
+                if deja and deja[0]:
+                    text = None          # insert_decision conserve alors le texte existant
+                else:
+                    text = fetch_full_text(client, decision_id)
+                    time.sleep(RATE_LIMIT_SLEEP)
             if insert_decision(c, hit, text):
                 n += 1
             if n % LOG_EVERY_N == 0:
@@ -317,8 +347,49 @@ def main(fetch_text: bool = True):
     print(f"[end] total ingéré: {sum(v for v in state['stats'].values() if v > 0)} décisions")
 
 
+def backfill_text() -> None:
+    """Va chercher le texte intégral des décisions qui n'en ont pas.
+
+    Le 10/09/2026, 96 804 décisions de mai à septembre 2026 étaient en base
+    SANS texte : la tâche quotidienne tournait sans `--text` depuis toujours,
+    et une décision sans texte est introuvable en recherche plein texte. Le
+    déclencheur AFTER UPDATE de la table maintient l'index FTS.
+    """
+    with sqlite3.connect(str(DB_PATH), timeout=120.0) as c:
+        ids = [r[0] for r in c.execute(
+            "SELECT id FROM opendata_decisions WHERE texte IS NULL OR texte = '' ORDER BY date DESC")]
+    print(f"[backfill] {len(ids)} décisions sans texte", flush=True)
+    ok = ko = 0
+    t0 = time.time()
+    with httpx.Client(timeout=TIMEOUT,
+                      headers={"User-Agent": "justicelibre-crawler/1.0 (+https://justicelibre.org)"}) as client, \
+         sqlite3.connect(str(DB_PATH), timeout=120.0) as c:
+        for i, did in enumerate(ids, 1):
+            t = fetch_full_text(client, did)
+            time.sleep(RATE_LIMIT_SLEEP)
+            if t:
+                c.execute("UPDATE opendata_decisions SET texte = ?, fetched_at = datetime('now') WHERE id = ?",
+                          (t, did))
+                ok += 1
+            else:
+                ko += 1
+            if i % 200 == 0:
+                c.commit()
+            if i % 1000 == 0:
+                print(f"[backfill] {i}/{len(ids)} — {ok} textes, {ko} échecs, "
+                      f"{i / (time.time() - t0):.1f}/s", flush=True)
+        c.commit()
+    print(f"[backfill] FIN : {ok} textes récupérés, {ko} échecs sur {len(ids)}", flush=True)
+
+
 if __name__ == "__main__":
-    # Par défaut on télécharge JUSTE les métadonnées (rapide ~2-3 jours).
-    # Pour récupérer aussi le texte intégral : python3 download_opendata.py --text
-    fetch_text = "--text" in sys.argv
-    main(fetch_text=fetch_text)
+    # ⛔ Sans `--text`, on n'entre que des métadonnées : une décision sans texte
+    # est invisible en recherche plein texte (96 804 lignes de mai à septembre
+    # 2026 dans ce cas, constaté le 10/09/2026). La tâche quotidienne passe donc
+    # `--text` ; le coût ne porte que sur les décisions nouvelles (voir
+    # crawl_partition). `--backfill-text` rattrape celles déjà en base sans texte.
+    if "--backfill-text" in sys.argv:
+        backfill_text()
+    else:
+        fetch_text = "--text" in sys.argv
+        main(fetch_text=fetch_text)

@@ -516,7 +516,16 @@ async def _dispatch_admin(
                 date_min=date_min, date_max=date_max,
                 limit=limit, offset=offset,
             )
-            out.extend([_norm_jade_bulk(h) for h in r.get("decisions", [])])
+            hits_jade = [_norm_jade_bulk(h) for h in r.get("decisions", [])]
+            # Avec des dates, JADE est interrogé sans code quand on demande une
+            # FAMILLE (« ta », « caa ») sans lieu : le filtre était perdu et un
+            # usager qui demandait les tribunaux administratifs recevait des CAA
+            # et le Conseil d'État (audit du 10/09/2026). On filtre ici.
+            if juridiction == "ta" and not lieu:
+                hits_jade = [h for h in hits_jade if h["juridiction"].lower().startswith("tribunal")]
+            elif juridiction == "caa" and not lieu:
+                hits_jade = [h for h in hits_jade if h["juridiction"].lower().startswith(("cour", "caa"))]
+            out.extend(hits_jade)
         elif juridiction == "ta" and not lieu:
             r = await juriadmin.search_many(
                 client, query=_admin_query(intent), juridictions=ALL_TA, limit_per_court=1,

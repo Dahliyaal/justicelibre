@@ -15,5 +15,8 @@ if pgrep -f "python3.*download_opendata.py" >/dev/null; then
 fi
 echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] opendata: (re)démarrage" >> "$LOG"
 cd /opt/justicelibre
-nohup python3 -u download_opendata.py >> "$LOG" 2>&1 &
+# --text : sans lui, les décisions entraient SANS texte, donc introuvables en
+# recherche (96 804 lignes de mai à sept. 2026, constaté le 10/09/2026). Le
+# coût ne porte que sur les décisions nouvelles (le texte déjà en base est gardé).
+nohup python3 -u download_opendata.py --text >> "$LOG" 2>&1 &
 echo "[$(date -u '+%H:%M:%S')] opendata: PID=$!" >> "$LOG"
