@@ -287,33 +287,49 @@ FONDS: dict[str, dict] = {
 # ⛔ NE PAS « réparer » ça par un redémarrage : le compteur repart de zéro et
 # remonte à 1 024. C'est le pool qu'il faut corriger, et c'est fait ici.
 #
-# Une connexion par fond pour TOUT le processus : le nombre de descripteurs est
-# désormais borné par le nombre de fonds (une dizaine), quel que soit le trafic.
-# Sûr : les connexions sont ouvertes en lecture seule et `sqlite3.threadsafety`
-# vaut 3 (SERIALIZED, vérifié sur la prod — Python 3.12.3 / SQLite 3.45.1), donc
-# une même connexion peut être utilisée par plusieurs threads.
+# Un NOMBRE BORNÉ de connexions par fond, partagées par tout le processus, en
+# tourniquet. Descripteurs bornés à 2 × _CONN_PAR_FOND × fonds, quel que soit le
+# trafic. Sûr : lecture seule, et `sqlite3.threadsafety` vaut 3 (SERIALIZED,
+# vérifié — Python 3.12.3 / SQLite 3.45.1), donc une connexion peut servir
+# plusieurs threads.
+#
+# ⛔ Pourquoi PAS une seule connexion par fond : en mode sérialisé, une
+# connexion n'exécute qu'UNE requête à la fois. Essayé le 10/09/2026 à 08 h 27 :
+# 37 threads en file derrière la même connexion legi.db (une requête à froid sur
+# 16 Go prend plusieurs secondes), file d'attente TCP pleine (backlog 5), et la
+# prod voyait des ConnectTimeout — pire que la fuite. Huit connexions par fond
+# rendent le parallélisme de lecture que le thread-local donnait, sans la fuite.
 
-_pool: dict[str, sqlite3.Connection] = {}
+_CONN_PAR_FOND = 8
+_pool: dict[str, list[sqlite3.Connection]] = {}
+_pool_rr: dict[str, int] = {}
 _pool_lock = threading.Lock()
 
 
+def _ouvrir(fond: str) -> sqlite3.Connection:
+    db_path = DB_DIR / FONDS[fond]["db"]
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30.0,
+                           check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def _conn(fond: str) -> sqlite3.Connection:
-    """Connexion SQLite partagée, en lecture seule, pour le fond demandé."""
+    """Une des connexions partagées (lecture seule) du fond, en tourniquet."""
     if fond not in FONDS:
         raise ValueError(f"unknown fond: {fond}")
-    conn = _pool.get(fond)
-    if conn is not None:
-        return conn
     with _pool_lock:
-        conn = _pool.get(fond)          # re-test : un autre thread a pu la créer
-        if conn is None:
-            db_path = DB_DIR / FONDS[fond]["db"]
-            uri = f"file:{db_path}?mode=ro"
-            conn = sqlite3.connect(uri, uri=True, timeout=30.0,
-                                   check_same_thread=False)
-            conn.row_factory = sqlite3.Row
-            _pool[fond] = conn
-    return conn
+        conns = _pool.get(fond)
+        if conns is None:
+            conns = _pool[fond] = [_ouvrir(fond) for _ in range(_CONN_PAR_FOND)]
+            _pool_rr[fond] = 0
+        i = _pool_rr[fond]
+        _pool_rr[fond] = (i + 1) % len(conns)
+        return conns[i]
+
+
+def _nb_connexions() -> int:
+    return sum(len(v) for v in _pool.values())
 
 
 def _fd_ouverts() -> int:
@@ -889,7 +905,7 @@ class WarehouseHandler(BaseHTTPRequestHandler):
                 "last_updated": freshness,
                 "fd_ouverts": fd,
                 "fd_plafond": plafond,
-                "connexions_ouvertes": len(_pool),
+                "connexions_ouvertes": _nb_connexions(),
                 **({"alerte": f"descripteurs à {fd}/{plafond} : saturation imminente, "
                               f"l'entrepôt va répondre « unable to open database file »"}
                    if sature else {}),
