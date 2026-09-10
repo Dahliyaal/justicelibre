@@ -287,49 +287,57 @@ FONDS: dict[str, dict] = {
 # ⛔ NE PAS « réparer » ça par un redémarrage : le compteur repart de zéro et
 # remonte à 1 024. C'est le pool qu'il faut corriger, et c'est fait ici.
 #
-# Un NOMBRE BORNÉ de connexions par fond, partagées par tout le processus, en
-# tourniquet. Descripteurs bornés à 2 × _CONN_PAR_FOND × fonds, quel que soit le
-# trafic. Sûr : lecture seule, et `sqlite3.threadsafety` vaut 3 (SERIALIZED,
-# vérifié — Python 3.12.3 / SQLite 3.45.1), donc une connexion peut servir
-# plusieurs threads.
+# Connexions PROPRES AU THREAD (donc jamais partagées), et FERMÉES à la fin de
+# chaque requête par le handler (voir do_GET / do_POST). Le thread-local est
+# gardé parce qu'il est correct : une connexion sqlite3 ne doit servir qu'un
+# thread à la fois. Ce qui manquait, c'était uniquement la fermeture.
 #
-# ⛔ Pourquoi PAS une seule connexion par fond : en mode sérialisé, une
-# connexion n'exécute qu'UNE requête à la fois. Essayé le 10/09/2026 à 08 h 27 :
-# 37 threads en file derrière la même connexion legi.db (une requête à froid sur
-# 16 Go prend plusieurs secondes), file d'attente TCP pleine (backlog 5), et la
-# prod voyait des ConnectTimeout — pire que la fuite. Huit connexions par fond
-# rendent le parallélisme de lecture que le thread-local donnait, sans la fuite.
+# ⛔ Deux formes essayées et REJETÉES le 10/09/2026, mesures à l'appui :
+#   - une connexion partagée par fond : en mode sérialisé elle n'exécute qu'une
+#     requête à la fois → 37 threads en file, backlog TCP plein, ConnectTimeout
+#     côté prod ;
+#   - huit connexions par fond en tourniquet : dès que deux threads tombent sur
+#     la même, le module Python lève `sqlite3.InterfaceError: bad parameter or
+#     other API misuse` (constaté sous 40 requêtes simultanées), quoi qu'en dise
+#     `sqlite3.threadsafety == 3` — la sérialisation est côté C, pas côté
+#     objets Python (curseurs, cache d'instructions).
+# Ouvrir une connexion en lecture seule coûte quelques millisecondes ; le cache
+# de pages est celui du système, il reste chaud entre deux requêtes.
 
-_CONN_PAR_FOND = 8
-_pool: dict[str, list[sqlite3.Connection]] = {}
-_pool_rr: dict[str, int] = {}
-_pool_lock = threading.Lock()
-
-
-def _ouvrir(fond: str) -> sqlite3.Connection:
-    db_path = DB_DIR / FONDS[fond]["db"]
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30.0,
-                           check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+_tls = threading.local()
 
 
 def _conn(fond: str) -> sqlite3.Connection:
-    """Une des connexions partagées (lecture seule) du fond, en tourniquet."""
+    """Connexion SQLite (lecture seule) propre au thread courant, pour ce fond."""
     if fond not in FONDS:
         raise ValueError(f"unknown fond: {fond}")
-    with _pool_lock:
-        conns = _pool.get(fond)
-        if conns is None:
-            conns = _pool[fond] = [_ouvrir(fond) for _ in range(_CONN_PAR_FOND)]
-            _pool_rr[fond] = 0
-        i = _pool_rr[fond]
-        _pool_rr[fond] = (i + 1) % len(conns)
-        return conns[i]
+    pool = getattr(_tls, "pool", None)
+    if pool is None:
+        pool = _tls.pool = {}
+    conn = pool.get(fond)
+    if conn is None:
+        db_path = DB_DIR / FONDS[fond]["db"]
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30.0)
+        conn.row_factory = sqlite3.Row
+        pool[fond] = conn
+    return conn
+
+
+def _fermer_connexions_du_thread() -> None:
+    """À appeler en fin de requête : rend les descripteurs au système."""
+    pool = getattr(_tls, "pool", None)
+    if not pool:
+        return
+    for c in pool.values():
+        try:
+            c.close()
+        except Exception:
+            pass
+    _tls.pool = {}
 
 
 def _nb_connexions() -> int:
-    return sum(len(v) for v in _pool.values())
+    return len(getattr(_tls, "pool", None) or {})
 
 
 def _fd_ouverts() -> int:
@@ -861,6 +869,8 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             self._route_get()
         except Exception as e:
             self._json(500, {"error": str(e)})
+        finally:
+            _fermer_connexions_du_thread()   # sinon : fuite de descripteurs (10/09/2026)
 
     def do_POST(self):
         if not self._check_auth():
@@ -869,6 +879,8 @@ class WarehouseHandler(BaseHTTPRequestHandler):
             self._route_post()
         except Exception as e:
             self._json(500, {"error": str(e)})
+        finally:
+            _fermer_connexions_du_thread()
 
     def _route_get(self):
         u = urlparse(self.path)
@@ -1199,7 +1211,15 @@ def _ensure_indexes():
 
 def main():
     _ensure_indexes()
-    server = ThreadingHTTPServer(BIND, WarehouseHandler)
+    # File d'attente TCP : socketserver la met à 5 par défaut. La prod envoie
+    # une rafale d'appels par page rendue (article + liens + résolutions) ; à
+    # 40 connexions simultanées sur backlog 5, 9 sont restées sans réponse et
+    # la prod voyait des ConnectTimeout (mesuré le 10/09/2026). 128 laisse une
+    # rafale entière s'asseoir en attendant un thread.
+    class _Serveur(ThreadingHTTPServer):
+        request_queue_size = 128
+        daemon_threads = True
+    server = _Serveur(BIND, WarehouseHandler)
     print(f"[warehouse] bind={BIND[0]}:{BIND[1]} db_dir={DB_DIR} fonds={list(FONDS.keys())} codes={len(CODE_TO_LEGITEXT)}")
     try:
         server.serve_forever()

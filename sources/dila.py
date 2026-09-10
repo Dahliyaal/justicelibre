@@ -213,7 +213,10 @@ def search(
         finally:
             conn.close()
 
-    limit = max(1, min(int(limit), 50))
+    # 100, pas 50 : l'API du site promet jusqu'à 100 (token_server, plafond de
+    # /api/search). Avec 50 ici, « limit=100 » rendait 50 sans un mot, et le
+    # plafond n'était écrit nulle part (audit du 10/09/2026).
+    limit = max(1, min(int(limit), 100))
     # Lookup direct par numero_rg si fourni : court-circuite FTS
     if numero_rg:
         canonical = _normalize_rg(numero_rg)
@@ -451,7 +454,10 @@ def search_cc(
             "note": "Query vide après nettoyage FTS5 (caractères spéciaux "
                     "retirés). Reformuler en mots-clés simples.",
         }
-    limit = max(1, min(int(limit), 50))
+    # 100, pas 50 : l'API du site promet jusqu'à 100 (token_server, plafond de
+    # /api/search). Avec 50 ici, « limit=100 » rendait 50 sans un mot, et le
+    # plafond n'était écrit nulle part (audit du 10/09/2026).
+    limit = max(1, min(int(limit), 100))
     conn = _get_conn()
     try:
         SNIPPET = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
