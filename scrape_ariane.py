@@ -51,7 +51,15 @@ MAX_CONSECUTIVE_404 = 5_000    # tolère les trous; déclenche une reconnaissanc
 # Balayer un trou coûte 404 x 0,3 s, on peut se le permettre.
 SONDES = (2_000, 5_000, 10_000, 20_000, 40_000, 80_000)
 
-CHECKPOINT_FILE = "/tmp/scrape_ariane.checkpoint"
+# ⛔ PAS dans /tmp. La prod tourne avec `fs.protected_regular = 2` : le noyau
+# refuse à TOUT LE MONDE, root compris, d'ouvrir en écriture un fichier situé
+# dans un répertoire collant et ouvert à tous (/tmp, 1777, à root) dès lors que
+# le fichier appartient à quelqu'un d'autre — ici justicelibre. Le checkpoint
+# était donc condamné à rester figé, en silence (constaté le 10/09/2026 : resté
+# à 243481 alors que la moisson était montée à 330749). /tmp est en outre vidé
+# au redémarrage. Le répertoire applicatif appartient à justicelibre, qui fait
+# tourner la tâche quotidienne.
+CHECKPOINT_FILE = "/opt/justicelibre/scrape_ariane.checkpoint"
 
 
 def ensure_schema(conn):
