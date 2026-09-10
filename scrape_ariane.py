@@ -9,6 +9,7 @@ Circuit breaker : si N erreurs consécutives, on stoppe le script.
 """
 import html as _html
 import itertools
+import os
 import re
 import sqlite3
 import sys
@@ -202,6 +203,17 @@ def main():
     print(f"[ariane] DB existing : {existing}")
 
     start_at = load_checkpoint(conn)
+    # Balayage BORNÉ, pour rattraper une zone précise sans toucher au checkpoint
+    # de la tâche quotidienne (qui, lui, reprend au sommet de la base). Motif :
+    # l'audit du 10/09/2026 a trouvé ~40 000 identifiants vivants SOUS
+    # START_ID = 95 000 (l'id 70 000 est un arrêt de Section de 1983) — le
+    # plancher n'avait jamais été exploré, seul le plafond l'était.
+    #   ARIANE_DEPUIS=55000 ARIANE_JUSQUA=95000 python3 -u scrape_ariane.py
+    depuis = int(os.environ.get("ARIANE_DEPUIS", "0") or 0)
+    jusqua = int(os.environ.get("ARIANE_JUSQUA", "0") or 0)
+    if depuis:
+        start_at = depuis
+        print(f"[ariane] balayage borné demandé : {depuis} → {jusqua or '∞'}")
     print(f"[ariane] resume from id={start_at}")
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
@@ -213,6 +225,9 @@ def main():
 
     trous_franchis = 0
     for num in itertools.count(start_at):
+        if jusqua and num > jusqua:
+            print(f"[ariane] borne {jusqua} atteinte : fin du balayage borné")
+            break
         # Skip si déjà en DB
         existing_row = conn.execute(
             "SELECT length(text) FROM ariane_decisions WHERE ariane_num=?", (num,)
