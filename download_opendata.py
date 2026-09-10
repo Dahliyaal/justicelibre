@@ -155,7 +155,19 @@ def fetch_full_text(client: httpx.Client, decision_id: str) -> str | None:
         r = client.get(url)
         if r.status_code != 200:
             return None
-        body = r.json().get("_source", {})
+        j = r.json()
+        body = j.get("_source") or {}
+        if not body:
+            # Forme actuelle de l'API (constatée le 10/09/2026) : le document
+            # est enveloppé comme un résultat de recherche —
+            # {"decisions":{"body":{"hits":{"hits":[{"_source":{…}}]}}}}.
+            # L'ancienne lecture au premier niveau rendait "" pour TOUT le
+            # monde : 9 000 « échecs » sur 9 000 au rattrapage, sans une
+            # erreur HTTP.
+            try:
+                body = j["decisions"]["body"]["hits"]["hits"][0]["_source"]
+            except (KeyError, IndexError, TypeError):
+                body = {}
         # paragraph contient le texte avec $$$ comme séparateur
         return (body.get("paragraph") or "").replace("$$$", "\n\n")
     except Exception:
