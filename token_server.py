@@ -224,7 +224,26 @@ class TokenHandler(BaseHTTPRequestHandler):
         # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
         m = re.match(r"^/loi/([\w.\-]{1,20})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
         if m:
-            return self._handle_ssr_law(m.group(1), m.group(2))
+            code, num = m.group(1), m.group(2)
+            # Loi ou ordonnance HORS CODE désignée par son numéro : /loi/78-17/1,
+            # /loi/2005-102/2. 5 206 textes n'étaient joignables que par leur
+            # identifiant technique LEGITEXT/JORFTEXT (audit du 10/09/2026) ;
+            # le résolveur existait côté MCP, pas côté site.
+            if re.match(r"^\d{2,4}-\d{1,6}$", code):
+                ident = self._resoudre_numero_loi(code)
+                if not ident:
+                    from ssr import render_law_404
+                    return self._html_response(404, render_law_404(code, num))
+                code = ident
+            return self._handle_ssr_law(code, num)
+        if parsed.path == "/api/law/resolve":
+            numero = (qs.get("numero", [""])[0] or "").strip()
+            if not re.match(r"^\d{2,4}-\d{1,6}$", numero):
+                return self._json_response(400, {"error": "numero attendu sous la forme AA-NNN ou AAAA-NNN (ex. 78-17, 2005-102)"})
+            r = self._resoudre_numero_loi(numero, complet=True)
+            if not r:
+                return self._json_response(404, {"error": f"aucune loi ou ordonnance n° {numero} en base", "numero": numero})
+            return self._json_response(200, r, cache_seconds=3600)
         if parsed.path in ("/api", "/api/"):
             return self._json_response(200, {
                 "service": "justicelibre public REST API",
@@ -233,6 +252,7 @@ class TokenHandler(BaseHTTPRequestHandler):
                     "GET /api/decision?source=&id=": "Texte intégral d'une décision",
                     "GET /api/law?code=&num=&date=": "Article de loi (version à une date)",
                     "GET /api/law/versions?code=&num=": "Toutes les versions historiques d'un article",
+                    "GET /api/law/resolve?numero=": "Loi ou ordonnance hors code par son numéro (78-17, 2005-102) → identifiant, titre, nombre d'articles",
                     "POST /api/law/batch": "Batch de plusieurs articles en une requête",
                     "POST /api/token": "Échange credentials PISTE → session token",
                 },
@@ -707,6 +727,20 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._xml_response(404, "<error>unknown</error>", cache_seconds=60)
         cache = 3600 if kind == "opendata" else 86400
         return self._xml_response(200, fn(page), cache_seconds=cache)
+
+    @staticmethod
+    def _resoudre_numero_loi(numero: str, complet: bool = False):
+        """« 78-17 » → identifiant LEGITEXT/JORFTEXT (ou la fiche complète)."""
+        import asyncio as _aio
+        from sources import warehouse as wh
+        try:
+            r = _aio.run(wh.resolve_law_number(numero))
+        except Exception:
+            logger.exception("resolve_law_number failed")
+            return None
+        if not r or not r.get("legitext"):
+            return None
+        return r if complet else r["legitext"]
 
     def _handle_ssr_law(self, code: str, num: str):
         """Render HTML SSR d'un article de loi."""
