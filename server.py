@@ -1794,6 +1794,25 @@ async def search_admin(
         date_min=date_min or None, date_max=date_max or None,
         limit=limit, offset=offset,
     )
+    # Open data TA/CAA (miroir local, 985 996 décisions) : jusqu'au 10/09/2026
+    # ces décisions étaient en base et atteignables par aucun outil. Elles
+    # complètent JADE (qui ne publie qu'une sélection des TA/CAA). Marquées
+    # `provenance: "opendata"`, texte intégral via `get_admin_decision`.
+    try:
+        from sources import warehouse as _wh
+        od = await _wh.search_fond("opendata", query, limit=limit, offset=offset, sort=sort,
+                                   date_min=date_min or None, date_max=date_max or None,
+                                   juridiction=juridiction or None)
+        od_hits = od.get("results", []) if isinstance(od, dict) else []
+        if od_hits:
+            deja = {(d.get("numero") or "", d.get("date") or "") for d in result.get("decisions", [])}
+            ajout = [{**h, "provenance": "opendata"} for h in od_hits
+                     if (h.get("numero") or "", h.get("date") or "") not in deja]
+            result["decisions"] = list(result.get("decisions", [])) + ajout
+            result["total_opendata"] = od.get("total", 0)
+            result["returned"] = len(result["decisions"])
+    except Exception as e:  # jamais silencieux : on dit que l'open data a manqué
+        result["note_opendata"] = f"open data TA/CAA indisponible : {type(e).__name__}: {e}"
     return _annotate_pagination(result, limit, offset, "decisions")
 
 
@@ -1927,6 +1946,63 @@ async def search_kali(
         limit=limit, offset=offset,
     )
     return _annotate_pagination(result, limit, offset, "textes")
+
+
+@mcp.tool(annotations=ToolAnnotations(
+    title="Recherche avis et doctrine (CADA, DDD, rapporteurs publics, BOFiP)", readOnlyHint=True))
+async def search_doctrine(
+    query: str,
+    source: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Recherche plein texte dans les avis et la doctrine administrative :
+    107 273 documents indexés (BM25).
+
+    Sources : `cada` (avis et conseils de la CADA, ~61 000), `ddd` (Défenseur
+    des droits : décisions, règlements amiables, rapports, ~15 000),
+    `ariane_crp` (conclusions des rapporteurs publics au Conseil d'État,
+    ~9 000), `bofip` (commentaires fiscaux, ~5 700), `ctn` (Code du travail
+    numérique, ~14 000). Ces fonds étaient en base sans être servis avant le
+    10 septembre 2026.
+
+    ⚠️ Ce ne sont PAS des décisions de justice : un avis CADA ou une
+    conclusion de rapporteur public ne lie pas le juge. Citer comme tel.
+
+    Args:
+        query: mots-clés (FTS5 : AND/OR/NOT, "phrase exacte", mot*)
+        source: filtre optionnel parmi cada, ddd, ariane_crp, bofip, ctn
+        limit: max 100
+        offset: pagination
+    Returns:
+        {"total", "returned", "results": [{id, source_id, type, titre, date,
+        administration, source_url, extract}]} — `id` (source:doc_id) sert à
+        `get_doctrine_document`.
+    """
+    _record_call("search_doctrine")
+    from sources import warehouse as _wh
+    src = (source or "").strip().lower() or None
+    if src and src not in ("cada", "ddd", "ariane_crp", "bofip", "ctn"):
+        return {"error": f"source inconnue : {source!r} — attendu cada, ddd, ariane_crp, bofip ou ctn",
+                "total": 0, "returned": 0, "results": []}
+    result = await _wh.search_fond("doctrine", query, limit=limit, offset=offset, juridiction=src)
+    return _annotate_pagination(result, limit, offset, "results")
+
+
+@mcp.tool(annotations=ToolAnnotations(
+    title="Lire un document de doctrine (texte intégral)", readOnlyHint=True))
+async def get_doctrine_document(doc_id: str) -> dict[str, Any]:
+    """Texte intégral d'un avis ou document de doctrine, par son `id`
+    (forme `source:doc_id`, ex. `cada:20230456`, `ariane_crp:220`) tel que
+    rendu par `search_doctrine`. Renvoie titre, date, administration, sujet,
+    contenu intégral et l'URL officielle (`source_url`) à citer.
+    """
+    _record_call("get_doctrine_document")
+    from sources import warehouse as _wh
+    r = await _wh.get_decision_remote("doctrine", doc_id)
+    if not r:
+        return {"error": f"document introuvable : {doc_id!r} (forme attendue source:doc_id)"}
+    return {**r, "id": doc_id}
 
 
 @mcp.tool(annotations=ToolAnnotations(

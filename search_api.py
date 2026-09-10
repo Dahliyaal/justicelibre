@@ -62,6 +62,7 @@ SOURCE_LABELS = {
     "admin":  "ADMIN",
     "cedh":   "CEDH",
     "cjue":   "CJUE",
+    "doctrine": "DOCTRINE",
 }
 
 _JURI_LABELS = {
@@ -299,7 +300,11 @@ def _norm_cjue(raw: dict) -> dict:
 
 # Valeurs du filtre "fine" juridiction → sources à interroger
 JURI_DISPATCH = {
-    "":        ["dila", "ariane", "admin", "cedh", "cjue"],  # toutes
+    "":        ["dila", "ariane", "admin", "cedh", "cjue", "doctrine"],  # toutes
+    # Avis et doctrine (CADA, Défenseur des droits, rapporteurs publics, BOFiP,
+    # Code du travail numérique) : 107 273 documents indexés, servis nulle part
+    # avant le 10/09/2026.
+    "doctrine": ["doctrine"],
     "admin":   ["ariane", "admin"],
     "ce":      ["ariane", "admin"],       # CE est dans les deux
     "caa":     ["admin"],
@@ -490,6 +495,13 @@ async def _dispatch_admin(
     # découpe.
     if offset and not (date_min or date_max) and not (juridiction == "ce" or lieu):
         return out
+    # Miroir local de l'open data TA/CAA, en plein texte, AVANT l'API live :
+    # 985 996 décisions cherchables par personne jusqu'au 10/09/2026.
+    try:
+        out.extend(await _opendata_fts(intent, juridiction, lieu, limit, offset,
+                                       date_min, date_max))
+    except Exception as e:
+        print(f"[admin opendata err] {e}")
     try:
         if date_min or date_max:
             from sources import jade_remote
@@ -526,6 +538,112 @@ async def _dispatch_admin(
             out.extend([_norm_admin(d) for d in r.get("decisions", [])][offset:offset + limit])
     except Exception as e:
         print(f"[admin fts err] {e}")
+    return out
+
+
+_DOCTRINE_SOURCES = {
+    "cada": "CADA", "ddd": "Défenseur des droits", "ariane_crp": "Rapporteur public",
+    "bofip": "BOFiP", "ctn": "Code du travail numérique",
+}
+
+
+def _norm_doctrine(raw: dict) -> dict:
+    """Un document de doctrine au format des cartes de résultat.
+
+    « juridiction » porte l'organisme (CADA, Défenseur des droits…) et
+    « formation » le type de document (Avis, Conseil, Conclusion…), pour que
+    la carte existante s'affiche sans code spécifique.
+    """
+    src = (raw.get("source_id") or "").lower()
+    organisme = _DOCTRINE_SOURCES.get(src, src.upper())
+    # La CADA date ses avis en jj/mm/aaaa ; _clean_date attend de l'ISO et
+    # rendait une date vide (constaté à la mise en service, 10/09/2026).
+    d = (raw.get("date") or "").strip()
+    m = re.match(r"^(\d{2})/(\d{2})/(\d{4})$", d)
+    if m:
+        raw = {**raw, "date": f"{m.group(3)}-{m.group(2)}-{m.group(1)}"}
+    return {
+        "id": raw.get("id") or "",
+        "source": "doctrine",
+        "source_label": SOURCE_LABELS["doctrine"],
+        "title": raw.get("titre") or f"{organisme} — {raw.get('doc_id', '')}",
+        "juridiction": raw.get("administration") or organisme,
+        "organisme": organisme,
+        "date": _clean_date(raw.get("date", "") or ""),
+        "formation": raw.get("type", "") or "",
+        "numero": raw.get("doc_id", "") or "",
+        "ecli": "",
+        "source_url": raw.get("source_url", "") or "",
+        "extract": raw.get("extract", "") or "",
+    }
+
+
+def _norm_opendata(raw: dict) -> dict:
+    """Une décision de l'open data TA/CAA (miroir local) au format « admin ».
+
+    Même source « admin » que JADE et l'API live : c'est la même justice
+    administrative, seule la provenance change. L'identifiant (DTA_…, ORCA_…,
+    DCE_…) est celui de l'open data, que `fetch_decision` sait rouvrir.
+    """
+    juri = raw.get("juridiction") or ""
+    code = raw.get("juridiction_code") or ""
+    if code == "CE" and (not juri or "contentieux" in juri.lower()):
+        juri = "Conseil d'État"          # `juridiction_name` y porte la formation
+    numero = raw.get("numero") or ""
+    return {
+        "id": raw.get("id") or "",
+        "source": "admin",
+        "source_label": SOURCE_LABELS["admin"],
+        "title": f"{juri} — n° {numero}" if numero else juri,
+        "juridiction": juri,
+        "date": _clean_date(raw.get("date", "") or ""),
+        "formation": raw.get("formation", "") or "",
+        "numero": numero,
+        "ecli": raw.get("ecli") or "",
+        "extract": raw.get("extract", "") or "",
+    }
+
+
+async def _dispatch_doctrine(intent, juridiction: str, limit: int, offset: int,
+                             date_min: str | None, date_max: str | None) -> list[dict]:
+    """Recherche plein texte dans la doctrine via l'entrepôt."""
+    from sources import warehouse as wh
+    try:
+        r = await wh.search_fond("doctrine", intent.fts_query, limit=limit, offset=offset,
+                                 date_min=date_min, date_max=date_max)
+    except Exception as e:
+        print(f"[doctrine err] {e}")
+        return []
+    hits = _Hits(_norm_doctrine(h) for h in r.get("results", []))
+    t = r.get("total")
+    hits.total_base = t if isinstance(t, int) else None
+    return hits
+
+
+async def _opendata_fts(intent, juridiction: str, lieu: str, limit: int, offset: int,
+                        date_min: str | None, date_max: str | None) -> list[dict]:
+    """Le miroir local de l'open data TA/CAA (985 996 décisions), en plein texte.
+
+    Jusqu'au 10/09/2026 ces décisions étaient en base et cherchables par
+    personne : le site n'interrogeait que l'API live (une décision par
+    juridiction, 50 juridictions) et JADE. Le filtre de juridiction est passé
+    tel quel (code, nom ou forme courte) : l'entrepôt le résout, et refuse
+    une valeur inconnue au lieu de l'ignorer.
+    """
+    from sources import warehouse as wh
+    code = lieu or {"ce": "CE"}.get(juridiction) or None
+    try:
+        r = await wh.search_fond("opendata", intent.fts_query, limit=limit, offset=offset,
+                                 date_min=date_min, date_max=date_max, juridiction=code)
+    except Exception as e:
+        print(f"[opendata err] {e}")
+        return []
+    out = [_norm_opendata(h) for h in r.get("results", [])]
+    # « ta » / « caa » sans lieu : l'open data mêle CE, CAA et TA, on garde la famille demandée
+    if juridiction == "ta":
+        out = [h for h in out if h["juridiction"].lower().startswith("tribunal")]
+    elif juridiction == "caa":
+        out = [h for h in out if h["juridiction"].lower().startswith("cour")]
     return out
 
 
@@ -746,6 +864,12 @@ async def search_federated(
                                     date_min=date_min, date_max=date_max,
                                     formation=formation)
 
+    async def _q_doctrine():
+        if "doctrine" not in sources_to_query:
+            return []
+        return await _dispatch_doctrine(intent, juridiction, limit_per_source, offset,
+                                        date_min, date_max)
+
     def _q_cedh_sync():
         if "cedh" not in sources_to_query:
             return []
@@ -791,8 +915,9 @@ async def search_federated(
         dila_task   = _safe(loop.run_in_executor(None, _q_dila_sync), timeout_s, "dila")
         cedh_task   = _safe(loop.run_in_executor(None, _q_cedh_sync), timeout_s, "cedh")
         cjue_task   = _safe(loop.run_in_executor(None, _q_cjue_sync), timeout_s, "cjue")
-        ariane_r, admin_r, dila_r, cedh_r, cjue_r = await asyncio.gather(
-            ariane_task, admin_task, dila_task, cedh_task, cjue_task,
+        doctrine_task = _safe(_q_doctrine(), timeout_s, "doctrine")
+        ariane_r, admin_r, dila_r, cedh_r, cjue_r, doctrine_r = await asyncio.gather(
+            ariane_task, admin_task, dila_task, cedh_task, cjue_task, doctrine_task,
         )
     # Le même arrêt existe souvent deux fois dans le fonds judiciaire (ligne
     # Judilibre à id hexadécimal + ligne JURITEXT, même ECLI) : on n'en montre
@@ -803,12 +928,13 @@ async def search_federated(
     per_source = {
         "ariane": len(ariane_r), "admin": len(admin_r),
         "dila": len(dila_r), "cedh": len(cedh_r), "cjue": len(cjue_r),
+        "doctrine": len(doctrine_r),
     }
     # Sources qui ont timeout ou erreur (DISTINCT des sources qui ont juste rien trouvé)
     slow_sources = [s for s in sources_to_query if s in timed_out]
 
     # Merge, tri : priorité Sinequa score si dispo, sinon date desc
-    merged = [*ariane_r, *admin_r, *dila_r, *cedh_r, *cjue_r]
+    merged = [*ariane_r, *admin_r, *dila_r, *cedh_r, *cjue_r, *doctrine_r]
 
     # BOOST : si la query contient un numéro de décision précis (Cass 19-19.122,
     # RG 23/00456, Constit 2008-562...), on remonte en pos 1 les hits dont le
@@ -894,8 +1020,24 @@ async def search_federated(
 async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None:
     # Une source inconnue renvoyait 200 avec un corps vide : le client croyait
     # tenir une décision. Introuvable, franchement (8 septembre 2026).
-    if source not in ("dila", "cedh", "cjue", "admin", "ariane"):
+    if source not in ("dila", "cedh", "cjue", "admin", "ariane", "doctrine"):
         return None
+    if source == "doctrine":
+        from sources import warehouse as wh
+        try:
+            r = await wh.get_decision_remote("doctrine", decision_id)
+        except Exception as e:
+            return {"error": str(e)}
+        if not r:
+            return None
+        r = {**r, "id": decision_id}
+        return {
+            **_norm_doctrine(r),
+            "full_text": r.get("contenu", "") or "",
+            "sujet": r.get("sujet", "") or "",
+            "tags": r.get("tags", "") or "",
+            "text_segments": [],
+        }
     if source == "dila":
         r = dila.get_decision(decision_id)
         if not r:
@@ -933,6 +1075,21 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
             "full_text": r.get("full_text", ""),
         }
     if source == "admin":
+        # Cas 0 : identifiants de l'open data (DTA_…, ORCA_…, DCE_…) → miroir
+        # local d'abord (985 996 décisions, texte intégral), API live en secours.
+        if re.match(r"^(DTA|ORCA|DCE|DCAA)_", decision_id.upper()):
+            try:
+                from sources import warehouse as wh
+                r = await wh.get_decision_remote("opendata", decision_id)
+                if r and (r.get("texte") or ""):
+                    return {
+                        **_norm_opendata({**r, "juridiction": r.get("juridiction_name", ""),
+                                          "numero": r.get("numero_dossier", "")}),
+                        "full_text": r.get("texte", "") or "",
+                        "text_segments": [],
+                    }
+            except Exception as e:
+                print(f"[opendata fetch err] {e}")
         # Cas 1 : ID JADE bulk (CETATEXT*) → warehouse direct
         # Le live API juriadmin n'a pas les anciens dossiers (avant juin 2022).
         if decision_id.upper().startswith("CETATEXT"):

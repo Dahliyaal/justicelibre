@@ -382,6 +382,10 @@ def detect_intent(q: str) -> QueryIntent:
 # Pour chaque source, quels intents peut-elle traiter utilement ?
 
 SOURCE_CAPABILITIES = {
+    # Avis et doctrine (entrepôt, fonds « doctrine ») : plein texte seulement.
+    # Sans cette entrée, sources_for_intent() la retirait en silence de toute
+    # recherche — le défaut exact qu'on répare partout ailleurs (10/09/2026).
+    "doctrine": {"phrase", "fts"},
     "ariane": {
         "ariane_id",       # lookup direct par ID via plugin
         "dossier_admin",   # rare mais possible via plugin

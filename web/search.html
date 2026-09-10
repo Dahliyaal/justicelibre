@@ -750,6 +750,10 @@ body.law-open .law-backdrop{opacity:1;pointer-events:auto}
             <div class="cs-item cs-sub" data-value="tcom" data-label="Tribunaux de commerce">Tribunaux de commerce <span class="hint">et tribunaux des activités économiques</span></div>
             <div class="cs-item cs-sub" data-value="constit" data-label="Conseil constitutionnel">Conseil constitutionnel</div>
 
+            <div class="cs-group" data-value="doctrine" data-label="Avis et doctrine">
+              <span>Avis et doctrine</span><span class="hint">CADA, Défenseur des droits, rapporteurs publics, BOFiP</span>
+            </div>
+
             <div class="cs-group" data-value="europ" data-label="Tout européen">
               <span>Européen</span><span class="hint">tout</span>
             </div>
@@ -1132,6 +1136,7 @@ function cacheKey(src, id) { return src + ':' + id; }
 
 const SRC_BADGES = {
   ariane: 'ce', admin: 'admin', dila: 'jud', cedh: 'cedh', cjue: 'cjue',
+  doctrine: 'admin',
 };
 
 /**
@@ -1471,7 +1476,7 @@ function renderResults(data, query) {
     // recherche à l'autre.
     // 👉 ORDRE_SOURCES ci-dessous est un choix éditorial : sources
     //    françaises d'abord. Changer cette ligne suffit à le modifier.
-    const ORDRE_SOURCES = ['dila', 'admin', 'ariane', 'legi', 'cedh', 'cjue'];
+    const ORDRE_SOURCES = ['dila', 'admin', 'ariane', 'legi', 'cedh', 'cjue', 'doctrine'];
     const groupes = new Map();
     for (const r of results) {
       const s = r.source || '?';
@@ -2205,11 +2210,13 @@ const SOURCE_NAMES = {
   'admin':  'justice administrative',
   'cedh':   'Cour EDH',
   'cjue':   'CJUE',
+  'doctrine': 'avis et doctrine',
 };
 
 function juridictionToSourceSet(juri) {
   const MAP = {
-    '':        ['dila', 'ariane', 'admin', 'cedh', 'cjue'],
+    '':        ['dila', 'ariane', 'admin', 'cedh', 'cjue', 'doctrine'],
+    'doctrine': ['doctrine'],
     'admin':   ['ariane', 'admin'],
     'ce':      ['ariane', 'admin'],
     'caa':     ['admin'],

@@ -32,7 +32,7 @@ est **fausse au moment de l'audit**, et pas d'un peu :
    `decisions` de la prod **n'a aucune de ces colonnes**.
 5. **`decisions.sommaire` n'est pas indexé** dans `decisions_fts`. Sur un
    échantillon, **69 % des sommaires** contiennent de la matière absente du texte,
-   donc introuvable par la recherche.
+   donc introuvable par la recherche. **242 651 décisions** ont un sommaire.
 6. **~40 000 identifiants ArianeWeb vivants ne sont jamais moissonnés** :
    `START_ID = 95_000`, alors que les identifiants 55 000–94 999 répondent
    HTTP 200 avec de vraies décisions du Conseil d'État.
@@ -973,6 +973,17 @@ CREATE VIRTUAL TABLE decisions_fts USING fts5(
 La colonne `sommaire` de `decisions` **ne figure pas** dans la liste des colonnes
 indexées. (La table `decisions` a bien un champ `sommaire`, cf. E.4.)
 
+Volume concerné, mesuré :
+
+```
+total/sommaire: [(2596246, 242651)]
+```
+
+**242 651 décisions portent un sommaire** (9,3 % du fonds). Ce n'est pas un
+échantillon marginal : ce sont, pour l'essentiel, les décisions que la Cour de
+cassation a jugé utile de sommairiser — donc précisément celles qui font
+jurisprudence et qu'on cherche.
+
 Conformément à la règle « un argument tiré d'une absence se teste », j'ai vérifié
 que cette absence a un effet réel, et non pas nul parce que le sommaire serait
 déjà recopié dans `text`. Mesure sur 400 décisions à sommaire long :
@@ -1221,11 +1232,16 @@ exemples: [('JURITEXT000024913398', "Cour d'appel de Bastia", '0201-11-23'),
            ('JURITEXT000023841526', "Cour d'appel de Pau", '0201-04-04'),
            ('JURITEXT000034094706', "Cour d'appel de Paris", '0201-02-24')]
 dates vides: [(0,)]
+texte vide: [(57,)]
 ```
 
 6 lignes sur 2,6 M — toutes en `0201-..`, une troncature manifeste de `2011`/`2013`.
 Et **zéro date vide**, ce qui est un vrai bon point. Plus 35 dates impossibles dans
 `kali.date_debut` (cf. C.3.a).
+
+**57 décisions ont un texte vide** sur 2 596 246, soit 0,002 %. Négligeable en
+proportion, mais ce sont 57 lignes qui peuvent remonter dans une recherche en
+promettant une décision et n'en servir aucune. À lister et à re-moissonner.
 
 ### F-8 (MOYEN, méthodologique) — Le journal ne peut pas servir de preuve
 
@@ -1261,7 +1277,7 @@ dit ce qu'on a **joué**, pas ce qu'on a **obtenu**.
 |---|---|---|
 | Le `hierarchie`/`liens` de LEGI est-il servi par l'API ? | `FAUX` | `/api/law` → `{"error": "Erreur interne — entrepôt indisponible."}` ; `/loi/*` → 404. |
 | Les 985 996 décisions TA/CAA sont-elles cherchables ? | `FAUX` | Compte exact (985 996) mais `opendata` passe par l'entrepôt : 500. La décision témoin ne remonte pas en plein texte ; elle n'est atteignable que par l'**API tierce** du Conseil d'État. |
-| Les sommaires sont-ils indexés en plein texte ? | `FAUX` | `sommaire` absent du `CREATE VIRTUAL TABLE decisions_fts` ; 69 % des sommaires portent de la matière absente du texte ; **3 fragments testés sur 5 sont introuvables**. |
+| Les sommaires sont-ils indexés en plein texte ? | `FAUX` | `sommaire` absent du `CREATE VIRTUAL TABLE decisions_fts` ; **242 651 décisions** ont un sommaire, dont 69 % portent de la matière absente du texte ; **3 fragments testés sur 5 sont introuvables**. |
 | Combien de codes servis vs en base ? | 79 / 111 | 29 % des codes sans raccourci — et **zéro servi en pratique** tant que l'entrepôt est mort. |
 
 ---
@@ -1352,9 +1368,11 @@ dans `ariane_decisions`. L'usager ne peut pas savoir d'où vient ce qu'il lit.
 
 ### MINEUR
 
-**13. Dates impossibles.** 6 décisions en `0201-..` sur 2 596 246 (troncature de
-2011/2013), et 35 `kali.date_debut` hors de `1900-2030` (min `0003-09-01`, max
-`5489-12-30`). Négligeable en volume, mais rappelle que « non vide » ≠ « exploitable ».
+**13. Dates impossibles et textes vides.** 6 décisions en `0201-..` sur 2 596 246
+(troncature de 2011/2013), et 35 `kali.date_debut` hors de `1900-2030` (min
+`0003-09-01`, max `5489-12-30`). Plus **57 décisions à texte vide** dans le fonds
+judiciaire de la prod. Négligeable en volume, mais rappelle que « non vide »
+≠ « exploitable ». Bon point à l'inverse : **zéro date vide** sur 2,6 M de lignes.
 
 **14. `form_dec_att` ne contient pas une formation mais une juridiction.**
 Contenu réel : « Cour d'appel de Paris », « Conseil de prud'hommes d'Angers ».

@@ -415,7 +415,7 @@ class TokenHandler(BaseHTTPRequestHandler):
         # (l'option de la page, JURI_DISPATCH, la traduction UI→famille) sont
         # modifiés dans le même mouvement : accepter la valeur ici sans traduire
         # plus bas rendrait le filtre silencieux, c'est-à-dire pire qu'absent.
-        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "tcom", "constit", "europ", "cedh", "cjue"}
+        ALLOWED_JURI = {"", "admin", "ce", "caa", "ta", "judic", "cass", "ca", "tj", "tcom", "constit", "europ", "cedh", "cjue", "doctrine"}
         filtres_ignores: list[dict] = []
         juri = (qs.get("juridiction", [""])[0] or "").strip().lower()
         if juri not in ALLOWED_JURI:
@@ -437,10 +437,10 @@ class TokenHandler(BaseHTTPRequestHandler):
             offset = 0
         offset = max(0, min(offset, 10000))
         sources_only = [s.strip() for s in (qs.get("sources", [""])[0] or "").split(",") if s.strip()]
-        _inconnues = [s for s in sources_only if s not in ("dila", "ariane", "admin", "cedh", "cjue")]
+        _inconnues = [s for s in sources_only if s not in ("dila", "ariane", "admin", "cedh", "cjue", "doctrine")]
         if _inconnues:
             filtres_ignores.append({"parametre": "sources", "valeur": ",".join(_inconnues),
-                                    "raison": "source(s) inconnue(s) (attendu : dila, ariane, admin, cedh, cjue) ; ignorée(s)"})
+                                    "raison": "source(s) inconnue(s) (attendu : dila, ariane, admin, cedh, cjue, doctrine) ; ignorée(s)"})
             sources_only = [s for s in sources_only if s not in _inconnues]
         try:
             timeout_s = float(qs.get("timeout", ["12"])[0])
@@ -650,7 +650,7 @@ class TokenHandler(BaseHTTPRequestHandler):
     def _handle_ssr_decision(self, source: str, decision_id: str):
         """Render HTML SSR d'une décision (indexable par Google + LLM)."""
         from ssr import render_decision, render_decision_404, fetch_decision_sync
-        if source not in {"admin", "dila", "cedh", "cjue", "ariane", "cnil"}:
+        if source not in {"admin", "dila", "cedh", "cjue", "ariane", "cnil", "doctrine"}:
             return self._html_response(404, render_decision_404(source, decision_id))
         try:
             data = fetch_decision_sync(source, decision_id)

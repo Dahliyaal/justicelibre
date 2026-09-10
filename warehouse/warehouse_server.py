@@ -269,6 +269,17 @@ FONDS: dict[str, dict] = {
         "decision_table": "opendata_decisions",
         "id_col": "id",
     },
+    # Doctrine et avis : CADA (avis + conseils), Défenseur des droits, conclusions
+    # des rapporteurs publics (ArianeWeb CRP), BOFiP, Code du travail numérique.
+    # 107 273 documents indexés en plein texte depuis des mois et servis nulle
+    # part (audit du 10/09/2026). La clé primaire est composite : l'identifiant
+    # exposé est `source_id:doc_id`, unique sur 107 273 / 107 273 (vérifié).
+    "doctrine": {
+        "db": "doctrine.db",
+        "fts": "docs_fts",
+        "decision_table": "docs",
+        "id_col": "(source_id || ':' || doc_id)",
+    },
 }
 
 # ─── SQLITE CONNECTION POOL (partagé, read-only) ─────────────────────
@@ -711,6 +722,7 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         "kali": "date_publi",
         "cnil": "date",
         "opendata": "date",
+        "doctrine": "date",   # ⚠️ CADA en jj/mm/aaaa à la source : tri/bornes par date peu fiables sur ce sous-fonds
     }.get(fond)
     if not date_col:
         return {"fond": fond, "total": 0, "results": [],
@@ -744,6 +756,23 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
                 "Lille ») ou une forme courte (« TA Lille », « CAA Douai »)")
         where.append(_w[0])
         params.extend(_w[1])
+    if filter_juridiction and fond == "opendata":
+        # L'open data porte un CODE de juridiction fiable (TA75, CAA59, CE) là où
+        # son nom ne l'est pas (pour le CE, `juridiction_name` contient la
+        # formation : « Section du Contentieux »). On filtre donc sur le code,
+        # après résolution des noms et formes courtes par le même résolveur.
+        _r = juridictions.resoudre_admin(filter_juridiction)
+        if not _r:
+            raise ValueError(
+                f"juridiction inconnue: {filter_juridiction!r} — attendu un code "
+                "(CE, CAA59, TA69), un nom ou une forme courte (« TA Lille »)")
+        where.append("m.juridiction_code = ?")
+        params.append(_r["code"])
+    if filter_juridiction and fond == "doctrine":
+        # Pour la doctrine, « juridiction » désigne la SOURCE : cada, ddd,
+        # ariane_crp (rapporteurs publics), bofip, ctn.
+        where.append("m.source_id = ?")
+        params.append(filter_juridiction.strip().lower())
 
     # Sort: relevance (BM25) by default, chronological fallback
     order = "bm25(" + fts_table + ") ASC"
@@ -773,7 +802,8 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
         # opendata.justice-administrative.fr. Fonds déclaré depuis toujours,
         # mais absent d'ici comme de `date_col` — sa recherche levait donc un
         # KeyError à chaque appel (29 août 2026).
-        "opendata": f"m.id, m.juridiction_name AS juridiction, m.numero_dossier AS numero, m.date, m.formation, m.ecli, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
+        "opendata": f"m.id, m.juridiction_name AS juridiction, m.juridiction_code, m.numero_dossier AS numero, m.date, m.formation, m.ecli, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
+        "doctrine": f"(m.source_id || ':' || m.doc_id) AS id, m.source_id, m.doc_id, m.type, m.titre, m.date, m.administration, m.sujet, m.source_url, snippet({fts_table}, -1, '<em>', '</em>', '…', 28) AS extract",
     }.get(fond)
     if not select_cols:
         return {"fond": fond, "total": 0, "results": [],
