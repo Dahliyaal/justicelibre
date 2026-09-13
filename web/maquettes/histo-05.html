@@ -251,6 +251,7 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .jl-view a.on{background:var(--teal);color:#fff}
 .jl-view a:hover{text-decoration:none;color:var(--teal)} .jl-view a.on:hover{color:#fff}
 .jl-lf{font-size:11px;color:var(--teal);margin-left:6px;text-decoration:none;opacity:.8}
+.artlink{color:var(--teal);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px} .artlink:hover{text-decoration-style:solid}
 </style>
 </head>
 <body>
@@ -310,6 +311,17 @@ function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identif
   if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
   if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
   return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
+
+/* citation = lien : dans le texte d'un article de code, « l'article 748-1 » nu désigne le même code ; « du code X » qui suit désigne l'autre code */
+const CODE_SIGLE = [['code de procédure civile','CPC'],['code de procédure pénale','CPP'],['code de justice administrative','CJA'],['code civil','CC'],['code pénal','CP'],['code de la santé publique','CSP'],['code du travail','CT'],['code de commerce','CCom'],['code de l’organisation judiciaire','COJ'],['code de l\'organisation judiciaire','COJ'],['code des relations entre le public et l’administration','CRPA']];
+function linkArts(html, codeIci){
+  return html.replace(/(articles?|art\.)\s+((?:[LRD]\.?\s?)?\d[\d\-]*(?:\s*(?:,|et)\s*(?:[LRD]\.?\s?)?\d[\d\-]*)*)(\s+(?:du|de ce|du même|du présent)\s+(?:code(?: [^.,;:]{0,60})?|même code|présent code))?/gi, (m, mot, nums, suite) => {
+    let code = codeIci;
+    if (suite && /\bdu\s+code\b/i.test(suite) && !/même|présent/i.test(suite)) { const s = suite.toLowerCase(); const hit = CODE_SIGLE.find(([n]) => s.includes(n)); if (!hit) return m; code = hit[1]; }
+    const numsL = nums.replace(/((?:[LRD]\.?\s?)?\d[\d\-]*)/g, n => { const clean = n.replace(/\s+/g, '').replace(/\.$/, ''); const href = (code === 'CPC' && /^748-\d$/.test(clean)) ? `carte-748.html?num=${clean}` : `../hub.html#/article/${code}/${encodeURIComponent(clean)}`; return `<a class="artlink" href="${href}" title="art. ${clean} ${code}">${n}</a>`; });
+    return mot + ' ' + numsL + (suite || '');
+  });
+}
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
 const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
@@ -542,7 +554,7 @@ function VIEW(H){
         <span class="p5cnt">${R.type === 'cree' ? 'création' : 'réécriture'}${R.sim !== null ? ' · ' + Math.round(R.sim * 100) + ' % communs' : ''}</span></div>
       <div class="p5body">
         <div class="jl-meta">${R.auteur ? `<span class="jl-rel">${R.type === 'cree' ? 'créée par' : 'écrite par'}</span> <a href="${R.auteur.lf}">${esc(R.auteur.titre)}</a>${R.auteur.art ? ` <span class="muted">art. ${esc(R.auteur.art)}</span>` : ''}${R.auteur.nor ? `<span class="nor">${esc(R.auteur.nor)}</span>` : ''}` : '<span class="muted">aucun texte modificateur relié dans LEGI</span>'}${howHTML('lien LEGI')}<span class="mono">${esc(R.legiarti)}</span></div>
-        <div class="jl-htext">${esc(R.texte)}</div>${R.nota ? `<div class="jl-hnota"><b>Nota.</b> ${esc(R.nota)}</div>` : ''}
+        <div class="jl-htext">${linkArts(esc(R.texte), 'CPC')}</div>${R.nota ? `<div class="jl-hnota"><b>Nota.</b> ${esc(R.nota)}</div>` : ''}
         ${i ? `<div class="p5in"><div class="jl-h2">Ce qui a changé depuis le ${fmtCourt(H.redactions[i-1].debut)}</div>${diffPane(H, i - 1, i)}</div>` : '<div class="p5foot">Première rédaction : rien à comparer.</div>'}
       </div></div>`).join('');
   const arr = a => {

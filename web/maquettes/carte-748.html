@@ -209,6 +209,7 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .jl-kids .jl-item{padding:4px 0 5px}
 .jl-kids .jl-t a{font-weight:500;font-size:12.5px}
 .jl-root{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;color:var(--ink);padding:2px 0 2px;font-weight:600}
+.artlink{color:var(--teal);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px} .artlink:hover{text-decoration-style:solid}
 </style>
 </head>
 <body>
@@ -292,6 +293,17 @@ function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identif
   return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
 const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
 function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
+
+/* citation = lien : dans le texte d'un article de code, « l'article 748-1 » nu désigne le même code ; « du code X » qui suit désigne l'autre code */
+const CODE_SIGLE = [['code de procédure civile','CPC'],['code de procédure pénale','CPP'],['code de justice administrative','CJA'],['code civil','CC'],['code pénal','CP'],['code de la santé publique','CSP'],['code du travail','CT'],['code de commerce','CCom'],['code de l’organisation judiciaire','COJ'],['code de l\'organisation judiciaire','COJ'],['code des relations entre le public et l’administration','CRPA']];
+function linkArts(html, codeIci){
+  return html.replace(/(articles?|art\.)\s+((?:[LRD]\.?\s?)?\d[\d\-]*(?:\s*(?:,|et)\s*(?:[LRD]\.?\s?)?\d[\d\-]*)*)(\s+(?:du|de ce|du même|du présent)\s+(?:code(?: [^.,;:]{0,60})?|même code|présent code))?/gi, (m, mot, nums, suite) => {
+    let code = codeIci;
+    if (suite && /\bdu\s+code\b/i.test(suite) && !/même|présent/i.test(suite)) { const s = suite.toLowerCase(); const hit = CODE_SIGLE.find(([n]) => s.includes(n)); if (!hit) return m; code = hit[1]; }
+    const numsL = nums.replace(/((?:[LRD]\.?\s?)?\d[\d\-]*)/g, n => { const clean = n.replace(/\s+/g, '').replace(/\.$/, ''); const href = (code === 'CPC' && /^748-\d$/.test(clean)) ? `carte-748.html?num=${clean}` : `../hub.html#/article/${code}/${encodeURIComponent(clean)}`; return `<a class="artlink" href="${href}" title="art. ${clean} ${code}">${n}</a>`; });
+    return mot + ' ' + numsL + (suite || '');
+  });
+}
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 const alineas = v => (v.texte||'').split(/(?<=\.)\s+(?=[A-Z])/);
 const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
@@ -421,7 +433,7 @@ const footHTML = () => '<div class="jl-foot"><a class="jl-histo" href="#historiq
 /* ───── milieu et droite : identiques dans les 5 variantes ───── */
 function midHTML(M){ const cur = M.cur;
   if (!cur) return '<div class="honest">À la date lue, l’article n’existe pas encore.</div>';
-  return alineas(cur).map((a, i) => `<p class="alin"><span class="no">al. ${i + 1}</span>${esc(a)}</p>`).join('')
+  return alineas(cur).map((a, i) => `<p class="alin"><span class="no">al. ${i + 1}</span>${linkArts(esc(a), M.code || 'CPC')}</p>`).join('')
     + (cur.nota ? `<div class="notaBox"><b>Nota.</b> ${esc(cur.nota)}</div>` : ''); }
 function rightHTML(M){ return M.citantsList.map(c =>
   `<div class="it${c.st.k !== 'ok' ? ' dead' : ''}"><div class="rel">${esc(NATLABEL[c.nature] || String(c.nature).toLowerCase())}${[...c.how].map(h => `<span class="how">${esc(h)}</span>`).join('')}</div><div class="t"><a href="${c.lf}">${esc(c.titre)}</a>${c.arts.length ? ` <span class="muted">· art. ${esc(c.arts.join(', '))}</span>` : ''}</div><div class="d">${c.date ? `<span>${fmtCourt(c.date)}</span>` : ''}${c.nor ? `<span class="nor">${esc(c.nor)}</span>` : ''}${pill(c.st)}</div></div>`).join('')
