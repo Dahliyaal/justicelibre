@@ -186,9 +186,11 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .hc .hc-ans{max-height:84px;overflow:auto}
 .hc-path{margin:16px 0 8px;font-size:13px;color:var(--muted)}.hc-path .n{font-family:"JetBrains Mono",monospace;font-size:11px}
 .hc-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
-.hc-list li a{display:flex;gap:14px;padding:9px 4px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13.5px;line-height:1.45}
+.hc-list li a{display:block;padding:11px 6px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;line-height:1.4}
 .hc-list li a:hover{background:var(--teal-xl)}
-.hc-list .d{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);flex:none;width:86px;padding-top:2px}
+.hc-list .meta{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:3px}
+.hc-list .t{display:block;font-family:"DM Serif Display",Georgia,serif;font-size:16px;letter-spacing:-.005em}
+.hc-list .t::first-letter{text-transform:uppercase}
 .hc-list li.muted{padding:8px 4px;font-size:12px}
 .expbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .expbar .pill{padding:2px 9px;border-radius:12px;background:var(--teal-xl);color:var(--teal);font-family:"JetBrains Mono",monospace;font-size:11px}
@@ -395,6 +397,17 @@ function codesTries(){ return [...CODES].sort((a, b) => cleTri(a[1]).localeCompa
 const NATLABEL = {LOI:'Lois', ORDONNANCE:'Ordonnances', DECRET:'Décrets', ARRETE:'Arrêtés'};
 // « MINISTERE DE L'AGRICULTURE ET DE LA PECHE » → « Agriculture et pêche » : le JO
 // écrit les ministères en capitales et leur nom change à chaque gouvernement.
+// « LOI n° 2026-650 du 23 juillet 2026 relative au renforcement… (1) »
+//   → meta « Loi n° 2026-650 · 23 juillet 2026 », sujet « relative au renforcement… »
+function titreParts(titre, date){
+  const t = (titre || '').replace(/\s*\(\d+\)\s*$/, '').trim();
+  const m = t.match(/^(LOI(?: organique| constitutionnelle)?|ORDONNANCE|D[ÉE]CRET|ARR[ÊE]T[ÉE])\s+(n[°º]\s*[\w.-]+)?\s*(?:du|en date du)\s+(\d{1,2}(?:er)?\s+\S+\s+\d{4})\s*(.*)$/i);
+  if (!m) return {meta: date ? fmtDate(date) : '', sujet: t};
+  const nature = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+  const num = (m[2] || '').replace(/\s+/g, ' ');
+  const sujet = (m[4] || '').replace(/^(portant|relative? (à|aux?)|visant à|sur|modifiant|fixant|en faveur)/i, s => s).trim();
+  return {meta: `${nature}${num ? ' ' + num : ''} · ${m[3]}`, sujet: sujet || t};
+}
 function nomMin(s){ let t = (s || '').trim(); if (t === t.toUpperCase()) t = t.toLowerCase(); t = t.replace(/^minist[èe]re (de la |de l'|du |des |de |d')?/i, ''); return t.charAt(0).toUpperCase() + t.slice(1); }
 let HC = null; const hcSel = {min:'', nat:'LOI', an:''};
 async function initHorsCode(){
@@ -420,7 +433,7 @@ function renderHorsCode(){
     </div></div>
     <div class="hc-res">
     <div class="hc-path">${esc(m.nom)} › ${NATLABEL[hcSel.nat]} › ${hcSel.an} <span class="n">· ${nb(nAn)} texte${nAn>1?'s':''}</span></div>
-    ${titres ? `<ul class="hc-list">${titres.map(t => `<li><a href="https://justicelibre.org/loi/${esc(t.id)}/1" target="_blank" rel="noopener"><span class="d">${fmtDate(t.date)}</span><span class="t">${esc(t.titre)}</span></a></li>`).join('')}${nAn > titres.length ? `<li class="muted">… et ${nb(nAn - titres.length)} autres (prototype : 12 titres par rayon)</li>` : ''}</ul>`
+    ${titres ? `<ul class="hc-list">${titres.map(t => { const p = titreParts(t.titre, t.date); return `<li><a href="https://justicelibre.org/loi/${esc(t.id)}/1" target="_blank" rel="noopener"><span class="meta">${esc(p.meta)}</span><span class="t">${esc(p.sujet)}</span></a></li>`; }).join('')}${nAn > titres.length ? `<li class="muted">… et ${nb(nAn - titres.length)} autres (prototype : 12 titres par rayon)</li>` : ''}</ul>`
              : `<div class="muted" style="font-size:12.5px;margin-top:8px">Prototype : titres embarqués seulement pour les 10 premiers ministères et les 3 dernières années (${nb(nAn)} textes dans ce rayon).</div>`}
     </div>`;
   box.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { hcSel.min = b.dataset.min; renderHorsCode(); });
