@@ -173,8 +173,11 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .adv-help code{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--teal);background:var(--teal-xl);padding:0 5px;border-radius:3px}
 .adv-help .s{font-size:11.5px}
 .hc-sep{border:0;border-top:1px solid var(--line);margin:34px 0 22px}
-.hc .hc-row{display:flex;gap:12px;align-items:flex-start;margin:8px 0}
-.hc .hc-row .lb{width:80px;flex:none;padding-top:6px}
+.hc-filtres{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px 10px}
+.hc .hc-row{display:flex;gap:14px;align-items:flex-start;margin:0 0 10px}
+.hc .hc-row:last-child{margin-bottom:0}
+.hc .hc-row .lb{width:96px;flex:none;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink);background:var(--teal-xl);padding:6px 10px;border-radius:5px;margin:0;align-self:flex-start}
+.hc-res{margin-top:18px}
 .hc .chips{display:flex;flex-wrap:wrap;gap:6px}
 .hc .chip .n{font-family:"JetBrains Mono",monospace;font-size:10.5px;opacity:.75;margin-left:2px}
 .hc .hc-ans{max-height:84px;overflow:auto}
@@ -407,12 +410,16 @@ function renderHorsCode(){
   const titres = HC.titres[`${m.nor}|${hcSel.nat}|${hcSel.an}`];
   const nAn = (m.natures[hcSel.nat] || {})[hcSel.an] || 0;
   box.innerHTML = `
+    <div class="hc-filtres">
     <div class="hc-row"><div class="lb">Ministère</div><div class="chips">${HC.ministeres.map(x => `<button type="button" class="chip${x.nor===m.nor?' on':''}" data-min="${x.nor}" title="${esc(x.nom)}">${esc(nomMin(x.nom))} <span class="n">${nb(x.total)}</span></button>`).join('')}</div></div>
     <div class="hc-row"><div class="lb">Nature</div><div class="chips">${nats.map(n => `<button type="button" class="chip${n===hcSel.nat?' on':''}" data-nat="${n}">${NATLABEL[n]} <span class="n">${nb(Object.values(m.natures[n]).reduce((a,b)=>a+b,0))}</span></button>`).join('')}</div></div>
     <div class="hc-row"><div class="lb">Année</div><div class="chips hc-ans">${ans.map(a => `<button type="button" class="chip${a===hcSel.an?' on':''}" data-an="${a}">${a} <span class="n">${nb(m.natures[hcSel.nat][a])}</span></button>`).join('')}</div></div>
+    </div>
+    <div class="hc-res">
     <div class="hc-path">${esc(m.nom)} › ${NATLABEL[hcSel.nat]} › ${hcSel.an} <span class="n">· ${nb(nAn)} texte${nAn>1?'s':''}</span></div>
     ${titres ? `<ul class="hc-list">${titres.map(t => `<li><a href="https://justicelibre.org/loi/${esc(t.id)}/1" target="_blank" rel="noopener"><span class="d">${fmtDate(t.date)}</span><span class="t">${esc(t.titre)}</span></a></li>`).join('')}${nAn > titres.length ? `<li class="muted">… et ${nb(nAn - titres.length)} autres (prototype : 12 titres par rayon)</li>` : ''}</ul>`
-             : `<div class="muted" style="font-size:12.5px;margin-top:8px">Prototype : titres embarqués seulement pour les 10 premiers ministères et les 3 dernières années (${nb(nAn)} textes dans ce rayon).</div>`}`;
+             : `<div class="muted" style="font-size:12.5px;margin-top:8px">Prototype : titres embarqués seulement pour les 10 premiers ministères et les 3 dernières années (${nb(nAn)} textes dans ce rayon).</div>`}
+    </div>`;
   box.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { hcSel.min = b.dataset.min; renderHorsCode(); });
   box.querySelectorAll('[data-nat]').forEach(b => b.onclick = () => { hcSel.nat = b.dataset.nat; renderHorsCode(); });
   box.querySelectorAll('[data-an]').forEach(b => b.onclick = () => { hcSel.an = b.dataset.an; renderHorsCode(); });
