@@ -1,0 +1,482 @@
+[
+ {
+  "requete": "471537",
+  "attendu": "AMBIGU — DEUX decisions CE portent ce numero : CE 4e-1re ch. 7 juin 2023 (QPC, non-renvoi, CETATEXT000047656413) et CE 4e-1re ch. 31 octobre 2023 (fond, rejet, ArianeWeb |255422). Le moteur DOIT servir les deux, pas une.",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2023-06-07-471537.md"
+ },
+ {
+  "requete": "CE 31 octobre 2023 n° 471537 Mon Master",
+  "attendu": "la decision AU FOND du 31/10/2023 seulement (rejet total, art. 1er), pas la QPC du 7 juin",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2023-10-31-471537.md"
+ },
+ {
+  "requete": "74052",
+  "attendu": "AMBIGU — CE 3/6 SSR 29 octobre 1969 (CETATEXT000007641393, moulins) ET CE Ass. 3 fevrier 1989 (CETATEXT000007754163, Cie Alitalia). Servir un seul resultat = mensonge.",
+  "type": "reference",
+  "origine": "/home/dahl/.claude/projects/-home-dahl/memory/ce_numeros_reutilises.md"
+ },
+ {
+  "requete": "Compagnie Alitalia",
+  "attendu": "CE, Ass., 3 fevrier 1989, n° 74052 — la recherche par NOM doit desambiguiser ce que le numero ne desambiguise pas",
+  "type": "concept",
+  "origine": "/home/dahl/.claude/projects/-home-dahl/memory/ce_numeros_reutilises.md"
+ },
+ {
+  "requete": "434502",
+  "attendu": "CE 10e-9e ch. 5 mai 2021 n° 434502 (refus du greffe, minutes civiles TGI Paris) — et signaler la JUMELLE 434503 du meme jour, meme formation, meme requerant",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2021-05-05-434502.md"
+ },
+ {
+  "requete": "434503",
+  "attendu": "CE 10e-9e ch. 5 mai 2021 n° 434503 (consultation anticipee d'archives, ministre de la culture) — jumelle de 434502",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2021-05-05-434503.md"
+ },
+ {
+  "requete": "ECLI:FR:CECHR:2023:471537.20230607",
+  "attendu": "la QPC du 7 juin 2023 — l'ECLI est le seul identifiant qui tranche le doublon a lui seul",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2023-06-07-471537.md"
+ },
+ {
+  "requete": "ECLI:FR:CEASS:2018:414583.20180518",
+  "attendu": "CE, Assemblee, 18 mai 2018, n° 414583 — noter le segment CEASS (Assemblee) vs CECHR (chambres reunies)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2018-05-18-414583.md"
+ },
+ {
+  "requete": "ECLI:CE:ECHR:2006:1128JUD004076502",
+  "attendu": "CEDH, Apostol c. Georgie, 28 novembre 2006, req. 40765/02 — format ECLI CEDH (JUD + n° de requete zero-padde), radicalement different du format FR",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CEDH-2006-11-28-Apostol-Georgie-40765-02.md"
+ },
+ {
+  "requete": "40765/02",
+  "attendu": "CEDH Apostol c. Georgie — numero de requete CEDH avec slash, forme qu'aucun tokenizer naif ne garde",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CEDH-2006-11-28-Apostol-Georgie-40765-02.md"
+ },
+ {
+  "requete": "CETATEXT000043482311",
+  "attendu": "CE 5 mai 2021 n° 434502 — recherche par identifiant de base",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2021-05-05-434502.md"
+ },
+ {
+  "requete": "JURITEXT000039188473",
+  "attendu": "Cass. 2e civ., 26 septembre 2019, n° 18-14.708",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-2civ-2019-09-26-18-14708.md"
+ },
+ {
+  "requete": "n° 14-29.013",
+  "attendu": "Cass. soc., 18 janvier 2017, n° 14-29.013 (ECLI:FR:CCASS:2017:SO00114)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-soc-2017-01-18-14-29013.md"
+ },
+ {
+  "requete": "14-29013",
+  "attendu": "MEME decision que « 14-29.013 » — la fiche est nommee sans points, l'acte cite avec points : les deux graphies doivent converger",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-soc-2017-01-18-14-29013.md"
+ },
+ {
+  "requete": "pourvoi 02-70047",
+  "attendu": "Cass. 3e civ., 2 juillet 2003, n° 02-70.047, Bull. 2003, III, n° 140 (JURITEXT000007049013)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-2003-07-02-02-70047.md"
+ },
+ {
+  "requete": "avis 19-70.006",
+  "attendu": "Cass. 2e civ., AVIS du 27 juin 2019, n° 19-70.006 (JURITEXT000038734270) — un avis, pas un arret ; la serie 70xxx signale la demande d'avis",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-2civ-avis-2019-06-27-19-70006.md"
+ },
+ {
+  "requete": "Cass crim 24-80331",
+  "attendu": "Cass. crim., 23 octobre 2024, n° 24-80.331 (ECLI:FR:CCASS:2024:CR01290)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-Cass-crim-2024-10-23-24-80331.md"
+ },
+ {
+  "requete": "RG 01/01800 cour d'appel de Pau",
+  "attendu": "CA Pau 5 decembre 2002, JURITEXT000006941987 — ET l'avertissement : ce n'est PAS un arret de la cour mais une ORDONNANCE du magistrat de la mise en etat",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CAPau-2002-12-05-RG01-01800.md"
+ },
+ {
+  "requete": "RG 18/01208 cour d'appel de Riom avocat partie",
+  "attendu": "RIEN en acces libre — arret INTROUVABLE (absent du fonds DILA et de Juricaf) ; le moteur doit dire « absent du fonds », pas « n'existe pas »",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F35)"
+ },
+ {
+  "requete": "L. 1234-9",
+  "attendu": "forme canonique avec point + espace — doit matcher aussi « L1234-9 », « L.1234-9 », « art. L 1234-9 »",
+  "type": "reference",
+  "origine": "/home/dahl/.claude/skills/lecture-liens/lecture_liens.py (RE_ART_CODE)"
+ },
+ {
+  "requete": "R. 142-1-A code de la securite sociale",
+  "attendu": "article R. 142-1-A CSS — numero a SUFFIXE ALPHABETIQUE ; et servir la coquille officielle « aux articles a l'article L. 142-4 » telle quelle",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CSS-artR142-1-A.md"
+ },
+ {
+  "requete": "R.* 343-4",
+  "attendu": "article avec ASTERISQUE (decret en Conseil d'Etat) — graphie a preserver ; la bibliotheque la translittere en « Rs » dans les noms de fichier",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/SYSTEME BIBLIOTHEQUE.md, § Nommage"
+ },
+ {
+  "requete": "article 748-6 du code de procedure civile",
+  "attendu": "NORME CPC art. 748-6 — et le nota servi porte la coquille « decret n° 2025-609 » : le bon numero est 2025-619",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art748-6.md"
+ },
+ {
+  "requete": "748-8 CPC abrogation differee arrete",
+  "attendu": "art. 748-8 CPC — abrogation conditionnee au declenchement par un arrete : verifier via l'onglet « Textes d'application » qu'aucun arrete ne l'a declenchee",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F61 ③)"
+ },
+ {
+  "requete": "article 843 CPC",
+  "attendu": "CPC art. 843 — RUPTURE D'OBJET : saisine simplifiee du TI (2010-2020) REECRITE en remise de copie d'assignation au TJ par le decret 2019-1333 ; etat Legifrance « VIGUEUR » sans rupture signalee",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art843.md"
+ },
+ {
+  "requete": "article 760 CPC renvoi a l'audience",
+  "attendu": "la version 1976-2020 (LEGIARTI000006411211), PAS la version en vigueur (constitution d'avocat devant le TJ) — numero reemploye",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art760.md"
+ },
+ {
+  "requete": "article 828 CPC assistance et representation devant le tribunal d'instance",
+  "attendu": "l'ANCIEN 828 (1976-2020), celui que cite quarante ans de jurisprudence — l'actuel porte la procedure sans audience",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art828.md"
+ },
+ {
+  "requete": "article 751 CPC constitution obligatoire d'avocat devant le TGI",
+  "attendu": "l'ANCIEN 751 (jusqu'au 01/01/2020) ; l'actuel porte la prise de date",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art751.md"
+ },
+ {
+  "requete": "article 754 CPC",
+  "attendu": "actuel = saisine par remise de l'assignation + caducite (decret 2019-1333) ; avant 2020 = disposition generale de renvoi a la procedure ordinaire",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art754.md"
+ },
+ {
+  "requete": "article 820 CPC delegation de pouvoirs du president du TGI",
+  "attendu": "l'ANCIEN 820 (jusqu'au 01/01/2020) ; l'actuel porte la tentative prealable de conciliation",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art820.md"
+ },
+ {
+  "requete": "article R. 45 du code de procedure penale",
+  "attendu": "opposition a ordonnance penale, DEPUIS LE 1er SEPTEMBRE 1995 seulement ; la v1 (1972-1995) portait l'avis du comptable au secretaire-greffier (art. R. 42)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPP-artR45.md"
+ },
+ {
+  "requete": "article R. 27 CPP notifications devant le premier president",
+  "attendu": "version depuis le 16 decembre 2000 ; la v1 (1978-2000) portait la transmission de la requete en indemnisation de detention provisoire",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPP-artR27.md"
+ },
+ {
+  "requete": "article D. 591 code de procedure penale",
+  "attendu": "objet actuel depuis 1999 ; l'ancien D. 591 (1986-1999) portait le secretariat du comite de probation — toute jurisprudence anterieure a 2007 est hors sujet",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPP-artD591.md"
+ },
+ {
+  "requete": "R. 4234-37 code de la sante publique",
+  "attendu": "regle d'affichage depuis 2022 ; de 2012 a 2022 le meme NUMERO portait la transmission des plaintes, etat « TRANSFERE » (LEGIARTI000025840154)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CSP-R4234-37.md"
+ },
+ {
+  "requete": "article 196 decret 91-1197",
+  "attendu": "ATTENTION rupture au 26/05/2005 : avant, le « 196 » etait l'article du RECOURS (LEGIARTI000006922952, ancetre de l'actuel 197) ; le contenu actuel vivait a l'article 195 (LEGIARTI000006922949)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-decret-91-1197-art196.md"
+ },
+ {
+  "requete": "article 197 du decret n° 91-1197 du 27 novembre 1991",
+  "attendu": "actuel = recours contre les decisions disciplinaires ; de 1992 a 2005 = silence du conseil de l'ordre (LEGIARTI000006922954)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-decret-91-1197-art197.md"
+ },
+ {
+  "requete": "decret 91-1197 art 192",
+  "attendu": "art. 192 du decret 91-1197 organisant la profession d'avocat — MEME OBJET depuis 1991 (le signalement de rupture etait FAUX) ; le Nota porte la coquille officielle « procedures disciplinaires engages »",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-decret-91-1197-art192.md"
+ },
+ {
+  "requete": "article 56 aide juridictionnelle",
+  "attendu": "AMBIGU — deux « article 56 » vivants dans le meme champ : decret 91-1266 et decret 2020-1717. Le numero nu ne suffit jamais.",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/SYSTEME BIBLIOTHEQUE.md, § Homonymes inter-textes"
+ },
+ {
+  "requete": "article 71 decret 2020-1717 recours BAJ",
+  "attendu": "art. 71 du decret n° 2020-1717 du 28 decembre 2020 portant application de la loi 91-647",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-decret-2020-1717-art71-recours-BAJ.md"
+ },
+ {
+  "requete": "decret 2012-432 article 194",
+  "attendu": "art. 194 du decret n° 2012-432 du 30 mars 2012 (transfert d'inscription, chambre de discipline) — a ne pas confondre avec l'art. 194 du decret 91-1197",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-decret-2012-432-art194.md"
+ },
+ {
+  "requete": "loi 71-1130 article 21",
+  "attendu": "art. 21 de la loi n° 71-1130 du 31 decembre 1971 — attention : la base JADE imprime parfois « loi n° 71-1130 du 31 decembre 1970 » (coquille de visa)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2024-01-10-453729.md"
+ },
+ {
+  "requete": "loi n° 2019-2022 du 23 mars 2019",
+  "attendu": "AUCUNE loi de ce numero — c'est la coquille du visa de CE 19 aout 2022 n° 443528 pour la loi n° 2019-222. Le moteur doit rattraper, pas rendre zero.",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2022-08-19-443528.md"
+ },
+ {
+  "requete": "decret 2025-609",
+  "attendu": "NUMERO INEXISTANT — coquille du nota servi par la base pour l'art. 748-6 CPC ; le vrai texte est le decret n° 2025-619 du 8 juillet 2025",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art748-6.md"
+ },
+ {
+  "requete": "decret n° 2025-619 du 8 juillet 2025 communication electronique",
+  "attendu": "le vrai vehicule ; noter que le bulk LEGI ne sert que les fiches de liens (« A modifie les dispositions suivantes »), jamais le verbatim « Au troisieme alinea, les mots… »",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F61 ①)"
+ },
+ {
+  "requete": "arrete du 29 aout 2025 garde des sceaux",
+  "attendu": "AMBIGU — DEUX arretes du meme jour, matieres voisines : NOR JUST2523980A (liste 748-1 CPC) et NOR JUST2523192A (reports open data). La date seule ne desambiguise pas.",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/SYSTEME BIBLIOTHEQUE.md, § Arretes : citation par date + NOR"
+ },
+ {
+  "requete": "JUST2523980A",
+  "attendu": "arrete du 29 aout 2025 fixant la liste des dispositifs de l'art. 748-1 CPC — recherche par NOR",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-arrete-2025-08-29-JUST2523980A.md"
+ },
+ {
+  "requete": "arrete du 21 octobre 2021 Portail du justiciable",
+  "attendu": "AMBIGU — DEUX arretes du meme jour : JORFTEXT000044239328 (caracteristiques techniques) et JORFTEXT000044239356 (autorisation de traitement de donnees)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-arrete-2021-10-21-Portail-du-justiciable.md"
+ },
+ {
+  "requete": "arrete du 24 octobre 2019 PLEX NOR JUST1927458A",
+  "attendu": "arrete caracteristiques techniques PLEX — double d'un SECOND arrete du meme jour autorisant le traitement de donnees",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-arrete-2019-10-24-PLEX.md"
+ },
+ {
+  "requete": "arrete du 20 mai 2020 communication electronique",
+  "attendu": "ABROGE depuis le 1er septembre 2025 par l'art. 2 de l'arrete JUST2523980A — le MCP JusticeLibre l'affiche a tort « VIGUEUR »",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-arrete-2025-08-29-JUST2523980A.md"
+ },
+ {
+  "requete": "arrete du 5 mai 2010 communication electronique",
+  "attendu": "abroge en cascade (le 22 mai 2020 par l'arrete du 20 mai 2020, lui-meme abroge en 2025) — citer AU PASSE ; c'est le texte vise par Cass. 2e civ. 10 nov. 2016 n° 14-25.631",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-arrete-2025-08-29-JUST2523980A.md"
+ },
+ {
+  "requete": "L. 212-5-2 COJ decret d'application",
+  "attendu": "L. 212-5-2 COJ en vigueur depuis le 01/01/2022 — decret fixant le montant JAMAIS PRIS (verifie base LEGI le 11/08/2026). Le moteur doit savoir dire « prevu, jamais pris ».",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-COJ-L212-5-2.md"
+ },
+ {
+  "requete": "L. 211-18 code de l'organisation judiciaire",
+  "attendu": "article ABROGE — la fiche porte le suffixe -ABROGE, mais la regle actuelle interdit l'etat dans le nom : servir l'etat, pas le silence",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-COJ-L211-18-ABROGE.md"
+ },
+ {
+  "requete": "L. 1632-3 code de procedure penale",
+  "attendu": "nouveau CPP (entree en vigueur 1er janvier 2029) — texte FUTUR, non encore applicable ; les voisins L. 1632-1, -2, -4, -5 sont introuvables par numero",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F59)"
+ },
+ {
+  "requete": "article 803-1 II CPP garanties fixees par arrete",
+  "attendu": "le II de l'art. 803-1 CPP dans sa redaction actuelle — a comparer au futur L. 1632-3 qui reprend le consentement SANS les garanties",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F59)"
+ },
+ {
+  "requete": "article R. 4126-37 code de la sante publique version",
+  "attendu": "CSP R. 4126-37 avec l'historique ET les dates de version des articles VOISINS (methode dite « regle des voisins »)",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/SYSTEME BIBLIOTHEQUE.md, § regle des voisins"
+ },
+ {
+  "requete": "R. 1452-2 code du travail exemplaires defendeurs",
+  "attendu": "art. R. 1452-2 C. trav. reecrit le 27 juillet 2026, maintenant « en autant d'exemplaires qu'il existe de defendeurs »",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-CPC-art748-3.md"
+ },
+ {
+  "requete": "R. 621-21 code de commerce recours ordonnance juge-commissaire voie electronique",
+  "attendu": "AUCUNE jurisprudence dans aucun sens (INTROUVABLE assume) — un zero resultat qui doit s'afficher comme tel, pas comme une reponse",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (C106)"
+ },
+ {
+  "requete": "L. 821-84 code de commerce",
+  "attendu": "art. L. 821-84 C. com. (issu de la transposition de la directive 2019/1023)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-Ccom-L821-84.md"
+ },
+ {
+  "requete": "directive 2019/1023 article 28",
+  "attendu": "art. 28 de la directive (UE) 2019/1023 — reference EUROPEENNE avec slash, pas tiret",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NORME-UE-directive-2019-1023-art28.md"
+ },
+ {
+  "requete": "decision administrative de l'administration judiciaire definition",
+  "attendu": "NOTION DEFINIE NULLE PART par un texte (negation a portee declaree : COJ, CPC, CRPA balayes) — notion jurisprudentielle",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NOTION-decision-administration-judiciaire.md"
+ },
+ {
+  "requete": "definition de la juridiction administrative",
+  "attendu": "AUCUN texte ne la definit de facon generale — affirmation marquee [A CONFIRMER], refutable",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NOTION-juridiction-administrative.md"
+ },
+ {
+  "requete": "document administratif notion CADA",
+  "attendu": "NOTION — definition + liste des qualifications acquises (tel organisme en est / n'en est pas, decision et point a l'appui)",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/NOTION-document-administratif.md"
+ },
+ {
+  "requete": "refus d'abroger un reglement illegal",
+  "attendu": "CE Ass. 3 fevrier 1989 Cie Alitalia n° 74052 + la jurisprudence de l'obligation d'abroger — requete conceptuelle pure",
+  "type": "concept",
+  "origine": "/home/dahl/.claude/skills/rep-decret/SKILL.md ; memoire ce_numeros_reutilises.md"
+ },
+ {
+  "requete": "excessive formalism not represented by a lawyer",
+  "attendu": "jurisprudence CEDH anglophone (Zavodnik, Lawyer Partners, Ivanova et Ivashova, Faniel, Assuncao Chaves) — l'index FRANCOPHONE de HUDOC les exclut mecaniquement",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (F90)"
+ },
+ {
+  "requete": "Bertuzzi c. France",
+  "attendu": "CEDH, 13 fevrier 2003, Bertuzzi c. France — recherche par nom de partie",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CEDH-2003-02-13-Bertuzzi-c-France.md"
+ },
+ {
+  "requete": "Kruslin c. France 1990",
+  "attendu": "CEDH, 24 avril 1990, Kruslin c. France (001-62183) — la fiche note que HUDOC WebFetch rend une coquille JavaScript sans texte",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CEDH-1990-04-24-Kruslin-c-France.md"
+ },
+ {
+  "requete": "De Geouffre de la Pradelle",
+  "attendu": "CEDH, 16 decembre 1992, De Geouffre de la Pradelle c. France — nom a particules multiples et espaces",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CEDH-1992-12-16-De-Geouffre-de-la-Pradelle-c-France.md"
+ },
+ {
+  "requete": "2019-778 DC",
+  "attendu": "Conseil constitutionnel, 21 mars 2019, decision n° 2019-778 DC — format CC (annee-numero + lettres DC/QPC)",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CC-2019-03-21-2019-778-DC.md"
+ },
+ {
+  "requete": "avis CE 12 avril 2018 n° 394535",
+  "attendu": "CE, AVIS contentieux du 12 avril 2018, n° 394535 — un avis, pas un arret",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-avis-2018-04-12-394535.md"
+ },
+ {
+  "requete": "22LY01015",
+  "attendu": "CAA Lyon, 1er decembre 2022, n° 22LY01015 — format de requete des CAA/TA (annee + code juridiction + rang), incompatible avec le format CE a six chiffres",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CAA-Lyon-2022-12-01-22LY01015.md"
+ },
+ {
+  "requete": "Professions - charges et offices",
+  "attendu": "rubrique PCJA 55 — le tiret APPARTIENT au nom, il ne separe pas : un decoupage naif fabrique des rubriques fausses mais plausibles",
+  "type": "concept",
+  "origine": "/home/dahl/.claude/projects/-home-dahl/memory/justicelibre_pcja.md"
+ },
+ {
+  "requete": "Caractere direct du prejudice - Absence",
+  "attendu": "vraie rubrique terminale du PCJA (attestee 384 fois sur 400) — « ABSENCE » et « EXISTENCE » ne sont pas du bruit",
+  "type": "concept",
+  "origine": "/home/dahl/.claude/projects/-home-dahl/memory/justicelibre_pcja.md"
+ },
+ {
+  "requete": "66-07-02",
+  "attendu": "« Autorisation administrative - Salaries non proteges - Licenciement pour motif economique » — code PCJA a deux tirets internes",
+  "type": "reference",
+  "origine": "/home/dahl/.claude/projects/-home-dahl/memory/justicelibre_pcja.md"
+ },
+ {
+  "requete": "portail du justiciable saisine en ligne question ecrite",
+  "attendu": "NON TESTABLE sur le moteur de l'AN, qui traite les requetes multi-mots comme un OU (4 mots => 20 430 reponses sur 20 431) — seuls les tests mono-mot sont probants",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (§ 3530)"
+ },
+ {
+  "requete": "Portalis",
+  "attendu": "0 question ecrite a l'Assemblee — un VRAI zero, probant parce que mono-mot",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (§ 3530)"
+ },
+ {
+  "requete": "avocat en son nom personnel voie electronique",
+  "attendu": "BREDOUILLE sur l'index FTS judiciaire libre — mais la base ne contient qu'un sous-ensemble de l'open data : un faux negatif ne prouve rien",
+  "type": "concept",
+  "origine": "CLAUDE COWORK FOLDER/CE - REP TOUT-PAPIER/01 - REGISTRE DES CONSTATS.md (§ 442)"
+ },
+ {
+  "requete": "n'a pas tre communiquee",
+  "attendu": "CA Pau 5 dec. 2002 (JURITEXT000006941987) — le texte OCR DILA a perdu les « a » accentues (« Apr s », « pi ces », « acc s ») : la recherche plein texte doit tolerer ces trous",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CAPau-2002-12-05-RG01-01800.md"
+ },
+ {
+  "requete": "aux nombre des garanties",
+  "attendu": "CE 19 aout 2022 n° 443528, pt 15 — coquille JADE pour « au nombre des garanties » : la recherche par citation exacte doit trouver les deux",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2022-08-19-443528.md"
+ },
+ {
+  "requete": "ministre de la justices",
+  "attendu": "CE 21 janvier 2021 n° 429956, pt 8 — coquille de base reproduite telle quelle ; les visas y portent aussi « L. 761 1 » sans trait d'union",
+  "type": "mixte",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2021-01-21-429956.md"
+ },
+ {
+  "requete": "L. 761 1",
+  "attendu": "art. L. 761-1 CJA — le trait d'union a saute dans les visas servis : la normalisation doit rattraper l'espace",
+  "type": "reference",
+  "origine": "CLAUDE COWORK FOLDER/_BIBLIOTHÈQUE/SOURCE-CE-2021-01-21-429956.md"
+ }
+]
