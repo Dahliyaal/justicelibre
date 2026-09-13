@@ -349,8 +349,11 @@ html.jl-dense .topbar nav.main-nav{gap:var(--space-6)}
 .jl-frise{position:relative;margin:var(--space-5) 0 0 var(--space-3);
   padding-left:22px;border-left:2px solid var(--line);list-style:none}
 .jl-frise__ev{position:relative;padding:0 0 var(--space-5)}
+/* Le point doit être centré sur le trait : trait de 2 px à -24..-22 px du
+   contenu (padding 22 + bordure 2), donc centre à -23 px ; le point fait 12 px
+   bordure comprise (box-sizing explicite, sinon il dérive de 2 à 4 px à droite). */
 .jl-frise__ev::before{content:"";position:absolute;left:-29px;top:4px;
-  width:12px;height:12px;border-radius:50%;background:var(--white);
+  box-sizing:border-box;width:12px;height:12px;border-radius:50%;background:var(--white);
   border:2px solid var(--teal)}
 .jl-frise__ev--morte::before{background:var(--bad);border-color:var(--bad)}
 .jl-frise__ev--bientot::before{border-style:dashed;border-color:var(--muted)}
