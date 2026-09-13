@@ -237,7 +237,7 @@ function LEFT(M){
       ? (i === 2 ? rows.map((a, j) => arr(a, j === rows.length - 1)).join('')
                  : rows.map((x, j) => node(item(x), j === rows.length - 1)).join(''))
       : node(`<div class="jl-empty">${esc(e.vide)}</div>`, true);
-    return `<div class="jl-branch"><div class="bt">${e.n}. ${esc(e.titre)}<span class="c">${rows.length}</span></div>${body}</div>`; };
+    const unit = e.unit || 'texte'; return `<div class="jl-branch"><div class="bt">${esc(e.titre)}<span class="c">${rows.length} ${unit}${rows.length > 1 ? 's' : ''}</span></div>${body}</div>`; };
   return `<div class="jl-head"><h2>Ce qui joue sur lui</h2>${whenBadge(M)}</div>
     <p class="jl-sub">Du plus haut au plus bas dans la hiérarchie : ce qui a écrit l’article, puis ce qui est pris pour l’appliquer. Article de valeur réglementaire : pas de décret d’application au-dessus de lui.</p>
     <div class="jl-tree"><div class="jl-root">art. ${esc(M.num)} CPC</div>${ETAGES.map(branch).join('')}</div>${footHTML()}`;
@@ -404,7 +404,7 @@ function remplaceHTML(a){ if (!a.remplace.length) return '';
   return `<div class="jl-more">remplace <a href="#historique" title="${esc(a.remplace.map(r => r.titre).join(' · '))}">${a.remplace.length} arrêtés antérieurs</a></div>`; }
 const ETAGES = [
   {n: 1, titre: 'La rédaction en vigueur', vide: 'aucun texte modificateur relié dans LEGI'},
-  {n: 2, titre: 'Arrêtés en vigueur pris pour lui', vide: 'aucun arrêté en vigueur n’est pris pour lui'}
+  {n: 2, titre: 'Arrêtés en vigueur pris pour lui', unit: 'arrêté', vide: 'aucun arrêté en vigueur n’est pris pour lui'}
 ];
 /* article de valeur réglementaire : pas d’étage « décrets d’application » ; les décrets qui le mentionnent sont à droite (textes qui le citent) */
 const etageData = M => [M.etage1, M.etage3];
