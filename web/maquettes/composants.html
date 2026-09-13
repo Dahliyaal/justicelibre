@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr" class="jl-dense">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composants — jl.css + jl.js · JusticeLibre</title>
+<meta name="description" content="Catalogue de tous les composants du normaliseur JusticeLibre : chaque variante, chaque état, avec son nom de classe.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles/jl.css?v=1">
+<script>(function(){try{var t=localStorage.getItem('jl-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+<script defer src="/topbar.js?v=5"></script>
+<script defer src="/jl.js?v=1"></script>
+</head>
+<body>
+<div data-topbar-mount></div>
+<div class="jl-app">
+<nav class="jl-rail" data-jl-rail aria-label="Chercher dans"></nav>
+<main class="jl-body">
+
+<div class="jl-fil"><a href="/">Accueil</a> › Composants</div>
+<div class="jl-kicker">Normaliseur</div>
+<h1 class="jl-titre jl-titre--h1">Le catalogue des <em>composants</em></h1>
+<p class="jl-muted">Chaque composant de <code class="jl-mono">jl.css</code>, chaque variante, chaque état, avec son nom de classe à côté. Bascule le thème avec le bouton du rail (clair → sombre → système) : tout doit tenir dans les deux.</p>
+
+<!-- ── 1. Header ─────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">1. Header <em>justicelibre.org</em></h2>
+<p class="jl-muted"><code class="jl-mono">topbar.js</code> gagne : c'est le seul composant partagé qui existe déjà, le seul que le SSR sait relire, le seul à porter le drawer mobile. La barre en haut de cette page est la sienne.</p>
+<p><span class="jl-src">html.jl-dense</span> — variante de densité du hub : 56 px, logo réduit. Ce n'est pas un second composant. Cette page l'applique.</p>
+
+<!-- ── 2. Rail ───────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">2. Rail « <em>Chercher dans</em> »</h2>
+<p class="jl-muted">À gauche de cette page. <code class="jl-mono">.jl-rail</code> · replié <code class="jl-mono">.jl-rail--mini</code> (clic sur le logo) · masqué en mobile <code class="jl-mono">.jl-rail--cache</code>. Entrée active <code class="jl-mono">.jl-ri.is-on</code>, entrée « bientôt » <code class="jl-mono">.jl-ri.is-soon</code> (grise et désactivée, jamais rouge). Le repli est mémorisé dans <code class="jl-mono">jl.railMini</code>.</p>
+
+<!-- ── 3. Pastille ───────────────────────────────────────────────────── -->
+<h2 class="jl-titre">3. Pastille <em>et sa variante loader</em></h2>
+<table class="jl-tableau">
+<thead><tr><th>Rendu</th><th>Classe</th><th>Sens</th></tr></thead>
+<tbody>
+<tr><td><span class="jl-pastille jl-pastille--ok">en vigueur</span></td><td><code class="jl-mono">.jl-pastille--ok</code></td><td>vivant</td></tr>
+<tr><td><span class="jl-pastille jl-pastille--morte">abrogé le 1er janvier 2024</span></td><td><code class="jl-mono">.jl-pastille--morte</code></td><td>mort — rouge atténué</td></tr>
+<tr><td><span class="jl-pastille jl-pastille--q">non résolu</span></td><td><code class="jl-mono">.jl-pastille--q</code></td><td>je ne sais pas — anneau vide, gris</td></tr>
+<tr><td><span class="jl-pastille jl-pastille--future">entre en vigueur le 1er juillet 2027</span></td><td><code class="jl-mono">.jl-pastille--future</code></td><td>à venir</td></tr>
+<tr><td><span class="jl-pastille jl-pastille--loader">interrogation</span></td><td><code class="jl-mono">.jl-pastille--loader</code></td><td>chargement — le point devient le rotor</td></tr>
+</tbody></table>
+<p data-espace="haut">Point nu, couleur portée par <code class="jl-mono">--c</code> : <span class="jl-point" ></span> <code class="jl-mono">.jl-point</code> · <span class="jl-point jl-point--soon"></span> <code class="jl-mono">.jl-point--soon</code> · <span class="jl-point jl-point--sm"></span> <code class="jl-mono">.jl-point--sm</code>. Loader plein format : <span class="jl-spin"></span> <code class="jl-mono">.jl-spin</code>.</p>
+<div class="jl-sk" data-espace="haut"><div></div><div></div><div></div><div></div></div>
+<p class="jl-muted"><code class="jl-mono">.jl-sk</code> — squelette de chargement d'une liste.</p>
+
+<!-- ── 4. Ligne-texte ────────────────────────────────────────────────── -->
+<h2 class="jl-titre">4. Ligne-<em>texte</em></h2>
+<div class="jl-carte" id="demo-lt"></div>
+<p class="jl-muted"><code class="jl-mono">.jl-lt</code> avec ses cinq registres : <code class="jl-mono">__rel __t __long __meta __more</code>. Morte : <code class="jl-mono">.jl-lt--morte</code>. Rendue par <code class="jl-mono">JL.ligneTexte()</code>.</p>
+
+<!-- ── 5. Chaîne ─────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">5. <em>Chaîne</em> de textes</h2>
+<div class="jl-chaine is-open">
+  <div class="jl-chaine__tete"><span class="jl-chaine__chev">›</span><span class="jl-chaine__obj">Arrêtés de nomination du 12 mars 2014</span><span class="jl-chaine__cnt">3 textes</span></div>
+  <div class="jl-chaine__membres">
+    <div class="jl-membre"><span class="jl-point"></span><div><div class="jl-lt__t"><a href="#">Arrêté du 12 mars 2014</a></div><div class="jl-lt__meta"><span class="jl-pastille jl-pastille--ok">en vigueur</span></div></div></div>
+    <div class="jl-membre jl-membre--morte"><span class="jl-point"></span><div><div class="jl-lt__t"><a href="#">Arrêté du 4 juin 2009</a></div><div class="jl-lt__meta"><span class="jl-pastille jl-pastille--morte">abrogé</span></div></div></div>
+    <div class="jl-membre jl-membre--future"><span class="jl-point"></span><div><div class="jl-lt__t"><a href="#">Arrêté du 2 janvier 2027</a></div><div class="jl-lt__meta"><span class="jl-pastille jl-pastille--future">à venir</span></div></div></div>
+  </div>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-chaine</code> / <code class="jl-mono">.jl-chaine.is-open</code> / <code class="jl-mono">.jl-membre</code> (<code class="jl-mono">--morte</code>, <code class="jl-mono">--future</code>). Forme compacte en arbre : <code class="jl-mono">.jl-arbre .jl-noeud</code>.</p>
+<div class="jl-arbre" data-espace="haut"><div class="jl-noeud"><div class="jl-lt"><div class="jl-lt__rel">abroge</div><div class="jl-lt__t"><a href="#">Décret n° 2014-248</a></div></div></div><div class="jl-noeud jl-noeud--last"><div class="jl-lt jl-lt--morte"><div class="jl-lt__rel">abrogé par</div><div class="jl-lt__t"><a href="#">Décret n° 2009-621</a></div></div></div></div>
+<p class="jl-legende" data-espace="haut"><span><span class="jl-point"></span>en vigueur</span><span><span class="jl-point jl-point--morte"></span>abrogé</span><span><span class="jl-point jl-point--soon"></span>à venir</span></p>
+
+<!-- ── 6. Point-frise ────────────────────────────────────────────────── -->
+<h2 class="jl-titre">6. Point-<em>frise</em></h2>
+<ul class="jl-frise">
+  <li class="jl-frise__ev"><div class="jl-frise__when">10 septembre 2026</div><div class="jl-frise__what">état normal — <code class="jl-mono">.jl-frise__ev</code></div></li>
+  <li class="jl-frise__ev jl-frise__ev--morte"><div class="jl-frise__when">1er janvier 2024</div><div class="jl-frise__what">mort — <code class="jl-mono">.jl-frise__ev--morte</code></div></li>
+  <li class="jl-frise__ev jl-frise__ev--bientot"><div class="jl-frise__when">1er juillet 2027</div><div class="jl-frise__what">à venir — <code class="jl-mono">.jl-frise__ev--bientot</code></div></li>
+</ul>
+<p class="jl-muted" data-espace="haut">Variante courte des pages décision, <code class="jl-mono">.jl-chrono</code> :</p>
+<ul class="jl-chrono">
+  <li class="is-cur"><div class="jl-chrono__d">10 septembre 2026</div><div class="jl-chrono__j">Cour de cassation</div><div class="jl-chrono__w">étape courante — <code class="jl-mono">li.is-cur</code></div></li>
+  <li><div class="jl-chrono__d">26 juin 2023</div><div class="jl-chrono__j">Cour d'appel de Basse-Terre</div><div class="jl-chrono__w">étape antérieure</div></li>
+</ul>
+
+<!-- ── 7. Bande-identité ─────────────────────────────────────────────── -->
+<h2 class="jl-titre">7. Bande-<em>identité</em></h2>
+<div class="jl-bande">
+  <div><div class="jl-bande__k">Juridiction</div><div class="jl-bande__v">Cour de cassation</div></div>
+  <div><div class="jl-bande__k">Date</div><div class="jl-bande__v">10 septembre 2026</div></div>
+  <div><div class="jl-bande__k">Pourvoi</div><div class="jl-bande__v jl-mono">23-20.368</div></div>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-bande</code> — sans boîte, c'est la forme par défaut.</p>
+<div class="jl-bande jl-bande--encadree" data-espace="haut">
+  <div><div class="jl-bande__k">Juridiction</div><div class="jl-bande__v">Cour de cassation</div></div>
+  <div><div class="jl-bande__k">Date</div><div class="jl-bande__v">10 septembre 2026</div></div>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-bande--encadree</code> — modificateur, pas un second composant.</p>
+<div class="jl-bande jl-bande--enligne" data-espace="haut"><div><span class="jl-bande__k">Juridiction</span>Cour de cassation</div><div><span class="jl-bande__k">Date</span>10 septembre 2026</div></div>
+<p class="jl-muted"><code class="jl-mono">.jl-bande--enligne</code> — forme compacte, clé en ligne.</p>
+
+<!-- ── 8. Bouton ─────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">8. <em>Bouton</em></h2>
+<p class="jl-alerte"><b>Piège n° 1 :</b> <code class="jl-mono">.btn</code> valait <b>plein teal</b> dans hub.html:250 et <b>ghost</b> dans decision-03b.html:66. jl.css n'emploie donc jamais ce nom : <code class="jl-mono">.jl-bouton</code> est plein, <code class="jl-mono">.jl-bouton--ghost</code> est explicite.</p>
+<p class="jl-copyrow" data-espace="haut">
+  <button class="jl-bouton">Chercher</button>
+  <button class="jl-bouton jl-bouton--cta">Accéder à l'endpoint MCP</button>
+  <button class="jl-bouton jl-bouton--ghost">Historique</button>
+  <button class="jl-bouton jl-bouton--sm">Charger la suite</button>
+  <button class="jl-bouton jl-bouton--icone" title="Imprimer" aria-label="Imprimer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></button>
+  <button class="jl-bouton jl-bouton--inedits">Inédits</button>
+  <button class="jl-bouton" disabled>Désactivé</button>
+  <button class="jl-bouton jl-bouton--ghost" disabled>Désactivé ghost</button>
+</p>
+<p class="jl-muted"><code class="jl-mono">.jl-bouton</code> · <code class="jl-mono">--cta</code> · <code class="jl-mono">--ghost</code> · <code class="jl-mono">--sm</code> · <code class="jl-mono">--icone</code> · <code class="jl-mono">--inedits</code> (exception assumée, jeton <code class="jl-mono">--accent-inedits</code>, pas un accent général) · <code class="jl-mono">[disabled]</code>. Survol : teal plus clair.</p>
+<p data-espace="haut">Filtre à bascule — <b>pas</b> un bouton : <button class="jl-filtre">inactif</button> <button class="jl-filtre is-on">actif</button> <code class="jl-mono">.jl-filtre / .is-on</code>. Il dit « ce filtre est actif », pas « clique ici ».</p>
+
+<!-- ── 9. Note de provenance ─────────────────────────────────────────── -->
+<h2 class="jl-titre">9. Note de <em>provenance</em></h2>
+<p class="jl-copyrow">
+  <span class="jl-provenance" title="Pas de visa Judilibre : article repéré par expression régulière dans le texte.">repéré dans le texte</span>
+  <span class="jl-provenance" title="Champ « sommaire » du flux DILA.">sommaire officiel · DILA</span>
+  <span class="jl-src">LEGI</span>
+  <span class="jl-src">Judilibre · DILA</span>
+  <span class="jl-warnp">numéro recyclé</span>
+  <span class="jl-warnp">maquette</span>
+  <span class="jl-off">sommaire officiel</span>
+</p>
+<p class="jl-muted"><b>Piège n° 4.</b> <code class="jl-mono">.jl-provenance</code> a une bordure <b>en pointillés</b> et un <code class="jl-mono">cursor:help</code> : elle dit <i>d'où je le sais</i>. <code class="jl-mono">.jl-warnp</code> a une bordure <b>pleine</b> couleur <code class="jl-mono">--warn</code> : elle avertit <i>sur la donnée</i>. <code class="jl-mono">.jl-src</code> nomme la source, bordure pleine neutre. Trois choses distinctes.</p>
+
+<!-- ── 10 & 11. Honnêteté vs alerte ──────────────────────────────────── -->
+<h2 class="jl-titre">10 et 11. Bloc <em>honnêteté</em> et <em>alerte</em></h2>
+<div class="jl-honnetete"><b>Ce que cette page ne sait pas.</b> Pas de « décisions similaires » : nous n'avons pas encore de méthode fiable pour les calculer, donc rien n'est affiché plutôt qu'une liste approximative. — <code class="jl-mono">.jl-honnetete</code></div>
+<div class="jl-honnetete jl-honnetete--nue" data-espace="haut">Variante sans fond, à l'intérieur d'une carte. — <code class="jl-mono">.jl-honnetete--nue</code></div>
+<div class="jl-alerte" data-espace="haut"><div><b>Échec technique.</b> La source Judilibre n'a pas répondu (12 s puis 60 s). Ce n'est pas « aucun résultat » : le précédent peut exister. — <code class="jl-mono">.jl-alerte</code></div></div>
+<div class="jl-note" data-espace="haut">Encadré d'information neutre. — <code class="jl-mono">.jl-note</code></div>
+<div class="jl-callout" data-espace="haut">Encadré teal d'accompagnement. — <code class="jl-mono">.jl-callout</code></div>
+<p class="jl-muted" data-espace="haut"><b>Piège n° 4 (suite).</b> Le bloc honnêteté est du <b>contenu éditorial permanent</b> ; l'alerte est un <b>échec technique</b>. Les fusionner ferait clignoter en rouge d'erreur des phrases qui sont de la méthode.</p>
+
+<!-- ── 12 & 13. Onglets vs bascule de vue ────────────────────────────── -->
+<h2 class="jl-titre">12 et 13. <em>Onglets</em> et bascules de vue</h2>
+<div class="jl-onglets" ><label class="jl-demo-tab">Texte</label><label>Dossier <span class="jl-onglets__c">4</span></label></div>
+<p class="jl-muted"><code class="jl-mono">.jl-onglets</code> — <b>commutent des panneaux entiers</b> (Texte / Dossier). Mécanique CSS pure (<code class="jl-mono">input.jl-tab</code>), panneaux <code class="jl-mono">.jl-pane--*</code>. Voir la page décision en fonctionnement.</p>
+<p data-espace="haut"><span class="jl-vue"><a href="#" class="is-on">Couloirs</a><a href="#">Poupées russes</a></span> <code class="jl-mono">.jl-vue</code></p>
+<p data-espace="haut"><span class="jl-vue jl-vue--sm"><button class="is-on">Sommaire</button><button>Extrait</button></span> <span class="jl-vue jl-vue--sm"><button class="is-on">Pertinence</button><button>Récent</button><button>Ancien</button></span> <code class="jl-mono">.jl-vue--sm</code></p>
+<p class="jl-muted">Un seul composant à deux tailles. Il change une <b>option d'affichage</b> ; les onglets changent de <b>panneau</b>. Ce sont deux composants.</p>
+
+<!-- ── 14. Popover de date ───────────────────────────────────────────── -->
+<h2 class="jl-titre">14. Popover de <em>date</em></h2>
+<div class="jl-datew">
+  <button class="jl-calbtn" aria-label="Choisir une date"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16v15H4zM4 10h16M8 3v4M16 3v4"/></svg></button>
+  <span class="jl-mono jl-muted">10/09/2026</span>
+  <div class="jl-datepop is-open">
+    <div class="jl-datepop__k">Saisir une date</div>
+    <div class="jl-datepop__row"><input type="text" value="10/09/2026" aria-label="Date jj/mm/aaaa"><button class="jl-bouton jl-bouton--sm">Lire</button></div>
+    <div class="jl-datepop__k">Ou choisir dans le calendrier</div>
+    <div class="jl-datepop__row"><input type="date" value="2026-09-10" aria-label="Calendrier"></div>
+    <div class="jl-datepop__k">Ou sauter à une rédaction</div>
+    <div class="jl-datepop__row"><span class="jl-chip">2008</span> <span class="jl-chip">2014</span> <span class="jl-chip">aujourd&#39;hui</span></div>
+    <div class="jl-datepop__err">Date illisible : attendu jj/mm/aaaa</div>
+  </div>
+</div>
+<div class="jl-datepop-espace"></div>
+<p class="jl-muted"><code class="jl-mono">.jl-datepop</code> / <code class="jl-mono">.is-open</code> / <code class="jl-mono">.jl-calbtn</code>. Trois entrées simultanées — c'est ce qui le distingue du menu déroulant, qui se ferme au choix.</p>
+
+<!-- ── 15. Titres, sur-titres, mot accentué ──────────────────────────── -->
+<h2 class="jl-titre">15. Titres, sur-titres et le <em>mot accentué</em></h2>
+<p class="jl-surtitre">Sur-titre — .jl-surtitre (10 px, majuscules, gris)</p>
+<h3 class="jl-titre jl-titre--nu">Titre de section sans filet <em>accentué</em> — .jl-titre--nu</h3>
+<h3 class="jl-titre jl-titre--h3">Sous-titre teal <em>accentué</em> — .jl-titre--h3</h3>
+<p class="jl-titre jl-titre--h1">Titre de page <em>accentué</em> — .jl-titre--h1</p>
+<p class="jl-titre jl-titre--h1 jl-titre--capitales">Titre en capitales <em>accentué droit</em> — .jl-titre--capitales</p>
+<p class="jl-muted"><b>Règle : capitales = droit, bas de casse = italique.</b> Le mot accentué est en serif italique teal, et le numéro de pourvoi en fait partie.</p>
+<p class="jl-alerte" data-espace="haut"><b>Piège n° 5 :</b> jl.css n'a <b>aucune règle <code class="jl-mono">em{}</code> globale</b>. Le <code class="jl-mono">&lt;em&gt;</code> de surlignage des résultats est un autre composant : <span class="jl-hl">terme cherché</span> <code class="jl-mono">.jl-hl</code> — droit, sur fond <code class="jl-mono">--teal-xl</code>. Une règle globale le rendrait italique teal et on ne distinguerait plus « voici le mot que vous cherchiez » de « voici le mot qui porte le sens du titre ».</p>
+
+<!-- ── 16. Tuile ─────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">16. <em>Tuile</em></h2>
+<div class="jl-grille-2">
+  <a class="jl-tuile jl-tuile--survol" href="#"><div class="jl-tuile__t">Normale, survolable</div><div class="jl-tuile__s">.jl-tuile--survol</div><div class="jl-tuile__n">4,3 M</div></a>
+  <div class="jl-tuile jl-tuile--evidence"><div class="jl-tuile__t">Mise en évidence</div><div class="jl-tuile__s">.jl-tuile--evidence</div></div>
+  <div class="jl-tuile jl-tuile--bientot"><div class="jl-tuile__t">Pas encore branchée</div><div class="jl-tuile__s">.jl-tuile--bientot — l'étiquette « bientôt » est grise, pas dorée</div></div>
+  <div class="jl-carte"><div class="jl-tuile__t">Carte de contenu</div><div class="jl-tuile__s">.jl-carte — pas cliquable</div></div>
+</div>
+
+<!-- ── 17. Tableau ───────────────────────────────────────────────────── -->
+<h2 class="jl-titre">17. <em>Tableau</em></h2>
+<table class="jl-tableau">
+<thead><tr><th data-sort="a" class="is-sorted">Colonne triée <span class="jl-arr">▲</span></th><th data-sort="b">Colonne triable <span class="jl-arr">▲▼</span></th><th>Colonne fixe</th></tr></thead>
+<tbody>
+<tr><td>Tribunal judiciaire de Lille</td><td class="jl-mono">TJ59</td><td><span class="jl-badge">Tribunal judiciaire</span></td></tr>
+<tr><td>Cour d'appel de Douai</td><td class="jl-mono">CA59</td><td><span class="jl-badge">Cour d'appel</span></td></tr>
+<tr><td>PRADA — rectorat de Lille</td><td class="jl-mono">—</td><td><span class="jl-badge jl-badge--prada">PRADA</span></td></tr>
+</tbody></table>
+<p class="jl-muted"><code class="jl-mono">.jl-tableau</code> — en-têtes collants (<code class="jl-mono">position:sticky</code>) et tri au clic via <code class="jl-mono">th[data-sort]</code> / <code class="jl-mono">th.is-sorted</code>.</p>
+
+<!-- ── 18. Menu déroulant ────────────────────────────────────────────── -->
+<h2 class="jl-titre">18. <em>Menu</em> déroulant</h2>
+<div class="jl-menu">
+  <button class="jl-menu__display"><span data-jl-menu-value>Toutes juridictions</span><span class="jl-menu__chev">▾</span></button>
+  <div class="jl-menu__panel">
+    <div class="jl-menu__group" data-value="adm">Administratif</div>
+    <div class="jl-menu__item jl-menu__item--sub" data-value="ce">Conseil d'État</div>
+    <div class="jl-menu__item jl-menu__item--sub" data-value="caa">Cours administratives d'appel</div>
+    <div class="jl-menu__group" data-value="jud">Judiciaire</div>
+    <div class="jl-menu__item jl-menu__item--sub is-selected" data-value="cass">Cour de cassation</div>
+    <div class="jl-menu__item jl-menu__item--sub" data-value="ca">Cours d'appel</div>
+  </div>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-menu</code> / <code class="jl-mono">.is-open</code> / <code class="jl-mono">.jl-menu__item.is-selected</code> / <code class="jl-mono">.jl-menu__group</code>. <code class="jl-mono">JL.bindMenu()</code> fusionne les quatre <code class="jl-mono">bindCs</code> : molette (essaie de faire défiler sur le bouton fermé), garde <code class="jl-mono">dataset.bound</code>, groupes cliquables.</p>
+
+<!-- ── 19. Modale ────────────────────────────────────────────────────── -->
+<h2 class="jl-titre">19. <em>Modale</em></h2>
+<div class="jl-carte"><div class="jl-modale" ><h3>Signaler une adresse</h3><p class="jl-muted">Fondement : L. 311-6 du CRPA, avis CADA 2007-3348, 2010-2445, 2019-4471 ; droit d'opposition RGPD article 21.</p><p class="jl-copyrow" data-espace="haut"><button class="jl-bouton">Envoyer</button><button class="jl-bouton jl-bouton--ghost">Annuler</button></p></div></div>
+<p class="jl-muted"><code class="jl-mono">.jl-modale-overlay</code> + <code class="jl-mono">.jl-modale</code>.</p>
+
+<!-- ── 21 et 22. Les deux barres ─────────────────────────────────────── -->
+<h2 class="jl-titre">21 et 22. Les <em>deux</em> barres de recherche</h2>
+<div class="jl-barre-reseau"><input type="search" placeholder="trouble anormal de voisinage · 04-10.362 · 380374 · 14852/18" aria-label="Chercher"><button class="jl-barre-reseau__go">Chercher</button></div>
+<div class="jl-sources" data-espace="haut">
+  <span class="jl-pastille jl-pastille--loader">ArianeWeb</span>
+  <span class="jl-pastille jl-pastille--ok">Judilibre 1 240</span>
+  <span class="jl-pastille jl-pastille--morte">CJUE</span>
+  <span class="jl-pastille jl-pastille--q">doctrine</span>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-barre-reseau</code> + <code class="jl-mono">.jl-sources</code> — cherche <b>sur le réseau</b>, en plusieurs sources : d'où le bouton, les loaders, un état par source. ⛔ Ne jamais afficher « aucun résultat » quand une source n'a pas répondu.</p>
+<div class="jl-barre-filtre" data-espace="haut">
+  <input type="text" placeholder="Rechercher : nom, ville, mail, organisme, PRADA…" aria-label="Filtrer">
+  <span class="jl-barre-filtre__count">6 263 / 6 263 fiches</span>
+</div>
+<p class="jl-muted"><code class="jl-mono">.jl-barre-filtre</code> — filtre un jeu <b>déjà chargé</b> : pas de bouton, pas de loader, compteur toujours juste. Les unifier ferait perdre soit l'immédiateté de l'une, soit l'honnêteté des états de l'autre.</p>
+
+<!-- ── 23. Les trois axes ────────────────────────────────────────────── -->
+<h2 class="jl-titre">23. Les <em>trois axes</em> de couleur</h2>
+<p class="jl-alerte"><b>Piège n° 3 :</b> ce sont trois axes, pas trois versions du même badge. Un arrêt du Conseil constitutionnel arrive par le backend <code class="jl-mono">dila</code> (donc brun) mais appartient à la famille constitutionnelle (donc vert).</p>
+<table class="jl-tableau" data-espace="haut">
+<thead><tr><th>Axe</th><th>Rendu</th><th>Classe</th></tr></thead>
+<tbody>
+<tr><td>1 — backend interrogé</td><td class="jl-copyrow"><span class="jl-src-badge jl-src-badge--ce">CE</span> <span class="jl-src-badge jl-src-badge--admin">admin</span> <span class="jl-src-badge jl-src-badge--jud">DILA</span> <span class="jl-src-badge jl-src-badge--cedh">CEDH</span> <span class="jl-src-badge jl-src-badge--cjue">CJUE</span></td><td><code class="jl-mono">.jl-src-badge--*</code> · <code class="jl-mono">--src-*</code></td></tr>
+<tr><td>2 — famille juridictionnelle</td><td class="jl-copyrow"><span class="jl-tag jl-tag--jud">judiciaire</span> <span class="jl-tag jl-tag--adm">administratif</span> <span class="jl-tag jl-tag--ce">constitutionnel</span> <span class="jl-tag jl-tag--eu">européen</span> <span class="jl-tag jl-tag--txt">texte</span> <span class="jl-tag jl-tag--doc">doctrine</span></td><td><code class="jl-mono">.jl-tag--*</code> · <code class="jl-mono">--jud --adm --ce --eu --txt --doc</code></td></tr>
+<tr><td>3 — catégorie d'entité</td><td class="jl-copyrow"><span class="jl-badge">Tribunal judiciaire</span> <span class="jl-badge jl-badge--prada">PRADA</span></td><td><code class="jl-mono">.jl-badge</code></td></tr>
+</tbody></table>
+
+<!-- ── 24 et 25. Page décision ───────────────────────────────────────── -->
+<h2 class="jl-titre">24 et 25. Pièces de la page <em>décision</em></h2>
+<nav class="jl-toc" data-espace="haut"><a href="#" class="l2 is-on">Sommaire officiel — a.is-on</a><a href="#" class="l2">Faits et procédure</a><a href="#" class="l3">Énoncé du moyen — a.l3</a></nav>
+<section class="jl-somm" data-espace="haut"><h3 class="jl-surtitre jl-surtitre--flex">Sommaire officiel <span class="jl-provenance" title="Champ « sommaire » du flux DILA.">sommaire officiel · DILA</span></h3><p class="jl-somm__t">Si, en principe, l'interruption de la prescription ne peut s'étendre d'une action à une autre, il en est autrement lorsque les deux actions tendent à un même but.</p><p class="jl-somm__m"><span class="jl-surtitre">Matière</span> <a class="jl-chip" href="#">prescription civile</a></p></section>
+<div class="jl-txt" data-espace="haut"><p class="jl-pn"><span class="jl-no"><a href="#">1.</a></span> Paragraphe numéroté par la Cour. Il cite l'article <a class="jl-artlink" href="#">2241</a> du code civil. — <code class="jl-mono">.jl-txt p.jl-pn</code>, <code class="jl-mono">.jl-no</code>, <code class="jl-mono">.jl-artlink</code></p></div>
+<div class="jl-entete" data-espace="haut">CIV. 2
+COUR DE CASSATION
+<b>Cassation partielle</b> — <code class="jl-mono">.jl-entete</code></div>
+<div class="jl-vise jl-vise--encadre" data-espace="haut"><div class="jl-vise__t"><a class="jl-artlink" href="#">article 2241 du code civil</a> <span class="jl-mono jl-muted">C. civ.</span></div><div class="jl-vise__d"><span class="jl-pastille jl-pastille--ok">rédaction au 10 sept. 2026</span><span class="jl-provenance" title="Repéré par expression régulière.">repéré dans le texte</span></div></div>
+<div class="jl-partie" data-espace="haut"><div class="jl-partie__role">Demanderesse au pourvoi</div><div class="jl-partie__nom">Société Crédit foncier de France</div><div class="jl-partie__cons">conseil : SAS Boucard-Capron-Maman — <code class="jl-mono">.jl-partie</code></div></div>
+<div class="jl-refbar" data-espace="haut"><span class="jl-surtitre">Référence</span><code id="demo-ref" class="jl-mono">Cass. 2e civ., 10 septembre 2026, n° 23-20.368</code><button class="jl-bouton jl-bouton--ghost jl-bouton--sm" data-copy="demo-ref">copier</button><span class="jl-copyok" data-copy-ok aria-live="polite"></span></div>
+<details class="jl-fold" data-espace="haut"><summary>Repli — .jl-fold</summary><p class="jl-muted" data-espace="haut">Contenu déplié. À l'impression, tous les replis s'ouvrent et le résumé disparaît.</p></details>
+<footer class="jl-pied">Pied de page — <code class="jl-mono">.jl-pied</code>. Source : Judilibre, archive <a href="#">DILA</a>, Licence Ouverte 2.0.</footer>
+
+<!-- ── 26. Impression ────────────────────────────────────────────────── -->
+<h2 class="jl-titre">26. <em>Impression</em></h2>
+<p class="jl-muted">Une page A4 fait environ 794 px : le point de rupture 900 px s'active <b>à l'impression</b>. Sans règles explicites, c'est la mise en page mobile qui part sur le papier. <code class="jl-mono">@media print</code> masque le header, le rail, le sommaire, les onglets et tous les boutons, ouvre tous les panneaux et tous les replis, et remet les grilles en blocs. Essaie <kbd>Ctrl+P</kbd>.</p>
+
+<footer class="jl-pied" data-espace="haut">Catalogue du normaliseur · <a href="decision-jl.html">page décision reconstruite</a> · <a href="decision-03b.html">maquette d'origine</a></footer>
+</main>
+</div>
+<div class="jl-proto">catalogue des composants</div>
+
+<script type="application/json" id="jl-page">
+{
+  "rail": {
+    "actif": "juris",
+    "mcp": "/ressources.html",
+    "scopes": [
+      {"k":"juris",    "icon":"scale",  "label":"Jurisprudence",         "href":"/hub.html#/juris", "n":"4,3 M"},
+      {"k":"textes",   "icon":"book",   "label":"Textes",                "soon":true},
+      {"k":"travaux",  "icon":"hall",   "label":"Travaux préparatoires", "soon":true},
+      {"k":"avis",     "icon":"chat",   "label":"Avis & doctrine",       "soon":true},
+      {"k":"annuaire", "icon":"people", "label":"Annuaire",              "soon":true}
+    ],
+    "outils": [
+      {"k":"citations", "icon":"check", "label":"Vérifier mes citations", "href":"/hub.html#/citations"}
+    ]
+  },
+  "toc": false,
+  "demoLigneTexte": true
+}
+</script>
+<script>
+/* Démonstration de JL.ligneTexte() : le catalogue est la seule page qui
+   exécute du JS de démonstration. Aucune page de produit n'en a besoin. */
+(function(){ function go(){
+  var m = document.getElementById('demo-lt');
+  if (!m || !window.JL) return;
+  m.innerHTML =
+    JL.ligneTexte({rel:'abroge', titre:'Décret n° 2014-248 du 27 février 2014',
+      href:'#', long:"relatif à l'organisation des services déconcentrés",
+      meta:[JL.pastille('ok','en vigueur'), JL.noteProvenance('lien LEGI','Relation lue dans les liens structurés de LEGI.')],
+      more:'<a href="#">3 textes liés</a>', separee:true}) +
+    JL.ligneTexte({rel:'abrogé par', titre:'Décret n° 2009-621 du 6 juin 2009',
+      href:'#', long:'texte abrogé, conservé pour la lecture historique',
+      meta:[JL.pastille('morte','abrogé le '+JL.fmtCourt('2014-03-01')), JL.noteProvenance('succession','Chaîne reconstruite par les liens « abroge ».')],
+      morte:true, separee:true});
+  }
+  if (document.readyState === 'loading') addEventListener('DOMContentLoaded', go); else setTimeout(go, 0);
+})();
+</script>
+</body>
+</html>
