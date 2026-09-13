@@ -44,6 +44,21 @@ input,select{font:inherit;color:inherit}
 .cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.85rem 1.8rem;background:var(--teal);color:#fff !important;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;border:none;border-radius:4px;cursor:pointer;text-align:center;white-space:nowrap}
 .cta:hover{background:var(--teal-l);text-decoration:none}
 .cta svg{width:15px;height:15px}
+.datew{position:relative;display:inline-flex;align-items:center;gap:8px}
+.calbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--white);color:var(--teal)}
+.calbtn:hover{border-color:var(--teal)}
+.calbtn svg{width:15px;height:15px}
+.datepop{position:absolute;top:34px;left:0;z-index:20;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:280px;display:none}
+.datepop.open{display:block}
+.datepop .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:8px 0 4px}
+.datepop .k:first-child{margin-top:0}
+.datepop .row{display:flex;gap:8px;align-items:center}
+.datepop input[type=text]{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px}
+.datepop input[type=date]{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+.datepop .chips{display:flex;flex-wrap:wrap;gap:6px}
+.datepop .chip{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;padding:3px 8px;border:1px solid var(--line);border-radius:12px;background:var(--cream);cursor:pointer}
+.datepop .chip:hover{border-color:var(--teal);color:var(--teal)}
+.datepop .err{color:var(--bad);font-size:11.5px;margin-top:4px;min-height:1em}
 .alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
 .alert b{color:var(--bad)}
 .warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
@@ -76,6 +91,9 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .idband>div:first-child{border-left:0;padding-left:0}
 .idband .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
 .idband .v{font-size:13px}
+.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font-size:9.5px;font-weight:700;margin-left:5px;cursor:help;position:relative;vertical-align:1px;text-transform:none;letter-spacing:0}
+.help::after{content:attr(data-tip);position:absolute;left:0;top:20px;width:300px;padding:9px 11px;background:var(--ink);color:var(--cream);font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:30;display:none;white-space:normal}
+.help:hover::after,.help:focus::after{display:block}
 
 /* trois colonnes */
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1.25fr);gap:0;border:1px solid var(--line);border-radius:8px;background:var(--white);overflow:hidden}
@@ -320,12 +338,18 @@ function render(M){
   const artSel = `<select id="numSel">${Object.keys(M.P.articles).map(n => `<option ${n===M.num?'selected':''}>${n}</option>`).join('')}</select>`;
   const idCell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
   $('#body').innerHTML = `<p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)} ${artSel}</p>
-  <div class="leadrow"><p class="lead">Lu au <b class="mono">${fmtDate(at)}</b> <label>· changer <input type="date" id="atDate" class="dtin" value="${at}"></label></p>
+  <div class="leadrow"><div class="lead"><span class="datew">En date du <b class="mono">${fmtDate(at)}</b>
+      <button class="calbtn" id="calBtn" title="Changer la date de lecture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+      <div class="datepop" id="datePop">
+        <div class="k">Saisir une date</div><div class="row"><input type="text" id="dateTxt" placeholder="jj/mm/aaaa" value="${at.slice(8,10)}/${at.slice(5,7)}/${at.slice(0,4)}"><button class="btn" id="dateGo" style="padding:6px 12px">Lire</button></div><div class="err" id="dateErr"></div>
+        <div class="k">Ou choisir dans le calendrier</div><div class="row"><input type="date" id="atDate" value="${at}"></div>
+        <div class="k">Ou sauter à une rédaction</div><div class="chips"><span class="chip" data-d="${new Date().toISOString().slice(0,10)}">aujourd’hui</span>${M.versions.map(v=>`<span class="chip" data-d="${v.date_debut}">${fmtCourt(v.date_debut)}</span>`).join('')}</div>
+      </div></span></div>
   <a class="cta" href="${HUB}#/article/${M.code}/${M.num}" title="Toutes les rédactions, diff mot à mot, histoire de l’article"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</a></div>
   <div class="idband">
     ${idCell('État à la date lue', cur ? `${pill(lifeAt(cur, at))} depuis le ${fmtCourt(cur.date_debut)}` : `<span class="st fut">n’existe pas encore</span> (créé le ${fmtCourt(M.versions[0].date_debut)})`)}
     ${idCell('Rédactions', `${M.versions.length} depuis ${fmtCourt(M.versions[0].date_debut)}`)}
-    ${idCell('Numéro', M.recycled ? '<span class="warnp">recyclé</span> le texte a changé d’objet' : 'même objet depuis l’origine')}
+    ${idCell('Objet <span class="help" tabindex="0" data-tip="Un numéro d’article peut être réutilisé pour une règle qui n’a plus rien à voir avec la précédente, sans passer par une abrogation : Légifrance affiche alors « en vigueur » comme si de rien n’était. On compare ici le vocabulaire de chaque rédaction avec la précédente ; en dessous de 25 % de mots communs, on signale un recyclage.">?</span>', M.recycled ? '<span class="warnp">numéro recyclé</span> la règle a changé de sujet' : 'inchangé depuis l’origine')}
     ${idCell('Identifiant', `<span class="mono">${esc(cur ? cur.legiarti : M.versions[0].legiarti)}</span>`)}
     ${idCell('Source', `<a href="https://www.legifrance.gouv.fr/codes/article_lc/${cur ? cur.legiarti : M.versions[0].legiarti}">Légifrance ↗</a> · <span class="src">LEGI</span>`)}
   </div>
@@ -353,7 +377,14 @@ function render(M){
   if ($('#rt')) $('#rt').onclick = () => { $('#rt').classList.toggle('open'); $('#rx').classList.toggle('open'); };
   $('#jsonTog').onclick = () => { const j = $('#jsonOut'); j.hidden = !j.hidden; $('#jsonTog').textContent = j.hidden ? 'Afficher le JSON' : 'Masquer le JSON'; };
   $('#jsonCopy').onclick = () => { try { navigator.clipboard.writeText(JSON.stringify(M.objet, null, 1)).then(() => { $('#jsonCopy').textContent = 'copié'; setTimeout(() => $('#jsonCopy').textContent = 'copier', 1500); }); } catch { $('#jsonCopy').textContent = 'copie impossible'; } };
-  $('#atDate').onchange = e => { const q = new URLSearchParams(location.search); q.set('date', e.target.value); q.set('num', M.num); location.search = q.toString(); };
+  const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); q.set('num', M.num); location.search = q.toString(); };
+  $('#atDate').onchange = e => goDate(e.target.value);
+  $('#calBtn').onclick = e => { e.stopPropagation(); $('#datePop').classList.toggle('open'); if ($('#datePop').classList.contains('open')) $('#dateTxt').focus(); };
+  document.addEventListener('click', e => { if (!e.target.closest('.datew')) $('#datePop').classList.remove('open'); });
+  const parseFr = t => { const m = /^\s*(\d{1,2})[\/.\-\s](\d{1,2})[\/.\-\s](\d{4})\s*$/.exec(t); if (!m) return null; const d = new Date(Date.UTC(+m[3], +m[2]-1, +m[1])); if (d.getUTCDate() !== +m[1] || d.getUTCMonth() !== +m[2]-1) return null; return d.toISOString().slice(0,10); };
+  const submit = () => { const d = parseFr($('#dateTxt').value); if (!d) { $('#dateErr').textContent = 'Date illisible : attendu jj/mm/aaaa'; return; } goDate(d); };
+  $('#dateGo').onclick = submit; $('#dateTxt').onkeydown = e => { if (e.key === 'Enter') submit(); };
+  document.querySelectorAll('#datePop .chip').forEach(c => c.onclick = () => goDate(c.dataset.d));
   $('#numSel').onchange = e => { const q = new URLSearchParams(location.search); q.set('num', e.target.value); location.search = q.toString(); };
 }
 renderRail();
