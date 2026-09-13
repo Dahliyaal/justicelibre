@@ -564,6 +564,361 @@
     });
   }
 
+  /* ═══════════════ Droit : repérage des articles cités ═════════════════ */
+
+  /* JL.lierArticles — REPRISE TELLE QUELLE de highlightLawRefs()
+     (search.html:1246-1414). Seul le nom change : le code, les 22 codes, les
+     6 conventions, les règlements, directives, lois, décrets et ordonnances
+     sont identiques, marqueur \x00LAWREF\x00 compris.
+     ⚠ L'entrée doit DÉJÀ être échappée (esc) : la sortie contient des <span>.
+     La classe posée reste `lawref` (search.html:1304) pour que le CSS et les
+     écouteurs existants continuent de fonctionner. */
+  function lierArticles(escapedHtml) {
+    var CODES = [
+      { code: 'CESEDA', patterns: ['code de l[\'’]entrée et du séjour des étrangers et du droit d[\'’]asile', 'CESEDA'] },
+      { code: 'CGCT',   patterns: ['code général des collectivités territoriales', 'CGCT'] },
+      { code: 'CGI',    patterns: ['code général des impôts', 'CGI'] },
+      { code: 'CRPA',   patterns: ['code des relations entre le public et l[\'’]administration', 'CRPA'] },
+      { code: 'CCH',    patterns: ['code de la construction et de l[\'’]habitation', 'CCH'] },
+      { code: 'CPI',    patterns: ['code de la propriété intellectuelle', 'CPI'] },
+      { code: 'CASF',   patterns: ['code de l[\'’]action sociale et des familles', 'CASF'] },
+      { code: 'CMF',    patterns: ['code monétaire et financier', 'CMF'] },
+      { code: 'CSS',    patterns: ['code de la sécurité sociale', 'c\\.\\s*séc\\.\\s*soc\\.', 'CSS'] },
+      { code: 'CSP',    patterns: ['code de la santé publique', 'c\\.\\s*santé\\s*publ\\.', 'CSP'] },
+      { code: 'CJA',    patterns: ['code de justice administrative', 'CJA'] },
+      { code: 'CPC',    patterns: ['code de procédure civile', 'c\\.\\s*pr\\.\\s*civ\\.', 'CPC', 'NCPC'] },
+      { code: 'CPP',    patterns: ['code de procédure pénale', 'c\\.\\s*pr\\.\\s*pén\\.', 'CPP'] },
+      { code: 'C.cons', patterns: ['code de la consommation', 'c\\.\\s*consom?\\.'] },
+      { code: 'C.éduc', patterns: ['code de l[\'’]éducation', 'c\\.\\s*éduc\\.'] },
+      { code: 'C.com',  patterns: ['code de commerce', 'c\\.\\s*com\\.'] },
+      { code: 'CT',     patterns: ['code du travail', 'c\\.\\s*trav\\.', 'CT'] },
+      { code: 'CU',     patterns: ['code de l[\'’]urbanisme', 'c\\.\\s*urb\\.'] },
+      { code: 'C.env',  patterns: ['code de l[\'’]environnement', 'c\\.\\s*env\\.'] },
+      { code: 'CR',     patterns: ['code rural et de la pêche maritime', 'code rural', 'CRPM'] },
+      { code: 'CC',     patterns: ['code civil', 'c\\.\\s*civ\\.', 'CC'] },
+      { code: 'CP',     patterns: ['code pénal', 'c\\.\\s*pén\\.', 'CP'] }
+    ];
+    var CONVENTIONS = [
+      { code: 'CEDH',   patterns: ['Convention européenne des droits de l[\'’]homme', 'Conv\\.\\s*EDH', 'CEDH'] },
+      { code: 'TFUE',   patterns: ['Traité sur le fonctionnement de l[\'’]Union européenne', 'TFUE'] },
+      { code: 'TUE',    patterns: ['Traité sur l[\'’]Union européenne', 'TUE'] },
+      { code: 'CDFUE',  patterns: ['Charte des droits fondamentaux de l[\'’]Union européenne', 'CDFUE'] },
+      { code: 'DDHC',   patterns: ['Déclaration des droits de l[\'’]homme et du citoyen', 'DDHC'] },
+      { code: 'CONST',  patterns: ['Constitution(?:\\s+française)?'] }
+    ];
+    var ART_NUM = '(?:premier|[LRDA]\\b\\.?\\s*)?\\d+(?:[-.\\s]\\d+)*(?:\\s*§\\s*\\d+)?';
+    var ART_PREFIX = '(?:articles?|art\\.?)';
+    var ART_ALINEA = '(?:\\s*,?\\s*(?:alinéas?|al\\.)\\s*\\d+)?';
+    var ART_FULL = ART_PREFIX + '\\s+' + ART_NUM + ART_ALINEA +
+      '(?:\\s*(?:,|et|;)\\s*' + ART_NUM + ART_ALINEA + ')*';
+    var ART_LETTER = '[LRDA]\\b\\.?\\s*\\d+(?:[-.\\s]\\d+)*(?:\\s*§\\s*\\d+)?';
+
+    function makeWrap(item, art, code) {
+      var numRe = /(?:[LRDA]\b\.?\s*)?\d+(?:[-.]\d+)*(?:\s*§\s*\d+)?/g;
+      var matches = [], m;
+      while ((m = numRe.exec(art)) !== null) { matches.push(m); if (m.index === numRe.lastIndex) numRe.lastIndex++; }
+      var safeCode = item.code;
+      if (matches.length <= 1) {
+        var num = matches[0] ? matches[0][0].replace(/\s+/g, '') : '';
+        return '<span class="lawref" data-code="' + safeCode + '" data-num="' + num +
+          '" title="' + safeCode + ' ' + num + '">' + art + ' ' + code + '</span>';
+      }
+      var html = '', lastEnd = 0;
+      for (var i = 0; i < matches.length; i++) {
+        var mm = matches[i], n2 = mm[0].replace(/\s+/g, '');
+        html += art.substring(lastEnd, mm.index);
+        html += '<span class="lawref" data-code="' + safeCode + '" data-num="' + n2 +
+          '" title="' + safeCode + ' ' + n2 + '">' + mm[0] + '</span>';
+        lastEnd = mm.index + mm[0].length;
+      }
+      html += art.substring(lastEnd);
+      html += ' <span class="lawref lawref-code" data-code="' + safeCode + '" title="' + safeCode + '">' + code + '</span>';
+      return html;
+    }
+
+    var result = String(escapedHtml == null ? '' : escapedHtml);
+    var MARKER = '\x00LAWREF\x00';
+
+    CODES.forEach(function (item) {
+      var codeAlts = item.patterns.join('|');
+      result = result.replace(new RegExp('(' + ART_FULL + ')\\s+(?:du\\s+|de\\s+la\\s+)?(' + codeAlts + ')\\b', 'gi'),
+        function (m, art, code) { return m.indexOf(MARKER) >= 0 ? m : MARKER + makeWrap(item, art, code) + MARKER; });
+      result = result.replace(new RegExp('(?<![\\w-])(' + ART_LETTER + ART_ALINEA + ')\\s+(?:du\\s+|de\\s+la\\s+)?(' + codeAlts + ')\\b', 'gi'),
+        function (m, art, code) { return m.indexOf(MARKER) >= 0 ? m : MARKER + makeWrap(item, art, code) + MARKER; });
+    });
+    CONVENTIONS.forEach(function (item) {
+      var codeAlts = item.patterns.join('|');
+      result = result.replace(new RegExp('(' + ART_FULL + ')\\s+(?:du\\s+|de\\s+la\\s+)?(' + codeAlts + ')\\b', 'gi'),
+        function (m, art, code) { return m.indexOf(MARKER) >= 0 ? m : MARKER + makeWrap(item, art, code) + MARKER; });
+    });
+    result = result.replace(/\b(règlement\s+\(?(?:CE|UE|CEE)\)?\s+(?:n[°º]\s*)?\d+\/\d+)\b/gi, function (m) {
+      if (m.indexOf(MARKER) >= 0) return m;
+      var num = (m.match(/(\d+\/\d+)/) || [])[1] || '';
+      return MARKER + '<span class="lawref" data-code="REG-EU" data-num="' + num + '" title="Règlement UE ' + num + '">' + m + '</span>' + MARKER;
+    });
+    result = result.replace(/\b(directive\s+(?:\(?(?:CE|UE)\)?\s+)?\d+\/\d+(?:\/(?:CE|UE))?)\b/gi, function (m) {
+      if (m.indexOf(MARKER) >= 0) return m;
+      var num = (m.match(/\d+\/\d+(?:\/(?:CE|UE))?/) || [])[0] || '';
+      return MARKER + '<span class="lawref" data-code="DIR-EU" data-num="' + num + '" title="Directive UE ' + num + '">' + m + '</span>' + MARKER;
+    });
+    result = result.replace(/\b(loi\s+n[°º]\s*(\d{4}-\d+))\b/gi, function (m, full, num) {
+      if (m.indexOf(MARKER) >= 0) return m;
+      return MARKER + '<span class="lawref" data-code="LOI" data-num="' + num + '" title="Loi n° ' + num + '">' + full + '</span>' + MARKER;
+    });
+    result = result.replace(/\b(décret\s+n[°º]\s*(\d{4}-\d+))\b/gi, function (m, full, num) {
+      if (m.indexOf(MARKER) >= 0) return m;
+      return MARKER + '<span class="lawref" data-code="DECRET" data-num="' + num + '" title="Décret n° ' + num + '">' + full + '</span>' + MARKER;
+    });
+    result = result.replace(/\b(ordonnance\s+n[°º]\s*(\d{4}-\d+))\b/gi, function (m, full, num) {
+      if (m.indexOf(MARKER) >= 0) return m;
+      return MARKER + '<span class="lawref" data-code="ORD" data-num="' + num + '" title="Ordonnance n° ' + num + '">' + full + '</span>' + MARKER;
+    });
+    return result.split(MARKER).join('');
+  }
+
+  /* JL.decouperTexte — splitLegalBlock (search.html:1151-1206), repris tel
+     quel. Un texte juridique concaténé (les séparateurs ont été perdus à
+     l'indexation XML) redevient des paragraphes lisibles. */
+  function decouperTexte(text) {
+    if (!text) return [];
+    var t = String(text).replace(/\s+/g, ' ').trim();
+    var tempEl = document.createElement('textarea');
+    tempEl.innerHTML = t;
+    t = tempEl.value;
+    t = t.replace(/_{5,}/g, '\n\n');
+    t = t.replace(/\s•\s/g, '\n\n');
+    t = t.replace(/\s\*\s\*\s\*\s/g, '\n\n');
+    t = t.replace(/\.\s+(?=\d{1,3}\.\s+[A-Za-zÀ-ÖØ-öø-ÿ«])/g, '.\n\n');
+    var KEYWORDS = ['PAR CES MOTIFS', 'CASSE ET ANNULE', 'LA COUR', 'REJETTE', 'RENVOIE',
+      'Faits et procédure', 'Examen des moyens', 'Examen du moyen',
+      'Énoncé du moyen', 'Enoncé du moyen', 'Réponse de la Cour',
+      'Portée et conséquences', 'EN FAIT', 'EN DROIT'];
+    KEYWORDS.forEach(function (kw) {
+      t = t.replace(new RegExp('\\s(?=' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b)', 'g'), '\n\n');
+    });
+    t = t.replace(/\s(?=(?:Sur|Mais sur|Et sur) (?:le|les|ce) (?:premier|second|deuxième|troisième|quatrième|cinquième|sixième|septième|huitième|neuvième|unique) moyen)/gi, '\n\n');
+    t = t.replace(/\s(?=(?:DIT QUE|CONDAMNE|ORDONNE|FIXE|DÉBOUTE|DECIDE|DÉCIDE)\b)/g, '\n\n');
+    var parts = t.split(/\n{2,}/).filter(function (p) { return p.trim().length > 2; });
+    var result = [];
+    parts.forEach(function (p) {
+      if (p.length <= 1500) { result.push(p.trim()); return; }
+      var sub = p.split(/(?:\.)\s+(?=[A-ZÉÈ])/).reduce(function (acc, s) {
+        if (!acc.length || acc[acc.length - 1].length + s.length > 800) acc.push(s);
+        else acc[acc.length - 1] += ' ' + s;
+        return acc;
+      }, []);
+      result = result.concat(sub.map(function (s) { return s.trim(); }));
+    });
+    return result.filter(function (p) { return p.length > 2; });
+  }
+
+  /* JL.surlignerExtrait — highlightExtract (search.html:1415-1431). */
+  function surlignerExtrait(html, q, max) {
+    var clean = String(html == null ? '' : html).replace(/;+/g, ' · ').trim();
+    var lim = max || 320;
+    if (clean.length > lim) clean = clean.slice(0, lim) + '…';
+    var hasPrebuiltEm = /<em>/.test(clean);
+    var escaped = esc(clean);
+    if (hasPrebuiltEm) {
+      return escaped.replace(/&lt;em&gt;/g, '<em class="jl-hl">').replace(/&lt;\/em&gt;/g, '</em>');
+    }
+    if (!q) return escaped;
+    var tokens = q.replace(/["*&|]/g, ' ').split(/\s+/).filter(function (t) {
+      return t.length > 2 && ['AND', 'OR', 'NOT', 'ET', 'OU', 'SAUF'].indexOf(t.toUpperCase()) < 0;
+    });
+    if (!tokens.length) return escaped;
+    var re = new RegExp('(' + tokens.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')', 'gi');
+    return escaped.replace(re, '<em class="jl-hl">$1</em>');
+  }
+
+  /* JL.sourceOfficielle — officialSourceFromId (search.html:2092-2128), avec
+     son refus explicite pour DCE_/DCAA_/DTA_/ORTA_ : la majorité des TA ne
+     sont JAMAIS sur Légifrance, donc pas de bouton mensonger (null).
+     ⚠ Doit rester en sync avec ssr.py:_official_source_from_pattern(). */
+  function sourceOfficielle(id, numero) {
+    if (!id) return null;
+    if (id.indexOf('CETATEXT') === 0) return { label: 'Légifrance', url: 'https://www.legifrance.gouv.fr/ceta/id/' + id };
+    if (id.indexOf('JURITEXT') === 0) return { label: 'Légifrance', url: 'https://www.legifrance.gouv.fr/juri/id/' + id };
+    if (id.indexOf('CONSTEXT') === 0) return { label: 'Légifrance', url: 'https://www.legifrance.gouv.fr/cons/id/' + id };
+    if (/^[0-9a-f]{24}$/.test(id)) return { label: 'courdecassation.fr (Judilibre)', url: 'https://www.courdecassation.fr/decision/' + id };
+    if (id.indexOf('001-') === 0) return { label: 'HUDOC (Cour EDH)', url: 'https://hudoc.echr.coe.int/fre?i=' + id };
+    if (id.indexOf('ECLI:EU:') === 0) return { label: 'EUR-Lex (CJUE)', url: 'https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=' + encodeURIComponent(id) };
+    if (/^\d{4,5}[A-Z]{2}\d{4}$/.test(id) || id.indexOf('CELEX') >= 0) {
+      return { label: 'EUR-Lex (CJUE)', url: 'https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:' + id.replace(/^CELEX:?/, '') };
+    }
+    if (/^(DCE_|DCAA_|DTA_|ORTA_)/.test(id)) return null;   // refus explicite
+    if (id.indexOf('Ariane_Web') >= 0) {
+      if (numero && /^\d{3,}/.test(numero)) {
+        return { label: 'Légifrance (recherche)', url: 'https://www.legifrance.gouv.fr/search/all?query=' + encodeURIComponent(numero) + '&fonds=cetat' };
+      }
+      return null;
+    }
+    if (numero && /^\d{3,}/.test(numero)) {
+      return { label: 'Légifrance (recherche)', url: 'https://www.legifrance.gouv.fr/search/all?query=' + encodeURIComponent(numero) };
+    }
+    return null;
+  }
+
+  /* JL.entrelacer — entrelacement des résultats par source en mode
+     « pertinence » (search.html:1467-1502). Les scores BM25 de fonds
+     différents ne sont pas comparables : on prend le 1er de chaque source,
+     puis le 2e… L'ordre devient STABLE d'une recherche à l'autre. */
+  var ORDRE_SOURCES = ['dila', 'admin', 'ariane', 'legi', 'cedh', 'cjue', 'doctrine'];
+  function entrelacer(results, ordre) {
+    var ord = ordre || ORDRE_SOURCES;
+    var groupes = {};
+    (results || []).forEach(function (r) {
+      var s = r.source || '?';
+      (groupes[s] = groupes[s] || []).push(r);
+    });
+    var listes = Object.keys(groupes).sort(function (a, b) {
+      var ia = ord.indexOf(a), ib = ord.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    }).map(function (k) { return groupes[k]; });
+    var out = [];
+    for (var i = 0; ; i++) {
+      var ajoute = false;
+      for (var j = 0; j < listes.length; j++) {
+        if (i < listes[j].length) { out.push(listes[j][i]); ajoute = true; }
+      }
+      if (!ajoute) break;
+    }
+    return out;
+  }
+
+  /* ═══════════════ Tables de référence partagées ═══════════════════════ */
+
+  /* Filtre par lieu : search.html:958-996, repris tel quel. */
+  var INSTANCES = {
+    ta: [['TA06', 'Nice'], ['TA13', 'Marseille'], ['TA14', 'Caen'], ['TA20', 'Bastia'],
+      ['TA21', 'Dijon'], ['TA25', 'Besançon'], ['TA30', 'Nîmes'], ['TA31', 'Toulouse'],
+      ['TA33', 'Bordeaux'], ['TA34', 'Montpellier'], ['TA35', 'Rennes'], ['TA38', 'Grenoble'],
+      ['TA44', 'Nantes'], ['TA45', 'Orléans'], ['TA51', 'Châlons-en-Ch.'], ['TA54', 'Nancy'],
+      ['TA59', 'Lille'], ['TA63', 'Clermont-Ferrand'], ['TA64', 'Pau'], ['TA67', 'Strasbourg'],
+      ['TA69', 'Lyon'], ['TA75', 'Paris'], ['TA76', 'Rouen'], ['TA77', 'Melun'],
+      ['TA78', 'Versailles'], ['TA80', 'Amiens'], ['TA83', 'Toulon'], ['TA86', 'Poitiers'],
+      ['TA87', 'Limoges'], ['TA93', 'Montreuil'], ['TA95', 'Cergy-Pontoise'],
+      ['TA101', 'La Réunion'], ['TA102', 'Martinique'], ['TA103', 'Polynésie fr.'],
+      ['TA104', 'Nouvelle-Calédonie'], ['TA105', 'Guadeloupe'], ['TA106', 'Guyane'],
+      ['TA107', 'Mayotte'], ['TA108', 'St-Martin'], ['TA109', 'St-Barthélemy']],
+    caa: [['CAA13', 'Marseille'], ['CAA31', 'Toulouse'], ['CAA33', 'Bordeaux'],
+      ['CAA44', 'Nantes'], ['CAA54', 'Nancy'], ['CAA59', 'Douai'], ['CAA69', 'Lyon'],
+      ['CAA75', 'Paris'], ['CAA78', 'Versailles']],
+    ca: [['Paris', 'Paris'], ['Versailles', 'Versailles'], ['Lyon', 'Lyon'], ['Rennes', 'Rennes'],
+      ['Douai', 'Douai'], ['Angers', 'Angers'], ['Limoges', 'Limoges'], ['Bastia', 'Bastia'],
+      ['Basse-Terre', 'Basse-Terre'], ['Aix-en-Provence', 'Aix-en-Provence'],
+      ['Montpellier', 'Montpellier'], ['Agen', 'Agen'], ['Toulouse', 'Toulouse'],
+      ['Orléans', 'Orléans'], ['Bordeaux', 'Bordeaux'], ['Nîmes', 'Nîmes'],
+      ['Saint-Denis', 'St-Denis Réunion'], ['Rouen', 'Rouen'], ['Metz', 'Metz'],
+      ['Nancy', 'Nancy'], ['Reims', 'Reims'], ['Besançon', 'Besançon'], ['Dijon', 'Dijon'],
+      ['Grenoble', 'Grenoble'], ['Chambéry', 'Chambéry'], ['Poitiers', 'Poitiers'],
+      ['Pau', 'Pau'], ['Riom', 'Riom'], ['Bourges', 'Bourges'], ['Amiens', 'Amiens'],
+      ['Caen', 'Caen'], ['Colmar', 'Colmar'], ['Fort-de-France', 'Fort-de-France'],
+      ['Nouméa', 'Nouméa'], ['Papeete', 'Papeete'], ['Cayenne', 'Cayenne']]
+  };
+
+  /* Seule la Cour de cassation est réellement filtrable par chambre : le
+     serveur ne sait pas le faire pour les autres (search.html:920-929). */
+  var FORMATIONS_FILTRABLES = {
+    cass: ['Chambre civile 1', 'Chambre civile 2', 'Chambre civile 3', 'Chambre commerciale',
+      'Chambre sociale', 'Chambre criminelle', 'Assemblée plénière', 'Chambre mixte']
+  };
+
+  var FORMATION_LABELS = {
+    CHAMBRE_SOCIALE: 'Chambre sociale', soc: 'Chambre sociale',
+    CHAMBRE_CIVILE_1: '1re chambre civile', civ1: '1re chambre civile',
+    CHAMBRE_CIVILE_2: '2e chambre civile', civ2: '2e chambre civile',
+    CHAMBRE_CIVILE_3: '3e chambre civile', civ3: '3e chambre civile',
+    CHAMBRE_COMMERCIALE: 'Chambre commerciale', comm: 'Chambre commerciale',
+    CHAMBRE_CRIMINELLE: 'Chambre criminelle', cr: 'Chambre criminelle',
+    ASSEMBLEE_PLENIERE: 'Assemblée plénière', pl: 'Assemblée plénière',
+    CHAMBRE_MIXTE: 'Chambre mixte', mi: 'Chambre mixte',
+    ORDONNANCE_PREMIER_PRESIDENT: 'Ordonnance du premier président', ordo: 'Ordonnance',
+    HFJUD: 'Arrêt', HFDEC: 'Décision', HFCOMOLD: 'Rapport de la Commission',
+    JUDG: 'Arrêt', ORDER: 'Ordonnance', OPIN_AG: "Conclusions de l'avocat général"
+  };
+  function fmtFormation(f) { return FORMATION_LABELS[f] || f || ''; }
+
+  var SOURCE_NAMES = {
+    dila: 'DILA', ariane: "Conseil d'État (ArianeWeb)", admin: 'justice administrative',
+    cedh: 'Cour EDH', cjue: 'CJUE', doctrine: 'avis et doctrine', legi: 'articles de loi'
+  };
+  var SRC_BADGES = { ariane: 'ce', admin: 'admin', dila: 'jud', cedh: 'cedh', cjue: 'cjue', doctrine: 'admin', legi: 'admin' };
+  var FAM = function (r) {
+    if (r.source === 'doctrine') return 'doc';
+    if (r.source === 'legi') return 'txt';
+    if (r.source === 'cedh' || r.source === 'cjue') return 'eu';
+    if (r.source === 'dila') return /constitutionnel/i.test(r.juridiction || '') ? 'ce' : 'jud';
+    return 'adm';
+  };
+  var FAMLABEL = { jud: 'Judiciaire', adm: 'Administratif', ce: 'Constitutionnel', eu: 'Européen', doc: 'Avis & doctrine', txt: 'Texte' };
+
+  /* ═══════════════ Cache localStorage des articles de loi ══════════════ */
+
+  /* Cache 24 h + éviction LRU à 500 entrées (search.html:1780-1813). */
+  var LOI_PREFIX = 'law:';
+  var LOI_TTL = 24 * 3600 * 1000;
+  function _loiCle(code, num, date) { return LOI_PREFIX + code + ':' + num + ':' + (date || 'current'); }
+  function cacheLoiGet(code, num, date) {
+    return _ls(function () {
+      var raw = localStorage.getItem(_loiCle(code, num, date));
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (Date.now() - o.t > LOI_TTL) { localStorage.removeItem(_loiCle(code, num, date)); return null; }
+      return o.d;
+    }, null);
+  }
+  function cacheLoiSet(code, num, date, data) {
+    _ls(function () {
+      var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf(LOI_PREFIX) === 0; });
+      if (keys.length >= 500) {
+        var entries = keys.map(function (k) {
+          try { return [k, JSON.parse(localStorage.getItem(k)).t]; } catch (e) { return [k, 0]; }
+        }).sort(function (a, b) { return a[1] - b[1]; });
+        for (var i = 0; i < 100 && i < entries.length; i++) localStorage.removeItem(entries[i][0]);
+      }
+      localStorage.setItem(_loiCle(code, num, date), JSON.stringify({ t: Date.now(), d: data }));
+    });
+  }
+
+  /* ═══════════════ Signalement et téléchargement ═══════════════════════ */
+
+  /* Ticket GitHub pré-rempli (search.html:2056-2066). Jamais de mailto: en
+     clair dans le HTML : l'adresse est assemblée au clic (bindMailR). */
+  var GITHUB = 'https://github.com/Dahliyaal/justicelibre';
+  function urlSignalement(ctx) {
+    ctx = ctx || {};
+    var quoi = ctx.titre || ctx.id || (ctx.code ? ctx.code + ' ' + (ctx.num || '') : '') || 'recherche';
+    var titre = ('Signalement : ' + quoi).slice(0, 120);
+    var corps = 'Élément concerné : ' + (ctx.id || quoi) + '\nPage : ' + (ctx.url || location.href) +
+      '\n\nProblème constaté (citation non détectée, texte incorrect, mauvaise version...) :\n';
+    return GITHUB + '/issues/new?title=' + encodeURIComponent(titre) + '&body=' + encodeURIComponent(corps);
+  }
+  function bindMailR(root) {
+    if (bindMailR._bound) return;
+    bindMailR._bound = true;
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('.jl-mail-r');
+      if (!a) return;
+      var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+      if (a.getAttribute('href') === '#') { e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
+    });
+  }
+
+  /* Téléchargement .txt (search.html:1744-1756). */
+  function telecharger(nom, texte) {
+    var blob = new Blob([texte], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = String(nom || 'document').replace(/[^\w-]+/g, '_').slice(0, 80) + '.txt';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+  }
+
+  /* Toutes les formes de la touche Entrée (search.html:2574-2576) : elle
+     était morte au clavier sur certains navigateurs. */
+  function estEntree(e) { return e.key === 'Enter' || e.key === 'Return' || e.keyCode === 13 || e.which === 13; }
+
   /* ═══════════════ Démarrage ═══════════════════════════════════════════ */
 
   /* Données de la page, s'il y en a : <script type="application/json" id="jl-page">.
@@ -582,6 +937,7 @@
     bindCopy(document);
     bindPrint();
     bindMenu(document);
+    bindMailR(document);
 
     var d = pageData();
     if (d.rail) renderRail('[data-jl-rail]', d.rail);
@@ -606,6 +962,16 @@
     pageData: pageData,
     renderRail: renderRail, renderSources: renderSources,
     ligneTexte: ligneTexte, pastille: pastille, noteProvenance: noteProvenance,
+    /* Droit + recherche (ajoutés pour web/v2/recherche.html) */
+    lierArticles: lierArticles, decouperTexte: decouperTexte,
+    surlignerExtrait: surlignerExtrait, sourceOfficielle: sourceOfficielle,
+    entrelacer: entrelacer, ORDRE_SOURCES: ORDRE_SOURCES,
+    INSTANCES: INSTANCES, FORMATIONS_FILTRABLES: FORMATIONS_FILTRABLES,
+    FORMATION_LABELS: FORMATION_LABELS, fmtFormation: fmtFormation,
+    SOURCE_NAMES: SOURCE_NAMES, SRC_BADGES: SRC_BADGES, FAM: FAM, FAMLABEL: FAMLABEL,
+    cacheLoiGet: cacheLoiGet, cacheLoiSet: cacheLoiSet,
+    urlSignalement: urlSignalement, bindMailR: bindMailR, GITHUB: GITHUB,
+    telecharger: telecharger, estEntree: estEntree,
     init: init
   };
   global.JL = JL;
@@ -615,4 +981,66 @@
   } else {
     init();
   }
+})(window);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * v2 article, 13 sept. — ajout NON INTRUSIF (IIFE séparée : ne modifie aucune
+ * ligne de ce qui précède). Composant : popover de date.
+ * Cahier des charges : inventaire_composants_13sept.md §2.12.
+ * Rapport : scratchpad/audit/v2_article_13sept.md
+ * ═══════════════════════════════════════════════════════════════════════════ */
+(function (global) {
+  'use strict';
+  var J = global.JL;
+  if (!J) return;
+
+  /* JL.bindDatePop(onPick) — câble TOUT [data-jl-datew] présent dans la page.
+     Trois entrées, comme l'exige §2.12 : saisie jj/mm/aaaa, calendrier natif,
+     puces « sauter à une rédaction ». onPick reçoit la date ISO choisie.
+     Le libellé d'erreur est celui du prototype, au mot près. */
+  function bindDatePop(onPick, root) {
+    J.$$('[data-jl-datew]', root || document).forEach(function (w) {
+      if (w.dataset.bound) return;
+      w.dataset.bound = '1';
+      var pop = w.querySelector('[data-jl-datepop]');
+      var txt = w.querySelector('[data-jl-date-txt]');
+      var err = w.querySelector('[data-jl-date-err]');
+      var cal = w.querySelector('[data-jl-date-cal]');
+      var open = w.querySelector('[data-jl-date-open]');
+      if (!pop) return;
+      var go = function (d) { if (d && typeof onPick === 'function') onPick(d); };
+      var submit = function () {
+        var d = J.parseFr(txt ? txt.value.replace(/[.\-\s]/g, '/') : '');
+        if (!d) { if (err) err.textContent = 'Date illisible : attendu jj/mm/aaaa'; return; }
+        if (err) err.textContent = '';
+        go(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+      };
+      if (open) open.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var on = pop.classList.toggle('is-open');
+        open.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (on && txt) txt.focus();
+      });
+      var goBtn = w.querySelector('[data-jl-date-go]');
+      if (goBtn) goBtn.addEventListener('click', submit);
+      if (txt) txt.addEventListener('keydown', function (e) { if (J.estEntree(e)) { e.preventDefault(); submit(); } });
+      if (cal) cal.addEventListener('change', function (e) { go(e.target.value); });
+      J.$$('[data-jl-date-chip]', w).forEach(function (c) {
+        c.addEventListener('click', function () { go(c.dataset.jlDateChip); });
+      });
+    });
+    if (!bindDatePop._global) {
+      bindDatePop._global = true;
+      document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('[data-jl-datew]')) return;
+        J.$$('[data-jl-datepop].is-open').forEach(function (p) { p.classList.remove('is-open'); });
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        J.$$('[data-jl-datepop].is-open').forEach(function (p) { p.classList.remove('is-open'); });
+      });
+    }
+  }
+
+  J.bindDatePop = bindDatePop;
 })(window);

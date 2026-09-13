@@ -240,9 +240,17 @@ html.jl-dense .topbar nav.main-nav{gap:var(--space-6)}
 .jl-ri.is-soon:hover{background:transparent}
 .jl-ri.is-soon .jl-ri__n{font-style:italic}
 @media (max-width:900px){
-  .jl-rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}
+  /* Sous 900 px le rail sort du flux : il devient une colonne d'icônes de
+     52 px, et le corps réserve la place (sans quoi le titre passait DESSOUS
+     le rail — constaté au navigateur le 13/09/2026 à 390 px). */
+  .jl-rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08);
+    width:52px;padding:var(--space-3) 4px}
+  .jl-rail .jl-ri__lbl,.jl-rail .jl-ri__n,.jl-rail .jl-rail__sec{display:none}
+  .jl-rail .jl-ri{justify-content:center;padding:var(--space-2) 0}
   .jl-rail--mini{width:52px}
   .jl-rail--cache{display:none}   /* les pages décision masquent le rail (pas de mode mini) */
+  .jl-rail+.jl-body{padding-left:64px}
+  .jl-rail--cache+.jl-body{padding-left:var(--space-4)}   /* rail masqué : rien à réserver */
 }
 
 /* ═══════════════════ 3. PASTILLE (+ variante loader) ═════════════════════ */
@@ -798,6 +806,189 @@ input.jl-tab:focus-visible+.jl-onglets label,
 /* Réserve la place du popover de date laissé ouvert dans le catalogue. */
 .jl-datepop-espace{height:230px}
 
+/* ═══════════════════ 27. PAGE DE RECHERCHE ═══════════════════════════════ */
+/* Ajouté le 13/09/2026 pour web/v2/recherche.html. Rien n'est renommé ici :
+   ce sont des composants NEUFS, tous préfixés jl-, qui s'appuient sur ceux
+   des §1 à §25. */
+
+/* ── 27.1 Panneau avancé, en continuité visuelle sous la barre réseau ──── */
+.jl-barre-reseau__opt{border-left:1px solid var(--line);padding:0 var(--space-3);
+  display:flex;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--muted);
+  white-space:nowrap;background:transparent}
+.jl-barre-reseau__opt.is-on{color:var(--teal);background:var(--teal-xl)}
+.jl-barre-reseau__opt b{display:inline-block;transition:transform var(--t-fast);font-weight:400}
+.jl-barre-reseau__opt.is-on b{transform:rotate(180deg)}
+.jl-advcount{background:var(--teal);color:#fff;border-radius:10px;font-size:var(--text-3xs);
+  padding:0 6px;font-family:var(--font-mono)}
+.jl-sbox{max-width:880px}
+.jl-adv{background:var(--white);border:1px solid var(--line);border-top:0;
+  border-radius:0 0 var(--radius-xl) var(--radius-xl);
+  padding:var(--space-4) var(--space-4) var(--space-3);max-width:880px}
+.jl-adv[hidden]{display:none}
+.jl-adv__fams{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
+@media (max-width:1100px){.jl-adv__fams{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.jl-adv__fams{grid-template-columns:1fr}}
+.jl-fam__h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);
+  font-size:var(--text-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  color:var(--ink);background:var(--teal-xl);padding:7px var(--space-3);
+  border-radius:5px;margin-bottom:6px}
+.jl-fam__all{width:16px;height:16px;border:1.5px solid var(--teal);border-radius:3px;
+  flex:none;position:relative;background:transparent}
+.jl-fam__all.is-on{background:var(--teal)}
+.jl-fam__all.is-on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.jl-fam__all.is-half::after{content:"";position:absolute;left:3px;right:3px;top:6px;
+  height:2px;background:var(--teal)}
+.jl-fch{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;
+  font-size:var(--text-sm);padding:5px var(--space-2);border-radius:var(--radius-md);color:var(--ink)}
+.jl-fch:hover{background:var(--teal-xl)}
+.jl-fch i{width:13px;height:13px;border:1.5px solid var(--muted);border-radius:3px;
+  flex:none;position:relative;box-sizing:border-box}
+.jl-fch.is-on i{background:var(--teal);border-color:var(--teal)}
+.jl-fch.is-on i::after{content:"";position:absolute;left:3px;top:0;width:4px;height:7px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.jl-fch.is-on{color:var(--teal);font-weight:600}
+.jl-fch__n{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-3xs);color:var(--muted)}
+/* « bientôt » : gris inactif, jamais rouge */
+.jl-fch.is-soon{color:var(--muted);cursor:not-allowed;font-style:italic}
+.jl-fch.is-soon i{border-style:dashed;opacity:.6}
+.jl-adv__row{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-3);
+  padding-top:var(--space-3);border-top:1px solid var(--line);align-items:flex-end}
+.jl-adv__lb{font-size:var(--text-3xs);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin-bottom:6px}
+.jl-adv__champ{flex:1 1 190px;min-width:0}
+.jl-adv__champ input[type=date]{width:100%;font:inherit;font-family:var(--font-mono);
+  font-size:var(--text-sm);padding:6px var(--space-2);border:1px solid var(--line);
+  border-radius:var(--radius-md);background:var(--cream);color:var(--ink)}
+.jl-adv__champ .jl-menu{min-width:0;width:100%;display:block}
+.jl-thes{display:inline-flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);color:var(--ink)}
+.jl-thes i{width:28px;height:16px;border-radius:9px;background:var(--line);position:relative;
+  flex:none;transition:background var(--t-fast)}
+.jl-thes i::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:left var(--t-fast)}
+.jl-thes.is-on{color:var(--teal);font-weight:600}
+.jl-thes.is-on i{background:var(--teal)}
+.jl-thes.is-on i::after{left:14px}
+.jl-adv__foot{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);
+  font-size:var(--text-sm);color:var(--muted);border-top:1px solid var(--line);
+  padding-top:var(--space-3);margin-top:var(--space-3);flex-wrap:wrap}
+.jl-adv__aide{margin-top:var(--space-4);padding-top:var(--space-3);
+  border-top:1px dashed var(--line);font-size:var(--text-sm);color:var(--muted);line-height:1.7}
+.jl-adv__aide b{color:var(--ink);font-weight:600}
+.jl-adv__aide code{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--teal);
+  background:var(--teal-xl);padding:0 5px;border-radius:var(--radius)}
+.jl-advsum{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:var(--space-2) 0 2px;
+  font-size:var(--text-sm)}
+
+/* ── 27.2 Pastilles de thésaurus, retirables une à une ─────────────────── */
+.jl-exp{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:var(--space-3) 0 0;
+  font-size:var(--text-sm);color:var(--muted);max-width:880px}
+.jl-exp__pill{display:inline-flex;align-items:center;gap:5px;padding:2px 5px 2px 9px;
+  border-radius:11px;background:var(--teal-xl);color:var(--teal);
+  font-family:var(--font-mono);font-size:var(--text-xs)}
+.jl-exp__pill button{color:var(--muted);font-size:var(--text-md);line-height:1;padding:0 2px}
+.jl-exp__pill button:hover{color:var(--bad)}
+.jl-exp__pill.is-removed{opacity:.4;text-decoration:line-through}
+.jl-exp__off{color:var(--muted);text-decoration:underline;cursor:pointer;margin-left:var(--space-2)}
+.jl-exp__off:hover{color:var(--teal)}
+
+/* ── 27.3 Résultats ────────────────────────────────────────────────────── */
+.jl-topline{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);
+  margin:var(--space-5) 0 var(--space-2);flex-wrap:wrap}
+.jl-resultats{max-width:1100px}
+.jl-resultat{padding:var(--space-4) 0;border-top:1px solid var(--line)}
+.jl-resultat__meta{display:flex;gap:var(--space-3);align-items:center;font-size:var(--text-sm);
+  color:var(--muted);margin-bottom:var(--space-1);flex-wrap:wrap}
+.jl-resultat__t{font-family:var(--font-serif);font-weight:400;font-size:var(--text-lg);
+  margin:0 0 var(--space-1);line-height:1.3}
+.jl-resultat__t a{color:var(--ink)}
+.jl-resultat__t a:hover{color:var(--teal)}
+.jl-resultat__x{font-size:var(--text-base);margin:0 0 6px;max-width:100ch;line-height:1.5}
+.jl-resultat__ref{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted);
+  display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* Champ vide : marqué, jamais omis en silence (search.html:294) */
+.jl-vide{color:var(--muted);opacity:.45}
+/* Article cité, repéré par JL.lierArticles : la classe reste `lawref` */
+.jl-txt .lawref,.jl-resultat__x .lawref{color:var(--ok);font-weight:600;cursor:pointer;
+  border-bottom:1px dashed currentColor}
+.jl-txt .lawref:hover,.jl-resultat__x .lawref:hover{background:var(--ok-bg);border-bottom-style:solid}
+/* Pagination par source */
+.jl-plus{text-align:center;margin:var(--space-5) 0 var(--space-2)}
+.jl-plus__detail{font-size:var(--text-sm);color:var(--muted);margin-top:6px;
+  font-family:var(--font-mono)}
+
+/* ── 27.4 Facettes ─────────────────────────────────────────────────────── */
+.jl-facettes{border-top:1px solid var(--line);padding-top:var(--space-3);margin-top:var(--space-3)}
+.jl-frow{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm);
+  padding:2px 0;width:100%;text-align:left;border-radius:var(--radius-md);color:var(--ink)}
+.jl-frow:hover{color:var(--teal)}
+.jl-frow.is-on{color:var(--teal);font-weight:600}
+.jl-frow__n{font-family:var(--font-mono);color:var(--muted);font-size:var(--text-xs);font-weight:400}
+.jl-hist{display:flex;align-items:flex-end;gap:2px;height:34px;margin:var(--space-1) 0}
+.jl-hist i{flex:1;display:block;background:var(--teal);opacity:.3;min-height:1px}
+.jl-hist i.is-on{opacity:.9}
+
+/* ── 27.5 Flux « Nouveautés » ──────────────────────────────────────────── */
+.jl-flux{max-width:1100px;margin:var(--space-10) 0 0}
+.jl-flux__carte{display:block;padding:var(--space-4) 0;border-bottom:1px solid var(--line);color:inherit}
+a.jl-flux__carte:hover{text-decoration:none}
+.jl-flux__haut{display:flex;align-items:center;gap:9px;font-size:var(--text-xs);
+  color:var(--muted);margin-bottom:5px;flex-wrap:wrap}
+.jl-flux__jour{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-xs);white-space:nowrap}
+.jl-flux__t{font-family:var(--font-serif);font-weight:400;font-size:var(--text-lg);
+  line-height:1.2;color:var(--ink);margin-bottom:5px}
+a.jl-flux__carte:hover .jl-flux__t{color:var(--teal)}
+.jl-flux__x{font-size:var(--text-base);line-height:1.5;color:var(--muted);max-width:105ch}
+.jl-flux__fin{color:var(--muted);font-size:var(--text-xs);padding:var(--space-4) 0}
+
+/* ── 27.6 Panneau latéral « article de loi » (+ voile) ─────────────────── */
+.jl-loi{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:90vw;
+  background:var(--white);color:var(--ink);border-left:1px solid var(--line);
+  box-shadow:-4px 0 24px rgba(0,0,0,.12);transform:translateX(100%);
+  transition:transform var(--t-slow) ease-out;z-index:110;overflow-y:auto;
+  display:flex;flex-direction:column}
+body.jl-loi-ouverte .jl-loi{transform:translateX(0)}
+.jl-loi__hd{padding:var(--space-5) var(--space-5) var(--space-4);
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--white);z-index:1}
+.jl-loi__x{position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--line);color:var(--ink);font-size:20px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
+.jl-loi__x:hover{background:var(--cream);color:var(--teal)}
+.jl-loi__t{font-family:var(--font-serif);font-weight:400;font-size:var(--text-xl);
+  line-height:1.2;margin:0 36px var(--space-1) 0;color:var(--ink)}
+.jl-loi__meta{font-size:var(--text-sm);color:var(--muted)}
+.jl-loi__corps{padding:var(--space-5);flex:1;font-size:var(--text-md);line-height:1.7;color:var(--body)}
+.jl-loi__corps p{margin:0 0 .9em}
+.jl-loi__pied{padding:var(--space-3) var(--space-5);border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:var(--space-2);background:var(--white);position:sticky;bottom:0}
+.jl-loi__v{padding:var(--space-3) 0;border-bottom:1px dashed var(--line)}
+.jl-voile{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:109;opacity:0;
+  pointer-events:none;transition:opacity var(--t-slow)}
+body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
+
+/* ── 27.7 Bottom sheet mobile : le même panneau, par le bas ────────────── */
+.jl-loi__poignee{display:none}
+@media (max-width:860px){
+  .jl-loi{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;height:88vh;
+    border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+    transform:translateY(100%);box-shadow:0 -6px 24px rgba(0,0,0,.22)}
+  body.jl-loi-ouverte .jl-loi{transform:translateY(0)}
+  .jl-loi__poignee{display:block;width:44px;height:4px;background:var(--line);
+    border-radius:2px;margin:var(--space-2) auto 0}
+}
+
+/* ── 27.8 Modale de signalement (pas de mailto: en clair) ──────────────── */
+.jl-modale-overlay[hidden]{display:none}
+.jl-mail-r{white-space:nowrap}
+
+/* ── 27.9 Mise en page de la page ──────────────────────────────────────── */
+.jl-hero{max-width:880px}
+.jl-lead{color:var(--muted);font-size:var(--text-base);margin:0 0 var(--space-5);max-width:90ch}
+.jl-hint{color:var(--muted);font-size:var(--text-sm);margin-top:var(--space-3);max-width:880px}
+.jl-kb{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--muted);
+  cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.jl-kb:hover{background:var(--teal);color:#fff;text-decoration:none}
+
 /* ═══════════════════ 26. IMPRESSION ══════════════════════════════════════ */
 /* ⚠ Une page A4 fait ~794 px : le point de rupture 900 px s'active À
    L'IMPRESSION. Sans règles explicites, c'est la mise en page MOBILE qui part
@@ -821,4 +1012,321 @@ input.jl-tab:focus-visible+.jl-onglets label,
   .jl-honnetete,.jl-somm{border:1px solid #999;background:none;color:#000}
   a[href]::after{content:""}
   .jl-carte,.jl-entete{border:1px solid #ccc}
+
+  /* ── Page de recherche (ajouté le 13/09/2026) ────────────────────────
+     ⚠ LE PIÈGE : A4 ≈ 794 px, donc les points de rupture 860 px ET 900 px
+     s'activent à l'impression. Sans les règles ci-dessous, c'est la mise en
+     page MOBILE qui part sur le papier — le panneau d'article en « bottom
+     sheet » de 88 vh, la grille des fonds en une colonne, le rail en
+     position:fixed par-dessus le texte. (Constat de search.html:585-588,
+     transposé aux points de rupture de jl.css.) */
+  .jl-barre-reseau,.jl-adv,.jl-exp,.jl-flux,.jl-plus,.jl-facettes,
+  .jl-sources,.jl-topline,.jl-hint,.jl-modale-overlay,.jl-voile,
+  .jl-barre-reseau__opt,.jl-advsum button{display:none !important}
+  /* Ce qu'on imprime : la requête, les filtres, l'état des sources, la liste. */
+  .jl-recap-impression{display:block !important;margin:0 0 1em;
+    font-size:10pt;border-bottom:1px solid #000;padding-bottom:.5em}
+  .jl-resultats{max-width:none !important}
+  .jl-resultat{break-inside:avoid;page-break-inside:avoid;
+    border-top:1px solid #999;padding:.5em 0}
+  .jl-resultat__t{font-size:11pt;color:#000}
+  .jl-resultat__x em,.jl-hl{background:none !important;color:#000 !important;
+    font-style:normal;font-weight:600}
+  .lawref{color:#000 !important;border:0 !important;font-weight:600}
+  /* Le panneau d'article, s'il est ouvert, s'imprime EN BLOC après la liste. */
+  .jl-loi{position:static !important;transform:none !important;width:auto !important;
+    max-width:none !important;height:auto !important;overflow:visible !important;
+    border:0 !important;box-shadow:none !important;display:block !important;
+    break-before:page;page-break-before:always}
+  body:not(.jl-loi-ouverte) .jl-loi{display:none !important}
+  .jl-loi__hd{position:static !important;border-bottom:1px solid #000}
+  .jl-loi__pied,.jl-loi__x,.jl-loi__poignee{display:none !important}
+  .jl-resultat__ref [data-signal]{display:none}
+  .jl-resultat__ref a[href]::after{content:" (" attr(href) ")";font-size:8pt;font-style:italic}
+  .jl-body::after{content:"Imprimé depuis justicelibre.org — base de jurisprudence en accès libre, Licence Ouverte 2.0";
+    display:block;margin-top:1.5em;padding-top:.5em;border-top:1px solid #000;
+    font-size:8pt;font-style:italic}
 }
+/* Hors impression, le récapitulatif papier n'existe pas à l'écran. */
+.jl-recap-impression{display:none}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 28. v2 article, 13 sept. — CARTE D'UN ARTICLE et HISTORIQUE
+ *
+ * Ajout en fin de fichier, section datée et nommée : aucune règle qui précède
+ * n'est renommée ni redéfinie (decision-jl.html et composants.html intacts).
+ * Sources : web/maquettes/carte-748.html, histo-02.html, histo-05.html.
+ * Rapport : scratchpad/audit/v2_article_13sept.md
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 28.1 Chrome de page : titre, date lue, aide ───────────────────────── */
+/* Titre de page : « Article 748-6 · Code de procédure civile », le NUMÉRO en
+   serif italique teal (règle du mot accentué, jl.css §15 — pas de règle em{}
+   globale, le sélecteur reste porté par .jl-titre--h1). */
+.jl-titrepage{display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap;
+  margin:0 0 var(--space-1)}
+.jl-leadrow{display:flex;align-items:center;justify-content:space-between;
+  gap:var(--space-4);flex-wrap:wrap;margin:0 0 var(--space-4)}
+.jl-lead{color:var(--muted);font-size:var(--text-base);margin:0;max-width:90ch}
+/* Badge de date lue : teal quand c'est aujourd'hui, ambre quand c'est le passé */
+.jl-when{font-family:var(--font-mono);font-size:var(--text-xs);padding:1px var(--space-2);
+  border-radius:10px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.jl-when--passe{background:var(--warn-bg);color:var(--warn);font-weight:600;
+  border:1px solid var(--warn)}
+/* Gélule « historique » à côté du titre */
+.jl-kicker--pilule{display:inline-block;font-family:var(--font-mono);font-size:var(--text-xs);
+  letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);padding:2px var(--space-2);border-radius:10px;
+  margin-bottom:0;font-weight:400}
+/* Bouton d'aide « ? » : une infobulle NATIVE (title), pas un second mécanisme */
+.jl-aide{display:inline-flex;align-items:center;justify-content:center;
+  width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);
+  color:var(--muted);font-size:var(--text-3xs);font-weight:700;margin-left:5px;
+  cursor:help;vertical-align:1px;text-transform:none;letter-spacing:0}
+.jl-aide:hover,.jl-aide:focus-visible{border-color:var(--teal);color:var(--teal)}
+.jl-datepop__chips{display:flex;flex-wrap:wrap;gap:6px}
+.jl-datepop__chips .jl-chip{border:1px solid var(--line);background:var(--cream);
+  font-family:var(--font-mono);cursor:pointer}
+.jl-datepop input[type=text]{flex:1;min-width:0}
+/* Métadonnée mono discrète : le NOR d'un texte */
+.jl-nor{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted)}
+
+/* ── 28.2 Les trois colonnes de la carte ───────────────────────────────── */
+.jl-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1.25fr);
+  gap:0;border:1px solid var(--line);border-radius:var(--radius-xl);
+  background:var(--white);overflow:hidden}
+.jl-col{padding:var(--space-4) var(--space-5);min-width:0}
+.jl-col+.jl-col{border-left:1px solid var(--line)}
+.jl-col--mid{background:var(--cream)}
+.jl-coltete{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  margin:0 0 var(--space-1)}
+.jl-coltete h2{margin:0;font-size:var(--text-3xs);letter-spacing:var(--ls-wider);
+  text-transform:uppercase;color:var(--muted);font-weight:600}
+.jl-col--mid .jl-coltete h2{color:var(--teal)}
+.jl-sub{font-size:var(--text-sm);color:var(--muted);margin:0 0 var(--space-4);line-height:1.45}
+.jl-empty{font-size:var(--text-sm);color:var(--muted);font-style:italic;padding:var(--space-1) 0}
+.jl-colfoot{margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
+@media (max-width:1100px){
+  .jl-cols{grid-template-columns:1fr}
+  .jl-col+.jl-col{border-left:0;border-top:1px solid var(--line)}
+}
+
+/* ── 28.3 Bandeau d'étage teal, avec sa bulle de compte (chiffre seul) ──── */
+.jl-etage{margin:0 0 6px}
+.jl-etage__t{font-size:var(--text-3xs);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--teal);font-weight:700;background:var(--teal-xl);
+  padding:6px var(--space-2);margin:var(--space-2) 0 6px;border-radius:var(--radius);
+  display:flex;align-items:baseline;gap:var(--space-2);line-height:1.4}
+.jl-etage__c{font-family:var(--font-mono);font-size:var(--text-3xs);color:#fff;
+  background:var(--teal);letter-spacing:0;text-transform:none;margin-left:auto;
+  min-width:18px;height:18px;padding:0 6px;border-radius:9px;
+  display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+/* La racine de l'arbre : « art. 748-6 CPC » */
+.jl-racine{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--ink);
+  padding:2px 0;font-weight:600}
+.jl-arbre .jl-lt{padding:5px 0 7px}
+.jl-kids{margin-top:2px}
+.jl-kids .jl-lt{padding:var(--space-1) 0 5px}
+.jl-kids .jl-lt__t a{font-weight:500;font-size:var(--text-sm)}
+
+/* ── 28.4 Texte de l'article (colonne du milieu) ───────────────────────── */
+.jl-alin{margin:0 0 .7em;font-size:var(--text-base);line-height:1.55}
+.jl-alin:last-child{margin-bottom:0}
+.jl-alin .jl-al{font-family:var(--font-mono);font-size:var(--text-xs);
+  color:var(--muted);margin-right:var(--space-2)}
+.jl-nota{margin-top:var(--space-3);padding:9px var(--space-3);background:var(--warn-bg);
+  border-radius:var(--radius-lg);font-size:var(--text-sm)}
+.jl-nota b{color:var(--warn)}
+
+/* ── 28.5 Jurisprudence qui le cite ────────────────────────────────────── */
+.jl-juris{margin-top:var(--space-6)}
+.jl-juris .jl-titre--nu{margin-top:0;display:flex;align-items:baseline;gap:var(--space-3);flex-wrap:wrap}
+.jl-juris .jl-titre--nu .jl-n{font-family:var(--font-sans);font-size:var(--text-sm);color:var(--muted)}
+.jl-jgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3);
+  margin-top:var(--space-3)}
+.jl-jc{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-xl);
+  padding:var(--space-3) var(--space-4);font-size:var(--text-base);
+  border-top:3px solid var(--c,var(--line))}
+.jl-jc__m{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;
+  font-size:var(--text-xs);color:var(--muted);margin-bottom:5px}
+.jl-jc__t{font-family:var(--font-serif);font-size:var(--text-md);margin-bottom:6px}
+.jl-jc__t a{color:var(--ink)}
+.jl-jc__x{font-size:var(--text-sm);color:var(--muted);line-height:1.5}
+.jl-jc__ap{margin-top:var(--space-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.jl-jc--ancienne{background:var(--warn-bg)}
+/* Étiquette de rédaction (« rédaction 2019 ») */
+.jl-rd{display:inline-block;font-family:var(--font-mono);font-size:var(--text-xs);
+  padding:1px 7px;border-radius:var(--radius);background:var(--teal-xl);
+  color:var(--teal);white-space:nowrap}
+.jl-rd--ancienne{background:var(--warn-bg);color:var(--warn);font-weight:600}
+@media (max-width:1100px){.jl-jgrid{grid-template-columns:1fr}}
+
+/* ── 28.6 Chrome commun de la page HISTORIQUE ──────────────────────────── */
+.jl-hbar{display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;margin:0 0 var(--space-4)}
+.jl-hcount{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted);margin-left:auto}
+/* Titre de bloc : NOIR, parce que c'est un titre de section (règle de couleur ;
+   arbitrage §6.5 du rapport normaliseur, .jl-h2 d'histo-02 était en --ink). */
+.jl-h2{font-size:var(--text-3xs);letter-spacing:var(--ls-wider);text-transform:uppercase;
+  color:var(--ink);font-weight:600;margin:0 0 var(--space-3);
+  display:flex;align-items:center;gap:var(--space-2)}
+.jl-hsel{font-family:var(--font-mono);font-size:var(--text-sm);padding:var(--space-1) 7px;
+  border:1px solid var(--line);border-radius:var(--radius-md);background:var(--white);color:var(--ink)}
+/* Ce qui est postérieur à la date lue : atténué, jamais supprimé */
+.jl-hfutur{opacity:.45}
+.jl-htext{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:13px var(--space-4);font-size:var(--text-base);line-height:1.65;margin-top:var(--space-2)}
+.jl-hdiff{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:var(--space-4);font-size:var(--text-base);line-height:var(--lh-relaxed)}
+.jl-hdiff ins{background:var(--ok-bg);color:var(--ok);text-decoration:none;border-radius:2px}
+.jl-hdiff del{background:var(--bad-bg);color:var(--bad);border-radius:2px}
+.jl-hhonest{margin-top:var(--space-6);line-height:1.55}
+
+/* ── 28.7 Vue COULOIRS (une ligne par texte, le temps en abscisse) ──────── */
+.jl-cl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-xl);
+  background:var(--white)}
+.jl-cl__in{min-width:1040px;position:relative}
+.jl-cl__head{display:grid;grid-template-columns:250px 1fr;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--white);z-index:2}
+.jl-cl__lbl{padding:var(--space-2) var(--space-3);font-size:var(--text-3xs);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);font-weight:600}
+.jl-cl__axis{position:relative;height:30px}
+.jl-cl__yr{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);padding-left:var(--space-1);
+  font-family:var(--font-mono);font-size:var(--text-3xs);color:var(--muted);line-height:30px}
+.jl-cl__row{display:grid;grid-template-columns:250px 1fr;border-bottom:1px solid var(--line);min-height:34px}
+.jl-cl__row:last-child{border-bottom:0}
+.jl-cl__row:hover{background:var(--cream)}
+.jl-cl__row--n0{background:var(--teal-xl)}
+.jl-cl__row--n2 .jl-cl__name{padding-left:34px}
+.jl-cl__row--n3 .jl-cl__name{padding-left:54px}
+.jl-cl__row--n4 .jl-cl__name{padding-left:74px}
+.jl-cl__row--ret .jl-cl__name{font-size:var(--text-xs)}
+.jl-cl__row--ret .jl-cl__name a{font-weight:500}
+.jl-cl__name{padding:var(--space-2) var(--space-3) var(--space-2) 14px;font-size:var(--text-sm);
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  border-right:1px solid var(--line)}
+.jl-cl__name a{color:var(--ink)}
+.jl-cl__name a:hover{color:var(--teal)}
+.jl-cl__role{font-family:var(--font-mono);font-size:var(--text-3xs);color:var(--muted);
+  display:block;letter-spacing:.05em;text-transform:uppercase}
+.jl-cl__lane{position:relative;height:34px}
+.jl-cl__grid{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);opacity:.6}
+.jl-cl__bar{position:absolute;top:9px;height:16px;border-radius:var(--radius);
+  background:var(--ok);opacity:.85}
+.jl-cl__bar--n2{top:12px;height:10px}
+/* Mort = gris (jamais rouge : le rouge est réservé au bouchon d'abrogation) */
+.jl-cl__row.is-dead .jl-cl__name{opacity:.55}
+.jl-cl__bar.is-dead{background:var(--muted);opacity:.45}
+/* Pas encore en vigueur = bleu --doc, distinct du mort */
+.jl-cl__row.is-fut .jl-cl__name{color:var(--doc)}
+.jl-cl__bar.is-fut{background:var(--doc);opacity:.7}
+/* Réécrit (même NOR, nouvel identifiant) = hachuré, jamais assimilé à un mort */
+.jl-cl__row.is-mod .jl-cl__name{font-style:italic}
+.jl-cl__bar.is-mod{background:repeating-linear-gradient(90deg,var(--muted) 0 6px,transparent 6px 10px);opacity:.7}
+/* « sans limite » : pointe à droite, pour ne pas confondre avec une fin en 2027 */
+.jl-cl__bar.is-inf{border-top-right-radius:0;border-bottom-right-radius:0}
+.jl-cl__bar.is-inf::after{content:"";position:absolute;right:-8px;top:2px;
+  border-left:8px solid var(--ok);border-top:6px solid transparent;
+  border-bottom:6px solid transparent;opacity:.85}
+.jl-cl__bar.is-inf.is-fut::after{border-left-color:var(--doc)}
+.jl-cl__bar.is-inf.is-dead::after{border-left-color:var(--muted)}
+.jl-cl__seg{position:absolute;top:6px;height:22px;border-radius:var(--radius);
+  border:1px solid var(--white);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-family:var(--font-mono);font-size:var(--text-3xs);
+  overflow:hidden;white-space:nowrap;background:var(--ok-bg);color:var(--ok)}
+.jl-cl__seg.is-sel{background:var(--ok);color:#fff;outline:2px solid var(--ink);
+  outline-offset:1px;z-index:3}
+.jl-cl__seg.is-cur{overflow:visible}
+.jl-cl__seg.is-cur::after{content:"";position:absolute;left:6px;right:6px;bottom:-5px;
+  height:3px;border-radius:2px;background:var(--ink)}
+/* Retouche = losange ambre · abrogation = bouchon rouge · encoche = retouche datée */
+.jl-cl__mark{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;
+  background:var(--warn);transform:rotate(45deg);border-radius:2px;cursor:help;z-index:2}
+.jl-cl__cap{position:absolute;top:8px;width:3px;height:16px;margin-left:-1px;
+  background:var(--bad);border-radius:1px;cursor:help;z-index:2}
+.jl-cl__notch{position:absolute;top:4px;width:3px;height:26px;background:var(--warn);
+  border-radius:1px;cursor:help;z-index:2}
+.jl-cl__mark:focus-visible,.jl-cl__cap:focus-visible,.jl-cl__notch:focus-visible,
+.jl-cl__seg:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.jl-cl__today{position:absolute;top:0;bottom:0;width:2px;background:var(--warn);z-index:4}
+.jl-cl__todayl{position:absolute;top:2px;font-family:var(--font-mono);font-size:var(--text-xs);
+  color:var(--warn);background:var(--white);padding:0 var(--space-1);white-space:nowrap;z-index:5}
+.jl-cl__after{position:absolute;top:0;bottom:0;background:var(--light);opacity:.72;
+  z-index:3;pointer-events:none}
+.jl-cl__tip{margin-top:14px;font-size:var(--text-sm);min-height:4.2em}
+
+/* ── 28.8 Vue POUPÉES RUSSES (accordéons emboîtés) ─────────────────────── */
+.jl-pr{display:flex;flex-direction:column;gap:var(--space-3)}
+.jl-pr__acc{border:1px solid var(--line);border-radius:var(--radius-xl);
+  background:var(--white);overflow:hidden}
+.jl-pr__acc--lvl0{border-color:var(--teal)}
+.jl-pr__h{display:flex;align-items:center;gap:var(--space-3);padding:11px 14px;
+  cursor:pointer;user-select:none;width:100%;text-align:left}
+.jl-pr__h:hover{background:var(--teal-xl)}
+.jl-pr__acc.is-dead>.jl-pr__h{opacity:.6}
+.jl-pr__acc.is-fut>.jl-pr__h .jl-pr__ttl{color:var(--doc)}
+.jl-pr__acc.is-mod>.jl-pr__h .jl-pr__ttl{font-style:italic}
+.jl-pr__chev{color:var(--teal);transition:transform var(--t-fast);flex:none}
+.jl-pr__acc.is-open>.jl-pr__h .jl-pr__chev{transform:rotate(90deg)}
+.jl-pr__ttl{font-size:var(--text-base);font-weight:600;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.jl-pr__acc--lvl2 .jl-pr__ttl{font-size:var(--text-sm);font-weight:500}
+.jl-pr__ttl a{color:var(--ink)}
+.jl-pr__ttl a:hover{color:var(--teal);text-decoration:underline}
+.jl-pr__cnt{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-xs);
+  color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.jl-pr__ab{color:var(--bad);opacity:.75}
+.jl-pr__body{display:none;padding:2px 14px 14px;border-top:1px solid var(--line)}
+.jl-pr__acc.is-open>.jl-pr__body{display:block}
+.jl-pr__in{padding-left:14px;border-left:2px solid var(--line);margin-top:var(--space-3)}
+.jl-pr__frise{display:flex;align-items:center;gap:0;margin:var(--space-3) 0 var(--space-2);
+  padding:6px 0;overflow-x:auto}
+.jl-pr__seg{flex:none;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);
+  font-size:var(--text-xs);color:var(--muted);white-space:nowrap;padding:1px var(--space-1);
+  margin:-1px -4px;border-radius:var(--radius-md)}
+.jl-pr__seg.is-cur{color:var(--teal);font-weight:700}
+.jl-pr__seg.is-hl{background:var(--ok-bg)}
+.jl-pr__lnk{flex:none;width:26px;height:1px;background:var(--line);margin:0 6px}
+.jl-pr__red{border:1px solid var(--line);border-radius:var(--radius-lg);
+  margin-bottom:var(--space-2);background:var(--cream)}
+.jl-pr__red.is-cur{border-color:var(--teal)}
+.jl-pr__ret{padding:6px var(--space-2);margin:0 -8px;border-top:1px solid var(--line);
+  border-radius:var(--radius-md)}
+.jl-pr__ret:hover,.jl-pr__ret.is-hl{background:var(--cream)}
+.jl-pr__foot{font-size:var(--text-xs);color:var(--muted);margin-top:6px}
+
+/* ── 28.9 Impression des deux pages ────────────────────────────────────── */
+@media print{
+  .jl-cols{display:block;border:0}
+  .jl-col+.jl-col{border-left:0;border-top:1px solid #ccc}
+  .jl-col--mid{background:none}
+  .jl-jgrid{display:block}
+  .jl-jc{break-inside:avoid;margin-bottom:var(--space-2)}
+  .jl-datew,.jl-aide,.jl-hsel,.jl-cl__tip{display:none !important}
+  /* La frise Gantt ne se coupe pas en travers d'une page, et sort en entier */
+  .jl-cl{overflow:visible;break-inside:avoid}
+  .jl-cl__in{min-width:0}
+  .jl-cl__after,.jl-cl__today{display:none}
+  /* Tout accordéon est ouvert sur le papier : rien ne doit rester caché */
+  .jl-pr__body{display:block !important}
+  .jl-pr__acc{break-inside:avoid}
+  .jl-hfutur{opacity:1}
+}
+
+/* 28.10 — correctif mobile (v2 article, 13 sept.) : un identifiant LEGI est
+   plus long qu'une colonne de 375 px ; il doit se couper, pas être tronqué. */
+.jl-bande__v .jl-mono{overflow-wrap:anywhere}
+
+/* 28.11 — classes qui remplacent des style="" en ligne (v2 article, 13 sept.).
+   La règle « aucun style en ligne » ne tolère que la géométrie calculée
+   (left/width en %, qui sont des DONNÉES de la frise, pas de la mise en forme). */
+.jl-sub--enligne{margin:0}
+.jl-poids-normal{font-weight:400}
+.jl-fil--barre{display:flex;justify-content:space-between;align-items:center;
+  gap:var(--space-3);flex-wrap:wrap}
+.jl-point--art{--c:var(--teal);width:12px;height:12px}
+.jl-pr__dt{margin-right:var(--space-2)}
+.jl-pr__h--inerte{cursor:default}
+.jl-pr__h--inerte:hover{background:none}
+/* Famille juridictionnelle d'une carte de jurisprudence (axe 2, §23) */
+.jl-jc--jud{--c:var(--jud)} .jl-jc--adm{--c:var(--adm)} .jl-jc--ce{--c:var(--ce)}
+.jl-jc--eu{--c:var(--eu)}   .jl-jc--txt{--c:var(--txt)} .jl-jc--doc{--c:var(--doc)}
