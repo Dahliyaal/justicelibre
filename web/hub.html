@@ -523,8 +523,8 @@ const CODES = [
 ];
 const FORMATION = {CHAMBRE_SOCIALE:'ch. soc.',soc:'ch. soc.',CHAMBRE_CIVILE_1:'1ʳᵉ civ.',civ1:'1ʳᵉ civ.',CHAMBRE_CIVILE_2:'2ᵉ civ.',civ2:'2ᵉ civ.',CHAMBRE_CIVILE_3:'3ᵉ civ.',civ3:'3ᵉ civ.',CHAMBRE_COMMERCIALE:'com.',comm:'com.',CHAMBRE_CRIMINELLE:'crim.',cr:'crim.',ASSEMBLEE_PLENIERE:'ass. plén.',pl:'ass. plén.',CHAMBRE_MIXTE:'ch. mixte',mi:'ch. mixte',ordo:'ord.',JUDG:'arrêt',ORDER:'ordonnance',HFJUD:'arrêt',HFDEC:'décision'};
 const SRC = {dila:'judiciaire (DILA)', ariane:"Conseil d'État (ArianeWeb)", admin:'justice administrative', cedh:'Cour EDH', cjue:'CJUE'};
-const FAM = r => r.source==='cedh'||r.source==='cjue' ? 'eu' : (r.source==='dila' ? (/constitutionnel/i.test(r.juridiction) ? 'ce' : 'jud') : 'adm');
-const FAMLABEL = {jud:'Judiciaire', adm:'Administratif', ce:'Constitutionnel', eu:'Européen'};
+const FAM = r => r.source==='doctrine' ? 'doc' : r.source==='legi' ? 'txt' : r.source==='cedh'||r.source==='cjue' ? 'eu' : (r.source==='dila' ? (/constitutionnel/i.test(r.juridiction) ? 'ce' : 'jud') : 'adm');
+const FAMLABEL = {jud:'Judiciaire', adm:'Administratif', ce:'Constitutionnel', eu:'Européen', doc:'Avis & doctrine', txt:'Texte'};
 
 /* ───────────────────────── état + routeur ───────────────────────── */
 const state = { scope:'', sub:'', q:'', mode:'sommaire', sort:'pertinence', results:[], srcState:{}, facet:{}, railMini:false, page:{}, adv:{} };
