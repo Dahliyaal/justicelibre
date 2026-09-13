@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colonne de gauche · Cartes compactes · art. 748-6 CPC</title>
+<style>
+
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;--ok-bg:#dff0e3;
+ --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+:root[data-theme=dark]{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
+a{color:var(--teal);text-decoration:none}a:hover{color:var(--teal-l);text-decoration:underline}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select{font:inherit;color:inherit}
+.h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--line);background:var(--white);position:sticky;top:0;z-index:5}
+.logo{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--teal)}
+.logo span{color:var(--muted)}
+.nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nav a{color:inherit}.nav a.on{color:var(--teal);font-weight:600}
+.app{display:flex;min-height:calc(100% - 56px)}
+.rail{width:248px;flex:none;border-right:1px solid var(--line);background:var(--white);padding:10px 8px 12px;display:flex;flex-direction:column;gap:1px;position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto;transition:width .15s}
+.rail.mini{width:60px}
+.rail.mini .lbl,.rail.mini .n,.rail.mini .sec{display:none}
+.rail .hd{display:flex;align-items:center;gap:10px;padding:8px 10px 10px;color:var(--muted)}
+.rail .sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--ink);width:100%;text-align:left}
+.ri:hover{background:var(--cream);text-decoration:none}
+.ri.on{background:var(--teal-xl);color:var(--teal);font-weight:600}
+.ri svg{flex:none}
+.ri .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);font-weight:400}
+.body{flex:1;min-width:0;padding:32px 56px 80px}
+@media (max-width:900px){.body{padding:20px 18px 80px}.rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}.rail.mini{width:52px}.app{padding-left:52px}.rail:not(.mini){width:248px}}
+.hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero select{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)}
+.lead{color:var(--muted);font-size:14px;margin:0 0 14px;max-width:90ch}
+.leadrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+.leadrow .lead{margin:0}
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.85rem 1.8rem;background:var(--teal);color:#fff !important;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;border:none;border-radius:4px;cursor:pointer;text-align:center;white-space:nowrap}
+.cta:hover{background:var(--teal-l);text-decoration:none}
+.cta svg{width:15px;height:15px}
+.datew{position:relative;display:inline-flex;align-items:center;gap:8px}
+.calbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--white);color:var(--teal)}
+.calbtn:hover{border-color:var(--teal)}
+.calbtn svg{width:15px;height:15px}
+.datepop{position:absolute;top:34px;left:0;z-index:20;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:280px;display:none}
+.datepop.open{display:block}
+.datepop .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:8px 0 4px}
+.datepop .k:first-child{margin-top:0}
+.datepop .row{display:flex;gap:8px;align-items:center}
+.datepop input[type=text]{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px}
+.datepop input[type=date]{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+.datepop .chips{display:flex;flex-wrap:wrap;gap:6px}
+.datepop .chip{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;padding:3px 8px;border:1px solid var(--line);border-radius:12px;background:var(--cream);cursor:pointer}
+.datepop .chip:hover{border-color:var(--teal);color:var(--teal)}
+.datepop .err{color:var(--bad);font-size:11.5px;margin-top:4px;min-height:1em}
+.alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
+.alert b{color:var(--bad)}
+.warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid currentColor;color:var(--c)}
+.back{font-size:12.5px;margin-bottom:12px;display:inline-block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+.st{display:inline-flex;align-items:center;gap:5px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px 1px 6px;border-radius:10px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st.ok{color:var(--ok)}.st.ab{color:var(--bad)}.st.q{color:var(--muted)}.st.q::before{background:transparent;border:1px solid currentColor;width:5px;height:5px}.st.fut{color:var(--doc)}
+.src{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:0 5px;border-radius:3px;white-space:nowrap}
+.rd{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 7px;border-radius:3px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.rd.old{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.nor{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.honest{font-size:12.5px;color:var(--muted);padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-bg);border-radius:0 6px 6px 0}
+.honest b{color:var(--ink)}
+.dtin{padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;line-height:1.45;max-height:460px;overflow:auto;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0;white-space:pre-wrap}
+.alin{margin:0 0 .7em}.alin:last-child{margin-bottom:0}
+.alin .no{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);margin-right:8px}
+.notaBox{margin-top:12px;padding:9px 12px;background:var(--warn-bg);border-radius:6px;font-size:12.5px}
+.notaBox b{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:4px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+
+/* bande d'identité sous le titre */
+.idband{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin:4px 0 22px;width:100%}
+.idband>div{padding:4px 18px;border-left:1px solid var(--line);min-width:0}
+.idband>div:first-child{border-left:0;padding-left:0}
+.idband .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+.idband .v{font-size:13px}
+.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font-size:9.5px;font-weight:700;margin-left:5px;cursor:help;position:relative;vertical-align:1px;text-transform:none;letter-spacing:0}
+.help::after{content:attr(data-tip);position:absolute;left:0;top:20px;width:300px;padding:9px 11px;background:var(--ink);color:var(--cream);font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:30;display:none;white-space:normal}
+.help:hover::after,.help:focus::after{display:block}
+
+/* trois colonnes */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1.25fr);gap:0;border:1px solid var(--line);border-radius:8px;background:var(--white);overflow:hidden}
+.col{padding:16px 18px;min-width:0}
+.col+.col{border-left:1px solid var(--line)}
+.col h2{margin:0 0 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.col h2 .arrow{font-size:16px;color:var(--teal)}
+.col.mid{background:var(--cream)}
+.col.mid h2{color:var(--teal)}
+.it{padding:10px 0;border-top:1px solid var(--line);font-size:13px}
+.it:first-of-type{border-top:0;padding-top:0}
+.it .rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal);margin-bottom:3px;display:flex;gap:8px;align-items:center}
+.it .t a{font-weight:600;color:var(--ink)}.it .t a:hover{color:var(--teal)}
+.it .d{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted);margin-top:4px}
+.it .x{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.it.dead{opacity:.55}.it.dead .rel{color:var(--muted)}.it.dead .t a{font-weight:500}
+.it.root{border-top:2px solid var(--line);margin-top:6px}
+.how{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.04em;text-transform:none;color:var(--muted);border:1px dashed var(--line);padding:0 5px;border-radius:3px}
+.vrow{display:block;padding:10px 10px;border:1px solid var(--line);border-radius:6px;background:var(--white);margin-bottom:8px;color:var(--ink);font-size:12.5px}
+.vrow:hover{border-color:var(--teal);text-decoration:none}
+.vrow.cur{border-color:var(--teal);background:var(--teal-xl)}
+.vrow.dead{opacity:.6}
+.vrow .vhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vrow .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.vrow.dead .dot{background:var(--muted)}
+.vrow .vprod{margin-top:5px;padding-left:17px;color:var(--muted);font-size:12px;line-height:1.5}
+.vrow .vprod .rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+.vlist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.vl{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--white);font-size:12.5px;color:var(--ink)}
+.vl.cur{border-color:var(--teal);background:var(--teal-xl)}
+.vl .mono{font-size:11px;color:var(--muted);margin-left:auto;text-align:right}
+.vl.dead{opacity:.6}
+.rtitle{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--teal);border-radius:6px;background:var(--white);font-size:13.5px;user-select:none}
+.rtitle:hover{background:var(--teal-xl)}
+.rtitle .chev{color:var(--teal);transition:transform .15s}
+.rtitle.open .chev{transform:rotate(90deg)}
+.rtitle .res{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rtitle.open .res{display:none}
+.rtext{display:none;padding:14px 14px 12px;border:1px solid var(--teal);border-top:0;border-radius:0 6px 6px 6px;background:var(--white);font-size:14.5px;line-height:1.65}
+.rtext.open{display:block}
+
+/* chaînes d'arrêtés */
+.chain{border:1px solid var(--line);border-radius:8px;background:var(--cream);margin-bottom:10px;overflow:hidden}
+.chain .ch{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;user-select:none}
+.chain .ch:hover{background:var(--teal-xl)}
+.chain .ch .chev{color:var(--teal);transition:transform .15s;flex:none}
+.chain.open .ch .chev{transform:rotate(90deg)}
+.chain .ch .obj{font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chain .ch .cnt{margin-left:auto;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.chain .alive{padding:0 12px 6px}
+.chain .dead-tog{border-top:1px solid var(--line);font-size:12px;padding:7px 12px}
+.chain .members{display:none;border-top:1px solid var(--line);background:var(--white);padding:4px 12px 8px}
+.chain.open .members{display:block}
+.chain .head{padding:0 12px 10px}
+.mem{display:grid;grid-template-columns:20px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px}
+.mem:first-child{border-top:0}
+.mem .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--ok)}
+.mem.dead{opacity:.55}.mem.dead .dot{background:var(--muted)}
+.mem.fut .dot{background:var(--doc)}
+.mem .t a{font-weight:600;color:var(--ink)}
+.mem .d{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:0 0 10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+.juris{margin-top:26px}
+.juris h2{font-family:"DM Serif Display",Georgia,serif;font-weight:400;font-size:20px;margin:0 0 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.juris h2 .n{font-family:"DM Sans",system-ui,sans-serif;font-size:12.5px;color:var(--muted)}
+.jgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.jc{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13px;border-top:3px solid var(--c)}
+.jc .m{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.jc .t{font-family:"DM Serif Display",Georgia,serif;font-size:15.5px;margin-bottom:6px}
+.jc .t a{color:var(--ink)}
+.jc .x{font-size:12.5px;color:var(--muted);line-height:1.5}
+.jc .ap{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.jc.old{background:var(--warn-bg)}
+.bottom{display:grid;grid-template-columns:1fr;gap:16px;margin-top:22px}
+.bottom .card{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.bottom h3{margin:0 0 8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:1100px){.cols{grid-template-columns:1fr}.col+.col{border-left:0;border-top:1px solid var(--line)}.jgrid{grid-template-columns:1fr}}
+
+/* colonne de gauche : socle commun aux 5 variantes */
+.jl-col{padding:16px 18px;min-width:0}
+.jl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 4px}
+.jl-head h2{margin:0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.jl-when{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px;border-radius:10px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.jl-when.past{background:var(--warn-bg);color:var(--warn);font-weight:600;border:1px solid var(--warn)}
+.jl-sub{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.45}
+.jl-foot{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.jl-histo{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--teal)}
+.jl-empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:4px 0}
+.jl-rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+.jl-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.jl-t a{font-weight:600;color:var(--ink)}
+.jl-t a:hover{color:var(--teal)}
+.jl-long{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.42}
+.jl-more{font-size:11.5px;color:var(--muted);margin-top:4px}
+.jl-more a{color:var(--muted);text-decoration:underline;text-decoration-style:dotted}
+.jl-more a:hover{color:var(--teal)}
+
+.jl-sect{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);font-weight:700;margin:18px 0 9px;display:flex;align-items:baseline;gap:8px;line-height:1.4}
+.jl-sect:first-of-type{margin-top:0}
+.jl-sect .c{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:var(--muted);letter-spacing:0;text-transform:none;margin-left:auto}
+.jl-card{border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:6px;background:var(--white);padding:9px 11px;margin-bottom:8px;font-size:13px}
+.jl-card:hover{border-color:var(--teal)}
+.jl-card.mute{border-left-color:var(--muted)}
+.jl-bul{list-style:none;margin:9px 0 0;padding:8px 0 0;border-top:1px dashed var(--line)}
+.jl-bul li{position:relative;padding-left:13px;margin-bottom:6px}
+.jl-bul li:last-child{margin-bottom:0}
+.jl-bul li::before{content:"·";position:absolute;left:3px;color:var(--teal);font-weight:700}
+.jl-bul .jl-meta{margin-top:2px;font-size:10.5px}
+.jl-bul .jl-t a,.jl-bul a{font-weight:500;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">justicelibre<span>.org</span></div>
+  <div class="nav"><a href="../hub.html#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+</div>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <main class="body" id="body"><p class="lead"><span class="spin"></span> Chargement…</p></main>
+</div>
+<div class="proto">colonne de gauche 03 · Cartes compactes · <a href="gauche-index.html">les 5</a></div>
+<script>
+/* Variante 3 · Cartes compactes : une carte par texte, retouches en puces dedans */
+function LEFT(M){
+  const D = etageData(M);
+  const card = (x, cls = '') => `<div class="jl-card ${cls}"><div class="jl-rel">${esc(x.rel)}</div><div class="jl-t">${lienTitre(x)}</div>${x.long ? `<div class="jl-long">${esc(x.long)}</div>` : ''}${metaHTML(x)}</div>`;
+  const arr = a => `<div class="jl-card"><div class="jl-rel">${esc(a.rel)}</div><div class="jl-t">${lienTitre(a)}</div>${a.long ? `<div class="jl-long">${esc(a.long)}</div>` : ''}${metaHTML(a)}${remplaceHTML(a)}${a.retouches.length ? `<ul class="jl-bul">${a.retouches.map(r => `<li><span class="jl-rel">${esc(r.rel)}</span> ${lienTitre(r)}${metaHTML(r)}</li>`).join('')}</ul>` : ''}</div>`;
+  const sect = (e, i) => { const rows = D[i];
+    const body = rows.length ? (i === 2 ? rows.map(arr).join('') : rows.map(x => card(x, i === 1 ? 'mute' : '')).join('')) : `<div class="jl-empty">${esc(e.vide)}</div>`;
+    return `<div class="jl-sect">${e.n}. ${esc(e.titre)}<span class="c">${rows.length}</span></div>${body}`; };
+  return `<div class="jl-head"><h2>Ce qui joue sur lui</h2>${whenBadge(M)}</div>
+    <p class="jl-sub">Une carte par texte, dans l’ordre de la hiérarchie.</p>
+    ${ETAGES.map(sect).join('')}${footHTML()}`;
+}
+
+/* ───── thème / rail (repris de carte-748.html) ───── */
+{ const t = new URLSearchParams(location.search).get('theme'); let th = t;
+  if (!th) { try { th = localStorage.getItem('hub-theme'); } catch {} }
+  if (th === 'light' || th === 'dark') { document.documentElement.dataset.theme = th; try { localStorage.setItem('hub-theme', th); } catch {} }
+  else if (t === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+  else { document.documentElement.dataset.theme = 'dark'; } }
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MOISC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function fmtDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3] === 1 ? '1er' : +m[3]} ${MOIS[+m[2]-1]} ${m[1]}`; }
+function fmtCourt(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3] === 1 ? '1er' : +m[3]} ${MOISC[+m[2]-1]} ${m[1]}`; }
+const ICO = { menu:'M4 7h16M4 12h16M4 17h16', scale:'M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zm10 0l-3 7a3 3 0 0 0 6 0l-3-7z',
+  book:'M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z', chat:'M4 5h16v11H8l-4 4z', hall:'M3 21h18M5 21V10M19 21V10M9 21v-6h6v6M12 3l9 6H3z',
+  people:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8 0', check:'M4 12l5 5L20 6', plug:'M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5' };
+const ico = k => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${ICO[k]}"/></svg>`;
+const HUB = '../hub.html';
+const SCOPES = [ {k:'juris',icon:'scale',label:'Jurisprudence',n:'4,3 M'}, {k:'textes',icon:'book',label:'Textes',n:'3,4 M'}, {k:'travaux',icon:'chat',label:'Travaux préparatoires',n:''}, {k:'avis',icon:'hall',label:'Avis & doctrine',n:'109 k'}, {k:'annuaire',icon:'people',label:'Annuaire',n:'75 k'} ];
+let railMini = false; try { railMini = localStorage.getItem('jl.railMini') === '1'; } catch {}
+function renderRail(){
+  const r = $('#rail'); r.className = 'rail' + (railMini ? ' mini' : '');
+  let h = `<button class="hd" id="railToggle" title="Replier / déplier">${ico('menu')}<span class="logo lbl" style="font-size:18px">justicelibre</span></button><div class="sec">Chercher dans</div>`;
+  for (const s of SCOPES) h += `<a class="ri${s.k==='textes'?' on':''}" href="${HUB}#/${s.k}" title="${esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span>${s.n?`<span class="n">${s.n}</span>`:''}</a>`;
+  h += `<div class="sec">Outils</div><a class="ri" href="${HUB}#/citations">${ico('check')}<span class="lbl">Vérifier mes citations</span></a>`;
+  const th = document.documentElement.dataset.theme || 'system';
+  const thLabel = {light:'Thème clair', dark:'Thème sombre', system:'Thème : système'}[th];
+  h += `<div style="flex:1"></div><button class="ri" id="themeBtn" title="Sombre → système → clair" style="color:var(--muted);font-size:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg><span class="lbl">${thLabel}</span></button><a class="ri" style="color:var(--muted);font-size:12px" href="https://justicelibre.org/mcp.html">${ico('plug')}<span class="lbl">API · MCP · GitHub</span></a>`;
+  r.innerHTML = h;
+  $('#themeBtn').onclick = () => { const next = {dark:'system', system:'light', light:'dark'}[document.documentElement.dataset.theme || 'system'];
+    if (next === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+    else { document.documentElement.dataset.theme = next; try { localStorage.setItem('hub-theme', next); } catch {} } renderRail(); };
+  $('#railToggle').onclick = () => { railMini = !railMini; try { localStorage.setItem('jl.railMini', railMini?'1':'0'); } catch {} renderRail(); };
+}
+
+/* ───── briques ───── */
+const NATLABEL = {DECRET:'décret', ARRETE:'arrêté', CODE:'code', LOI:'loi', ORDONNANCE:'ordonnance', DIRECTIVE_EURO:'directive UE'};
+function legifrance(id, nature){ id = id || '';
+  if (id.startsWith('JORFTEXT')) return `https://www.legifrance.gouv.fr/jorf/id/${id}`;
+  if (id.startsWith('LEGIARTI')) return (nature==='CODE' ? 'https://www.legifrance.gouv.fr/codes/article_lc/' : 'https://www.legifrance.gouv.fr/loda/article_lc/') + id;
+  if (id.startsWith('LEGITEXT')) return `https://www.legifrance.gouv.fr/loda/id/${id}`;
+  return 'https://www.legifrance.gouv.fr/'; }
+function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identifiant absent de l’entrepôt'};
+  const d0 = t.date_debut || '0000', d1 = t.date_fin || '2999';
+  if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
+  if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
+  return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
+function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
+const alineas = v => (v.texte||'').split(/(?<=\.)\s+(?=[A-Z])/);
+const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
+const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
+const minus = s => String(s||'').replace(/^Arrêté/, 'arrêté');
+
+/* ───── modèle : tout se recalcule à la date lue ───── */
+async function loadModel(){
+  const r = await fetch('../hub_paysage_748.json'); if (!r.ok) throw new Error('hub_paysage_748.json : HTTP ' + r.status);
+  const P = await r.json();
+  const q = new URLSearchParams(location.search);
+  const num = (q.get('num') && P.articles[q.get('num')]) ? q.get('num') : '748-6';
+  const today = new Date().toISOString().slice(0, 10);
+  const asked = q.get('date') || '';
+  const at = /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : today;
+  const isToday = at === today;
+  const versions = P.articles[num].slice().sort((x, y) => x.date_debut.localeCompare(y.date_debut));
+  const cname = versions[0].titre_text;
+  const cur = versions.find(v => v.date_debut <= at && (v.date_fin || '2999') > at) || null;
+  const T = {...(P.resolus || {}), ...(P.arretes || {}), ...(P.decrets || {})};
+  const tOf = l => (l.legitext_resolu && T[l.legitext_resolu]) || T[l.cidtexte] || T[l.id] || null;
+  const alive = t => lifeAt(t, at).k === 'ok';
+
+  /* ÉTAGE 1 : le texte qui a écrit la rédaction en vigueur à la date lue */
+  const etage1 = [];
+  if (cur) { const seen = new Set();
+    for (const l of cur.liens) {
+      const isMod = l.typelien === 'MODIFIE' && l.sens === 'cible';
+      const isCre = l.typelien === 'CREATION' || l.typelien === 'CREE';
+      if (!isMod && !isCre) continue;
+      const key = l.legitext_resolu || l.cidtexte || l.id; if (seen.has(key)) continue; seen.add(key);
+      const t = tOf(l);
+      const brut = clean(l.libelle || l.id).replace(/\s*\([A-Za-z]{1,3}\)\s*$/, '');
+      etage1.push({ rel: isCre ? 'écrit par (création)' : 'écrit par', titre: brut,
+        long: t ? clean(titreArr(t)) : '', nature: l.naturetexte || (t && t.nature) || '',
+        date: (l.datesignatexte && l.datesignatexte < '2999') ? l.datesignatexte : (t && t.date_texte) || '',
+        nor: l.nortexte || (t && t.nor) || '', st: lifeAt(t, at), how: 'lien LEGI',
+        lf: legifrance(l.legitext_resolu || l.id || l.cidtexte, l.naturetexte), depuis: cur.date_debut });
+    } }
+
+  /* ÉTAGE 2 : décrets en vigueur à la date qui visent l’article */
+  const etage2 = Object.values(P.decrets || {}).filter(d => (d.vise || []).includes(num) && alive(d))
+    .sort((a, b) => (b.date_texte || '').localeCompare(a.date_texte || ''))
+    .map(d => { const t = clean(d.titre), lg = clean(titreArr(d));
+      return { rel: 'le vise', titre: t, long: lg !== t ? lg : '', date: d.date_texte || '', nor: d.nor || '',
+        st: lifeAt(d, at), how: 'visa', lf: legifrance(d.legitext), nature: 'DECRET' }; });
+
+  /* ÉTAGE 3 : arrêtés en vigueur à la date pris pour l’article, avec leurs retouches */
+  const S = P.succession || [];
+  const etage3 = Object.values(P.arretes || {}).filter(a => (a.vise || []).includes(num) && alive(a))
+    .sort((a, b) => (b.date_texte || '').localeCompare(a.date_texte || ''))
+    .map(a => {
+      const seenR = new Set();
+      const retouches = S.filter(e => e.de === a.legitext && e.type === 'modifie' && e.vers !== a.legitext)
+        .map(e => T[e.vers]).filter(t => t && t.date_debut && t.date_debut <= at)
+        .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
+        .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
+        .map(t => ({ rel: 'retouché par', titre: clean(t.titre), long: '', date: t.date_texte || '', nor: t.nor || '',
+          st: lifeAt(t, at), how: 'succession', lf: legifrance(t.legitext), nature: t.nature || '' }));
+      const seenP = new Set();
+      const remplace = S.filter(e => e.vers === a.legitext && e.type === 'abroge' && e.de !== a.legitext)
+        .map(e => T[e.de]).filter(t => t && (t.date_fin || '2999') <= at)
+        .filter(t => { if (seenP.has(t.legitext)) return false; seenP.add(t.legitext); return true; })
+        .sort((x, y) => (y.date_texte || '').localeCompare(x.date_texte || ''))
+        .map(t => ({ titre: clean(t.titre), date: t.date_texte || '', legitext: t.legitext }));
+      const t0 = clean(a.titre), lg = clean(titreArr(a));
+      return { rel: 'pris pour lui', titre: t0, long: lg !== t0 ? lg : '', date: a.date_texte || '', nor: a.nor || '',
+        st: lifeAt(a, at), how: 'visa', lf: legifrance(a.legitext), nature: 'ARRETE', legitext: a.legitext, retouches, remplace };
+    });
+
+  /* colonne de droite : textes qui le citent (identique dans les 5 variantes) */
+  const seenC = new Set(); const citants = new Map();
+  const addC = (key, o) => { if (!key) return; const e = citants.get(key);
+    if (e) { if (o.arts) e.arts.push(...o.arts); e.how.add(o.how1); } else citants.set(key, {...o, arts: [...(o.arts || [])], how: new Set([o.how1])}); };
+  for (const v of versions) for (const l of v.liens) {
+    if (l.typelien !== 'CITATION' || l.sens !== 'cible') continue;
+    const k0 = l.id || l.cidtexte; if (seenC.has(k0)) continue; seenC.add(k0);
+    const t = tOf(l); const key = l.legitext_resolu || l.cidtexte || l.id;
+    const nature = l.naturetexte || (t && t.nature) || '?';
+    const artm = /- art\. ([^ (]+)/.exec(l.libelle || '');
+    addC(key, {key, nature, titre: t ? clean(titreArr(t)) : clean((l.libelle || '').replace(/ - art\..*$/, '')),
+      date: (l.datesignatexte && l.datesignatexte < '2999') ? l.datesignatexte : (t && t.date_texte) || '',
+      nor: l.nortexte || (t && t.nor) || '', t, arts: artm ? [artm[1]] : [], how1: 'lien LEGI', lf: legifrance(key, nature)});
+  }
+  for (const d of Object.values(P.decrets || {})) if ((d.vise || []).includes(num))
+    addC(d.legitext, {key: d.legitext, nature: 'DECRET', titre: clean(titreArr(d)), date: d.date_texte || '', nor: d.nor || '', t: d, arts: [], how1: 'visa', lf: legifrance(d.legitext)});
+  const NATORD = {DECRET: 0, ARRETE: 1, CODE: 2, LOI: 3, ORDONNANCE: 4};
+  const citantsList = [...citants.values()].map(c => ({...c, st: lifeAt(c.t, at), arts: [...new Set(c.arts)]}))
+    .sort((a, b) => ((NATORD[a.nature] ?? 9) - (NATORD[b.nature] ?? 9)) || (b.date || '').localeCompare(a.date || ''));
+
+  return {P, num, cname, versions, at, isToday, cur, etage1, etage2, etage3, citantsList};
+}
+
+/* ───── briques communes de la colonne de gauche ───── */
+function whenBadge(M){ return M.isToday
+  ? `<span class="jl-when">actuel · ${fmtCourt(M.at)}</span>`
+  : `<span class="jl-when past" title="vous lisez l’article à une date passée">au ${fmtCourt(M.at)}</span>`; }
+function metaHTML(x){ return `<div class="jl-meta">${x.date ? `<span>${fmtCourt(x.date)}</span>` : ''}${x.nor ? `<span class="nor">${esc(x.nor)}</span>` : ''}${pill(x.st)}<span class="how">${esc(x.how)}</span></div>`; }
+function lienTitre(x){ return `<a href="${x.lf}">${esc(x.titre)}</a>`; }
+function remplaceHTML(a){ if (!a.remplace.length) return '';
+  if (a.remplace.length === 1) return `<div class="jl-more">remplace <a href="#historique" title="voir l’historique">l’${esc(minus(a.remplace[0].titre))}</a></div>`;
+  return `<div class="jl-more">remplace <a href="#historique" title="${esc(a.remplace.map(r => r.titre).join(' · '))}">${a.remplace.length} arrêtés antérieurs</a></div>`; }
+const ETAGES = [
+  {n: 1, titre: 'Ce qui a écrit la rédaction en vigueur', vide: 'aucun texte modificateur relié dans LEGI'},
+  {n: 2, titre: 'Décrets en vigueur qui le visent', vide: 'aucun décret en vigueur ne le vise'},
+  {n: 3, titre: 'Arrêtés en vigueur pris pour lui', vide: 'aucun arrêté en vigueur n’est pris pour lui'}
+];
+const etageData = M => [M.etage1, M.etage2, M.etage3];
+const footHTML = () => '<div class="jl-foot"><a class="jl-histo" href="#historique">↺ Historique : tout ce qui a joué sur lui</a></div>';
+
+/* ───── milieu et droite : identiques dans les 5 variantes ───── */
+function midHTML(M){ const cur = M.cur;
+  if (!cur) return '<div class="honest">À la date lue, l’article n’existe pas encore.</div>';
+  return alineas(cur).map((a, i) => `<p class="alin"><span class="no">al. ${i + 1}</span>${esc(a)}</p>`).join('')
+    + (cur.nota ? `<div class="notaBox"><b>Nota.</b> ${esc(cur.nota)}</div>` : ''); }
+function rightHTML(M){ return M.citantsList.map(c =>
+  `<div class="it${c.st.k !== 'ok' ? ' dead' : ''}"><div class="rel">${esc(NATLABEL[c.nature] || String(c.nature).toLowerCase())}${[...c.how].map(h => `<span class="how">${esc(h)}</span>`).join('')}</div><div class="t"><a href="${c.lf}">${esc(c.titre)}</a>${c.arts.length ? ` <span class="muted">· art. ${esc(c.arts.join(', '))}</span>` : ''}</div><div class="d">${c.date ? `<span>${fmtCourt(c.date)}</span>` : ''}${c.nor ? `<span class="nor">${esc(c.nor)}</span>` : ''}${pill(c.st)}</div></div>`).join('')
+  || '<div class="jl-empty">aucun texte ne le cite</div>'; }
+
+/* ───── page ───── */
+function render(M){
+  const at = M.at, cur = M.cur;
+  $('#body').innerHTML = `<p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)}</p>
+  <div class="leadrow"><div class="lead"><span class="datew">En date du <b class="mono">${fmtDate(at)}</b>
+      <button class="calbtn" id="calBtn" title="Changer la date de lecture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+      <div class="datepop" id="datePop">
+        <div class="k">Saisir une date</div><div class="row"><input type="text" id="dateTxt" placeholder="jj/mm/aaaa" value="${at.slice(8,10)}/${at.slice(5,7)}/${at.slice(0,4)}"><button class="btn" id="dateGo" style="padding:6px 12px">Lire</button></div><div class="err" id="dateErr"></div>
+        <div class="k">Ou choisir dans le calendrier</div><div class="row"><input type="date" id="atDate" value="${at}"></div>
+        <div class="k">Ou sauter à une rédaction</div><div class="chips"><span class="chip" data-d="${new Date().toISOString().slice(0,10)}">aujourd’hui</span>${M.versions.map(v => `<span class="chip" data-d="${v.date_debut}">${fmtCourt(v.date_debut)}</span>`).join('')}</div>
+      </div></span></div>
+  <a class="cta" href="#historique" title="Toutes les rédactions, diff mot à mot, histoire de l’article"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</a></div>
+  <div class="idband">
+    <div><div class="k">État à la date lue</div><div class="v">${cur ? pill(lifeAt(cur, at)) + ' depuis le ' + fmtCourt(cur.date_debut) : '<span class="st fut">n’existe pas encore</span>'}</div></div>
+    <div><div class="k">Rédactions</div><div class="v">${M.versions.length} depuis ${fmtCourt(M.versions[0].date_debut)}</div></div>
+    <div><div class="k">Identifiant</div><div class="v"><span class="mono">${esc(cur ? cur.legiarti : M.versions[0].legiarti)}</span></div></div>
+    <div><div class="k">Source</div><div class="v"><a href="https://www.legifrance.gouv.fr/codes/article_lc/${esc(cur ? cur.legiarti : M.versions[0].legiarti)}">Légifrance ↗</a> · <span class="src">LEGI</span></div></div>
+  </div>
+  <div class="cols">
+    <div class="col jl-col">${LEFT(M)}</div>
+    <div class="col mid"><h2>Le texte lu <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${cur ? fmtCourt(cur.date_debut) + ' → ' + fmtCourt(cur.date_fin) : ''}</span></h2>
+      ${midHTML(M)}</div>
+    <div class="col"><h2>Textes qui le citent <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.citantsList.length}</span></h2>
+      ${rightHTML(M)}</div>
+  </div>
+  <div id="historique" style="margin-top:26px"><div class="honest"><b>Historique.</b> Dans la maquette, cette ancre tient lieu de la page d’historique de l’article : toutes ses rédactions, les textes qui les ont écrites, et les textes morts qui ne figurent plus dans la colonne de gauche.</div></div>`;
+  const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); q.set('num', M.num); location.search = q.toString(); };
+  $('#atDate').onchange = e => goDate(e.target.value);
+  $('#calBtn').onclick = e => { e.stopPropagation(); $('#datePop').classList.toggle('open'); if ($('#datePop').classList.contains('open')) $('#dateTxt').focus(); };
+  document.addEventListener('click', e => { if (!e.target.closest('.datew')) $('#datePop').classList.remove('open'); });
+  const parseFr = t => { const m = /^\s*(\d{1,2})[\/.\-\s](\d{1,2})[\/.\-\s](\d{4})\s*$/.exec(t); if (!m) return null;
+    const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])); if (d.getUTCDate() !== +m[1] || d.getUTCMonth() !== +m[2] - 1) return null; return d.toISOString().slice(0, 10); };
+  const submit = () => { const d = parseFr($('#dateTxt').value); if (!d) { $('#dateErr').textContent = 'Date illisible : attendu jj/mm/aaaa'; return; } goDate(d); };
+  $('#dateGo').onclick = submit; $('#dateTxt').onkeydown = e => { if (e.key === 'Enter') submit(); };
+  document.querySelectorAll('#datePop .chip').forEach(c => c.onclick = () => goDate(c.dataset.d));
+}
+renderRail();
+loadModel().then(M => { window.M = M; render(M); })
+  .catch(e => { $('#body').innerHTML = '<div class="alert">⚠ <div><b>Chargement impossible.</b> ' + esc(e.message) + '</div></div>'; console.error(e); });
+</script>
+</body>
+</html>
