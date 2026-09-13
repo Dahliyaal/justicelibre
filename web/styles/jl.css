@@ -1375,3 +1375,124 @@ body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
 .jl-jc--ancienne{border-left:1px solid var(--line)}
 .jl-jc__foot--ancienne, .jl-jc__foot--ancienne svg{color:var(--bad);opacity:.8}
 .jl-jc__foot--ancienne a{color:var(--teal);opacity:1}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * v2 accueil / doctrine / annuaire — 13 sept. 2026
+ * AJOUT EN FIN DE FICHIER, aucune règle antérieure n'est réécrite.
+ * Pages : web/v2/index.html, apropos.html, doctrine.html, annuaire.html.
+ * Rapport : scratchpad/audit/v2_accueil_doctrine_annuaire_13sept.md
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── A. ACCUEIL ALLÉGÉ ──────────────────────────────────────────────────── */
+/* Un hero, un bouton, une ligne de chiffres. Rien d'autre : décision de la
+   propriétaire (tout le reste est parti dans apropos.html). */
+.jl-acc{max-width:900px;margin:0 auto;padding:clamp(2rem,7vw,5.5rem) 0 var(--space-6)}
+.jl-acc__h1{font-family:var(--font-serif);font-weight:400;color:var(--ink);
+  font-size:clamp(2rem,5vw,3.4rem);line-height:1.12;margin:0 0 var(--space-4)}
+/* Signature typographique : bas de casse → italique teal (§6.2 du rapport). */
+.jl-acc__h1 em{font-style:italic;color:var(--teal);font-weight:inherit}
+.jl-acc__lead{color:var(--body);font-size:var(--text-lg);line-height:1.6;
+  max-width:62ch;margin:0 0 var(--space-6)}
+.jl-acc__actions{display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center}
+/* Ligne de chiffres réels : le chiffre en serif, la légende en gris. */
+.jl-chiffres{display:flex;flex-wrap:wrap;gap:var(--space-3);
+  margin:clamp(2.5rem,6vw,4.5rem) 0 0;border-top:1px solid var(--line);padding-top:var(--space-5)}
+.jl-chiffre{flex:1 1 150px;min-width:0}
+.jl-chiffre__n{font-family:var(--font-serif);font-weight:400;color:var(--ink);
+  font-size:var(--text-2xl);line-height:1.1;display:block}
+.jl-chiffre__l{display:block;margin-top:3px;font-size:var(--text-sm);color:var(--muted);line-height:1.4}
+.jl-chiffre .jl-provenance{margin-top:5px}
+
+/* ── B. À PROPOS ────────────────────────────────────────────────────────── */
+.jl-prose{max-width:78ch}
+.jl-prose p{margin:0 0 var(--space-3);font-size:var(--text-md);line-height:1.7;color:var(--body)}
+.jl-prose p:last-child{margin-bottom:0}
+.jl-sect{margin:var(--space-7) 0 0;max-width:1100px}
+/* URL d'endpoint, copiable à l'œil */
+.jl-url{display:block;font-family:var(--font-mono);font-size:var(--text-lg);color:var(--teal);
+  background:var(--cream);border:1px solid var(--line);border-radius:var(--radius-md);
+  padding:var(--space-3) var(--space-4);margin:var(--space-3) 0;word-break:break-all}
+/* Installation en trois étapes */
+.jl-etapes{margin:var(--space-3) 0 0;padding-left:1.4em;counter-reset:none}
+.jl-etapes li{margin-bottom:var(--space-3);font-size:var(--text-md);line-height:1.65;color:var(--body)}
+.jl-etapes li strong{color:var(--ink)}
+/* Grille d'outils MCP (un nom de fonction + une phrase) */
+.jl-grille-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--space-3)}
+.jl-outil{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:var(--space-3)}
+.jl-outil code{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--teal);
+  display:block;margin-bottom:5px;word-break:break-all}
+.jl-outil p{margin:0;font-size:var(--text-sm);color:var(--muted);line-height:1.55}
+.jl-outil--second code{color:var(--muted)}
+.jl-outil--second{border-color:var(--line);opacity:.85}
+/* Lignes source › licence des tableaux de ressources */
+.jl-liens{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);
+  font-size:var(--text-base);margin:var(--space-3) 0 0}
+
+/* ── C. AVIS & DOCTRINE ─────────────────────────────────────────────────── */
+.jl-doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:var(--space-3);margin:var(--space-5) 0 0}
+.jl-doc-grid .jl-tuile.is-on{border-color:var(--teal);background:var(--teal-xl)}
+/* Lecture d'un document : texte à gauche, fiche à droite (comme .jl-lecture,
+   mais la colonne de droite est une FICHE de champs, pas un sommaire). */
+.jl-doclec{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px;align-items:start;
+  margin-top:var(--space-4)}
+.jl-fiche{position:sticky;top:calc(var(--topbar-h) + 18px);background:var(--white);
+  border:1px solid var(--line);border-radius:var(--radius-xl);padding:var(--space-4)}
+.jl-fiche h3{font-family:var(--font-serif);font-weight:400;font-size:var(--text-lg);
+  margin:0 0 var(--space-3);color:var(--ink)}
+.jl-fiche .jl-dl{grid-template-columns:1fr;gap:2px}
+.jl-fiche .jl-dl dd{margin:0 0 var(--space-3);font-size:var(--text-base);color:var(--body)}
+.jl-fiche .jl-dl dd:last-child{margin-bottom:0}
+/* « Sens : Favorable » — lu en fin de texte, jamais servi en champ. */
+.jl-sens{display:inline-block;font-weight:600;color:var(--teal)}
+@media (max-width:900px){ .jl-doclec{grid-template-columns:1fr} .jl-fiche{position:static} }
+
+/* ── D. ANNUAIRE (cadre v2) ─────────────────────────────────────────────── */
+/* La barre de filtrage est la barre LOCALE (§22), jamais la barre réseau
+   (§21) : le jeu est déjà chargé, donc pas de bouton et pas de loader. */
+.jl-dlrow{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center;
+  background:var(--cream);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:var(--space-3);margin:var(--space-4) 0;font-size:var(--text-base)}
+.jl-dlrow a{color:var(--teal);text-decoration:underline;text-decoration-style:dotted}
+.jl-dlrow .jl-kbd{margin-left:auto;font-size:var(--text-xs);color:var(--muted)}
+.jl-chk{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-base);
+  color:var(--body);cursor:pointer;white-space:nowrap}
+.jl-chk input{accent-color:var(--teal)}
+/* Tuiles de comptage */
+.jl-stats{display:flex;flex-wrap:wrap;gap:var(--space-3);margin:var(--space-4) 0}
+.jl-stat{flex:1 1 170px;background:var(--white);border:1px solid var(--line);
+  border-radius:var(--radius-lg);padding:var(--space-3)}
+.jl-stat__n{font-family:var(--font-serif);font-size:var(--text-xl);color:var(--ink);display:block}
+.jl-stat__l{font-size:var(--text-sm);color:var(--muted)}
+/* Tableau de complétude : taux + barre */
+.jl-taux{font-family:var(--font-mono);font-size:var(--text-sm)}
+.jl-taux--ok{color:var(--ok)} .jl-taux--warn{color:var(--warn)} .jl-taux--bad{color:var(--bad)}
+.jl-barre{display:block;height:6px;border-radius:3px;background:var(--line);
+  margin-top:4px;overflow:hidden}
+.jl-barre::before{content:"";display:block;height:100%;width:var(--w,0%);background:currentColor}
+/* Table de l'annuaire : hauteur bornée, en-têtes collants (hérités de §17) */
+.jl-tbl-scroll{max-height:70vh;overflow:auto;border:1px solid var(--line);
+  border-radius:var(--radius-lg);margin-top:var(--space-3)}
+.jl-tableau td.jl-td-mail{font-family:var(--font-mono);font-size:var(--text-sm);word-break:break-all}
+.jl-tableau td.jl-td-contact{max-width:280px;font-size:var(--text-sm);color:var(--muted)}
+.jl-nomail{color:var(--bad);font-style:italic}
+.jl-tableau tr.jl-more td{text-align:center;padding:var(--space-4)}
+.jl-tableau tr.jl-vide-tr td{text-align:center;padding:var(--space-5);color:var(--muted)}
+.jl-sub{display:block;font-size:var(--text-sm);color:var(--muted)}
+
+/* ── E. IMPRESSION des trois pages nouvelles ────────────────────────────── */
+@media print{
+  .jl-acc__actions,.jl-barre-filtre,.jl-dlrow,.jl-doc-grid,
+  .jl-tbl-scroll .jl-more,.jl-tableau tr.jl-more{display:none !important}
+  .jl-acc{padding:0}
+  .jl-chiffres{border-top:1px solid #000}
+  .jl-tbl-scroll{max-height:none;overflow:visible;border:0}
+  .jl-tableau th{position:static}
+  .jl-tableau tbody tr{break-inside:avoid;page-break-inside:avoid}
+  .jl-doclec{display:block}
+  .jl-fiche{position:static;border:1px solid #999;break-inside:avoid;margin-top:1em}
+  .jl-grille-3{display:block}
+  .jl-outil{border:0;padding:0 0 .4em}
+}
+.jl-jc__lire{margin-left:auto;color:var(--teal);white-space:nowrap}

@@ -160,8 +160,8 @@
           (x.v ? (x.v === M.cur
               ? '<span title="La rédaction en vigueur au jour de la décision est celle affichée.">Jugé sous la rédaction affichée.</span>'
               : '<span title="La rédaction réellement applicable dépend aussi des dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la date.">' +
-                'Jugé sous la rédaction de ' + x.v.date_debut.slice(0, 4) + '. ' +
-                '<a href="?date=' + esc(x.v.date_debut) + '&num=' + esc(M.num) + '#jurisprudence">Lire la rédaction de ' + x.v.date_debut.slice(0, 4) + '</a></span>')
+                'Jugé sous la rédaction de ' + x.v.date_debut.slice(0, 4) + '.</span>' +
+                '<a class="jl-jc__lire" href="?date=' + esc(x.v.date_debut) + '&num=' + esc(M.num) + '#jurisprudence">Lire la rédaction de ' + x.v.date_debut.slice(0, 4) + '</a>')
                : '<span title="La date de la décision ne tombe dans aucune rédaction connue.">Hors rédaction connue.</span>') +
           '</div></article>';
       }).join('') + '</div></section>';
