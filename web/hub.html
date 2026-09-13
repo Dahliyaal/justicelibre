@@ -166,6 +166,11 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .thesT.on{border-color:var(--teal);color:var(--teal);font-weight:600}
 .thesT.on i{background:var(--teal)}.thesT.on i::after{left:14px}
 .thesT small{font-weight:400;color:var(--muted);font-size:11px}
+.adv-help{margin:18px 0 6px;padding:12px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7}
+.adv-help .lb{margin-bottom:4px}.adv-help .lb .s{font-weight:400;text-transform:none;letter-spacing:0}
+.adv-help p{margin:0}.adv-help b{color:var(--ink);font-weight:600}
+.adv-help code{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--teal);background:var(--teal-xl);padding:0 5px;border-radius:3px}
+.adv-help .s{font-size:11.5px}
 .expbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .expbar .pill{padding:2px 9px;border-radius:12px;background:var(--teal-xl);color:var(--teal);font-family:"JetBrains Mono",monospace;font-size:11px}
 .expbar a{color:var(--muted);text-decoration:underline;cursor:pointer;margin-left:4px}
@@ -547,6 +552,13 @@ function searchBar(ph, extra='', adv=true){
       <div class="rlab"><span id="rAl">${a.date_min ? a.date_min.slice(0,4) : AN_MIN}</span><span id="rBl">${a.date_max ? a.date_max.slice(0,4) : AN_MAX}</span></div>
       <div class="range"><div class="track"><div class="fill" id="rFill"></div></div><input type="range" id="rA" min="${AN_MIN}" max="${AN_MAX}" value="${a.date_min ? a.date_min.slice(0,4) : AN_MIN}"><input type="range" id="rB" min="${AN_MIN}" max="${AN_MAX}" value="${a.date_max ? a.date_max.slice(0,4) : AN_MAX}"><div class="ticks" id="rTicks">${ticks(AN_MIN)}</div></div>
       <div class="presets" style="margin-top:18px">${PRESETS.map(([v,l],i) => `${i?'<span class="sep">·</span>':''}<button type="button" class="preset${preset===v?' on':''}" data-preset="${v}">${l}</button>`).join('')}<span class="precis"><span class="lb" style="margin:0 8px 0 0;width:auto">Précis</span><span class="muted">du</span><span class="dtwrap"><input class="dt" id="aMin" placeholder="aaaa · jj/mm/aaaa" value="${esc(frDate(a.date_min))}" autocomplete="off"></span><span>au</span><span class="dtwrap"><input class="dt" id="aMax" placeholder="aaaa · jj/mm/aaaa" value="${esc(frDate(a.date_max))}" autocomplete="off"></span></span></div></div>
+    </div>
+    <div class="adv-help">
+      <div class="lb">Opérateurs acceptés <span class="s">· syntaxes multiples · espaces optionnels</span></div>
+      <p><b>ET</b> : <code>AND</code> · <code>ET</code> · <code>&amp;</code> &nbsp;-&nbsp; <b>OU</b> : <code>OR</code> · <code>OU</code> · <code>|</code> &nbsp;-&nbsp; <b>SAUF</b> : <code>NOT</code> · <code>SAUF</code> · <code>-mot</code></p>
+      <p><b>Phrase exacte</b> : <code>"atteinte à la liberté"</code> &nbsp;-&nbsp; <b>Préfixe</b> : <code>signal*</code> (matche signaler, signalement, signalée…)</p>
+      <p><b>Exemples valides</b> : <code>liberté &amp; signalement</code> · <code>liberté ET signalement</code> · <code>licenci* OU renvoi</code> · <code>"vie privée" SAUF médical</code></p>
+      <p class="s">Note : le Conseil d'État (ArianeWeb) utilise un moteur sémantique distinct - les opérateurs sont normalisés côté serveur pour chaque source.</p>
     </div>
     <div class="foot"><span id="advSummary">${fmtAdv(a).map(x=>x.label).join(' · ') || 'Toute la jurisprudence, toutes dates.'}</span><button type="button" id="advClear" style="color:var(--teal);font-weight:600" ${n?'':'hidden'}>Tout effacer</button></div>
   </div>`:''}</div>`;
