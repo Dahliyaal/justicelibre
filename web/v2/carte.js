@@ -10,6 +10,7 @@
 (function (global) {
   'use strict';
   var J = global.JL, A = global.ART;
+  var HORLOGE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   var esc = J.esc, fmtDate = J.fmtDate, fmtCourt = J.fmtCourt, $ = J.$;
 
   /* ═══════════════ Briques ═════════════════════════════════════════════ */
@@ -146,20 +147,22 @@
           '<span class="jl-src">' + esc(A.SRC[x.source] || x.source) + '</span>' +
           '<span class="jl-mono">' + fmtCourt(x.date) + '</span>' +
           (x.ids.length > 1 ? A.howHTML(x.ids.length + ' clés') : '') + '</div>' +
-          '<div class="jl-jc__t"><a href="' + x.href + '">' + esc(x.juridiction) + ', n° ' + esc(x.numero) + '</a></div>' +
+          '<div class="jl-jc__t"><a href="' + x.href + '">' + esc(x.juridiction) + (x.numero ? ', n° ' + esc(x.numero) : ', <span class="jl-muted jl-poids-normal">pourvoi non renseigné</span>') + '</a></div>' +
           '<div class="jl-jc__x">« ' + esc(x.extract) + ' »</div>' +
           '<div class="jl-jc__ap">' +
           (x.publication ? '<span class="jl-src">' + esc(x.publication) + '</span>' : '') +
           // Sous quelle rédaction le juge a-t-il lu l'article ? Une phrase, pas deux
           // badges (« rédaction 2019 » + « rédaction différente de celle lue » était
           // illisible, 13 sept. 2026). Le lien bascule la page à cette date.
+          // Variante retenue par la propriétaire (13 sept.) : ligne de pied sous un filet,
+          // petite horloge, phrase courte, lien vers la rédaction que la cour a lue.
+          '</div><div class="jl-jc__foot' + (x.differs && x.v ? ' jl-jc__foot--ancienne' : '') + '">' + HORLOGE +
           (x.v ? (x.v === M.cur
-              ? '<span class="jl-rd jl-muted" title="La rédaction en vigueur au jour de la décision est celle affichée.">jugé sous la rédaction affichée</span>'
-              : '<span class="jl-rd jl-rd--ancienne" title="La rédaction en vigueur au jour de la décision n’est pas celle affichée. ' +
-                'La rédaction réellement applicable dépend aussi des dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la date.">' +
-                'jugé sous la rédaction de ' + x.v.date_debut.slice(0, 4) + ', pas celle affichée · ' +
-                '<a href="?date=' + esc(x.v.date_debut) + '&num=' + esc(M.num) + '#jurisprudence">lire cette rédaction</a></span>')
-               : A.pill({ k: 'q', label: 'hors rédaction connue', why: 'la date de la décision ne tombe dans aucune rédaction connue' })) +
+              ? '<span title="La rédaction en vigueur au jour de la décision est celle affichée.">Jugé sous la rédaction affichée.</span>'
+              : '<span title="La rédaction réellement applicable dépend aussi des dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la date.">' +
+                'Jugé sous la rédaction de ' + x.v.date_debut.slice(0, 4) + '. ' +
+                '<a href="?date=' + esc(x.v.date_debut) + '&num=' + esc(M.num) + '#jurisprudence">Lire la rédaction de ' + x.v.date_debut.slice(0, 4) + '</a></span>')
+               : '<span title="La date de la décision ne tombe dans aucune rédaction connue.">Hors rédaction connue.</span>') +
           '</div></article>';
       }).join('') + '</div></section>';
   }

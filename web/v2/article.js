@@ -381,7 +381,9 @@
         var v = verAt(x.date);
         var m = /n° ?([\d./-]+)|, (\d{5,7}),/.exec(x.title || '');
         var n = Object.assign({}, x);
-        n.numero = m ? (m[1] || m[2]) : x.ids[0];
+        // Sans numéro dans le texte, on n'affiche pas l'identifiant Judilibre
+        // (hash de 24 caractères) comme s'il en était un (13 sept. 2026).
+        n.numero = m ? (m[1] || m[2]) : (/^[0-9a-f]{24}$/i.test(x.ids[0] || '') ? '' : x.ids[0]);
         n.v = v; n.differs = v !== cur;
         n.publication = /Publié/.test(x.title || '') ? 'Publié au recueil Lebon'
           : (/Inédit/.test(x.title || '') ? 'Inédit' : '');

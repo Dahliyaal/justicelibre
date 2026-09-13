@@ -1339,3 +1339,39 @@ body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
 /* Famille juridictionnelle d'une carte de jurisprudence (axe 2, §23) */
 .jl-jc--jud{--c:var(--jud)} .jl-jc--adm{--c:var(--adm)} .jl-jc--ce{--c:var(--ce)}
 .jl-jc--eu{--c:var(--eu)}   .jl-jc--txt{--c:var(--txt)} .jl-jc--doc{--c:var(--doc)}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 29. v2 ssr, 13 sept. — PAGES SERVEUR /decision/ et /loi/ (ssr_v2.py)
+ *
+ * Ajout en FIN de fichier, section datée : aucune règle qui précède n'est
+ * renommée ni redéfinie. Les pages de ssr_v2 réemploient les §1 à §28 ;
+ * il ne restait que trois besoins non couverts.
+ * Rapport : scratchpad/audit/v2_ssr_13sept.md
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 29.1 — Statut d'un article de loi, sous le titre.
+   Remplace les style="color:#a33" et style="color:var(--muted)" que
+   ssr._subline_statut posait en ligne (ssr.py:1025 et 1035). Règle de
+   couleur : rouge atténué = abrogé, gris = note. */
+.jl-statut{margin:0 0 var(--space-2)}
+.jl-statut--abroge{color:var(--bad);font-weight:600}
+.jl-statut__note{color:var(--muted);font-size:var(--text-sm)}
+
+/* 29.2 — Enveloppe des deux panneaux de la page décision.
+   decision-jl.html porte déjà `.jl-dossier` comme simple conteneur ; on lui
+   donne ici sa seule propriété utile (isoler la marge des onglets collants). */
+.jl-dossier{margin-top:var(--space-2)}
+
+/* 29.3 — Avertissements de la page décision (langue du texte, texte réduit au
+   sommaire, décision hors Légifrance). Ce sont des avertissements sur la
+   DONNÉE : ils prennent `.jl-warnp` (§ piège n° 4), jamais `.jl-alerte`, qui
+   signale un échec technique. Seul l'espacement en pile est ajouté. */
+.jl-warnp + .jl-warnp{margin-top:var(--space-2)}
+
+/* v2 carte, 13 sept. : ligne de pied des cartes de jurisprudence (variante 1 retenue) */
+.jl-jc__foot{border-top:1px solid var(--line);margin-top:6px;padding-top:7px;font-size:var(--text-sm);color:var(--muted);display:flex;gap:8px;align-items:center}
+.jl-jc__foot svg{flex:none}
+.jl-jc__foot a{color:var(--teal)}
+.jl-jc--ancienne{border-left:1px solid var(--line)}
+.jl-jc__foot--ancienne, .jl-jc__foot--ancienne svg{color:var(--bad);opacity:.8}
+.jl-jc__foot--ancienne a{color:var(--teal);opacity:1}
