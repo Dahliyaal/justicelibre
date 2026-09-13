@@ -97,21 +97,34 @@ def search_cedh(query: str, limit: int = 20, offset: int = 0) -> dict[str, Any]:
         # 2) Puis BM25 rank (pertinence query).
         # 3) Puis length(text) DESC (entre arrêts du même rank, le plus complet d'abord).
         try:
+            # ⚠️ Forme précédente : JOIN sur TOUS les arrêts qui matchent, puis
+            # tri par length(d.text) → SQLite lisait le texte intégral de chaque
+            # arrêt (8 173 pour « torture », 15 053 pour « procès équitable ») :
+            # 32 à 38 s par requête, au-delà du délai du site, et la source CEDH
+            # passait en `sources_en_echec` sur toute recherche (13 sept. 2026).
+            # Désormais on borne d'abord par pertinence FTS (les 300 meilleurs
+            # rangs, sans toucher au texte), puis on classe ce sous-ensemble :
+            # 0,1 à 0,9 s mesurés sur la prod. Le snippet se calcule sur la
+            # table FTS par rowid, pas sur le sous-ensemble.
+            fenetre = max(300, int(limit) + int(offset))
             rows = conn.execute(
                 """SELECT d.itemid, d.docname, d.ecli, d.date, d.doctype,
                           d.article, d.conclusion, d.importance, d.respondent,
                           d.appno,
-                          snippet(cedh_fts, -1, '<em>', '</em>', '…', 28) AS snip
-                   FROM cedh_fts f JOIN cedh_decisions d ON d.rowid = f.rowid
-                   WHERE cedh_fts MATCH ?
-                     AND length(COALESCE(d.text, '')) > 200
+                          (SELECT snippet(cedh_fts, -1, '<em>', '</em>', '…', 28)
+                             FROM cedh_fts WHERE cedh_fts MATCH ? AND rowid = d.rowid) AS snip
+                   FROM (SELECT rowid, rank FROM cedh_fts
+                          WHERE cedh_fts MATCH ?
+                          ORDER BY rank LIMIT ?) f
+                   JOIN cedh_decisions d ON d.rowid = f.rowid
+                   WHERE length(COALESCE(d.text, '')) > 200
                    ORDER BY
                      CASE WHEN d.appno = ? THEN 0 ELSE 1 END,
                      CASE WHEN d.doctype IN ('HFJUD', 'HEJUD') THEN 0 ELSE 1 END,
-                     rank,
+                     f.rank,
                      COALESCE(length(d.text), 0) DESC
                    LIMIT ? OFFSET ?""",
-                (query.strip(), appno_exact or "", int(limit), int(offset)),
+                (query.strip(), query.strip(), fenetre, appno_exact or "", int(limit), int(offset)),
             ).fetchall()
             total = conn.execute(
                 "SELECT COUNT(*) FROM cedh_fts WHERE cedh_fts MATCH ?", (query.strip(),)

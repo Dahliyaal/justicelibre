@@ -261,6 +261,21 @@ _LANG_NAMES = {
 }
 
 
+def _texte_integral_warning(texte_integral, note_texte: str) -> str:
+    """Bandeau quand le « texte » servi n'est qu'un sommaire ou une analyse.
+
+    Le drapeau est calculé par la source (dila.note_texte_integral) ; jusqu'au
+    13 sept. 2026 la page SSR le jetait et pouvait faire passer un sommaire
+    pour l'arrêt. Le MCP, lui, affichait déjà l'avertissement.
+    """
+    if texte_integral is not False:
+        return ""
+    note = esc(note_texte or "Nous n'avons que le sommaire ou l'analyse de cette décision, pas son texte intégral.")
+    return ('<div class="lang-warning"><div class="lang-warning__inner">'
+            '<strong>Texte intégral : non.</strong> ' + note +
+            ' La page ne fera jamais passer un résumé pour la décision.</div></div>')
+
+
 def _lang_warning(text_lang: str, decision_id: str, source: str) -> str:
     """Bandeau honnête quand le texte n'est pas en français.
 
@@ -819,6 +834,15 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     publi_recueil = data.get("publi_recueil", "")
     publi_bull = data.get("publi_bull", "")
     nature_qualifiee = data.get("nature_qualifiee", "")
+    # Champs servis depuis le 13 sept. 2026 (inventaire des champs) :
+    president = data.get("president", "") or ""
+    avocats = data.get("avocats", "") or ""
+    publication_ce = data.get("publication", "") or ""      # ArianeWeb : Lebon / tables / inédit
+    conclusion = data.get("conclusion", "") or ""           # CEDH : violation / non-violation
+    importance = str(data.get("importance", "") or "")      # CEDH : 1 (principe) … 4
+    respondent = data.get("respondent", "") or ""           # CEDH : État défendeur (code ISO3)
+    texte_integral = data.get("texte_integral", True)
+    note_texte = data.get("note_texte", "") or ""
     # Langue du texte (cas CEDH/CJUE : FR pas toujours dispo)
     text_lang = (data.get("text_lang") or "fr").lower()
 
@@ -900,8 +924,16 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     elif nature: rows.append(("Nature", esc(nature)))
     if type_rec: rows.append(("Type de recours", esc(type_rec)))
     if solution: rows.append(("Solution", esc(solution)))
+    if conclusion: rows.append(("Conclusion", esc(conclusion.replace(";", " ; "))))
+    if respondent: rows.append(("État défendeur", esc(respondent)))
+    if importance:
+        _imp = {"1": "1 (arrêt de principe)", "2": "2", "3": "3", "4": "4 (faible)"}.get(importance, importance)
+        rows.append(("Importance HUDOC", esc(_imp)))
+    if president: rows.append(("Président", esc(president)))
     if rapporteur: rows.append(("Rapporteur", esc(rapporteur)))
     if commissaire_gvt: rows.append(("Rapporteur public", esc(commissaire_gvt)))
+    if avocats: rows.append(("Avocats", esc(avocats)))
+    if publication_ce: rows.append(("Publication", esc(publication_ce)))
     # Indicateurs de publication officielle (Lebon, Bulletin Cass)
     if publi_recueil:
         _label_lebon = {"A": "Recueil Lebon", "B": "Tables Lebon",
@@ -962,6 +994,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
   {_official_source_button(decision_id)}
   <table class="meta-table">{meta_html}</table>
   {_lang_warning(text_lang, decision_id, source)}
+  {_texte_integral_warning(texte_integral, note_texte)}
   <article>{text_html}</article>
   <footer class="page-footer">
     <p>Document juridique publié sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" rel="noopener">Licence Ouverte 2.0</a>. Accès libre via <strong>JusticeLibre</strong> -alternative open source à Doctrine, Lexis et Légifrance pour la jurisprudence française et européenne.</p>

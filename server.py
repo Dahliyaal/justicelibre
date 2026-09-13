@@ -1830,12 +1830,14 @@ async def search_legi(
     Source : bulk LEGI DILA (3,6 Go avec versions historiques). Trouve
     les articles dont le texte ou le titre contient les mots-clés.
 
-    ⚠️ `titre_texte` est le titre du TEXTE contenant l'article (« Code civil »,
-    « Arrêté du 10 août 1998 »), PAS celui de sa section : la hiérarchie des
-    sections LEGI n'est pas ingérée dans le bulk. Pour situer un article dans
-    le plan d'un code (partie / livre / titre / chapitre / section), il faut
-    consulter Légifrance — l'ancien champ `titre_section` renvoyait le titre du
-    code et donnait l'illusion d'une réponse.
+    `titre_texte` est le titre du TEXTE contenant l'article (« Code civil »,
+    « Arrêté du 10 août 1998 »). Depuis la ré-ingestion du 10 septembre 2026,
+    la hiérarchie LEGISCTA est en base (colonne `hierarchie`) et
+    `get_law_article` sert `titre_section` = le dernier niveau du plan
+    (« Chapitre Ier : La responsabilité extracontractuelle en général »),
+    mesuré juste sur 30 articles de 30 codes le 13 septembre 2026. Le plan
+    complet (partie / livre / titre / chapitre / section) n'est pas encore
+    servi : pour lui, consulter Légifrance.
 
     Sans filtre `code`, les résultats sont DÉDUPLIQUÉS par texte-parent (un
     article par texte, le mieux classé) : `returned` peut donc être bien
@@ -2059,11 +2061,13 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
         (VIGUEUR/MODIFIE/ABROGE), `date_debut`, `date_fin`, `nota`. Plus
         un champ `note` si la version retournée n'est pas celle demandée.
 
-        ⚠️ `titre_texte` est le titre du TEXTE parent (« Code civil »), pas
-        celui de la section. La place de l'article dans le plan du code
-        (partie / livre / titre / chapitre / section) n'est PAS disponible :
-        la hiérarchie LEGISCTA n'est pas ingérée du bulk LEGI. Ne pas
-        l'inventer — renvoyer vers Légifrance si l'utilisateur la demande.
+        `titre_texte` est le titre du TEXTE parent (« Code civil ») ;
+        `titre_section` est le dernier niveau du plan du code (« Chapitre Ier :
+        La responsabilité extracontractuelle en général »), servi depuis la
+        ré-ingestion du 10 septembre 2026 (colonne `hierarchie`) et mesuré
+        juste sur 30 articles de 30 codes le 13 septembre 2026. Le plan
+        complet (partie / livre / titre / chapitre / section) n'est pas encore
+        servi : ne pas l'inventer, renvoyer vers Légifrance s'il est demandé.
     """
     _record_call("get_law_article")
     # Une date mal formée était acceptée EN SILENCE et rendait la version

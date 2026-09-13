@@ -156,6 +156,36 @@ def test_jsonld_not_html_over_escaped():
 
 # ─── Runner sans pytest ──────────────────────────────────────────
 
+def test_render_decision_affiche_les_champs_servis_depuis_le_13_sept():
+    """Les champs en base et jusqu'ici jetés par fetch_decision doivent
+    apparaître, et un texte réduit au sommaire doit être annoncé.
+
+    Inventaire des champs du 13 septembre 2026 : « le code de lecture ne lit
+    pas la donnée, il relit un résumé ». ssr.render_decision réservait les
+    lignes Solution / Nature depuis des mois sans jamais recevoir les clés."""
+    dila = ssr.render_decision("dila", "X1", {
+        "title": "t", "juridiction": "Cour de cassation", "date": "2026-09-10",
+        "numero": "23-20.368", "full_text": "sommaire bref", "sommaire": "sommaire bref",
+        "solution": "Cassation partielle", "nature": "ARRET", "president": "Mme Martinel",
+        "avocats": "SCP Lyon-Caen", "texte_integral": False,
+        "note_texte": "Le texte servi est le sommaire officiel."})
+    for attendu in ("Solution", "Cassation partielle", "Nature", "Président",
+                    "Mme Martinel", "Avocats", "Texte intégral : non",
+                    "sommaire officiel"):
+        assert attendu in dila, f"{attendu!r} absent de la page dila"
+    cedh = ssr.render_decision("cedh", "001-1", {
+        "title": "AFFAIRE X c. Y", "juridiction": "Cour EDH", "date": "2014-04-17",
+        "numero": "9154/10", "full_text": "x" * 300, "conclusion": "Violation de l'article 6",
+        "importance": "1", "respondent": "DEU"})
+    for attendu in ("Conclusion", "Violation de l", "État défendeur", "DEU", "arrêt de principe"):
+        assert attendu in cedh, f"{attendu!r} absent de la page CEDH"
+    # Un texte complet ne doit PAS porter l'avertissement.
+    complet = ssr.render_decision("dila", "X2", {
+        "title": "t", "juridiction": "Cour de cassation", "date": "2026-09-10",
+        "numero": "1", "full_text": "arrêt entier", "texte_integral": True})
+    assert "Texte intégral : non" not in complet
+
+
 if __name__ == "__main__":
     tests = [
         ("render_decision sans XSS",        test_render_decision_no_xss),
@@ -164,6 +194,7 @@ if __name__ == "__main__":
         ("<title> porte un identifiant",     test_render_decision_title_carries_identifier),
         ("_jsonld_embed valide + no breakout", test_jsonld_embed_valid_and_no_breakout),
         ("JSON-LD pas sur-échappé",         test_jsonld_not_html_over_escaped),
+        ("champs servis depuis le 13/09 + avertissement sommaire", test_render_decision_affiche_les_champs_servis_depuis_le_13_sept),
     ]
     failed = 0
     for name, fn in tests:

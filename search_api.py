@@ -272,10 +272,15 @@ def _norm_cedh(raw: dict) -> dict:
         "formation": raw.get("doctype", ""),
         # Le n° de requête n'est pas dans la ligne mais dans l'ECLI
         # (…JUD002847322 → 28473/22) : avant, « n° - » sur toutes les cartes.
-        "numero": _cedh_numero(raw.get("ecli", "")),
+        # Le vrai n° de requête est en base (`appno`, affaires jointes séparées
+        # par « ; ») ; la dérivation depuis l'ECLI ne sert plus que de repli.
+        "numero": (raw.get("appno") or "").replace(";", " ; ") or _cedh_numero(raw.get("ecli", "")),
         "ecli": raw.get("ecli", ""),
         "extract": raw.get("snippet", "") or "",
         "article": raw.get("article", ""),
+        "conclusion": raw.get("conclusion", "") or "",
+        "importance": str(raw.get("importance", "") or ""),
+        "respondent": raw.get("respondent", "") or "",
     }
 
 def _norm_cjue(raw: dict) -> dict:
@@ -498,8 +503,10 @@ async def _dispatch_admin(
     # « charger plus », 8 septembre 2026). Une page vide vaut mieux qu'une
     # page en double ; en ciblage simple (CE ou lieu précis) on sur-lit et on
     # découpe.
-    if offset and not (date_min or date_max) and not (juridiction == "ce" or lieu):
-        return out
+    # ⚠️ Ce retour anticipé coupait AUSSI le miroir open data local, qui, lui,
+    # pagine (offset natif) : « Charger la suite » rendait une page vide avec
+    # total 0 (13 sept. 2026). Le garde ne s'applique plus qu'à l'API live.
+    sauter_api_live = bool(offset) and not (date_min or date_max) and not (juridiction == "ce" or lieu)
     # Miroir local de l'open data TA/CAA, en plein texte, AVANT l'API live :
     # 985 996 décisions cherchables par personne jusqu'au 10/09/2026.
     try:
@@ -526,6 +533,8 @@ async def _dispatch_admin(
             elif juridiction == "caa" and not lieu:
                 hits_jade = [h for h in hits_jade if h["juridiction"].lower().startswith(("cour", "caa"))]
             out.extend(hits_jade)
+        elif sauter_api_live:
+            pass   # l'API live ne pagine pas : au-delà de la 1re page, le miroir suffit
         elif juridiction == "ta" and not lieu:
             r = await juriadmin.search_many(
                 client, query=_admin_query(intent), juridictions=ALL_TA, limit_per_court=1,
@@ -1093,7 +1102,9 @@ async def search_federated(
 async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None:
     # Une source inconnue renvoyait 200 avec un corps vide : le client croyait
     # tenir une décision. Introuvable, franchement (8 septembre 2026).
-    if source not in ("dila", "cedh", "cjue", "admin", "ariane", "doctrine", "legi"):
+    # « cnil » manquait de cette liste : le bloc CNIL plus bas était inatteignable
+    # et les 26 706 URL /decision/cnil/… du sitemap rendaient 404 (13 sept. 2026).
+    if source not in ("dila", "cedh", "cjue", "admin", "ariane", "doctrine", "legi", "cnil"):
         return None
     if source == "legi":
         from sources import warehouse as wh
@@ -1147,6 +1158,19 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
             "saisines": r.get("saisines", "") or "",
             "loi_def": r.get("loi_def", "") or "",
             "liens_textes": r.get("liens_textes", "") or "",
+            # Champs lus par dila.get_decision et jusqu'ici jetés ici, alors que
+            # ssr.render_decision réservait déjà les lignes « Solution » et
+            # « Nature » (inventaire des champs du 13 sept. 2026).
+            "solution": r.get("solution", "") or "",
+            "nature": r.get("nature", "") or "",
+            "president": r.get("president", "") or "",
+            "avocats": r.get("avocats", "") or "",
+            "commissaire_gvt": r.get("commissaire_gvt", "") or "",
+            "type_rec": r.get("type_rec", "") or "",
+            # Drapeau « le texte servi n'est qu'un sommaire » : calculé par la
+            # source, servi pour JADE, jamais pour le judiciaire jusqu'ici.
+            "texte_integral": r.get("texte_integral", True),
+            "note_texte": r.get("note_texte", "") or "",
         }
     if source == "cedh":
         r = european.get_cedh(decision_id)
@@ -1155,6 +1179,12 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
         return {
             **_norm_cedh(r),
             "full_text": r.get("full_text", ""),
+            # En base, servis par le MCP, jetés par le site jusqu'au 13 sept. 2026 :
+            # le sens de l'arrêt, son niveau d'importance HUDOC (1 = arrêt de
+            # principe … 4), l'État défendeur.
+            "conclusion": r.get("conclusion", "") or "",
+            "importance": str(r.get("importance", "") or ""),
+            "respondent": r.get("respondent", "") or "",
         }
     if source == "cjue":
         r = european.get_cjue(decision_id)
@@ -1177,6 +1207,8 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                                           "numero": r.get("numero_dossier", "")}),
                         "full_text": r.get("texte", "") or "",
                         "text_segments": [],
+                        "type_decision": r.get("type_decision", "") or "",
+                        "publication_code": r.get("publication_code", "") or "",
                     }
             except Exception as e:
                 print(f"[opendata fetch err] {e}")
@@ -1261,9 +1293,16 @@ async def fetch_decision(source: str, decision_id: str) -> dict[str, Any] | None
                               else "Décision du Conseil d'État"),
                     "juridiction": "Conseil d'État",
                     "date": meta.get("date", ""),
-                    "formation": "",
+                    # parse_header extrait aussi formation, publication (Lebon),
+                    # président, rapporteur, rapporteur public : ils étaient
+                    # calculés puis jetés (inventaire du 13 sept. 2026).
+                    "formation": meta.get("formation", "") or "",
                     "numero": numero,
                     "ecli": meta.get("ecli", ""),
+                    "publication": meta.get("publication", "") or "",
+                    "president": meta.get("president", "") or "",
+                    "rapporteur": meta.get("rapporteur", "") or "",
+                    "commissaire_gvt": meta.get("rapporteur_public", "") or "",
                     "full_text": text,
                 }
             except Exception as e:
