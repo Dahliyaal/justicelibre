@@ -224,7 +224,7 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 /* Variante 2 · Arbre : explorateur de fichiers, connecteurs CSS, tout déplié */
 function LEFT(M){
   const D = etageData(M);
-  const item = (x, extra = '') => `<div class="jl-item"><div class="jl-rel">${esc(x.rel)}</div><div class="jl-t">${lienTitre(x)}</div>${x.long ? `<div class="jl-long">${esc(x.long)}</div>` : ''}${metaHTML(x)}${extra}</div>`;
+  const item = (x, extra = '') => `<div class="jl-item"><div class="jl-rel">${esc(x.rel)}</div><div class="jl-t">${lienTitre(x)}</div>${x.long ? `<div class="jl-long">${esc(x.long)}</div>` : ''}${metaHTML(x)}${x.depuis ? `<div class="jl-more">en vigueur depuis le ${fmtCourt(x.depuis)} · ${M.versions.indexOf(M.cur)} réécriture${M.versions.indexOf(M.cur)>1?'s':''} avant celle-ci · <a href="#historique">historique</a></div>` : ''}${extra}</div>`;
   const node = (h, isLast) => `<div class="jl-node${isLast ? ' last' : ''}">${h}</div>`;
   const arr = (a, last) => {
     const kids = a.retouches.length
@@ -324,7 +324,7 @@ async function loadModel(){
       const key = l.legitext_resolu || l.cidtexte || l.id; if (seen.has(key)) continue; seen.add(key);
       const t = tOf(l);
       const brut = clean(l.libelle || l.id).replace(/\s*\([A-Za-z]{1,3}\)\s*$/, '');
-      etage1.push({ rel: isCre ? 'écrit par (création)' : 'écrit par', titre: brut,
+      etage1.push({ rel: isCre ? 'créé par' : 'rédaction en vigueur, telle que modifiée par', titre: brut,
         long: t ? clean(titreArr(t)) : '', nature: l.naturetexte || (t && t.nature) || '',
         date: (l.datesignatexte && l.datesignatexte < '2999') ? l.datesignatexte : (t && t.date_texte) || '',
         nor: l.nortexte || (t && t.nor) || '', st: lifeAt(t, at), how: 'lien LEGI',
@@ -403,7 +403,7 @@ function remplaceHTML(a){ if (!a.remplace.length) return '';
   if (a.remplace.length === 1) return `<div class="jl-more">remplace <a href="#historique" title="voir l’historique">l’${esc(minus(a.remplace[0].titre))}</a></div>`;
   return `<div class="jl-more">remplace <a href="#historique" title="${esc(a.remplace.map(r => r.titre).join(' · '))}">${a.remplace.length} arrêtés antérieurs</a></div>`; }
 const ETAGES = [
-  {n: 1, titre: 'Ce qui a écrit la rédaction en vigueur', vide: 'aucun texte modificateur relié dans LEGI'},
+  {n: 1, titre: 'La rédaction en vigueur', vide: 'aucun texte modificateur relié dans LEGI'},
   {n: 2, titre: 'Arrêtés en vigueur pris pour lui', vide: 'aucun arrêté en vigueur n’est pris pour lui'}
 ];
 /* article de valeur réglementaire : pas d’étage « décrets d’application » ; les décrets qui le mentionnent sont à droite (textes qui le citent) */
