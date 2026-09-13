@@ -1099,7 +1099,7 @@ async function showArticle(code, num, date){
   const vsel = (id, def) => `<select id="${id}">${versions.map((v,i)=>`<option value="${i}" ${i===def?'selected':''}>${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)} (${v.etat||''})</option>`).join('')}</select>`;
   const ci = versions.indexOf(cur);
   b.innerHTML = `<a class="back" href="#/textes">← Textes</a>
-  <p class="hero">Art. ${esc(num)} · ${esc(cname)}</p>
+  <p class="hero">Art. ${esc(num)} · ${esc(/^(LEGI|JORF)TEXT/.test(cname) && versions[0]?.titre_texte ? versions[0].titre_texte : cname)}</p>
   <p class="lead">${versions.length} rédaction${versions.length>1?'s':''} depuis le ${fmtDate(versions[0].date_debut)}. Rédaction lue : celle en vigueur au <b class="mono">${fmtDate(at)}</b> <label class="dt" style="display:inline-flex;gap:6px;align-items:center">· changer la date <input type="date" id="atDate" value="${at}" class="mono" style="padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)"></label></p>
   ${recycled.map(e => `<div class="alert" style="margin-bottom:12px">⚠ <div><b>NUMÉRO RECYCLÉ le ${fmtDate(e.v.date_debut)}.</b> Le texte de l'article ${esc(num)} a changé du tout au tout (recouvrement de vocabulaire : <span class="sim">${Math.round(e.sim*100)} %</span>). Une décision qui cite « art. ${esc(num)} » avant cette date parle d'<b>un autre texte</b>.</div></div>`).join('')}
   <div class="two" style="margin-top:16px"><div>
