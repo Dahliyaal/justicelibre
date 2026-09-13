@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historique · Art. 748-6 CPC · maquette 2 · Couloirs</title>
+<style>
+
+
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;--ok-bg:#dff0e3;
+ --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+:root[data-theme=dark]{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
+a{color:var(--teal);text-decoration:none}a:hover{color:var(--teal-l);text-decoration:underline}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select{font:inherit;color:inherit}
+.h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--line);background:var(--white);position:sticky;top:0;z-index:5}
+.logo{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--teal)}
+.logo span{color:var(--muted)}
+.nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nav a{color:inherit}.nav a.on{color:var(--teal);font-weight:600}
+.app{display:flex;min-height:calc(100% - 56px)}
+.rail{width:248px;flex:none;border-right:1px solid var(--line);background:var(--white);padding:10px 8px 12px;display:flex;flex-direction:column;gap:1px;position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto;transition:width .15s}
+.rail.mini{width:60px}
+.rail.mini .lbl,.rail.mini .n,.rail.mini .sec{display:none}
+.rail .hd{display:flex;align-items:center;gap:10px;padding:8px 10px 10px;color:var(--muted)}
+.rail .sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--ink);width:100%;text-align:left}
+.ri:hover{background:var(--cream);text-decoration:none}
+.ri.on{background:var(--teal-xl);color:var(--teal);font-weight:600}
+.ri svg{flex:none}
+.ri .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);font-weight:400}
+.body{flex:1;min-width:0;padding:32px 56px 80px}
+@media (max-width:900px){.body{padding:20px 18px 80px}.rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}.rail.mini{width:52px}.app{padding-left:52px}.rail:not(.mini){width:248px}}
+.hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero select{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)}
+.lead{color:var(--muted);font-size:14px;margin:0 0 14px;max-width:90ch}
+.leadrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+.leadrow .lead{margin:0}
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.85rem 1.8rem;background:var(--teal);color:#fff !important;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;border:none;border-radius:4px;cursor:pointer;text-align:center;white-space:nowrap}
+.cta:hover{background:var(--teal-l);text-decoration:none}
+.cta svg{width:15px;height:15px}
+.datew{position:relative;display:inline-flex;align-items:center;gap:8px}
+.calbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--white);color:var(--teal)}
+.calbtn:hover{border-color:var(--teal)}
+.calbtn svg{width:15px;height:15px}
+.datepop{position:absolute;top:34px;left:0;z-index:20;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:280px;display:none}
+.datepop.open{display:block}
+.datepop .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:8px 0 4px}
+.datepop .k:first-child{margin-top:0}
+.datepop .row{display:flex;gap:8px;align-items:center}
+.datepop input[type=text]{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px}
+.datepop input[type=date]{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--cream);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+.datepop .chips{display:flex;flex-wrap:wrap;gap:6px}
+.datepop .chip{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;padding:3px 8px;border:1px solid var(--line);border-radius:12px;background:var(--cream);cursor:pointer}
+.datepop .chip:hover{border-color:var(--teal);color:var(--teal)}
+.datepop .err{color:var(--bad);font-size:11.5px;margin-top:4px;min-height:1em}
+.alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
+.alert b{color:var(--bad)}
+.warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid currentColor;color:var(--c)}
+.back{font-size:12.5px;margin-bottom:12px;display:inline-block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+.st{display:inline-flex;align-items:center;gap:5px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px 1px 6px;border-radius:10px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st.ok{color:var(--ok)}.st.ab{color:var(--bad)}.st.q{color:var(--muted)}.st.q::before{background:transparent;border:1px solid currentColor;width:5px;height:5px}.st.fut{color:var(--doc)}
+.src{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:0 5px;border-radius:3px;white-space:nowrap}
+.rd{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 7px;border-radius:3px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.rd.old{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.nor{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.honest{font-size:12.5px;color:var(--muted);padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-bg);border-radius:0 6px 6px 0}
+.honest b{color:var(--ink)}
+.dtin{padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;line-height:1.45;max-height:460px;overflow:auto;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0;white-space:pre-wrap}
+.alin{margin:0 0 .7em}.alin:last-child{margin-bottom:0}
+.alin .no{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);margin-right:8px}
+.notaBox{margin-top:12px;padding:9px 12px;background:var(--warn-bg);border-radius:6px;font-size:12.5px}
+.notaBox b{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:4px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+
+/* bande d'identité sous le titre */
+.idband{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin:4px 0 22px;width:100%}
+.idband>div{padding:4px 18px;border-left:1px solid var(--line);min-width:0}
+.idband>div:first-child{border-left:0;padding-left:0}
+.idband .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+.idband .v{font-size:13px}
+.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font-size:9.5px;font-weight:700;margin-left:5px;cursor:help;position:relative;vertical-align:1px;text-transform:none;letter-spacing:0}
+.help::after{content:attr(data-tip);position:absolute;left:0;top:20px;width:300px;padding:9px 11px;background:var(--ink);color:var(--cream);font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:30;display:none;white-space:normal}
+.help:hover::after,.help:focus::after{display:block}
+
+/* trois colonnes */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1.25fr);gap:0;border:1px solid var(--line);border-radius:8px;background:var(--white);overflow:hidden}
+.col{padding:16px 18px;min-width:0}
+.col+.col{border-left:1px solid var(--line)}
+.col h2{margin:0 0 12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.col h2 .arrow{font-size:16px;color:var(--teal)}
+.col.mid{background:var(--cream)}
+.col.mid h2{color:var(--teal)}
+.it{padding:10px 0;border-top:1px solid var(--line);font-size:13px}
+.it:first-of-type{border-top:0;padding-top:0}
+.it .rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal);margin-bottom:3px;display:flex;gap:8px;align-items:center}
+.it .t a{font-weight:600;color:var(--ink)}.it .t a:hover{color:var(--teal)}
+.it .d{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted);margin-top:4px}
+.it .x{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.it.dead{opacity:.55}.it.dead .rel{color:var(--muted)}.it.dead .t a{font-weight:500}
+.it.root{border-top:2px solid var(--line);margin-top:6px}
+.how{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.04em;text-transform:none;color:var(--muted);border:1px dashed var(--line);padding:0 5px;border-radius:3px}
+.vrow{display:block;padding:10px 10px;border:1px solid var(--line);border-radius:6px;background:var(--white);margin-bottom:8px;color:var(--ink);font-size:12.5px}
+.vrow:hover{border-color:var(--teal);text-decoration:none}
+.vrow.cur{border-color:var(--teal);background:var(--teal-xl)}
+.vrow.dead{opacity:.6}
+.vrow .vhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vrow .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.vrow.dead .dot{background:var(--muted)}
+.vrow .vprod{margin-top:5px;padding-left:17px;color:var(--muted);font-size:12px;line-height:1.5}
+.vrow .vprod .rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+.vlist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.vl{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--white);font-size:12.5px;color:var(--ink)}
+.vl.cur{border-color:var(--teal);background:var(--teal-xl)}
+.vl .mono{font-size:11px;color:var(--muted);margin-left:auto;text-align:right}
+.vl.dead{opacity:.6}
+.rtitle{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--teal);border-radius:6px;background:var(--white);font-size:13.5px;user-select:none}
+.rtitle:hover{background:var(--teal-xl)}
+.rtitle .chev{color:var(--teal);transition:transform .15s}
+.rtitle.open .chev{transform:rotate(90deg)}
+.rtitle .res{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rtitle.open .res{display:none}
+.rtext{display:none;padding:14px 14px 12px;border:1px solid var(--teal);border-top:0;border-radius:0 6px 6px 6px;background:var(--white);font-size:14.5px;line-height:1.65}
+.rtext.open{display:block}
+
+/* chaînes d'arrêtés */
+.chain{border:1px solid var(--line);border-radius:8px;background:var(--cream);margin-bottom:10px;overflow:hidden}
+.chain .ch{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;user-select:none}
+.chain .ch:hover{background:var(--teal-xl)}
+.chain .ch .chev{color:var(--teal);transition:transform .15s;flex:none}
+.chain.open .ch .chev{transform:rotate(90deg)}
+.chain .ch .obj{font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chain .ch .cnt{margin-left:auto;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.chain .alive{padding:0 12px 6px}
+.chain .dead-tog{border-top:1px solid var(--line);font-size:12px;padding:7px 12px}
+.chain .members{display:none;border-top:1px solid var(--line);background:var(--white);padding:4px 12px 8px}
+.chain.open .members{display:block}
+.chain .head{padding:0 12px 10px}
+.mem{display:grid;grid-template-columns:20px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px}
+.mem:first-child{border-top:0}
+.mem .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--ok)}
+.mem.dead{opacity:.55}.mem.dead .dot{background:var(--muted)}
+.mem.fut .dot{background:var(--doc)}
+.mem .t a{font-weight:600;color:var(--ink)}
+.mem .d{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:0 0 10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+.juris{margin-top:26px}
+.juris h2{font-family:"DM Serif Display",Georgia,serif;font-weight:400;font-size:20px;margin:0 0 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.juris h2 .n{font-family:"DM Sans",system-ui,sans-serif;font-size:12.5px;color:var(--muted)}
+.jgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.jc{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13px;border-top:3px solid var(--c)}
+.jc .m{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.jc .t{font-family:"DM Serif Display",Georgia,serif;font-size:15.5px;margin-bottom:6px}
+.jc .t a{color:var(--ink)}
+.jc .x{font-size:12.5px;color:var(--muted);line-height:1.5}
+.jc .ap{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.jc.old{background:var(--warn-bg)}
+.bottom{display:grid;grid-template-columns:1fr;gap:16px;margin-top:22px}
+.bottom .card{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.bottom h3{margin:0 0 8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:1100px){.cols{grid-template-columns:1fr}.col+.col{border-left:0;border-top:1px solid var(--line)}.jgrid{grid-template-columns:1fr}}
+
+/* colonne de gauche : socle commun aux 5 variantes */
+.jl-col{padding:16px 18px;min-width:0}
+.jl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 4px}
+.jl-head h2{margin:0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.jl-when{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px;border-radius:10px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.jl-when.past{background:var(--warn-bg);color:var(--warn);font-weight:600;border:1px solid var(--warn)}
+.jl-sub{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.45}
+.jl-foot{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.jl-histo{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--teal)}
+.jl-empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:4px 0}
+.jl-rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+.jl-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.jl-meta .how{cursor:help}
+.jl-t a{font-weight:600;color:var(--ink)}
+.jl-t a:hover{color:var(--teal)}
+.jl-long{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.42}
+.jl-more{font-size:11.5px;color:var(--muted);margin-top:4px}
+.jl-more a{color:var(--muted);text-decoration:underline;text-decoration-style:dotted}
+.jl-more a:hover{color:var(--teal)}
+
+.jl-tree{font-size:13px}
+.jl-node{position:relative;padding-left:20px}
+.jl-node::before{content:"";position:absolute;left:5px;top:0;bottom:0;width:1px;background:var(--line)}
+.jl-node.last::before{bottom:auto;height:14px}
+.jl-node::after{content:"";position:absolute;left:5px;top:14px;width:11px;height:1px;background:var(--line)}
+.jl-branch{margin:0 0 6px}
+.jl-branch>.bt{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);font-weight:700;background:var(--teal-xl);padding:6px 8px;margin:8px 0 6px;border-radius:3px;display:flex;align-items:baseline;gap:8px;line-height:1.4}
+.jl-branch>.bt .c{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:#fff;background:var(--teal);letter-spacing:0;text-transform:none;margin-left:auto;min-width:18px;height:18px;padding:0 6px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.jl-item{padding:5px 0 7px}
+.jl-item .jl-t{line-height:1.35}
+.jl-kids{margin-top:2px}
+.jl-kids .jl-item{padding:4px 0 5px}
+.jl-kids .jl-t a{font-weight:500;font-size:12.5px}
+.jl-root{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;color:var(--ink);padding:2px 0 2px;font-weight:600}
+
+/* ═══ composants propres à la page Historique (préfixe jl-h) ═══ */
+.jl-hkicker{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:10px;vertical-align:6px}
+.jl-when{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px;border-radius:10px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.jl-when.past{background:var(--warn-bg);color:var(--warn);font-weight:600;border:1px solid var(--warn)}
+.jl-sub{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.45}
+.jl-empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:4px 0}
+.jl-rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+.jl-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.jl-meta .how{cursor:help}
+.jl-t a{font-weight:600;color:var(--ink)}
+.jl-t a:hover{color:var(--teal)}
+.jl-long{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.42}
+.jl-hhonest{margin:22px 0 0;line-height:1.55}
+.jl-hpanel{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.jl-hbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.jl-hfil{font-size:11.5px;letter-spacing:.04em;padding:5px 11px;border:1px solid var(--line);border-radius:14px;background:var(--white);color:var(--muted);cursor:pointer;white-space:nowrap}
+.jl-hfil:hover{border-color:var(--teal);color:var(--teal)}
+.jl-hfil.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+.jl-hsel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;padding:4px 7px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink)}
+.jl-hcount{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted);margin-left:auto}
+.jl-h2{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.jl-hdead{opacity:.5}
+.jl-hfutur{opacity:.32;filter:grayscale(1)}
+.jl-hdiff{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:14px 16px;font-size:14px;line-height:1.7}
+.jl-hdiff ins{background:var(--ok-bg);color:var(--ok);text-decoration:none;border-radius:2px}
+.jl-hdiff del{background:var(--bad-bg);color:var(--bad);border-radius:2px}
+.jl-hkey{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:10px 0 0}
+.jl-hkey i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.jl-htext{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:13px 15px;font-size:14px;line-height:1.65;margin-top:8px}
+.jl-hnota{margin-top:10px;padding:8px 11px;background:var(--warn-bg);border-radius:6px;font-size:12.5px}
+.jl-hnota b{color:var(--warn)}
+.jl-hnow{display:flex;align-items:center;gap:10px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+.jl-hnow::after{content:"";flex:1;height:1px;background:var(--teal)}
+.jl-hmark{background:var(--warn-bg);border:1px dashed var(--warn);color:var(--warn);font-size:11.5px;padding:5px 10px;border-radius:4px;margin:8px 0;display:flex;align-items:center;gap:8px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">justicelibre<span>.org</span></div>
+  <div class="nav"><a href="../hub.html#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+</div>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <main class="body" id="body"><p class="lead"><span class="spin"></span> Chargement de l’historique…</p></main>
+</div>
+<div class="proto">historique 2/5 · Couloirs · <a href="histo-index.html">les 5 historiques</a> · <a href="carte-748.html">la carte</a></div>
+<script>
+/* ───── thème / rail (repris de carte-748.html) ───── */
+{ const t = new URLSearchParams(location.search).get('theme'); let th = t;
+  if (!th) { try { th = localStorage.getItem('hub-theme'); } catch {} }
+  if (th === 'light' || th === 'dark') { document.documentElement.dataset.theme = th; try { localStorage.setItem('hub-theme', th); } catch {} }
+  else if (t === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+  else { document.documentElement.dataset.theme = 'dark'; } }
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MOISC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function fmtDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3] === 1 ? '1er' : +m[3]} ${MOIS[+m[2]-1]} ${m[1]}`; }
+function fmtCourt(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3] === 1 ? '1er' : +m[3]} ${MOISC[+m[2]-1]} ${m[1]}`; }
+const ICO = { menu:'M4 7h16M4 12h16M4 17h16', scale:'M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zm10 0l-3 7a3 3 0 0 0 6 0l-3-7z',
+  book:'M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z', chat:'M4 5h16v11H8l-4 4z', hall:'M3 21h18M5 21V10M19 21V10M9 21v-6h6v6M12 3l9 6H3z',
+  people:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8 0', check:'M4 12l5 5L20 6', plug:'M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5' };
+const ico = k => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${ICO[k]}"/></svg>`;
+const HUB = '../hub.html';
+const SCOPES = [ {k:'juris',icon:'scale',label:'Jurisprudence',n:'4,3 M'}, {k:'textes',icon:'book',label:'Textes',n:'3,4 M'}, {k:'travaux',icon:'chat',label:'Travaux préparatoires',n:''}, {k:'avis',icon:'hall',label:'Avis & doctrine',n:'109 k'}, {k:'annuaire',icon:'people',label:'Annuaire',n:'75 k'} ];
+let railMini = false; try { railMini = localStorage.getItem('jl.railMini') === '1'; } catch {}
+function renderRail(){
+  const r = $('#rail'); r.className = 'rail' + (railMini ? ' mini' : '');
+  let h = `<button class="hd" id="railToggle" title="Replier / déplier">${ico('menu')}<span class="logo lbl" style="font-size:18px">justicelibre</span></button><div class="sec">Chercher dans</div>`;
+  for (const s of SCOPES) h += `<a class="ri${s.k==='textes'?' on':''}" href="${HUB}#/${s.k}" title="${esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span>${s.n?`<span class="n">${s.n}</span>`:''}</a>`;
+  h += `<div class="sec">Outils</div><a class="ri" href="${HUB}#/citations">${ico('check')}<span class="lbl">Vérifier mes citations</span></a>`;
+  const th = document.documentElement.dataset.theme || 'system';
+  const thLabel = {light:'Thème clair', dark:'Thème sombre', system:'Thème : système'}[th];
+  h += `<div style="flex:1"></div><button class="ri" id="themeBtn" title="Sombre → système → clair" style="color:var(--muted);font-size:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg><span class="lbl">${thLabel}</span></button><a class="ri" style="color:var(--muted);font-size:12px" href="https://justicelibre.org/mcp.html">${ico('plug')}<span class="lbl">API · MCP · GitHub</span></a>`;
+  r.innerHTML = h;
+  $('#themeBtn').onclick = () => { const next = {dark:'system', system:'light', light:'dark'}[document.documentElement.dataset.theme || 'system'];
+    if (next === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+    else { document.documentElement.dataset.theme = next; try { localStorage.setItem('hub-theme', next); } catch {} } renderRail(); };
+  $('#railToggle').onclick = () => { railMini = !railMini; try { localStorage.setItem('jl.railMini', railMini?'1':'0'); } catch {} renderRail(); };
+}
+
+/* ───── briques ───── */
+const NATLABEL = {DECRET:'décret', ARRETE:'arrêté', CODE:'code', LOI:'loi', ORDONNANCE:'ordonnance', DIRECTIVE_EURO:'directive UE'};
+function legifrance(id, nature){ id = id || '';
+  if (id.startsWith('JORFTEXT')) return `https://www.legifrance.gouv.fr/jorf/id/${id}`;
+  if (id.startsWith('LEGIARTI')) return (nature==='CODE' ? 'https://www.legifrance.gouv.fr/codes/article_lc/' : 'https://www.legifrance.gouv.fr/loda/article_lc/') + id;
+  if (id.startsWith('LEGITEXT')) return `https://www.legifrance.gouv.fr/loda/id/${id}`;
+  return 'https://www.legifrance.gouv.fr/'; }
+function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identifiant absent de l’entrepôt'};
+  const d0 = t.date_debut || '0000', d1 = t.date_fin || '2999';
+  if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
+  if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
+  return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
+function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
+const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
+const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
+const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
+function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
+
+/* diff mot à mot, copié de hub.html (showArticle) : ajouts en vert, retraits barrés en rouge */
+function diffWords(a, b){
+  const A = a.split(/(\s+)/), B = b.split(/(\s+)/);
+  const n = A.length, m = B.length; const dp = Array.from({length:n+1}, () => new Uint16Array(m+1));
+  for (let i=n-1;i>=0;i--) for (let j=m-1;j>=0;j--) dp[i][j] = A[i]===B[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  let i=0,j=0,out='';
+  while (i<n && j<m) { if (A[i]===B[j]) { out += esc(A[i]); i++; j++; } else if (dp[i+1][j] >= dp[i][j+1]) { out += `<del>${esc(A[i])}</del>`; i++; } else { out += `<ins>${esc(B[j])}</ins>`; j++; } }
+  while (i<n) out += `<del>${esc(A[i++])}</del>`; while (j<m) out += `<ins>${esc(B[j++])}</ins>`;
+  return out;
+}
+
+const HOWTIP = {
+  'visa': 'Relié par ses visas : le texte commence par « Vu le code de procédure civile, notamment son article 748-6 ». C’est cette mention en tête qui permet de le rattacher à l’article.',
+  'lien LEGI': 'Lien posé par Légifrance dans les données LEGI (créé par, modifié par, cité par).',
+  'succession': 'Déduit d’un lien « modifie » ou « abroge » entre deux arrêtés dans LEGI.'
+};
+const howHTML = h => `<span class="how" title="${esc(HOWTIP[h] || 'provenance du lien')}">${esc(h)}</span>`;
+const TYPELBL = {cree:'créé', reecrit:'réécrit', pris:'pris', retouche:'retouché', abroge:'abrogé', remplace:'remplacé'};
+
+/* ═══════════ MODÈLE D’HISTORIQUE ═══════════
+   Règle ferme (validée) : A. la vie de l’article (ses rédactions + le texte qui a écrit chacune)
+   B. la vie de ce qui est pris pour lui : les arrêtés qui le VISENT, vivants ou morts, avec
+      leurs retouches (X tel que {de: lui, vers: X, type modifie}) et leurs prédécesseurs
+      récursifs (Y tel que {de: Y, vers: lui, type abroge}). C. rien d’autre.
+   Interdit : suivre un lien SORTANT « modifie » d’un arrêté retenu (ex. l’arrêté Télérecours
+   du 2 mai 2018, que le 29 août 2025 modifie, n’entre pas dans l’historique). */
+async function loadHisto(){
+  const r = await fetch('../hub_paysage_748.json'); if (!r.ok) throw new Error('hub_paysage_748.json : HTTP ' + r.status);
+  const P = await r.json();
+  const q = new URLSearchParams(location.search);
+  const num = (q.get('num') && P.articles[q.get('num')]) ? q.get('num') : '748-6';
+  const today = new Date().toISOString().slice(0, 10);
+  const asked = q.get('date') || '';
+  const at = /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : today;
+  const isToday = at === today;
+  const T = {...(P.resolus || {}), ...(P.arretes || {}), ...(P.decrets || {})};
+  const S = P.succession || [];
+  const versions = P.articles[num].slice().sort((x, y) => x.date_debut.localeCompare(y.date_debut));
+  const cname = versions[0].titre_text;
+  const cur = versions.find(v => v.date_debut <= at && (v.date_fin || '2999') > at) || null;
+  const sims = versions.map((v, i) => i ? jaccard(versions[i-1].texte, v.texte) : null);
+  const recycled = sims.some(x => x !== null && x < 0.25);
+
+  /* A. les rédactions et leur auteur */
+  const redactions = versions.map((v, i) => {
+    let auteur = null;
+    for (const l of v.liens) {
+      const isMod = l.typelien === 'MODIFIE' && l.sens === 'cible';
+      const isCre = l.typelien === 'CREATION' || l.typelien === 'CREE';
+      if (!isMod && !isCre) continue;
+      const key = l.legitext_resolu || l.cidtexte || l.id; const t = T[key] || null;
+      auteur = { id: key, titre: clean(l.libelle || l.id).replace(/\s+-\s+art\..*$/, ''),
+        art: (/- art\. ([^ (]+)/.exec(l.libelle || '') || [])[1] || '',
+        long: t ? clean(titreArr(t)) : '', nature: l.naturetexte || (t && t.nature) || 'DECRET',
+        date: (l.datesignatexte && l.datesignatexte < '2999') ? l.datesignatexte : (t && t.date_texte) || '',
+        nor: l.nortexte || (t && t.nor) || '', lf: legifrance(key, l.naturetexte) };
+      break;
+    }
+    return { i, v, debut: v.date_debut, fin: v.date_fin || '2999', texte: v.texte || '', nota: v.nota || '',
+      legiarti: v.legiarti, etat: v.etat || '', sim: sims[i], auteur,
+      type: i === 0 ? 'cree' : 'reecrit', lf: legifrance(v.legiarti, 'CODE') };
+  });
+
+  /* B. les arrêtés qui visent l’article (niveau 1), vivants ou morts */
+  const vises = Object.values(P.arretes || {}).filter(a => (a.vise || []).includes(num))
+    .sort((a, b) => (a.date_debut || '').localeCompare(b.date_debut || ''));
+  const niveau1 = new Set(vises.map(a => a.legitext));
+
+  const mkTexte = (t, niveau, role) => ({ id: t.legitext, titre: clean(t.titre), long: clean(titreArr(t)),
+    nature: t.nature || 'ARRETE', nor: t.nor || '', debut: t.date_debut || '', fin: t.date_fin || '2999',
+    date_texte: t.date_texte || '', etat: t.etat || '', nb_articles: t.nb_articles || 0,
+    niveau, role, st: lifeAt(t, at), lf: legifrance(t.legitext), raw: t });
+
+  /* prédécesseurs récursifs : {de: Y, vers: lui, type abroge} = lui abroge Y */
+  const seenP = new Set(niveau1);
+  const predsOf = id => { const out = [];
+    for (const e of S) { if (e.vers !== id || e.type !== 'abroge' || e.de === id) continue;
+      if (seenP.has(e.de)) continue; seenP.add(e.de);
+      const t = T[e.de]; if (!t) continue;
+      out.push(mkTexte(t, 2, 'predecesseur')); out.push(...predsOf(e.de)); }
+    return out; };
+
+  const arretes = vises.map(a => {
+    const A = mkTexte(a, 1, 'vise');
+    const seenR = new Set();
+    A.retouches = S.filter(e => e.de === a.legitext && e.type === 'modifie' && e.vers !== a.legitext)
+      .map(e => T[e.vers]).filter(Boolean)
+      .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
+      .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
+      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = A.id; return R; });
+    A.predecesseurs = predsOf(a.legitext).sort((x, y) => (y.debut || '').localeCompare(x.debut || ''));
+    A.predecesseurs.forEach(p => p.cible = A.id);
+    return A;
+  });
+
+  const textes = [];
+  for (const a of arretes) { textes.push(a); a.retouches.forEach(r => textes.push(r)); a.predecesseurs.forEach(p => textes.push(p)); }
+  const kept = new Set(textes.map(t => t.id));
+
+  /* C. ce qu’on a écarté : les textes reliés par un lien SORTANT d’un texte retenu */
+  const exclusIds = new Set();
+  for (const e of S) if (kept.has(e.vers) && !kept.has(e.de)) exclusIds.add(e.de);
+  const exclus = [...exclusIds].map(id => T[id]).filter(Boolean)
+    .map(t => ({ id: t.legitext, titre: clean(t.titre), nor: t.nor || '', date: t.date_texte || '' }))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  /* les événements */
+  const ev = [];
+  for (const R of redactions) ev.push({ date: R.debut, type: R.type, niveau: 0, red: R,
+    label: R.type === 'cree' ? 'créé' : 'réécrit', how: 'lien LEGI',
+    quoi: `art. ${num}, rédaction du ${fmtCourt(R.debut)}`, par: R.auteur, st: lifeAt({date_debut:R.debut, date_fin:R.fin, etat:R.etat}, at) });
+  for (const a of arretes) {
+    ev.push({ date: a.debut, type: 'pris', niveau: 1, texte: a, label: 'pris pour lui', how: 'visa',
+      quoi: a.titre, st: a.st });
+    if (a.fin < '2999') ev.push({ date: a.fin, type: 'abroge', niveau: 1, texte: a, label: 'abrogé', how: 'succession',
+      quoi: a.titre, st: a.st });
+    for (const r of a.retouches) ev.push({ date: r.date_texte || r.debut, type: 'retouche', niveau: 2, texte: r,
+      cible: a, label: 'retouche l’arrêté', how: 'succession', quoi: r.titre, st: r.st });
+    for (const p of a.predecesseurs) ev.push({ date: p.fin < '2999' ? p.fin : p.debut, type: 'remplace', niveau: 2, texte: p,
+      cible: a, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
+  }
+  ev.sort((x, y) => (y.date || '').localeCompare(x.date || '') || (x.niveau - y.niveau));
+  const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
+    n2: ev.filter(e => e.niveau === 2).length, total: ev.length, exclus: exclus.length,
+    textes: kept.size, redactions: redactions.length, arretes: arretes.length };
+  return {P, T, num, cname, at, isToday, today, versions, cur, redactions, arretes, textes, ev, exclus, counts, recycled, sims};
+}
+
+/* ───── chrome commun des cinq maquettes ───── */
+function whenBadge(H){ return H.isToday
+  ? `<span class="jl-when">actuel · ${fmtCourt(H.at)}</span>`
+  : `<span class="jl-when past" title="vous lisez l’historique à une date passée">lu au ${fmtCourt(H.at)}</span>`; }
+function chrome(H, titre, parti){
+  const cur = H.cur;
+  const q = new URLSearchParams(location.search); const dq = q.get('date') ? '?date=' + encodeURIComponent(q.get('date')) : '';
+  return `<a class="back" href="carte-748.html${dq}">← Retour à l’état actuel</a>
+  <p class="hero">Art. ${esc(H.num)} · ${esc(H.cname)} <span class="jl-hkicker">historique</span></p>
+  <div class="leadrow"><div class="lead"><b>${esc(titre)}.</b> ${esc(parti)}</div>
+    <span class="datew">${whenBadge(H)}
+      <button class="calbtn" id="calBtn" title="Changer la date de lecture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+      <div class="datepop" id="datePop">
+        <div class="k">Saisir une date</div><div class="row"><input type="text" id="dateTxt" placeholder="jj/mm/aaaa" value="${H.at.slice(8,10)}/${H.at.slice(5,7)}/${H.at.slice(0,4)}"><button class="btn" id="dateGo" style="padding:6px 12px">Lire</button></div><div class="err" id="dateErr"></div>
+        <div class="k">Ou choisir dans le calendrier</div><div class="row"><input type="date" id="atDate" value="${H.at}"></div>
+        <div class="k">Ou sauter à une rédaction</div><div class="chips"><span class="chip" data-d="${H.today}">aujourd’hui</span>${H.versions.map(v => `<span class="chip" data-d="${v.date_debut}">${fmtCourt(v.date_debut)}</span>`).join('')}</div>
+      </div></span></div>
+  <div class="idband">
+    <div><div class="k">État à la date lue</div><div class="v">${cur ? pill(lifeAt(cur, H.at)) + ' depuis le ' + fmtCourt(cur.date_debut) : '<span class="st fut">n’existe pas encore</span>'}</div></div>
+    <div><div class="k">Rédactions</div><div class="v">${H.redactions.length} depuis ${fmtCourt(H.redactions[0].debut)}</div></div>
+    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs</span></div></div>
+    <div><div class="k">Textes en jeu</div><div class="v">${H.counts.textes} textes, ${H.textes.filter(t => t.st.k === 'ok').length} encore en vigueur</div></div>
+    <div><div class="k">Objet</div><div class="v">${H.recycled ? '<span class="warnp">numéro recyclé</span>' : 'inchangé depuis l’origine'}</div></div>
+  </div>`;
+}
+function honestHTML(H){
+  return `<div class="honest jl-hhonest"><b>Ce que cette page montre, et ce qu’elle laisse dehors.</b>
+  L’historique retient la vie de l’article (ses ${H.counts.redactions} rédactions et le texte qui a écrit chacune) et la vie de ce qui est pris pour lui : les ${H.counts.arretes} arrêtés qui le visent, vivants ou morts, leurs retouches et leurs prédécesseurs abrogés, de proche en proche.
+  <b>${H.counts.exclus} arrêté${H.counts.exclus>1?'s':''} relié${H.counts.exclus>1?'s':''} par un lien sortant, hors sujet, non affiché${H.counts.exclus>1?'s':''}</b> : ${H.exclus.map(x => esc(x.titre) + (x.nor ? ` <span class="nor">${esc(x.nor)}</span>` : '')).join(' · ')}.
+  Un arrêté retenu peut en modifier un autre sans que celui-là relève de l’article 748-6 : c’est le cas de l’arrêté Télérecours du 2 mai 2018, modifié par l’arrêté du 29 août 2025. Il n’entre pas ici.
+  ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui est postérieur est grisé et marqué « après la date lue ».`}</div>`;
+}
+function wireDate(H){
+  const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); location.search = q.toString(); };
+  const pop = $('#datePop');
+  $('#atDate').onchange = e => goDate(e.target.value);
+  $('#calBtn').onclick = e => { e.stopPropagation(); pop.classList.toggle('open'); if (pop.classList.contains('open')) $('#dateTxt').focus(); };
+  document.addEventListener('click', e => { if (!e.target.closest('.datew')) pop.classList.remove('open'); });
+  const parseFr = t => { const m = /^\s*(\d{1,2})[\/.\-\s](\d{1,2})[\/.\-\s](\d{4})\s*$/.exec(t); if (!m) return null;
+    const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])); if (d.getUTCDate() !== +m[1] || d.getUTCMonth() !== +m[2] - 1) return null; return d.toISOString().slice(0, 10); };
+  const submit = () => { const d = parseFr($('#dateTxt').value); if (!d) { $('#dateErr').textContent = 'Date illisible : attendu jj/mm/aaaa'; return; } goDate(d); };
+  $('#dateGo').onclick = submit; $('#dateTxt').onkeydown = e => { if (e.key === 'Enter') submit(); };
+  document.querySelectorAll('#datePop .chip').forEach(c => c.onclick = () => goDate(c.dataset.d));
+}
+const apres = (H, d) => !!d && d > H.at;
+const deadCls = (H, o) => (o.st && o.st.k !== 'ok' ? ' dead' : '') + (apres(H, o.date) ? ' futur' : '');
+function diffPane(H, ia, ib){
+  const A = H.redactions[ia], B = H.redactions[ib];
+  if (!A || !B || A === B) return '<span class="muted">Même rédaction : rien à comparer.</span>';
+  return `<div class="jl-hdiff">${diffWords(A.texte, B.texte)}</div>`;
+}
+function redSelect(id, H, def){ return `<select class="jl-hsel" id="${id}">${H.redactions.map((R, i) => `<option value="${i}"${i === def ? ' selected' : ''}>${fmtCourt(R.debut)} → ${fmtCourt(R.fin)}</option>`).join('')}</select>`; }
+
+/* Maquette 2 · Couloirs : une ligne par texte, le temps en abscisse (Gantt) */
+const VCSS = `
+.g2wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--white)}
+.g2{min-width:1040px;position:relative}
+.g2head{display:grid;grid-template-columns:250px 1fr;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--white);z-index:2}
+.g2head .g2lbl{padding:8px 12px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.g2axis{position:relative;height:30px}
+.g2yr{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);padding-left:4px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:var(--muted);line-height:30px}
+.g2row{display:grid;grid-template-columns:250px 1fr;border-bottom:1px solid var(--line);min-height:34px}
+.g2row:last-child{border-bottom:0}
+.g2row.n0{background:var(--teal-xl)}
+.g2row.n2 .g2name{padding-left:34px}
+.g2row.dead .g2name{opacity:.55}
+.g2name{padding:8px 10px 8px 14px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid var(--line)}
+.g2name .s{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:var(--muted);display:block;letter-spacing:.05em;text-transform:uppercase}
+.g2lane{position:relative;height:34px}
+.g2grid{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);opacity:.6}
+.g2bar{position:absolute;top:9px;height:16px;border-radius:3px;background:var(--ok);opacity:.85;cursor:default}
+.g2bar.dead{background:var(--muted);opacity:.45}
+.g2bar.n2{top:12px;height:10px}
+.g2seg{position:absolute;top:6px;height:22px;border-radius:3px;border:1px solid var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:#fff;overflow:hidden;white-space:nowrap}
+.g2seg.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g2notch{position:absolute;top:4px;width:3px;height:26px;background:var(--warn);border-radius:1px;cursor:help;z-index:2}
+.g2arr{position:absolute;top:16px;height:2px;background:var(--bad);opacity:.7}
+.g2arr::after{content:"";position:absolute;right:-1px;top:-3px;border-left:6px solid var(--bad);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.g2today{position:absolute;top:0;bottom:0;width:2px;background:var(--warn);z-index:4}
+.g2todayL{position:absolute;top:2px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:var(--warn);background:var(--white);padding:0 4px;white-space:nowrap;z-index:5}
+.g2after{position:absolute;top:0;bottom:0;background:var(--cream);opacity:.72;z-index:3;pointer-events:none}
+.g2tip{margin-top:12px;font-size:12.5px;min-height:3.4em}
+`;
+const Y0 = 2005, Y1 = 2027;
+const g2x = iso => { if (!iso) return 0; const y = +iso.slice(0, 4), m = +iso.slice(5, 7), d = +iso.slice(8, 10);
+  const v = (Math.min(Math.max(y, Y0), Y1) + (m - 1) / 12 + d / 365 - Y0) / (Y1 - Y0); return Math.max(0, Math.min(100, v * 100)); };
+function VIEW(H){
+  const years = []; for (let y = Y0; y <= Y1; y += 2) years.push(y);
+  const grid = years.map(y => `<div class="g2grid" style="left:${g2x(y + '-01-01')}%"></div>`).join('');
+  const atX = g2x(H.at);
+  const overlay = `${grid}<div class="g2after" style="left:${atX}%;right:0"></div><div class="g2today" style="left:${atX}%"></div>`;
+  const COL = ['#1a4e4e', '#2f5d8a', '#7a5c1e', '#6d3e8c'];
+  /* la ligne de l’article : ses rédactions en segments */
+  const segs = H.redactions.map((R, i) => { const x = g2x(R.debut), w = Math.max(0.8, g2x(R.fin) - x);
+    return `<div class="g2seg" data-red="${i}" style="left:${x}%;width:${w}%;background:${COL[i % 4]}" title="rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}">${fmtCourt(R.debut).slice(-4)}</div>`; }).join('');
+  let rows = `<div class="g2row n0"><div class="g2name"><span class="s">l’article</span>art. ${esc(H.num)} CPC</div><div class="g2lane">${overlay}${segs}</div></div>`;
+  for (const a of H.arretes) {
+    const x = g2x(a.debut), w = Math.max(0.6, g2x(a.fin) - x);
+    const notches = a.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${a.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
+    rows += `<div class="g2row n1${a.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa</span>${esc(a.titre)}</div>
+      <div class="g2lane">${overlay}<div class="g2bar${a.st.k !== 'ok' ? ' dead' : ''}" data-txt="${a.id}" style="left:${x}%;width:${w}%"></div>${notches}</div></div>`;
+    for (const p of a.predecesseurs) {
+      const px = g2x(p.debut), pw = Math.max(0.6, g2x(p.fin) - px);
+      const arrow = p.fin < '2999' ? `<div class="g2arr" style="left:${px + pw}%;width:${Math.max(0.4, g2x(a.debut) - (px + pw))}%" title="remplacé par ${esc(a.titre)}"></div>` : '';
+      rows += `<div class="g2row n2${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par le précédent</span>${esc(p.titre)}</div>
+        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${arrow}</div></div>`;
+    }
+  }
+  return `<div class="jl-hbar"><span class="h5">Couloirs</span><span class="muted" style="font-size:12px">Chaque texte occupe une ligne, de sa naissance à sa mort. Les encoches orange sont ses retouches, la flèche rouge mène à celui qui l’a remplacé. Survole pour le détail, clique une rédaction pour la comparer.</span><span class="jl-hcount">${H.counts.total} événements</span></div>
+  <div class="g2wrap"><div class="g2">
+    <div class="g2head"><div class="g2lbl">texte</div><div class="g2axis">${years.map(y => `<div class="g2yr" style="left:${g2x(y + '-01-01')}%">${y}</div>`).join('')}<div class="g2todayL" style="left:calc(${g2x(H.at)}% + 4px)">${H.isToday ? 'aujourd’hui' : 'date lue'}</div></div></div>
+    ${rows}</div></div>
+  <div class="g2tip jl-hpanel" style="margin-top:14px" id="g2tip"><span class="muted">Survole une barre, une encoche ou un segment.</span></div>
+  <div class="jl-hpanel" style="margin-top:16px">
+    <div class="jl-h2">Deux rédactions, mot à mot</div>
+    <div class="jl-hbar">${redSelect('g2A', H, Math.max(0, H.redactions.length - 2))}<span class="muted">vers</span>${redSelect('g2B', H, H.redactions.length - 1)}</div>
+    <div id="g2out"></div>
+  </div>`;
+}
+function WIRE(H){
+  const byId = {}; for (const t of H.textes) byId[t.id] = t;
+  const tip = $('#g2tip');
+  const show = t => { tip.innerHTML = `<div class="jl-t"><a href="${t.lf}">${esc(t.titre)}</a></div>
+    <div class="jl-long">${esc(t.long)}</div>
+    <div class="jl-meta">${t.nor ? `<span class="nor">${esc(t.nor)}</span>` : ''}<span>signé le ${fmtCourt(t.date_texte)}</span><span>en vigueur du ${fmtCourt(t.debut)} au ${fmtCourt(t.fin)}</span>${pill(t.st)}${howHTML(t.niveau === 1 ? 'visa' : 'succession')}<span>${t.nb_articles} articles</span></div>`; };
+  document.querySelectorAll('[data-txt]').forEach(el => el.onmouseenter = () => {
+    const ids = el.dataset.txt.split('|'); const t = byId[ids[ids.length - 1]]; if (t) show(t); });
+  const redo = () => { const a = +$('#g2A').value, b = +$('#g2B').value; pick = [a, b]; $('#g2out').innerHTML = diffPane(H, a, b);
+    document.querySelectorAll('.g2seg').forEach(s => s.classList.toggle('sel', +s.dataset.red === a || +s.dataset.red === b)); };
+  let pick = [+$('#g2A').value, +$('#g2B').value];
+  document.querySelectorAll('.g2seg').forEach(s => { s.onclick = () => { const i = +s.dataset.red;
+      if (pick.includes(i)) return; pick.push(i); if (pick.length > 2) pick.shift();
+      const [a, b] = [...pick].sort((x, y) => x - y); $('#g2A').value = a; $('#g2B').value = b; redo(); };
+    s.onmouseenter = () => { const R = H.redactions[+s.dataset.red];
+      tip.innerHTML = `<div class="jl-t">Rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}</div>
+        <div class="jl-meta"><span class="mono">${esc(R.legiarti)}</span>${R.auteur ? `<span class="jl-rel">${R.type === 'cree' ? 'créée par' : 'écrite par'}</span> <a href="${R.auteur.lf}">${esc(R.auteur.titre)}</a>` : ''}${howHTML('lien LEGI')}</div>
+        <div class="jl-long">${esc(R.texte.slice(0, 220))}…</div>`; }; });
+  $('#g2A').onchange = redo; $('#g2B').onchange = redo; redo();
+}
+
+document.head.appendChild(Object.assign(document.createElement('style'), {textContent: VCSS}));
+renderRail();
+loadHisto().then(H => { window.H = H;
+  $('#body').innerHTML = chrome(H, "Couloirs", "Une ligne par texte et le temps en abscisse : on voit d’un coup d’œil qui vivait en même temps que qui, et quelle barre a pris la place de quelle autre.") + VIEW(H) + honestHTML(H);
+  wireDate(H); WIRE(H);
+  console.log('événements', H.counts);
+}).catch(e => { $('#body').innerHTML = '<div class="alert">⚠ <div><b>Chargement impossible.</b> ' + esc(e.message) + '</div></div>'; console.error(e); });
+</script>
+</body>
+</html>
