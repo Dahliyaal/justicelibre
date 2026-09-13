@@ -531,7 +531,10 @@ const VCSS = `
 .g2bar.dead{background:var(--muted);opacity:.45}
 .g2bar.n2{top:12px;height:10px}
 .g2seg{position:absolute;top:6px;height:22px;border-radius:3px;border:1px solid var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:#fff;overflow:hidden;white-space:nowrap}
-.g2seg.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g2seg{background:var(--ok);opacity:.38}
+.g2seg.sel{opacity:1;outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g2seg.cur::after{content:"";position:absolute;left:6px;right:6px;bottom:-5px;height:3px;border-radius:2px;background:var(--ink)}
+.g2seg.cur{overflow:visible}
 .g2notch{position:absolute;top:4px;width:3px;height:26px;background:var(--warn);border-radius:1px;cursor:help;z-index:2}
 .g2arr{position:absolute;top:16px;height:2px;background:var(--bad);opacity:.7}
 .g2arr::after{content:"";position:absolute;right:-1px;top:-3px;border-left:6px solid var(--bad);border-top:4px solid transparent;border-bottom:4px solid transparent}
@@ -551,7 +554,7 @@ function VIEW(H){
   const COL = ['#1a4e4e', '#2f5d8a', '#7a5c1e', '#6d3e8c'];
   /* la ligne de l’article : ses rédactions en segments */
   const segs = H.redactions.map((R, i) => { const x = g2x(R.debut), w = Math.max(0.8, g2x(R.fin) - x);
-    return `<div class="g2seg" data-red="${i}" style="left:${x}%;width:${w}%;background:${COL[i % 4]}" title="rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}">${fmtCourt(R.debut).slice(-4)}</div>`; }).join('');
+    return `<div class="g2seg${H.cur && R.v === H.cur ? ' cur' : ''}" data-red="${i}" style="left:${x}%;width:${w}%" title="rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}${H.cur && R.v === H.cur ? ' · en vigueur à la date lue' : ''}">${fmtCourt(R.debut).slice(-4)}</div>`; }).join('');
   let rows = `<div class="g2row n0"><div class="g2name"><span class="s">l’article</span>art. ${esc(H.num)} CPC</div><div class="g2lane">${overlay}${segs}</div></div>`;
   for (const a of H.arretes) {
     const x = g2x(a.debut), w = Math.max(0.6, g2x(a.fin) - x);
