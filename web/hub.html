@@ -172,6 +172,18 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .adv-help p{margin:0}.adv-help b{color:var(--ink);font-weight:600}
 .adv-help code{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--teal);background:var(--teal-xl);padding:0 5px;border-radius:3px}
 .adv-help .s{font-size:11.5px}
+.hc-sep{border:0;border-top:1px solid var(--line);margin:34px 0 22px}
+.hc .hc-row{display:flex;gap:12px;align-items:flex-start;margin:8px 0}
+.hc .hc-row .lb{width:80px;flex:none;padding-top:6px}
+.hc .chips{display:flex;flex-wrap:wrap;gap:6px}
+.hc .chip .n{font-family:"JetBrains Mono",monospace;font-size:10.5px;opacity:.75;margin-left:2px}
+.hc .hc-ans{max-height:84px;overflow:auto}
+.hc-path{margin:16px 0 8px;font-size:13px;color:var(--muted)}.hc-path .n{font-family:"JetBrains Mono",monospace;font-size:11px}
+.hc-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.hc-list li a{display:flex;gap:14px;padding:9px 4px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13.5px;line-height:1.45}
+.hc-list li a:hover{background:var(--teal-xl)}
+.hc-list .d{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);flex:none;width:86px;padding-top:2px}
+.hc-list li.muted{padding:8px 4px;font-size:12px}
 .expbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .expbar .pill{padding:2px 9px;border-radius:12px;background:var(--teal-xl);color:var(--teal);font-family:"JetBrains Mono",monospace;font-size:11px}
 .expbar a{color:var(--muted);text-decoration:underline;cursor:pointer;margin-left:4px}
@@ -369,6 +381,43 @@ const TOOLS = [
 // ignorant « Code de la / du / des / de l' » — sinon tout est rangé à « Code ».
 function cleTri(nom){ return nom.toLowerCase().replace(/^code\s+(de\s+la\s+|de\s+l'|du\s+|des\s+|de\s+|d')?/, '').replace(/^(la|le|les|l')\s+/, ''); }
 function codesTries(){ return [...CODES].sort((a, b) => cleTri(a[1]).localeCompare(cleTri(b[1]), 'fr', {sensitivity:'base'})); }
+/* ── Textes hors code : ministère (NOR) › nature › année › titres ──
+   Données : web/hub_horscode.json, extrait réel de jorf_textes (JO 1990→2026),
+   24 ministères, comptes par nature et par année, titres pour les 10 premiers
+   ministères × 3 dernières années. Prototype : la version servie interrogera
+   l'entrepôt au lieu d'un fichier. */
+const NATLABEL = {LOI:'Lois', ORDONNANCE:'Ordonnances', DECRET:'Décrets', ARRETE:'Arrêtés'};
+// « MINISTERE DE L'AGRICULTURE ET DE LA PECHE » → « Agriculture et pêche » : le JO
+// écrit les ministères en capitales et leur nom change à chaque gouvernement.
+function nomMin(s){ let t = (s || '').trim(); if (t === t.toUpperCase()) t = t.toLowerCase(); t = t.replace(/^minist[èe]re (de la |de l'|du |des |de |d')?/i, ''); return t.charAt(0).toUpperCase() + t.slice(1); }
+let HC = null; const hcSel = {min:'', nat:'LOI', an:''};
+async function initHorsCode(){
+  const box = document.getElementById('horsCode'); if (!box) return;
+  if (!HC) { try { HC = await (await fetch('hub_horscode.json')).json(); } catch { box.innerHTML = '<div class="warnp">échantillon indisponible (hub_horscode.json)</div>'; return; } }
+  if (!hcSel.min) hcSel.min = HC.ministeres[0].nor;
+  renderHorsCode();
+}
+function renderHorsCode(){
+  const box = document.getElementById('horsCode'); if (!box || !HC) return;
+  const m = HC.ministeres.find(x => x.nor === hcSel.min) || HC.ministeres[0];
+  const nats = Object.keys(m.natures).filter(n => NATLABEL[n]);
+  if (!nats.includes(hcSel.nat)) hcSel.nat = nats[0];
+  const ans = Object.keys(m.natures[hcSel.nat] || {}).sort().reverse();
+  if (!ans.includes(hcSel.an)) hcSel.an = ans[0] || '';
+  const titres = HC.titres[`${m.nor}|${hcSel.nat}|${hcSel.an}`];
+  const nAn = (m.natures[hcSel.nat] || {})[hcSel.an] || 0;
+  box.innerHTML = `
+    <div class="hc-row"><div class="lb">Ministère</div><div class="chips">${HC.ministeres.map(x => `<button type="button" class="chip${x.nor===m.nor?' on':''}" data-min="${x.nor}" title="${esc(x.nom)}">${esc(nomMin(x.nom))} <span class="n">${nb(x.total)}</span></button>`).join('')}</div></div>
+    <div class="hc-row"><div class="lb">Nature</div><div class="chips">${nats.map(n => `<button type="button" class="chip${n===hcSel.nat?' on':''}" data-nat="${n}">${NATLABEL[n]} <span class="n">${nb(Object.values(m.natures[n]).reduce((a,b)=>a+b,0))}</span></button>`).join('')}</div></div>
+    <div class="hc-row"><div class="lb">Année</div><div class="chips hc-ans">${ans.map(a => `<button type="button" class="chip${a===hcSel.an?' on':''}" data-an="${a}">${a} <span class="n">${nb(m.natures[hcSel.nat][a])}</span></button>`).join('')}</div></div>
+    <div class="hc-path">${esc(m.nom)} › ${NATLABEL[hcSel.nat]} › ${hcSel.an} <span class="n">· ${nb(nAn)} texte${nAn>1?'s':''}</span></div>
+    ${titres ? `<ul class="hc-list">${titres.map(t => `<li><a href="https://justicelibre.org/loi/${esc(t.id)}/1" target="_blank" rel="noopener"><span class="d">${fmtDate(t.date)}</span><span class="t">${esc(t.titre)}</span></a></li>`).join('')}${nAn > titres.length ? `<li class="muted">… et ${nb(nAn - titres.length)} autres (prototype : 12 titres par rayon)</li>` : ''}</ul>`
+             : `<div class="muted" style="font-size:12.5px;margin-top:8px">Prototype : titres embarqués seulement pour les 10 premiers ministères et les 3 dernières années (${nb(nAn)} textes dans ce rayon).</div>`}`;
+  box.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { hcSel.min = b.dataset.min; renderHorsCode(); });
+  box.querySelectorAll('[data-nat]').forEach(b => b.onclick = () => { hcSel.nat = b.dataset.nat; renderHorsCode(); });
+  box.querySelectorAll('[data-an]').forEach(b => b.onclick = () => { hcSel.an = b.dataset.an; renderHorsCode(); });
+}
+
 function abrev(c){ const nom = c[1].toLowerCase(); const a = c[2].filter(x => x.toLowerCase() !== nom).sort((x, y) => x.length - y.length); return a[0] || c[2][0] || ''; }
 const CODES = [
   ['LEGITEXT000006070721',"Code civil",["c. civ.", "cc", "cciv", "code civil"]],
@@ -692,7 +741,11 @@ function renderScope(){
     ${searchBar('art. 145 CPC · L. 1234-9 C. trav. · 1253 code civil', `<label class="dt">au <input id="qdate" type="date" value="${esc(state.page.p?.get('date')||'')}"></label>`, false)}
     <div class="hint" style="text-align:center">Ça marche : ${kbs(['art. 1253 C. civ.','art. 145 CPC','L. 1234-9 C. trav.','L. 521-2 CJA','art. 544 code civil'])} — le plein texte des lois et du JO n'est pas encore exposé par l'API du site (MCP seulement).</div>
     <div style="max-width:1100px;margin:34px auto 0"><div class="feed-h" style="margin-bottom:12px">Codes<span class="s">${CODES.length} codes servis · cliquez pour préparer la recherche d'un article</span><input id="codeFiltre" placeholder="filtrer…" style="margin-left:auto;font:inherit;font-size:12.5px;padding:5px 10px;border:1px solid var(--line);border-radius:5px;background:var(--white);color:var(--ink);width:180px"></div>
-    <div class="codes" id="codesGrid">${codesTries().map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(abrev(c))}</span></button>`).join('')}</div></div>`;
+    <div class="codes" id="codesGrid">${codesTries().map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(abrev(c))}</span></button>`).join('')}</div>
+    <hr class="hc-sep">
+    <div class="feed-h" style="margin-bottom:6px">Textes hors code<span class="s">lois, ordonnances, décrets, arrêtés — rangés par ministère (code NOR), filtrés par nature, parcourus par année</span></div>
+    <div id="horsCode" class="hc"><div class="muted" style="font-size:12.5px">chargement…</div></div></div>`;
+    initHorsCode();
     bindSearch(q => { const a = parseArticle(q); if (a) go(`#/article/${a.code}/${encodeURIComponent(a.num)}${$('#qdate').value?'?date='+$('#qdate').value:''}`); else $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>Je ne reconnais pas « ${esc(q)} » comme un article (<span class="mono">art. 1253 C. civ.</span>, <span class="mono">L. 1234-9 code du travail</span>). La recherche plein texte dans les lois n'est pas encore branchée sur le site.</div></div>`); });
     document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + CODES.find(c=>c[0]===t.dataset.code)[2][0]; $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
     $('#codeFiltre').oninput = e => { const v = normaliser(e.target.value); document.querySelectorAll('#codesGrid .tile').forEach(t => { t.hidden = !!v && !normaliser(t.dataset.nom).includes(v); }); };
