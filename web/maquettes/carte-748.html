@@ -240,7 +240,7 @@ function LEFT(M){
       : node(`<div class="jl-empty">${esc(e.vide)}</div>`, true);
     return `<div class="jl-branch"><div class="bt">${esc(e.titre)}<span class="c">${rows.length}</span></div>${body}</div>`; };
   return `<div class="jl-head"><h2>Ce qui joue sur lui</h2>${whenBadge(M)}</div>
-    <p class="jl-sub">Du plus haut au plus bas dans la hiérarchie : ce qui a écrit l’article, puis ce qui est pris pour l’appliquer. Article de valeur réglementaire : pas de décret d’application au-dessus de lui.</p>
+    <p class="jl-sub">Présentation hiérarchique, du texte qui a écrit la rédaction en vigueur aux arrêtés pris pour l’appliquer. Article de valeur réglementaire : aucun décret d’application ne lui est supérieur.</p>
     <div class="jl-tree"><div class="jl-root">art. ${esc(M.num)} CPC</div>${ETAGES.map(branch).join('')}</div>${footHTML()}`;
 }
 
@@ -414,7 +414,7 @@ const ETAGES = [
 ];
 /* article de valeur réglementaire : pas d’étage « décrets d’application » ; les décrets qui le mentionnent sont à droite (textes qui le citent) */
 const etageData = M => [M.etage1, M.etage3];
-const footHTML = () => '<div class="jl-foot"><a class="jl-histo" href="#historique">↺ Historique : tout ce qui a joué sur lui</a></div>';
+const footHTML = () => '<div class="jl-foot"><a class="jl-histo" href="#historique">↺ Historique</a></div>';
 
 /* ───── milieu et droite : identiques dans les 5 variantes ───── */
 function midHTML(M){ const cur = M.cur;
@@ -446,10 +446,10 @@ function render(M){
   </div>
   <div class="cols">
     <div class="col jl-col">${LEFT(M)}</div>
-    <div class="col mid"><h2>Le texte lu <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${cur ? fmtCourt(cur.date_debut) + ' → ' + fmtCourt(cur.date_fin) : ''}</span></h2>
+    <div class="col mid"><h2>${M.isToday ? 'Texte en vigueur' : 'Texte au ' + fmtCourt(at)} <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${cur ? 'rédaction du ' + fmtCourt(cur.date_debut) + (cur.date_fin && cur.date_fin < '2999' ? ' au ' + fmtCourt(cur.date_fin) : '') : ''}</span></h2>
       ${midHTML(M)}</div>
-    <div class="col"><h2>Textes qui s’appuient sur lui <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.citantsList.length}</span></h2>
-      <p class="jl-sub">Textes de même rang ou plus haut qui le mentionnent sans agir sur lui. Non comptés ici : ${M.exclus.auteurs} texte${M.exclus.auteurs>1?'s':''} qui l’ont écrit (colonne de gauche, historique) et ${M.exclus.arretes} arrêté${M.exclus.arretes>1?'s':''} (plus bas que lui : colonne de gauche ou historique).</p>
+    <div class="col"><h2>Références croisées <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.citantsList.length}</span></h2>
+      <p class="jl-sub">Mentions de l’article par des textes de même rang ou supérieur, sans effet sur sa portée. Exclus du décompte : ${M.exclus.auteurs} texte${M.exclus.auteurs>1?'s':''} d’origine (historique) et ${M.exclus.arretes} arrêté${M.exclus.arretes>1?'s':''} subordonné${M.exclus.arretes>1?'s':''} (colonne de gauche).</p>
       ${rightHTML(M)}</div>
   </div>
   <div id="historique" style="margin-top:26px"><div class="honest"><b>Historique.</b> Dans la maquette, cette ancre tient lieu de la page d’historique de l’article : toutes ses rédactions, les textes qui les ont écrites, et les textes morts qui ne figurent plus dans la colonne de gauche.</div></div>`;
