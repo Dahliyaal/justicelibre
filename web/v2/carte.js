@@ -150,14 +150,16 @@
           '<div class="jl-jc__x">« ' + esc(x.extract) + ' »</div>' +
           '<div class="jl-jc__ap">' +
           (x.publication ? '<span class="jl-src">' + esc(x.publication) + '</span>' : '') +
-          (x.v ? '<span class="jl-rd' + (x.v === M.cur ? '' : ' jl-rd--ancienne') +
-              '" title="rédaction en vigueur à la date de la décision">rédaction ' +
-              x.v.date_debut.slice(0, 4) + (x.v === M.cur ? ' · lue' : '') + '</span>'
+          // Sous quelle rédaction le juge a-t-il lu l'article ? Une phrase, pas deux
+          // badges (« rédaction 2019 » + « rédaction différente de celle lue » était
+          // illisible, 13 sept. 2026). Le lien bascule la page à cette date.
+          (x.v ? (x.v === M.cur
+              ? '<span class="jl-rd jl-muted" title="La rédaction en vigueur au jour de la décision est celle affichée.">jugé sous la rédaction affichée</span>'
+              : '<span class="jl-rd jl-rd--ancienne" title="La rédaction en vigueur au jour de la décision n’est pas celle affichée. ' +
+                'La rédaction réellement applicable dépend aussi des dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la date.">' +
+                'jugé sous la rédaction de ' + x.v.date_debut.slice(0, 4) + ', pas celle affichée · ' +
+                '<a href="?date=' + esc(x.v.date_debut) + '&num=' + esc(M.num) + '#jurisprudence">lire cette rédaction</a></span>')
                : A.pill({ k: 'q', label: 'hors rédaction connue', why: 'la date de la décision ne tombe dans aucune rédaction connue' })) +
-          (x.differs && x.v ? '<span class="jl-warnp" title="La rédaction en vigueur au jour de la ' +
-              'décision n’est pas celle que tu lis. Et la rédaction réellement applicable dépend des ' +
-              'dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la ' +
-              'date.">rédaction différente de celle lue</span>' : '') +
           '</div></article>';
       }).join('') + '</div></section>';
   }
