@@ -775,19 +775,22 @@ function renderScope(){
     document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + CODES.find(c=>c[0]===t.dataset.code)[2][0]; $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
   }
   else if (s === 'travaux') {
-    b.innerHTML = `<p class="hero">Travaux préparatoires</p><p class="lead">Ce qui a précédé la loi : exposé des motifs, avis du Conseil d'État, rapports, débats, questions. <span class="warnp">pas encore branché</span> — voici la forme prévue, sur un vrai exemple.</p>
+    b.innerHTML = `<div class="center"><p class="hero">Travaux préparatoires</p><p class="lead">Ce qui a précédé la loi : exposé des motifs, avis du Conseil d'État, rapports, débats, questions. <span class="warnp">rien en base pour l'instant</span> — voici la forme prévue, sur un vrai exemple.</p>
+    ${searchBar('loi n° 2024-346 · art. 1253 du code civil · exposé des motifs', '', false)}<div class="hint" style="text-align:center">Ça marchera : ${kbs(['loi n° 2024-346','art. 1253 C. civ.','proposition de loi n° 1928'])}</div></div>
     <div class="two"><div><div class="h5">Loi n° 2024-346 du 15 avril 2024 → art. 1253 du code civil</div>${[['2023-12-13','Proposition de loi n° 1928 (AN) — exposé des motifs'],['2024-01-31','Rapport n° 2136 — commission des lois'],['2024-02-06','Débats, 1ʳᵉ séance — amendements'],['2024-03-21','Sénat, rapport n° 449'],['2024-04-15','Promulgation — JORF n° 0089']].map(([d,t])=>`<div class="rec"><span class="d">${fmtDate(d)}</span><span>${esc(t)}</span></div>`).join('')}<div style="margin-top:10px"><a href="#/article/LEGITEXT000006070721/1253">Voir l'article 1253 et son histoire →</a></div></div>
     <div><div class="h5">Sources, toutes en licence ouverte</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${[['DOLE (DILA)','dossiers législatifs : motifs, avis du CE, étapes'],['DEBATS · QUESTIONS (DILA)','JO Débats AN et Sénat, réponses ministérielles'],['data.assemblee-nationale.fr · data.senat.fr','amendements, commissions, Dosleg, Ameli'],['Conseil constitutionnel','dossiers documentaires des décisions']].map(([t,s])=>`<div class="tile"><div class="tt"><span class="dot soon"></span>${esc(t)}</div><div class="ts">${esc(s)}</div></div>`).join('')}</div></div></div>`;
+    bindSearch(q => $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>« ${esc(q)} » : les travaux préparatoires ne sont pas encore en base (DOLE, débats, questions). Rien à chercher pour l'instant — c'est dit, pas caché.</div></div>`));
   }
   else if (s === 'avis') {
-    b.innerHTML = `<p class="hero">Avis &amp; doctrine</p><p class="lead">Ce que disent les autorités quand elles ne jugent pas : avis de la CADA, décisions du Défenseur des droits, délibérations CNIL, conclusions des rapporteurs publics. <span class="warnp">MCP seulement pour l'instant</span> — le site ne les sert pas encore (chantier 3).</p>
-    ${searchBar('communication du dossier médical · refus de communication', '', false)}
+    b.innerHTML = `<div class="center"><p class="hero">Avis &amp; doctrine</p><p class="lead">Ce que disent les autorités quand elles ne jugent pas : avis de la CADA, décisions du Défenseur des droits, conclusions des rapporteurs publics, BOFiP — 107 273 documents.</p>
+    ${searchBar('communication du dossier médical · refus de communication', '', false)}<div class="hint" style="text-align:center">Ça marche : ${kbs(['refus de communication dossier médical','discrimination handicap','délai de réponse administration','conclusions rapporteur public'])}</div></div>
     <div class="grid2" style="margin-top:22px">${[['CADA','60 941','avis et conseils 1984–2026, partie et objet lisibles, lien data.gouv'],['Défenseur des droits','15 864','décisions et avis, domaines et mots-clés'],['CNIL','26 737','délibérations, sanctions, avis sur les textes'],['Rapporteurs publics','9 138','conclusions devant le Conseil d’État — servies nulle part ailleurs']].map(([t,n,s])=>`<div class="tile"><div class="tt"><span class="dot" style="--c:var(--doc)"></span>${esc(t)}<span class="mono muted" style="margin-left:auto;font-size:11px;font-weight:400">${n}</span></div><div class="ts">${esc(s)}</div></div>`).join('')}</div>
     <div class="note" style="margin-top:22px;max-width:880px">Ces textes ne sont pas des jugements : la page le dira et ne les mélangera jamais à la jurisprudence sans le signaler.</div>`;
-    bindSearch(q => $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>« ${esc(q)} » : la recherche dans les avis n'est pas encore exposée par l'API du site. Elle existe côté MCP (search_cnil ; CADA/DDD en chantier).</div></div>`));
+    bindSearch(q => go(`#/recherche?scope=avis&q=${encodeURIComponent(q)}`));
   }
   else if (s === 'annuaire') {
-    b.innerHTML = `<p class="hero">Annuaire</p><p class="lead">Les boîtes fonctionnelles des greffes, parquets, cabinets — 75 000 adresses. <span class="warnp">MCP seulement pour l'instant</span> (search_annuaire).</p>${searchBar('tribunal judiciaire de Dunkerque · parquet de Lille · greffe', '', false)}
+    b.innerHTML = `<div class="center"><p class="hero">Annuaire</p><p class="lead">Les boîtes fonctionnelles des greffes, parquets, cabinets — 75 000 adresses. <span class="warnp">MCP seulement pour l'instant</span> (search_annuaire).</p>
+    ${searchBar('tribunal judiciaire de Dunkerque · parquet de Lille · greffe', '', false)}<div class="hint" style="text-align:center">Ça marche : ${kbs(['tribunal judiciaire de Dunkerque','parquet de Lille','greffe cour d\'appel de Douai'])}</div></div>
     <div class="note" style="margin-top:22px;max-width:880px">Depuis une décision, le bouton « où déposer » ouvrira ici la juridiction concernée.</div>`;
     bindSearch(q => $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>« ${esc(q)} » : l'annuaire n'est pas encore exposé par l'API du site.</div></div>`));
   }
@@ -905,13 +908,14 @@ async function runSearch(){
   const q = state.q; const seq = ++searchSeq;
   const adv = state.adv;
   const juris = (adv.juridiction||'').split(',').filter(j => JURI_SOURCES[j]);
-  const plans = juris.length ? juris.map(j => ({sources: JURI_SOURCES[j], juridiction: j})) : [{sources:'dila'},{sources:'ariane'},{sources:'admin'},{sources:'cedh'},{sources:'cjue'}];
+  const plans = state.scope === 'avis' ? [{sources:'doctrine', juridiction:'doctrine'}]
+              : juris.length ? juris.map(j => ({sources: JURI_SOURCES[j], juridiction: j})) : [{sources:'dila'},{sources:'ariane'},{sources:'admin'},{sources:'cedh'},{sources:'cjue'}];
   state.results = []; state.srcState = {}; state.facet = {}; state.warnings = [];
   const b = $('#body');
   state.advOpen = false;
   const chips = fmtAdv(adv);
   b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}<a class="pill" href="#/suivre?q=${encodeURIComponent(q)}">${ico('bell')} Suivre</a></div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
-  bindSearch(nq => go(jurisUrl(nq)));
+  bindSearch(nq => go(state.scope === 'avis' ? `#/recherche?scope=avis&q=${encodeURIComponent(nq)}` : jurisUrl(nq)));
   $('#advAdd').onclick = () => $('#advT').click();
   document.querySelectorAll('[data-rm]').forEach(c => c.onclick = () => { const [k,v] = c.dataset.rm.split(':'); const a = {...adv}; if (k==='juridiction') { a.juridiction = a.juridiction.split(',').filter(x=>x!==v).join(','); if (!a.juridiction) delete a.juridiction; if (!a.juridiction?.split(',').includes('cass')) delete a.formation; } else if (k==='formation') delete a.formation; else { delete a.date_min; delete a.date_max; } go(jurisUrl(q, a)); });
   if (!q) { $('#list').innerHTML = `<p class="muted">Tapez quelque chose.</p>`; return; }
