@@ -308,11 +308,13 @@ function legifrance(id, nature){ id = id || '';
 function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identifiant absent de l’entrepôt'};
   const d0 = t.date_debut || '0000', d1 = t.date_fin || '2999';
   if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
-  if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
+  if (d1 <= at) { const e = (t.etat||''); if (e.startsWith('MODIFIE')) return {k:'q', label:`réécrit le ${fmtCourt(d1)}`, why:'Légifrance a ouvert un nouvel identifiant pour ce texte à cette date (même NOR) : la suite est sous l’autre entrée'};
+    return {k:'ab', label:`${e.startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'}; }
   return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
 const minus = s => String(s||'').replace(/^Arrêté/, 'l’arrêté').replace(/^Décret/, 'le décret');
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
+const nb = (n, un, plus) => n === 0 ? `aucun${un.endsWith('e') ? 'e' : ''} ${un}` : n === 1 ? `1 ${un}` : `${n} ${plus || un + 's'}`;
 const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
 const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
 function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
@@ -391,13 +393,13 @@ async function loadHisto(){
     niveau, role, st: lifeAt(t, at), lf: legifrance(t.legitext), raw: t });
 
   /* prédécesseurs récursifs : {de: Y, vers: lui, type abroge} = lui abroge Y */
-  const seenP = new Set(niveau1);
+  const seenP = new Set();
   const retouchesOf = (legitext, parent) => { const seenR = new Set();
     return S.filter(e => e.de === legitext && e.type === 'modifie' && e.vers !== legitext)
       .map(e => T[e.vers]).filter(Boolean)
       .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
       .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
-      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; return R; }); };
+      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; R.aussiNiveau1 = niveau1.has(t.legitext); return R; }); };
   /* arbre RÉEL des remplacements : chaque prédécesseur garde ses propres prédécesseurs et ses propres retouches
      (2025 abroge 2020 ; 2020 abroge 2009, 2010, 2011 : ceux-là sont sous 2020, pas sous 2025) */
   const predsOf = (id, parent, prof) => { const out = [];
@@ -405,15 +407,17 @@ async function loadHisto(){
       if (seenP.has(e.de)) continue; seenP.add(e.de);
       const t = T[e.de]; if (!t) continue;
       const P = mkTexte(t, 2, 'predecesseur'); P.cible = parent.id; P.parent = parent; P.prof = prof;
+      if (niveau1.has(e.de)) { P.deja = true; P.retouches = []; P.predecesseurs = []; out.push(P); continue; }
       P.retouches = retouchesOf(e.de, P); P.predecesseurs = predsOf(e.de, P, prof + 1); out.push(P); }
     return out.sort((x, y) => (y.debut || '').localeCompare(x.debut || '')); };
-  const flatPreds = a => a.predecesseurs.flatMap(p => [p, ...flatPreds(p)]);
+  const flatPreds = a => a.predecesseurs.filter(p => !p.deja).flatMap(p => [p, ...flatPreds(p)]);
   const flatRet = a => [...a.retouches, ...a.predecesseurs.flatMap(flatRet)];
 
   const arretes = vises.map(a => {
     const A = mkTexte(a, 1, 'vise');
     A.retouches = retouchesOf(a.legitext, A);
     A.predecesseurs = predsOf(a.legitext, A, 1);
+    const ab = S.find(e => e.de === a.legitext && e.type === 'abroge' && T[e.vers]); A.abrogePar = ab ? T[ab.vers] : null;
     return A;
   });
 
@@ -444,9 +448,11 @@ async function loadHisto(){
       cible: p.parent, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
   }
   ev.sort((x, y) => (y.date || '').localeCompare(x.date || '') || (x.niveau - y.niveau));
+  const textesU = [...new Map(textes.map(t => [t.id, t])).values()];
+  const evAt = ev.filter(e => (e.date || '') <= at);
   const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
-    n2: ev.filter(e => e.niveau === 2).length, total: ev.length, exclus: exclus.length,
-    textes: kept.size, redactions: redactions.length, arretes: arretes.length };
+    n2: ev.filter(e => e.niveau === 2).length, total: ev.length, avant: evAt.length, apres: ev.length - evAt.length, exclus: exclus.length,
+    textes: textesU.length, vivants: textesU.filter(t => t.st.k === 'ok').length, redactions: redactions.length, arretes: arretes.length };
   return {P, T, num, cname, at, isToday, today, versions, cur, redactions, arretes, textes, ev, exclus, counts, recycled, sims};
 }
 
@@ -471,8 +477,8 @@ function chrome(H, titre, parti){
   <div class="idband">
     <div><div class="k">État à la date lue</div><div class="v">${cur ? pill(lifeAt(cur, H.at)) + ' depuis le ' + fmtCourt(cur.date_debut) : '<span class="st fut">n’existe pas encore</span>'}</div></div>
     <div><div class="k">Rédactions</div><div class="v">${H.redactions.length} depuis ${fmtCourt(H.redactions[0].debut)}</div></div>
-    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs</span></div></div>
-    <div><div class="k">Textes en jeu</div><div class="v">${H.counts.textes} textes, ${H.textes.filter(t => t.st.k === 'ok').length} encore en vigueur</div></div>
+    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs${H.isToday ? '' : ` · <b>${H.counts.avant} avant la date lue</b>, ${H.counts.apres} après`}</span></div></div>
+    <div><div class="k">Textes en jeu <span class="help" tabindex="0" data-tip="Tous les textes affichés sur cette page, comptés une seule fois : l’article, les arrêtés pris pour lui, leurs retouches et leurs prédécesseurs. « En vigueur » s’entend à la date lue.">?</span></div><div class="v">${H.counts.textes} textes, ${H.counts.vivants} en vigueur à la date lue</div></div>
     <div><div class="k">Objet</div><div class="v">${H.recycled ? '<span class="warnp">numéro recyclé</span>' : 'inchangé depuis l’origine'}</div></div>
   </div>`;
 }
@@ -480,8 +486,9 @@ function honestHTML(H){
   return `<div class="honest jl-hhonest"><b>Ce que cette page montre, et ce qu’elle laisse dehors.</b>
   L’historique retient la vie de l’article (ses ${H.counts.redactions} rédactions et le texte qui a écrit chacune) et la vie de ce qui est pris pour lui : les ${H.counts.arretes} arrêtés qui le visent, vivants ou morts, leurs retouches et leurs prédécesseurs abrogés, de proche en proche.
   <b>${H.counts.exclus} arrêté${H.counts.exclus>1?'s':''} relié${H.counts.exclus>1?'s':''} par un lien sortant, hors sujet, non affiché${H.counts.exclus>1?'s':''}</b> : ${H.exclus.map(x => esc(x.titre) + (x.nor ? ` <span class="nor">${esc(x.nor)}</span>` : '')).join(' · ')}.
-  Un arrêté retenu peut en modifier un autre sans que celui-là relève de l’article 748-6 : c’est le cas de l’arrêté Télérecours du 2 mai 2018, modifié par l’arrêté du 29 août 2025. Il n’entre pas ici.
-  ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui est postérieur est grisé et marqué « après la date lue ».`}</div>`;
+  Ces textes ne sont là que parce qu’un texte retenu les modifie au passage ; ils ne relèvent pas de l’article.
+  Un décret peut retoucher un arrêté (le décret 2019-966 a remplacé « tribunal de grande instance » par « tribunal judiciaire » dans des centaines de textes) : il apparaît alors comme « décret modificateur ».
+  ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui n’existe pas encore à cette date est en bleu (« entre en vigueur le … ») et atténué ; les compteurs distinguent avant et après.`}</div>`;
 }
 function wireDate(H){
   const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); location.search = q.toString(); };
@@ -531,8 +538,10 @@ const VCSS = `
 .g2bar.dead{background:var(--muted);opacity:.45}
 .g2bar.n2{top:12px;height:10px}
 .g2seg{position:absolute;top:6px;height:22px;border-radius:3px;border:1px solid var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:#fff;overflow:hidden;white-space:nowrap}
-.g2seg{background:var(--ok);opacity:.38}
-.g2seg.sel{opacity:1;outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g2seg{background:var(--ok-bg);color:var(--ok);opacity:1}
+.g2seg.sel{background:var(--ok);color:#fff;outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g2row.fut .g2name{color:var(--doc)} .g2bar.fut{background:var(--doc);opacity:.7}
+.g2bar.inf{border-top-right-radius:0;border-bottom-right-radius:0} .g2bar.inf::after{content:"";position:absolute;right:-8px;top:2px;border-left:8px solid var(--ok);border-top:6px solid transparent;border-bottom:6px solid transparent;opacity:.85} .g2bar.inf.fut::after{border-left-color:var(--doc)}
 .g2seg.cur::after{content:"";position:absolute;left:6px;right:6px;bottom:-5px;height:3px;border-radius:2px;background:var(--ink)}
 .g2seg.cur{overflow:visible}
 .g2notch{position:absolute;top:4px;width:3px;height:26px;background:var(--warn);border-radius:1px;cursor:help;z-index:2}
@@ -543,9 +552,10 @@ const VCSS = `
 .g2after{position:absolute;top:0;bottom:0;background:var(--cream);opacity:.72;z-index:3;pointer-events:none}
 .g2tip{margin-top:12px;font-size:12.5px;min-height:3.4em}
 `;
-const Y0 = 2005, Y1 = 2027;
+const Y0 = 2008, Y1 = 2027;
 const g2x = iso => { if (!iso) return 0; const y = +iso.slice(0, 4), m = +iso.slice(5, 7), d = +iso.slice(8, 10);
   const v = (Math.min(Math.max(y, Y0), Y1) + (m - 1) / 12 + d / 365 - Y0) / (Y1 - Y0); return Math.max(0, Math.min(100, v * 100)); };
+const clsOf = st => st.k === 'ok' ? '' : st.k === 'fut' ? ' fut' : ' dead';
 function VIEW(H){
   const years = []; for (let y = Y0; y <= Y1; y += 2) years.push(y);
   const grid = years.map(y => `<div class="g2grid" style="left:${g2x(y + '-01-01')}%"></div>`).join('');
@@ -554,29 +564,31 @@ function VIEW(H){
   const COL = ['#1a4e4e', '#2f5d8a', '#7a5c1e', '#6d3e8c'];
   /* la ligne de l’article : ses rédactions en segments */
   const segs = H.redactions.map((R, i) => { const x = g2x(R.debut), w = Math.max(0.8, g2x(R.fin) - x);
-    return `<div class="g2seg${H.cur && R.v === H.cur ? ' cur' : ''}" data-red="${i}" style="left:${x}%;width:${w}%" title="rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}${H.cur && R.v === H.cur ? ' · en vigueur à la date lue' : ''}">${fmtCourt(R.debut).slice(-4)}</div>`; }).join('');
+    return `<div class="g2seg${H.cur && R.v === H.cur ? ' cur' : ''}" role="button" tabindex="0" aria-label="rédaction du ${fmtCourt(R.debut)}" data-red="${i}" style="left:${x}%;width:${w}%" title="rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}${H.cur && R.v === H.cur ? ' · en vigueur à la date lue' : ''}">${fmtCourt(R.debut).slice(-4)}</div>`; }).join('');
   let rows = `<div class="g2row n0"><div class="g2name"><span class="s">l’article</span>art. ${esc(H.num)} CPC</div><div class="g2lane">${overlay}${segs}</div></div>`;
-  for (const a of H.arretes) {
+  for (const a of H.arretes.slice().reverse()) {
     const x = g2x(a.debut), w = Math.max(0.6, g2x(a.fin) - x);
+    const capA = a.fin < '2999' ? `<div class="g2cap" style="left:${x + w}%" title="${a.fin <= H.at ? 'abrogé' : 'sera abrogé'} le ${fmtCourt(a.fin)}${a.abrogePar ? ' · remplacé par ' + esc(a.abrogePar.titre) : ''}"></div>` : '';
     const notches = a.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${a.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
-    rows += `<div class="g2row n1${a.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa${a.retouches.length ? ' · ' + a.retouches.length + ' retouche' + (a.retouches.length>1?'s':'') : ''}</span><a href="${a.lf}">${esc(a.titre)}</a></div>
-      <div class="g2lane">${overlay}<div class="g2bar${a.st.k !== 'ok' ? ' dead' : ''}" data-txt="${a.id}" style="left:${x}%;width:${w}%"></div>${notches}</div></div>`;
+    rows += `<div class="g2row n1${clsOf(a.st)}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa${a.retouches.length ? ' · ' + nb(a.retouches.length, 'retouche') : ''}</span><a href="${a.lf}">${esc(a.titre)}</a></div>
+      <div class="g2lane">${overlay}<div class="g2bar${clsOf(a.st)}${a.fin >= '2999' ? ' inf' : ''}" data-txt="${a.id}" style="left:${x}%;width:${w}%"></div>${notches}${capA}</div></div>`;
     const retRow = (r, depth) => { const rx = g2x(r.date_texte || r.debut);
-      return `<div class="g2row n${depth} ret${apres(H, r.date_texte) ? ' jl-hfutur' : ''}"><div class="g2name" title="${esc(r.long || r.titre)}"><span class="s">retouché par · ${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur</span><a href="${r.lf}">${esc(r.titre)}</a></div>
+      return `<div class="g2row n${depth} ret${apres(H, r.date_texte) ? ' jl-hfutur' : ''}"><div class="g2name" title="${esc(r.long || r.titre)}"><span class="s" title="${r.nature === 'DECRET' ? 'Un décret peut modifier un arrêté : il lui est supérieur.' : ''}">retouché par · ${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur${r.aussiNiveau1 ? ' · aussi pris pour lui (plus haut)' : ''}</span><a href="${r.lf}">${esc(r.titre)}</a></div>
         <div class="g2lane">${overlay}<div class="g2mark" data-txt="${r.id}" style="left:${rx}%" title="${esc(r.titre)} · ${fmtCourt(r.date_texte)}"></div></div></div>`; };
     const predRows = (p, depth) => {
       const px = g2x(p.debut), pw = Math.max(0.6, g2x(p.fin) - px);
-      const cap = p.fin < '2999' ? `<div class="g2cap" style="left:${px + pw}%" title="abrogé le ${fmtCourt(p.fin)} · remplacé par ${esc(p.parent.titre)}"></div>` : '';
+      if (p.deja) return `<div class="g2row n${depth} dead"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))} · déjà listé plus haut (pris pour lui)</span><a href="${p.lf}">${esc(p.titre)}</a></div><div class="g2lane">${overlay}</div></div>`;
+      const cap = p.fin < '2999' ? `<div class="g2cap" style="left:${px + pw}%" title="${p.fin <= H.at ? 'abrogé' : 'sera abrogé'} le ${fmtCourt(p.fin)} · remplacé par ${esc(p.parent.titre)}"></div>` : '';
       const pn = p.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${p.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
-      let h = `<div class="g2row n${depth}${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))}${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}</span><a href="${p.lf}">${esc(p.titre)}</a></div>
-        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${pn}${cap}</div></div>`;
-      for (const r of p.retouches) h += retRow(r, Math.min(depth + 1, 4));
+      let h = `<div class="g2row n${depth}${clsOf(p.st)}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))}${p.retouches.length ? ' · ' + nb(p.retouches.length, 'retouche') : ''}</span><a href="${p.lf}">${esc(p.titre)}</a>${p.nor ? ` <span class="nor">${esc(p.nor)}</span>` : ''}</div>
+        <div class="g2lane">${overlay}<div class="g2bar n2${clsOf(p.st)}${p.fin >= '2999' ? ' inf' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${pn}${cap}</div></div>`;
+      for (const r of p.retouches.slice().reverse()) h += retRow(r, Math.min(depth + 1, 4));
       for (const q of p.predecesseurs) h += predRows(q, Math.min(depth + 1, 4));
       return h; };
-    for (const r of a.retouches) rows += retRow(r, 2);
+    for (const r of a.retouches.slice().reverse()) rows += retRow(r, 2);
     for (const p of a.predecesseurs) rows += predRows(p, 2);
   }
-  return `<div class="jl-hbar"><span class="h5">Couloirs</span><span class="muted" style="font-size:12px">Chaque texte occupe une ligne, de sa naissance à sa mort. Les losanges orange sont ses retouches (chacune a aussi sa ligne), le bouchon rouge marque l’abrogation (survole-le : par qui). Survole pour le détail, clique une rédaction pour la comparer.</span><span class="jl-hcount">${H.counts.total} événements</span></div>
+  return `<div class="jl-hbar"><span class="h5">Couloirs</span><span class="muted" style="font-size:12px">Chaque texte occupe une ligne, de sa naissance à sa mort. Les losanges orange sont ses retouches (chacune a aussi sa ligne), le bouchon rouge marque l’abrogation (survole-le : par qui), la pointe à droite signifie « sans limite ». L’axe commence à la première rédaction de l’article (2008) ; le décret qui l’a créé date du 28 décembre 2005. Survole pour le détail, clique une rédaction pour la comparer.</span><span class="jl-hcount">${H.counts.total} événements</span></div>
   <div class="g2wrap"><div class="g2">
     <div class="g2head"><div class="g2lbl">texte</div><div class="g2axis">${years.map(y => `<div class="g2yr" style="left:${g2x(y + '-01-01')}%">${y}</div>`).join('')}<div class="g2todayL" style="left:calc(${g2x(H.at)}% + 4px)">${H.isToday ? 'aujourd’hui' : 'date lue'}</div></div></div>
     ${rows}</div></div>
@@ -592,14 +604,15 @@ function WIRE(H){
   const tip = $('#g2tip');
   const show = t => { tip.innerHTML = `<div class="jl-t"><a href="${t.lf}">${esc(t.titre)}</a></div>
     <div class="jl-long">${esc(t.long)}</div>
-    <div class="jl-meta">${t.nor ? `<span class="nor">${esc(t.nor)}</span>` : ''}<span>signé le ${fmtCourt(t.date_texte)}</span><span>en vigueur du ${fmtCourt(t.debut)} au ${fmtCourt(t.fin)}</span>${pill(t.st)}${howHTML(t.niveau === 1 ? 'visa' : 'succession')}<span>${t.nb_articles} articles</span></div>`; };
+    <div class="jl-meta">${t.nor ? `<span class="nor">${esc(t.nor)}</span>` : ''}${t.date_texte ? `<span>signé le ${fmtCourt(t.date_texte)}</span>` : ''}<span>en vigueur du ${fmtCourt(t.debut)} au ${fmtCourt(t.fin)}</span>${pill(t.st)}${howHTML(t.niveau === 1 ? 'visa' : 'succession')}<span>${t.nb_articles} articles</span></div>`; };
   document.querySelectorAll('[data-txt]').forEach(el => el.onmouseenter = () => {
     const ids = el.dataset.txt.split('|'); const t = byId[ids[ids.length - 1]]; if (t) show(t); });
   const redo = () => { const a = +$('#g2A').value, b = +$('#g2B').value; pick = [a, b]; $('#g2out').innerHTML = diffPane(H, a, b);
     document.querySelectorAll('.g2seg').forEach(s => s.classList.toggle('sel', +s.dataset.red === a || +s.dataset.red === b)); };
   let pick = [+$('#g2A').value, +$('#g2B').value];
   document.querySelectorAll('.g2seg').forEach(s => { s.onclick = () => { const i = +s.dataset.red;
-      if (pick.includes(i)) return; pick.push(i); if (pick.length > 2) pick.shift();
+      if (pick.includes(i)) { if (pick.length > 1) pick = pick.filter(x => x !== i); else return; } else { pick.push(i); if (pick.length > 2) pick.shift(); }
+      if (pick.length === 1) { $('#g2A').value = pick[0]; $('#g2B').value = pick[0]; redo(); return; }
       const [a, b] = [...pick].sort((x, y) => x - y); $('#g2A').value = a; $('#g2B').value = b; redo(); };
     s.onmouseenter = () => { const R = H.redactions[+s.dataset.red];
       tip.innerHTML = `<div class="jl-t">Rédaction du ${fmtCourt(R.debut)} au ${fmtCourt(R.fin)}</div>

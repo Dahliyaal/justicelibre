@@ -309,7 +309,8 @@ function legifrance(id, nature){ id = id || '';
 function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identifiant absent de l’entrepôt'};
   const d0 = t.date_debut || '0000', d1 = t.date_fin || '2999';
   if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
-  if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
+  if (d1 <= at) { const e = (t.etat||''); if (e.startsWith('MODIFIE')) return {k:'q', label:`réécrit le ${fmtCourt(d1)}`, why:'Légifrance a ouvert un nouvel identifiant pour ce texte à cette date (même NOR) : la suite est sous l’autre entrée'};
+    return {k:'ab', label:`${e.startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'}; }
   return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
 
 /* citation = lien : dans le texte d'un article de code, « l'article 748-1 » nu désigne le même code ; « du code X » qui suit désigne l'autre code */
@@ -322,8 +323,10 @@ function linkArts(html, codeIci){
     return mot + ' ' + numsL + (suite || '');
   });
 }
+const minus = s => String(s||'').replace(/^Arrêté/, 'l’arrêté').replace(/^Décret/, 'le décret');
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
+const nb = (n, un, plus) => n === 0 ? `aucun${un.endsWith('e') ? 'e' : ''} ${un}` : n === 1 ? `1 ${un}` : `${n} ${plus || un + 's'}`;
 const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
 const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
 function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
@@ -402,13 +405,13 @@ async function loadHisto(){
     niveau, role, st: lifeAt(t, at), lf: legifrance(t.legitext), raw: t });
 
   /* prédécesseurs récursifs : {de: Y, vers: lui, type abroge} = lui abroge Y */
-  const seenP = new Set(niveau1);
+  const seenP = new Set();
   const retouchesOf = (legitext, parent) => { const seenR = new Set();
     return S.filter(e => e.de === legitext && e.type === 'modifie' && e.vers !== legitext)
       .map(e => T[e.vers]).filter(Boolean)
       .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
       .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
-      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; return R; }); };
+      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; R.aussiNiveau1 = niveau1.has(t.legitext); return R; }); };
   /* arbre RÉEL des remplacements : chaque prédécesseur garde ses propres prédécesseurs et ses propres retouches
      (2025 abroge 2020 ; 2020 abroge 2009, 2010, 2011 : ceux-là sont sous 2020, pas sous 2025) */
   const predsOf = (id, parent, prof) => { const out = [];
@@ -416,15 +419,17 @@ async function loadHisto(){
       if (seenP.has(e.de)) continue; seenP.add(e.de);
       const t = T[e.de]; if (!t) continue;
       const P = mkTexte(t, 2, 'predecesseur'); P.cible = parent.id; P.parent = parent; P.prof = prof;
+      if (niveau1.has(e.de)) { P.deja = true; P.retouches = []; P.predecesseurs = []; out.push(P); continue; }
       P.retouches = retouchesOf(e.de, P); P.predecesseurs = predsOf(e.de, P, prof + 1); out.push(P); }
     return out.sort((x, y) => (y.debut || '').localeCompare(x.debut || '')); };
-  const flatPreds = a => a.predecesseurs.flatMap(p => [p, ...flatPreds(p)]);
+  const flatPreds = a => a.predecesseurs.filter(p => !p.deja).flatMap(p => [p, ...flatPreds(p)]);
   const flatRet = a => [...a.retouches, ...a.predecesseurs.flatMap(flatRet)];
 
   const arretes = vises.map(a => {
     const A = mkTexte(a, 1, 'vise');
     A.retouches = retouchesOf(a.legitext, A);
     A.predecesseurs = predsOf(a.legitext, A, 1);
+    const ab = S.find(e => e.de === a.legitext && e.type === 'abroge' && T[e.vers]); A.abrogePar = ab ? T[ab.vers] : null;
     return A;
   });
 
@@ -455,9 +460,11 @@ async function loadHisto(){
       cible: p.parent, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
   }
   ev.sort((x, y) => (y.date || '').localeCompare(x.date || '') || (x.niveau - y.niveau));
+  const textesU = [...new Map(textes.map(t => [t.id, t])).values()];
+  const evAt = ev.filter(e => (e.date || '') <= at);
   const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
-    n2: ev.filter(e => e.niveau === 2).length, total: ev.length, exclus: exclus.length,
-    textes: kept.size, redactions: redactions.length, arretes: arretes.length };
+    n2: ev.filter(e => e.niveau === 2).length, total: ev.length, avant: evAt.length, apres: ev.length - evAt.length, exclus: exclus.length,
+    textes: textesU.length, vivants: textesU.filter(t => t.st.k === 'ok').length, redactions: redactions.length, arretes: arretes.length };
   return {P, T, num, cname, at, isToday, today, versions, cur, redactions, arretes, textes, ev, exclus, counts, recycled, sims};
 }
 
@@ -482,8 +489,8 @@ function chrome(H, titre, parti){
   <div class="idband">
     <div><div class="k">État à la date lue</div><div class="v">${cur ? pill(lifeAt(cur, H.at)) + ' depuis le ' + fmtCourt(cur.date_debut) : '<span class="st fut">n’existe pas encore</span>'}</div></div>
     <div><div class="k">Rédactions</div><div class="v">${H.redactions.length} depuis ${fmtCourt(H.redactions[0].debut)}</div></div>
-    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs</span></div></div>
-    <div><div class="k">Textes en jeu</div><div class="v">${H.counts.textes} textes, ${H.textes.filter(t => t.st.k === 'ok').length} encore en vigueur</div></div>
+    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs${H.isToday ? '' : ` · <b>${H.counts.avant} avant la date lue</b>, ${H.counts.apres} après`}</span></div></div>
+    <div><div class="k">Textes en jeu <span class="help" tabindex="0" data-tip="Tous les textes affichés sur cette page, comptés une seule fois : l’article, les arrêtés pris pour lui, leurs retouches et leurs prédécesseurs. « En vigueur » s’entend à la date lue.">?</span></div><div class="v">${H.counts.textes} textes, ${H.counts.vivants} en vigueur à la date lue</div></div>
     <div><div class="k">Objet</div><div class="v">${H.recycled ? '<span class="warnp">numéro recyclé</span>' : 'inchangé depuis l’origine'}</div></div>
   </div>`;
 }
@@ -491,8 +498,9 @@ function honestHTML(H){
   return `<div class="honest jl-hhonest"><b>Ce que cette page montre, et ce qu’elle laisse dehors.</b>
   L’historique retient la vie de l’article (ses ${H.counts.redactions} rédactions et le texte qui a écrit chacune) et la vie de ce qui est pris pour lui : les ${H.counts.arretes} arrêtés qui le visent, vivants ou morts, leurs retouches et leurs prédécesseurs abrogés, de proche en proche.
   <b>${H.counts.exclus} arrêté${H.counts.exclus>1?'s':''} relié${H.counts.exclus>1?'s':''} par un lien sortant, hors sujet, non affiché${H.counts.exclus>1?'s':''}</b> : ${H.exclus.map(x => esc(x.titre) + (x.nor ? ` <span class="nor">${esc(x.nor)}</span>` : '')).join(' · ')}.
-  Un arrêté retenu peut en modifier un autre sans que celui-là relève de l’article 748-6 : c’est le cas de l’arrêté Télérecours du 2 mai 2018, modifié par l’arrêté du 29 août 2025. Il n’entre pas ici.
-  ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui est postérieur est grisé et marqué « après la date lue ».`}</div>`;
+  Ces textes ne sont là que parce qu’un texte retenu les modifie au passage ; ils ne relèvent pas de l’article.
+  Un décret peut retoucher un arrêté (le décret 2019-966 a remplacé « tribunal de grande instance » par « tribunal judiciaire » dans des centaines de textes) : il apparaît alors comme « décret modificateur ».
+  ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui n’existe pas encore à cette date est en bleu (« entre en vigueur le … ») et atténué ; les compteurs distinguent avant et après.`}</div>`;
 }
 function wireDate(H){
   const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); location.search = q.toString(); };
@@ -523,6 +531,7 @@ const VCSS = `
 .p5h{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none}
 .p5h:hover{background:var(--teal-xl)}
 .p5acc.dead .p5h{opacity:.6}
+.p5acc.fut>.p5h .p5ttl{color:var(--doc)}
 .p5ab{color:var(--bad);opacity:.75}
 [data-r].hl{background:var(--ok-bg);border-radius:4px;transition:background .12s}
 .p5seg[data-r]{cursor:default;padding:1px 4px;margin:-1px -4px}
@@ -558,31 +567,31 @@ function VIEW(H){
         ${i ? `<div class="p5in"><div class="jl-h2">Ce qui a changé depuis le ${fmtCourt(H.redactions[i-1].debut)}</div>${diffPane(H, i - 1, i)}</div>` : '<div class="p5foot">Première rédaction : rien à comparer.</div>'}
       </div></div>`).join('');
   const arr = a => {
-    const friseA = `<div class="p5frise"><span class="p5seg${a.st.k !== 'ok' ? ' dead' : ''}"><i></i>pris le ${fmtCourt(a.debut)}</span>${a.retouches.map(r => `<span class="p5lnk"></span><span class="p5seg${apres(H, r.date_texte) ? ' jl-hfutur' : ''}" data-r="${r.id}"><i></i>retouché ${fmtCourt(r.date_texte)}</span>`).join('')}${a.fin < '2999' ? `<span class="p5lnk"></span><span class="p5seg dead"><i></i>abrogé ${fmtCourt(a.fin)}</span>` : `<span class="p5lnk"></span><span class="p5seg"><i></i>toujours en vigueur</span>`}</div>`;
-    const predsHTML = list => list.map(p => `<div class="p5acc lvl2 dead" data-acc>
-        <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a></span><span class="p5cnt"><span class="p5ab">abrogé ${fmtCourt(p.fin)}</span>${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
+    const friseA = `<div class="p5frise"><span class="p5seg${a.st.k !== 'ok' ? ' dead' : ''}"><i></i>pris le ${fmtCourt(a.debut)}</span>${a.retouches.map(r => `<span class="p5lnk"></span><span class="p5seg${apres(H, r.date_texte) ? ' jl-hfutur' : ''}" data-r="${r.id}"><i></i>retouché ${fmtCourt(r.date_texte)}</span>`).join('')}${a.fin < '2999' ? `<span class="p5lnk"></span><span class="p5seg${a.fin <= H.at ? ' dead' : ' jl-hfutur'}"><i></i>${a.fin <= H.at ? 'abrogé' : 'sera abrogé'} ${fmtCourt(a.fin)}${a.abrogePar ? ' par ' + esc(minus(a.abrogePar.titre)) : ''}</span>` : `<span class="p5lnk"></span><span class="p5seg"><i></i>toujours en vigueur</span>`}</div>`;
+    const predsHTML = list => list.map(p => p.deja ? `<div class="p5acc lvl2 dead"><div class="p5h" style="cursor:default"><span style="width:12px;display:inline-block"></span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance">${esc(p.titre)}</a> <span class="nor">${esc(p.nor||'')}</span></span><span class="p5cnt">déjà listé plus haut (pris pour lui)</span></div></div>` : `<div class="p5acc lvl2${p.st.k === 'ok' ? '' : p.st.k === 'fut' ? ' fut' : ' dead'}" data-acc>
+        <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a> <span class="nor">${esc(p.nor||'')}</span></span><span class="p5cnt">${p.st.k === 'ab' ? `<span class="p5ab">${esc(p.st.label)}</span>` : `<span class="st ${p.st.k}" title="${esc(p.st.why||'')}">${esc(p.st.label)}</span>`}${p.retouches.length ? ' · ' + nb(p.retouches.length, 'retouche') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
         <div class="p5body"><div class="jl-long">${esc(p.long)}</div>
           <div class="jl-meta">${p.nor ? `<span class="nor">${esc(p.nor)}</span>` : ''}<span>en vigueur du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}</span>${pill(p.st)}${howHTML('succession')}</div>
           ${retsHTML(p)}${p.predecesseurs.length ? `<div class="jl-h2" style="margin-top:12px">A remplacé <span class="jl-hcount">${p.predecesseurs.length}</span></div>${predsHTML(p.predecesseurs)}` : ''}
         </div></div>`).join('');
     const retsHTML = a => a.retouches.length ? `<div class="jl-h2" style="margin-top:12px">Ses retouches <span class="jl-hcount">${a.retouches.length}</span></div>${a.retouches.slice().reverse().map(r => `<div class="p5ret" data-r="${r.id}" style="padding:6px 8px;margin:0 -8px;border-top:1px solid var(--line)${apres(H, r.date_texte) ? ';opacity:.35' : ''}">
-        <div class="jl-t"><span class="dt mono muted" style="margin-right:8px">${fmtCourt(r.date_texte)}</span><a href="${r.lf}">${esc(r.titre)}</a> <span class="muted">${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur</span></div>
+        <div class="jl-t"><span class="dt mono muted" style="margin-right:8px">${fmtCourt(r.date_texte)}</span><a href="${r.lf}">${esc(r.titre)}</a> <span class="muted" title="${r.nature === 'DECRET' ? 'Un décret peut modifier un arrêté : il lui est supérieur.' : ''}">${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur${r.aussiNiveau1 ? ' · aussi pris pour lui (plus haut)' : ''}</span></div>
         <div class="jl-meta">${r.nor ? `<span class="nor">${esc(r.nor)}</span>` : ''}${pill(r.st)}${howHTML('succession')}</div></div>`).join('')}`
       : '<div class="p5foot" style="margin-top:10px">Jamais retouché.</div>';
     const rets = retsHTML(a);
     const preds = a.predecesseurs.length ? `<div class="jl-h2" style="margin-top:12px">A remplacé <span class="jl-hcount">${a.predecesseurs.length}</span></div>${predsHTML(a.predecesseurs)}` : '<div class="p5foot">Aucun arrêté antérieur remplacé.</div>';
-    return `<div class="p5acc lvl1 open${a.st.k !== 'ok' ? ' dead' : ''}" data-acc>
-      <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${a.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(a.titre)}</a></span><span class="p5cnt">${a.retouches.length} retouche${a.retouches.length > 1 ? 's' : ''} · ${a.predecesseurs.length} remplacé${a.predecesseurs.length > 1 ? 's' : ''} ${pill(a.st)}</span></div>
+    return `<div class="p5acc lvl1 open${a.st.k === 'ok' ? '' : a.st.k === 'fut' ? ' fut' : ' dead'}" data-acc>
+      <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${a.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(a.titre)}</a></span><span class="p5cnt">${nb(a.retouches.length, 'retouche')} · ${a.predecesseurs.length ? 'a remplacé ' + a.predecesseurs.length : 'n’a rien remplacé'} ${pill(a.st)}</span></div>
       <div class="p5body">
         <div class="jl-long">${esc(a.long)}</div>
         <div class="jl-meta">${a.nor ? `<span class="nor">${esc(a.nor)}</span>` : ''}<span>signé le ${fmtCourt(a.date_texte)}</span><span>${a.nb_articles} articles</span>${pill(a.st)}${howHTML('visa')}</div>
         ${friseA}${rets}<div class="p5in">${preds}</div>
       </div></div>`;
   };
-  return `<div class="jl-hbar"><span class="h5">Poupées russes</span><span class="muted" style="font-size:12px">L’article contient ses rédactions ; chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010) ; il a remplacés. Tout est replié sauf le niveau 1.</span>
+  return `<div class="jl-hbar"><span class="h5">Poupées russes</span><span class="muted" style="font-size:12px">L’article contient ses rédactions ; chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010). L’article et ses arrêtés sont ouverts ; les arrêtés remplacés se déplient à la demande.</span>
     <button class="jl-hfil" id="p5all">tout déplier</button><span class="jl-hcount">${H.counts.total} événements</span></div>
   <div class="p5">
-    <div class="p5acc lvl0" data-acc>
+    <div class="p5acc lvl0 open" data-acc>
       <div class="p5h"><span>${chev}</span><span class="p5ttl">art. ${esc(H.num)} · ${esc(H.cname)}</span><span class="p5cnt">niveau 0 · ${H.redactions.length} rédactions</span></div>
       <div class="p5body">${friseArt}<div class="p5in">${redBlocks}</div></div></div>
     <div class="jl-h2" style="margin:12px 0 0">Ce qui a été pris pour lui <span class="jl-hcount">${H.arretes.length} arrêtés, vivants et morts</span></div>
@@ -600,7 +609,7 @@ function WIRE(H){
 document.head.appendChild(Object.assign(document.createElement('style'), {textContent: VCSS}));
 renderRail();
 loadHisto().then(H => { window.H = H;
-  $('#body').innerHTML = chrome(H, "Poupées russes", "Des accordéons emboîtés : l’article contient ses rédactions, chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010) ; il a remplacés. Tout est replié sauf le niveau 1.") + VIEW(H) + honestHTML(H);
+  $('#body').innerHTML = chrome(H, "Poupées russes", "Des accordéons emboîtés : l’article contient ses rédactions, chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010). L’article et ses arrêtés sont ouverts ; les arrêtés remplacés se déplient à la demande.") + VIEW(H) + honestHTML(H);
   wireDate(H); WIRE(H);
   console.log('événements', H.counts);
 }).catch(e => { $('#body').innerHTML = '<div class="alert">⚠ <div><b>Chargement impossible.</b> ' + esc(e.message) + '</div></div>'; console.error(e); });
