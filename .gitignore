@@ -8,3 +8,6 @@ web/logo-preview.html
 web/version.json
 .DS_Store
 web/stats.json
+
+# jeux de données volumineux (CADA : 189 Mo, refusé par GitHub)
+data-cada/*.csv
