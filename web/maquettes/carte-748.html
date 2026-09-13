@@ -201,7 +201,7 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .jl-node::after{content:"";position:absolute;left:5px;top:14px;width:11px;height:1px;background:var(--line)}
 .jl-branch{margin:0 0 6px}
 .jl-branch>.bt{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);font-weight:700;background:var(--teal-xl);padding:6px 8px;margin:8px 0 6px;border-radius:3px;display:flex;align-items:baseline;gap:8px;line-height:1.4}
-.jl-branch>.bt .c{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:var(--muted);letter-spacing:0;text-transform:none;margin-left:auto}
+.jl-branch>.bt .c{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:#fff;background:var(--teal);letter-spacing:0;text-transform:none;margin-left:auto;min-width:18px;height:18px;padding:0 6px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
 .jl-item{padding:5px 0 7px}
 .jl-item .jl-t{line-height:1.35}
 .jl-kids{margin-top:2px}
@@ -237,7 +237,7 @@ function LEFT(M){
       ? (i === 2 ? rows.map((a, j) => arr(a, j === rows.length - 1)).join('')
                  : rows.map((x, j) => node(item(x), j === rows.length - 1)).join(''))
       : node(`<div class="jl-empty">${esc(e.vide)}</div>`, true);
-    const unit = e.unit || 'texte'; return `<div class="jl-branch"><div class="bt">${esc(e.titre)}<span class="c">${rows.length} ${unit}${rows.length > 1 ? 's' : ''}</span></div>${body}</div>`; };
+    return `<div class="jl-branch"><div class="bt">${esc(e.titre)}<span class="c">${rows.length}</span></div>${body}</div>`; };
   return `<div class="jl-head"><h2>Ce qui joue sur lui</h2>${whenBadge(M)}</div>
     <p class="jl-sub">Du plus haut au plus bas dans la hiérarchie : ce qui a écrit l’article, puis ce qui est pris pour l’appliquer. Article de valeur réglementaire : pas de décret d’application au-dessus de lui.</p>
     <div class="jl-tree"><div class="jl-root">art. ${esc(M.num)} CPC</div>${ETAGES.map(branch).join('')}</div>${footHTML()}`;
