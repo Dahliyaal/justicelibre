@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr" class="jl-dense">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>À propos · justicelibre.org</title>
+<meta name="description" content="Ce qu'est JusticeLibre, pourquoi l'accès est gratuit et légal, le serveur MCP et ses outils, les sources et leurs licences, et le combat pour l'ouverture de la jurisprudence judiciaire.">
+<link rel="canonical" href="https://justicelibre.org/v2/apropos.html">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="À propos · justicelibre.org">
+<meta property="og:description" content="Serveur MCP open source : 3 285 952 décisions et 1,75 M d'articles de loi en accès libre, sous Licence Ouverte 2.0.">
+<meta property="og:url" content="https://justicelibre.org/v2/apropos.html">
+<meta property="og:site_name" content="JusticeLibre">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles/jl.css?v=3">
+<script>/* Résolveur de thème avant le premier rendu (évite le flash blanc). */
+(function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+<script defer src="/topbar.js?v=5"></script>
+<script defer src="/jl.js?v=3"></script>
+</head>
+<body>
+<div data-topbar-mount></div>
+<div class="jl-app">
+
+  <nav class="jl-rail" data-jl-rail aria-label="Chercher dans"></nav>
+
+  <main class="jl-body">
+
+    <p class="jl-fil"><a href="/v2/index.html">Accueil</a> &nbsp;›&nbsp; À propos</p>
+
+    <h1 class="jl-titre jl-titre--h1 jl-hero">À propos de <em>justicelibre.org</em></h1>
+    <p class="jl-lead">Tout ce qui n'est plus sur la page d'accueil : ce que c'est, pourquoi c'est
+      gratuit et légal, comment brancher le serveur MCP, d'où viennent les données et sous quelle
+      licence, et l'état du combat pour l'ouverture de la jurisprudence judiciaire.</p>
+
+    <!-- ═══ Ce que c'est ═══ (texte repris de web/index.html:442) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">Ce que <em>c'est</em></h2>
+      <div class="jl-prose">
+        <p>Standardisation de l'accès programmatique au Droit. Notre serveur MCP vous connecte
+          directement aux bases de données juridiques officielles. Sans abonnement, sans compte,
+          sans barrière.</p>
+        <p>Nous rendons la jurisprudence à son propriétaire légal : le citoyen. Ce projet exerce
+          simplement ce droit en simplifiant l'accès technique.</p>
+      </div>
+      <p class="jl-provenance" title="Texte repris mot pour mot de la page d'accueil actuelle, web/index.html lignes 442 et 634.">repris de la page d'accueil actuelle</p>
+    </section>
+
+    <!-- ═══ Pourquoi c'est gratuit et légal ═══ (web/index.html:632-639) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">Pourquoi c'est <em>gratuit</em> et <em>légal</em></h2>
+      <div class="jl-prose">
+        <p><strong>C'est la loi.</strong> Les lois de 2016 (République Numérique) et 2019 imposent
+          l'Open Data pour les décisions de justice. Sous <strong>Licence Ouverte 2.0 (Etalab)</strong>,
+          la redistribution est libre, y compris via une API, à la seule condition de citer la source.</p>
+      </div>
+      <div class="jl-callout">
+        <p><strong>Indépendance</strong> : projet citoyen non affilié au Conseil d'État.<br>
+        <strong>Transparence</strong> : serveur Open Source maintenu bénévolement.<br>
+        <strong>Sources</strong> : opendata.justice-administrative.fr, ArianeWeb (conseil-etat.fr)
+        &amp; archives DILA (echanges.dila.gouv.fr).</p>
+      </div>
+    </section>
+
+    <!-- ═══ Le MCP ═══ (web/index.html:465-475) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">Installation en <em>trois étapes</em></h2>
+      <div class="jl-prose">
+        <p>Le serveur utilise le protocole Streamable HTTP. L'URL est permanente et ne nécessite
+          aucune inscription.</p>
+      </div>
+      <code class="jl-url">https://justicelibre.org/mcp</code>
+      <ol class="jl-etapes">
+        <li><strong>Configurez votre client</strong> : ouvrez les paramètres de votre client MCP
+          (Claude, ChatGPT, Cursor, Zed, Continue, ou tout autre client compatible).</li>
+        <li><strong>Ajoutez le connecteur</strong> : sélectionnez « Custom MCP Server » et collez
+          l'URL ci-dessus.</li>
+        <li><strong>Interrogez le droit</strong> : dans un nouveau chat, demandez simplement :
+          <em>« Cherche les décisions du TA de Lyon concernant la métropole. »</em></li>
+      </ol>
+    </section>
+
+    <!-- ═══ Les outils ═══ (web/index.html:480-627) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">30 outils, <em>toute la matière</em> juridique française</h2>
+      <div class="jl-prose">
+        <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes
+          (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions
+          historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence
+          BM25 + thésaurus de synonymes juridiques FR.</p>
+      </div>
+
+      <div class="jl-callout">
+        <p><code>get_law_article(code, num, date)</code></p>
+        <p>L'analyse de la jurisprudence exige d'éviter tout <strong>anachronisme juridique</strong>.
+          Cet outil restitue la <strong>rédaction d'époque</strong> d'une disposition, strictement en
+          vigueur à la date demandée. Une décision de 1992 cite l'article 1128 du Code civil ? Vous
+          obtenez le texte d'origine et le <strong>lien Légifrance versionné</strong> pointant sur
+          cette version précise.</p>
+        <p><strong>C'est exactement cette garantie que Dalloz vous facture 200 € par mois.</strong></p>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Recherche fédérée (pertinence BM25)</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil"><code>search_all</code><p>Fan-out sur toutes les sources. Thésaurus FR auto (harcèlement → intimidation, vexation…). À utiliser en priorité.</p></div>
+        <div class="jl-outil"><code>search_admin</code><p>552 k décisions JADE (CE + 9 CAA) bulk DILA + ~700 k décisions live opendata.justice-administrative.fr (40 TA inclus). <strong>Pertinence</strong> BM25.</p></div>
+        <div class="jl-outil"><code>search_judiciaire_libre</code><p>1,3 M décisions : Cour de cassation, cours d'appel, tribunaux judiciaires, tribunaux de commerce, Conseil constitutionnel. Archives DILA locales + synchronisation quotidienne Judilibre.</p></div>
+        <div class="jl-outil"><code>search_conseil_etat</code><p>270 k+ décisions du CE via moteur Sinequa (ArianeWeb, 114 k indexées en full text).</p></div>
+        <div class="jl-outil"><code>search_cedh</code><p>76 k décisions de la Cour européenne des droits de l'homme (HUDOC FR).</p></div>
+        <div class="jl-outil"><code>search_cjue</code><p>44 k arrêts CJUE + Tribunal UE + conclusions AG en français.</p></div>
+        <div class="jl-outil"><code>search_cc</code><p>7 k+ décisions du Conseil constitutionnel. Filtrable par nature (QPC, DC, L, SEN, AN…).</p></div>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Articles de loi (avec versions historiques)</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil"><code>get_law_article</code><p>Article à une date (ex : art. 1128 CC en 1992 → texte napoléonien). Codes consolidés + lois non codifiées (LIL, LO58…) + JORFTEXT direct.</p></div>
+        <div class="jl-outil"><code>get_law_versions</code><p>Timeline complète d'un article (1804 → 1964 → 1994 → 2016…). Chaque version avec dates de début/fin.</p></div>
+        <div class="jl-outil"><code>search_legi</code><p>1,75 M+ articles de 72 codes (CC, CP, CT, CJA, CSS, CSP…).</p></div>
+        <div class="jl-outil"><code>search_decisions_citing</code><p>Cross-référence inverse : quelles décisions citent cet article ?</p></div>
+        <div class="jl-outil"><code>resolve_law_number</code><p>Résout un numéro de loi/décret ("68-1250", "79-587") → identifiant JORFTEXT + titre + nombre d'articles.</p></div>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Droit positif complémentaire</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil"><code>search_jorf</code><p>Journal Officiel post-1990. Lois non codifiées, décrets, arrêtés, circulaires.</p></div>
+        <div class="jl-outil"><code>search_kali</code><p>Conventions collectives + accords de branche. Filtrable par IDCC.</p></div>
+        <div class="jl-outil"><code>search_cnil</code><p>26 k+ délibérations CNIL. Droit des données personnelles, RGPD.</p></div>
+        <div class="jl-outil"><code>search_doctrine</code><p>Avis de la CADA, décisions du Défenseur des droits, conclusions des rapporteurs publics, BOFiP, Code du travail numérique. <a href="/v2/doctrine.html">Consultable aussi sur le site</a>.</p></div>
+        <div class="jl-outil"><code>search_annuaire</code><p>Adresses fonctionnelles des juridictions et des PRADA. <a href="/v2/annuaire.html">Consultable aussi sur le site</a>.</p></div>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Extraction texte intégral</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil"><code>get_decision_text</code><p>Texte d'une décision admin (IDs <code>DCE_*</code>, <code>DTA_*</code>, <code>DCAA_*</code>).</p></div>
+        <div class="jl-outil"><code>get_decision_judiciaire_libre</code><p>Texte d'une décision Cass / CA / CC (IDs <code>JURITEXT*</code>, <code>CONSTEXT*</code>).</p></div>
+        <div class="jl-outil"><code>get_decision_cedh</code><p>Texte d'une décision CEDH (IDs <code>001-XXXXXX</code>).</p></div>
+        <div class="jl-outil"><code>get_decision_cjue</code><p>Texte d'une décision CJUE (CELEX ou ECLI).</p></div>
+        <div class="jl-outil"><code>get_cc_decision</code><p>Décision du Conseil constitutionnel par son numéro ("2020-800 DC", "2023-1048 QPC"). Pour savoir qui la cite ensuite, c'est <code>search_cc</code>.</p></div>
+        <div class="jl-outil"><code>get_ce_decision</code><p>Décision du Conseil d'État par son numéro de requête ("358109", "462117").</p></div>
+        <div class="jl-outil"><code>get_decision_judiciaire</code><p>Texte via Judilibre PISTE (auth OAuth2 - <a href="/tutoriel-piste.html">tutoriel</a>).</p></div>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Utilitaires</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil"><code>about_justicelibre</code><p>Cartographie complète des sources et règles d'usage. À appeler en début de session.</p></div>
+        <div class="jl-outil"><code>list_juridictions</code><p>Codes des 51 juridictions admin (CE, 9 CAA, 40 TA) - pour filtrer search_admin.</p></div>
+        <div class="jl-outil"><code>build_source_url</code><p>Construit le lien Légifrance / EUR-Lex / HUDOC d'un document à une date donnée (LEGIARTI, JORFTEXT, JURITEXT, CELEX, HUDOC…).</p></div>
+      </div>
+
+      <h3 class="jl-titre jl-titre--h3">Chronologique (tri date, usages d'actualité)</h3>
+      <div class="jl-grille-3">
+        <div class="jl-outil jl-outil--second"><code>search_admin_recent</code><p>Décisions admin récentes d'une juridiction (tri date). Pour la pertinence, préférer <code>search_admin</code>.</p></div>
+        <div class="jl-outil jl-outil--second"><code>search_admin_recent_all_ta</code><p>Fan-out chronologique sur les 40 Tribunaux Administratifs.</p></div>
+        <div class="jl-outil jl-outil--second"><code>search_admin_recent_all_caa</code><p>Fan-out chronologique sur les 9 Cours Administratives d'Appel.</p></div>
+        <div class="jl-outil jl-outil--second"><code>search_judiciaire</code><p>Recherche temps réel Judilibre (auth OAuth2 PISTE).</p></div>
+      </div>
+      <p class="jl-provenance" title="Liste et descriptions reprises mot pour mot de web/index.html lignes 480 à 627. Seuls search_doctrine et search_annuaire ont été ajoutés, avec le lien vers leur page.">liste reprise de la page d'accueil actuelle</p>
+    </section>
+
+    <!-- ═══ Sources et licences ═══ (web/ressources.html) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">Sources et <em>licences</em></h2>
+      <div class="jl-prose">
+        <p>L'ensemble des sources exploitées par JusticeLibre relève du domaine public. La plateforme
+          procède à l'agrégation de la jurisprudence, des codes et des vocabulaires officiels publiés
+          par l'État français et l'Union européenne sous licence ouverte.</p>
+      </div>
+      <table class="jl-tableau">
+        <thead><tr><th>Source</th><th>Ce qu'elle apporte</th><th>Licence</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://echanges.dila.gouv.fr/OPENDATA/" rel="external noopener">DILA · echanges.dila.gouv.fr</a></td>
+              <td>Bulks OPENDATA, 9 fonds : JADE (admin), CASS, CAPP, CONSTIT, KALI, LEGI, JORF, INCA, CNIL. Mises à jour quotidiennes + archives complètes.</td>
+              <td>Etalab 2.0</td></tr>
+          <tr><td><a href="https://opendata.justice-administrative.fr/" rel="external noopener">Conseil d'État · open data</a></td>
+              <td>L'intégralité des décisions admin (CE + CAA + 40 TA), y compris celles non publiées au Recueil Lebon - donc absentes de Légifrance.</td>
+              <td>Loi Lemaire 2017</td></tr>
+          <tr><td><a href="https://hudoc.echr.coe.int/" rel="external noopener">Cour EDH · HUDOC</a></td>
+              <td>Toute la jurisprudence de la Cour européenne des droits de l'homme depuis 1959 (~76 000 arrêts).</td>
+              <td>Council of Europe</td></tr>
+          <tr><td><a href="https://eur-lex.europa.eu/" rel="external noopener">Office des publications UE · EUR-Lex</a></td>
+              <td>CJUE + Tribunal UE + conclusions des avocats généraux (~44 000 arrêts). Format CELEX/ECLI.</td>
+              <td>Réutilisation libre UE</td></tr>
+          <tr><td><a href="https://piste.gouv.fr/" rel="external noopener">DILA · PISTE Légifrance + Judilibre</a></td>
+              <td>API REST officielle (inscription gratuite). Quotas serrés mais utile pour les mises à jour incrémentielles.</td>
+              <td>Etalab 2.0</td></tr>
+          <tr><td>Thésaurus : EuroVoc, Thésaurus Information Publique, taxonomie Judilibre, PCJA reconstruit</td>
+              <td>20 968 concepts unifiés, employés par le moteur d'expansion sémantique. Le PCJA est reconstitué par rétro-ingénierie des balises <code>SCT</code> de 335 597 décisions JADE : le Conseil d'État ne le diffuse pas au standard SKOS.</td>
+              <td>CC-BY UE · Etalab 2.0</td></tr>
+        </tbody>
+      </table>
+      <p class="jl-liens">
+        <a href="/ressources.html">Le détail des sources, des backups et des dépôts tiers →</a>
+      </p>
+      <p class="jl-provenance" title="Lignes du tableau reprises des cartes de web/ressources.html : bulks DILA, opendata.justice-administrative.fr, HUDOC, EUR-Lex, PISTE, thésaurus et PCJA.">repris de la page Ressources</p>
+    </section>
+
+    <!-- ═══ La France, seul pays européen… ═══ (web/index.html:650-702) -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">La France, <em>seul pays européen</em> à bloquer l'accès à sa jurisprudence judiciaire</h2>
+      <div class="jl-prose">
+        <p>L'ouverture des décisions de justice en Open Data en France ne relève pas d'une initiative
+          spontanée de l'administration, mais bien d'une victoire de la société civile. C'est en effet
+          sous la contrainte d'une injonction du Conseil d'État, rendue le 21 janvier 2021 (CE,
+          10<sup>e</sup> et 9<sup>e</sup> chambres réunies, n° 429956, <em>Association Ouvre-Boîte</em>),
+          censurant la carence fautive du Garde des Sceaux, que le Gouvernement a finalement dû
+          organiser la diffusion de la jurisprudence. L'arrêté du 28 avril 2021 organisant le
+          calendrier de mise à disposition n'existe que grâce à ce recours citoyen.</p>
+        <p>D'un côté, la justice administrative fait figure d'exemple. Soumis à ses propres injonctions,
+          le Conseil d'État a fait le choix d'un accès totalement ouvert et anonyme à ses données.
+          Grâce à des flux XML publics et une API sans authentification obligatoire, il est
+          techniquement possible de consulter et d'indexer la jurisprudence administrative de manière
+          fluide. C'est cette architecture ouverte qui permet à des initiatives citoyennes et
+          indépendantes comme justicelibre.org d'exister aujourd'hui.</p>
+        <p>À l'inverse, l'accès à la jurisprudence judiciaire a fait l'objet d'un verrouillage
+          technique inattendu. La Cour de cassation a en effet choisi de conditionner l'accès
+          programmatique à la base Judilibre derrière un mur d'authentification obligatoire (protocole
+          OAuth2 via la plateforme PISTE, gérée par l'AIFE). Or, cette restriction n'est justifiée par
+          <strong>aucun texte de loi</strong>. Ni la loi n° 2016-1321 du 7 octobre 2016 pour une
+          République numérique, ni le décret n° 2020-797 du 29 juin 2020, ni l'arrêté d'application du
+          28 avril 2021 ne prévoient l'obligation de s'identifier pour accéder à des données de justice
+          qualifiées de publiques. Ce verrouillage procède exclusivement de CGU édictées unilatéralement,
+          non publiées au Journal Officiel et, par conséquent, inopposables.</p>
+        <p>Cette situation est d'autant plus singulière qu'elle place la France en net décalage par
+          rapport aux standards européens. Que ce soit en Espagne (CENDOJ, 5,6 millions de décisions en
+          accès libre), aux Pays-Bas (rechtspraak.nl, 2 millions de décisions en linked data), au
+          Royaume-Uni (Find Case Law API sans authentification) ou en Allemagne
+          (rechtsprechung-im-internet.de), l'accès aux décisions de justice s'opère librement, sans
+          exiger l'inscription des réutilisateurs. Le fonctionnement même du Conseil d'État, soumis au
+          strict même cadre normatif, prouve matériellement que cette obligation d'authentification
+          n'est nullement requise par la législation en vigueur. Il s'agit aujourd'hui d'une
+          <strong>entrave disproportionnée à la transparence de la justice</strong>, une anomalie que
+          nous avons l'intention de lever par les voies de droit.</p>
+      </div>
+
+      <div class="jl-carte" data-espace="haut">
+        <h3 class="jl-titre jl-titre--h3">Accéder à la jurisprudence judiciaire</h3>
+        <p class="jl-lead">La Cour de cassation impose 13 étapes d'inscription pour accéder à ses
+          données par API. Nous avons documenté l'intégralité du processus.</p>
+        <a class="jl-bouton" href="/tutoriel-piste.html">Voir le tutoriel complet (13 étapes)</a>
+      </div>
+
+      <ul class="jl-frise">
+        <li class="jl-frise__ev">
+          <div class="jl-frise__when">Janvier 2021</div>
+          <div class="jl-frise__what">Victoire de l'Association Ouvre-Boîte au Conseil d'État</div>
+          <p class="jl-lead">Le CE annule le refus du Garde des Sceaux et enjoint la prise de l'arrêté
+            organisant l'open data judiciaire (n° 429956). Sans ce recours citoyen, ni Judilibre ni
+            l'open data administratif n'existeraient.</p>
+        </li>
+        <li class="jl-frise__ev">
+          <div class="jl-frise__when">Avril 2026</div>
+          <div class="jl-frise__what">Lancement de justicelibre.org</div>
+          <p class="jl-lead">Mise en ligne du serveur MCP couvrant la justice administrative
+            (CE, 9 CAA, 40 TA). Accès libre, sans authentification.</p>
+        </li>
+        <li class="jl-frise__ev jl-frise__ev--bientot">
+          <div class="jl-frise__when">Prochaine étape</div>
+          <div class="jl-frise__what">LRAR à la Cour de cassation et à l'AIFE</div>
+          <p class="jl-lead">Demande formelle de suppression de l'authentification OAuth2 sur Judilibre.
+            Fondements : art. L. 111-13 COJ (mise à disposition gratuite), art. L. 312-1-1 CRPA
+            (standard aisément réutilisable), asymétrie avec le Conseil d'État. Silence de 2 mois =
+            rejet implicite attaquable.</p>
+        </li>
+        <li class="jl-frise__ev jl-frise__ev--bientot">
+          <div class="jl-frise__when">À venir</div>
+          <div class="jl-frise__what">Recours pour excès de pouvoir (TA de Paris)</div>
+          <p class="jl-lead">REP contre le rejet implicite. Moyens : violation de L. 111-13 COJ,
+            L. 312-1-1 CRPA, L. 323-2 CRPA (proportionnalité), et art. 8(1) directive 2019/1024
+            (conditions non discriminatoires).</p>
+        </li>
+        <li class="jl-frise__ev jl-frise__ev--bientot">
+          <div class="jl-frise__when">Objectif</div>
+          <div class="jl-frise__what">Accès libre à toute la jurisprudence française</div>
+          <p class="jl-lead">Suppression de l'authentification obligatoire. Alignement de la Cour de
+            cassation sur le modèle du Conseil d'État. Intégration de la jurisprudence judiciaire dans
+            justicelibre.org.</p>
+        </li>
+      </ul>
+      <p class="jl-provenance" title="Les quatre paragraphes, l'encadré PISTE et les cinq jalons sont repris de web/index.html lignes 650 à 702.">repris de la page d'accueil actuelle</p>
+    </section>
+
+    <!-- ═══ Soutenir · contact · code ═══ -->
+    <section class="jl-sect">
+      <h2 class="jl-titre">Soutenir, contribuer, <em>nous joindre</em></h2>
+      <div class="jl-grille-2">
+        <section>
+          <div class="jl-surtitre">Soutenir</div>
+          <p class="jl-lead">Le serveur est maintenu bénévolement. L'hébergement, lui, se paie.</p>
+          <p><a class="jl-bouton jl-bouton--cta" href="https://ko-fi.com/justicelibre" target="_blank" rel="external noopener">Soutenir le projet sur Ko-fi</a></p>
+        </section>
+        <section>
+          <div class="jl-surtitre">Code source</div>
+          <p class="jl-lead">Code du serveur MCP, des analyseurs DILA, du moteur de recherche fédérée
+            et de l'interface. Licence MIT. Les signalements d'anomalies et les propositions de
+            modifications sont bienvenus.</p>
+          <p class="jl-liens">
+            <a href="https://github.com/Dahliyaal/justicelibre" rel="external noopener">Dépôt GitHub ↗</a>
+            <a href="https://github.com/Dahliyaal/justicelibre/issues" rel="external noopener">Ouvrir un ticket ↗</a>
+          </p>
+        </section>
+        <section>
+          <div class="jl-surtitre">Contact</div>
+          <p class="jl-lead">L'adresse n'est pas écrite dans la page : elle est assemblée au clic,
+            pour qu'un aspirateur d'adresses ne la trouve pas dans le code source.</p>
+          <p><a href="#" class="jl-mail-r jl-bouton jl-bouton--ghost" data-u="contact" data-d="justicelibre" data-t="org">Afficher l'adresse</a></p>
+        </section>
+        <section>
+          <div class="jl-surtitre">Mentions</div>
+          <p class="jl-lead">© 2026 justicelibre.org · Licence MIT · Hébergement : Hetzner Online GmbH ·
+            Éditeur : personne physique (coordonnées communiquées à l'hébergeur conformément à
+            l'article 6 III-2 de la LCEN).</p>
+          <p class="jl-liens">
+            <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/confidentialite.html">Confidentialité (RGPD)</a>
+          </p>
+        </section>
+      </div>
+    </section>
+
+    <footer class="jl-pied">
+      Contenus sous Licence Ouverte 2.0 (Etalab) sauf mention contraire. JusticeLibre est une copie
+      miroir indexée ; la version qui fait foi est celle publiée par la juridiction.
+      · <a href="/v2/index.html">Accueil</a>
+      · <a href="/v2/recherche.html">Recherche</a>
+      · <a href="/ressources.html">Ressources</a>
+      · <a href="https://github.com/Dahliyaal/justicelibre" rel="external noopener">GitHub</a>
+    </footer>
+
+  </main>
+</div>
+
+<div class="jl-proto">prototype local · v2 · données réelles de justicelibre.org</div>
+
+<script type="application/json" id="jl-page">
+{
+  "rail": {
+    "actif": "",
+    "repliable": true,
+    "mcp": "/v2/apropos.html",
+    "scopes": [
+      {"k":"juris",    "icon":"scale",  "label":"Jurisprudence",         "href":"/v2/recherche.html", "n":"3,3 M"},
+      {"k":"textes",   "icon":"book",   "label":"Textes",                "soon":true},
+      {"k":"travaux",  "icon":"hall",   "label":"Travaux préparatoires", "soon":true},
+      {"k":"avis",     "icon":"chat",   "label":"Avis & doctrine",       "href":"/v2/doctrine.html", "n":"107 k"},
+      {"k":"annuaire", "icon":"people", "label":"Annuaire",              "href":"/v2/annuaire.html", "n":"71 k"}
+    ],
+    "outils": [
+      {"k":"citations", "icon":"check", "label":"Vérifier mes citations", "href":"/hub.html#/citations"}
+    ]
+  },
+  "toc": false
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr" class="jl-dense">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Annuaire des juridictions et PRADA · JusticeLibre</title>
+<meta name="description" content="Adresses électroniques fonctionnelles des juridictions françaises et des personnes responsables de l'accès aux documents administratifs (PRADA). Sources : DILA et CADA, avec les trous mesurés.">
+<link rel="canonical" href="https://justicelibre.org/v2/annuaire.html">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Annuaire des juridictions et PRADA · JusticeLibre">
+<meta property="og:description" content="Plus de 71 000 adresses fonctionnelles : juridictions, services centraux et PRADA. Sources officielles DILA, api-lannuaire, CADA.">
+<meta property="og:url" content="https://justicelibre.org/v2/annuaire.html">
+<meta property="og:site_name" content="JusticeLibre">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles/jl.css?v=3">
+<script>/* Résolveur de thème avant le premier rendu (évite le flash blanc). */
+(function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+<script defer src="/topbar.js?v=5"></script>
+<script defer src="/jl.js?v=3"></script>
+<script defer src="/v2/annuaire.js?v=1"></script>
+</head>
+<body>
+<div data-topbar-mount></div>
+<div class="jl-app">
+
+  <nav class="jl-rail" data-jl-rail aria-label="Chercher dans"></nav>
+
+  <main class="jl-body">
+
+    <div class="jl-recap-impression" id="recapImpression"></div>
+
+    <h1 class="jl-titre jl-titre--h1 jl-hero">Annuaire des <em>juridictions</em> et PRADA.</h1>
+    <p class="jl-lead">Adresses électroniques fonctionnelles des tribunaux, cours d'appel, conseils de
+      prud'hommes, SPIP, ordres d'avocats, et personnes responsables de l'accès aux documents
+      administratifs (article L. 330-1 du CRPA). Agrégé depuis les sources officielles, avec les trous
+      mesurés.</p>
+    <p class="jl-provenance" id="metaDate" title="Dates de capture lues dans /data/annuaire_meta.json, clés sources.dila_dump.downloaded, sources.cada_prada.downloaded et generated_at.">Chargement des métadonnées…</p>
+
+    <!-- Alerte de chargement : si les JSON ne répondent pas, on le DIT.
+         Jamais « aucun résultat » à la place d'une panne. -->
+    <div id="alerte"></div>
+
+    <section>
+      <h2 class="jl-titre">Complétude par <em>type</em> de juridiction</h2>
+      <p class="jl-lead">Taux de publication d'une adresse électronique fonctionnelle par catégorie.
+        Les 10 cours d'appel qui publient un mail n'ont aucun motif commun (<code>ca-caen@</code>,
+        <code>accueil.ca-limoges@</code>, <code>accueil-besancon@</code>) : une adresse non publiée
+        est indevinable.</p>
+      <div class="jl-stats" id="stats"></div>
+      <table class="jl-tableau" id="coverage">
+        <thead><tr><th>Type</th><th>Total</th><th>Avec mail</th><th>Taux</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="jl-honnetete" data-espace="haut">
+        <p><strong>Cour de cassation, greffe de la Cour de cassation, secrétariat général du ministère
+          de la Justice</strong> : services nationaux, tous à <code>adresse_courriel: null</code> dans
+          l'API officielle. L'entité qui détient l'annuaire interne des greffes n'a elle-même aucune
+          adresse publiée.</p>
+        <p>Adresses connues par d'autres canaux (à titre indicatif, opposables car publiées par
+          l'État) : <code>sg.pp.courdecassation@justice.fr</code> (Première présidence),
+          <code>sec.pg.courdecassation@justice.fr</code> (Parquet général),
+          <code>cada.sdajgc-sem-sg@justice.gouv.fr</code> (PRADA ministère de la Justice).</p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="jl-titre">Annuaire <em>complet</em></h2>
+      <p class="jl-lead">Filtre par catégorie et par mot-clé. Tri au clic sur une colonne. Le
+        signalement d'une adresse périmée passe par un ticket ; l'adresse de contact n'est jamais
+        écrite dans la page.</p>
+
+      <div class="jl-dlrow">
+        <a href="/data/annuaire_juridictions.csv" download>CSV juridictions</a>
+        <a href="/data/annuaire_prada.csv" download>CSV PRADA</a>
+        <a href="/data/annuaire_juridictions.json" download>JSON juridictions</a>
+        <a href="/data/annuaire_prada.json" download>JSON PRADA</a>
+        <span class="jl-kbd jl-muted">Réutilisable, Licence Ouverte 2.0 (Etalab)</span>
+      </div>
+
+      <!-- ⛔ Barre de filtrage LOCAL (jl.css §22), distincte de la barre réseau
+           (§21) : le jeu est déjà chargé, donc pas de bouton, pas de loader,
+           et le compteur est toujours juste (rapport §7.3). -->
+      <div class="jl-barre-filtre">
+        <div class="jl-menu" id="catMenu">
+          <button type="button" class="jl-menu__display"><span data-jl-menu-value>Toutes les catégories</span><span class="jl-menu__chev">▾</span></button>
+          <div class="jl-menu__panel"></div>
+        </div>
+        <input type="text" id="q" placeholder="Rechercher : nom, ville, mail, organisme, PRADA…" autocomplete="off" aria-label="Filtrer l'annuaire">
+        <label class="jl-chk"><input type="checkbox" id="fnomail"> Sans mail uniquement</label>
+        <span class="jl-barre-filtre__count" id="count"></span>
+      </div>
+
+      <div class="jl-tbl-scroll">
+        <table class="jl-tableau" id="tbl">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="jl-titre">Méthodologie et <em>fraîcheur</em></h2>
+      <div class="jl-prose">
+        <p><strong>Dump DILA</strong> : régénéré quotidiennement par la Direction de l'information
+          légale et administrative (Premier ministre). Ne contient que les services locaux. Les
+          services nationaux (Cour de cassation, cabinets ministériels) sont dans l'API
+          <code>api-lannuaire.service-public.fr</code>, interrogée en complément.</p>
+        <p><strong>Annuaire PRADA</strong> : la CADA publie cette liste sur son site sous forme de
+          formulaire web sans export. JusticeLibre en propose la première version librement
+          téléchargeable, scrapée intégralement (250 pages, 2 247 personnes responsables). L'article
+          L. 330-1 du CRPA impose aux administrations mentionnées à l'article L. 300-2 de
+          <em>désigner</em> une PRADA : publier son nom fait partie de l'obligation.</p>
+        <p><strong>Mise à jour</strong> : automatique une fois par mois. La régénération repart des
+          sources officielles (dump DILA, API annuaire, formulaire CADA) et n'est publiée que si des
+          contrôles de cohérence passent. Une erreur ou une adresse à retirer ? Signalez-la via
+          <a href="https://github.com/Dahliyaal/justicelibre/issues" rel="external noopener">GitHub</a>.</p>
+      </div>
+      <p class="jl-honnetete" data-espace="haut">Ce que cet annuaire ne peut pas dire : la date à
+        laquelle une adresse a été vue pour la dernière fois (champ vide sur 100 % des lignes issues
+        de l'API), le service précis à l'intérieur de l'organisme (vide à 100 %), et la distinction
+        entre adresse de visite et adresse postale (les deux sont agrégées dans une même chaîne).
+        Mesuré, pas supposé.</p>
+    </section>
+
+    <footer class="jl-pied">
+      Sources : dump quotidien DILA, API <code>api-lannuaire.service-public.fr</code>, annuaire des
+      PRADA de la CADA - Licence Ouverte 2.0 (Etalab).
+      · <a href="/v2/index.html">Accueil</a>
+      · <a href="/v2/recherche.html">Recherche</a>
+      · <a href="/annuaire.html">Annuaire en production</a>
+      · <a href="https://github.com/Dahliyaal/justicelibre" rel="external noopener">GitHub</a>
+    </footer>
+
+  </main>
+</div>
+
+<!-- Signalement : ticket GitHub pré-rempli ; l'adresse est assemblée au clic -->
+<div class="jl-modale-overlay" id="signalModale" hidden>
+  <div class="jl-modale" role="dialog" aria-modal="true" aria-labelledby="signalT">
+    <h3 id="signalT">Signaler une anomalie de contact</h3>
+    <p id="signalFiche"></p>
+    <p class="jl-muted">Si cette adresse électronique n'est plus opérationnelle (coordonnées
+      obsolètes, boîte de réception inactive ou changement de service), merci de nous en indiquer le
+      motif. Nous procéderons à la correction dans les plus brefs délais.</p>
+    <p data-espace="haut"><a class="jl-bouton jl-bouton--cta" id="signalGh" href="#" target="_blank" rel="external noopener">Ouvrir un ticket GitHub</a></p>
+    <p class="jl-muted" data-espace="haut">ou par courriel :
+      <a href="#" class="jl-mail-r" data-u="contact" data-d="justicelibre" data-t="org">afficher l'adresse</a></p>
+    <p data-espace="haut"><button type="button" class="jl-bouton jl-bouton--ghost jl-bouton--sm" id="signalX">Fermer</button></p>
+  </div>
+</div>
+
+<div class="jl-proto">prototype local · v2 · données réelles de justicelibre.org</div>
+
+<script type="application/json" id="jl-page">
+{
+  "rail": {
+    "actif": "annuaire",
+    "repliable": true,
+    "mcp": "/v2/apropos.html",
+    "scopes": [
+      {"k":"juris",    "icon":"scale",  "label":"Jurisprudence",         "href":"/v2/recherche.html", "n":"3,3 M"},
+      {"k":"textes",   "icon":"book",   "label":"Textes",                "soon":true},
+      {"k":"travaux",  "icon":"hall",   "label":"Travaux préparatoires", "soon":true},
+      {"k":"avis",     "icon":"chat",   "label":"Avis & doctrine",       "href":"/v2/doctrine.html", "n":"107 k"},
+      {"k":"annuaire", "icon":"people", "label":"Annuaire",              "href":"/v2/annuaire.html", "n":"71 k"}
+    ],
+    "outils": [
+      {"k":"citations", "icon":"check", "label":"Vérifier mes citations", "href":"/hub.html#/citations"}
+    ]
+  },
+  "toc": false
+}
+</script>
+</body>
+</html>
