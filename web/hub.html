@@ -160,7 +160,8 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .preset:hover{color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal)}
 .preset.on{background:var(--teal);color:#fff;font-weight:600}
 .thes-bloc{margin:14px 0 4px}
-.thesT{display:inline-flex;align-items:center;gap:10px;padding:6px 12px 6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--cream);color:var(--ink);cursor:pointer;font:inherit;font-size:12.5px}
+.thesT{display:inline-flex;align-items:center;gap:10px;padding:6px 4px;border:0;background:transparent;color:var(--ink);cursor:pointer;font:inherit;font-size:12.5px}
+.thesT small .up{text-transform:uppercase;letter-spacing:.06em;font-size:10px}
 .thesT i{width:28px;height:16px;border-radius:9px;background:var(--line);position:relative;flex:none;transition:background .15s}
 .thesT i::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s}
 .thesT.on{border-color:var(--teal);color:var(--teal);font-weight:600}
@@ -546,7 +547,7 @@ function searchBar(ph, extra='', adv=true){
   ${adv?`<div class="adv" id="advP" ${open?'':'hidden'}>
     <div class="fams">${FAMILLES.map(fam).join('')}</div>
     <div class="adv-row">
-      <div class="thes-bloc"><button type="button" class="thesT${a.thes==='0'?'':' on'}" id="thesT" title="Ajoute les synonymes et abréviations du thésaurus juridique à la requête"><i></i><span>Recherche élargie</span><small>thésaurus : synonymes, abréviations</small></button></div>
+      <div class="thes-bloc"><button type="button" class="thesT${a.thes==='0'?'':' on'}" id="thesT" title="Ajoute les synonymes et abréviations du thésaurus juridique à la requête"><i></i><span>Recherche élargie</span><small><span class="up">thésaurus</span> : synonymes, abréviations</small></button></div>
       <div id="chambreBox" ${sel.has('cass')?'':'hidden'}><div class="lb">Chambre <span style="font-weight:400;text-transform:none;letter-spacing:0">(Cour de cassation)</span></div><div class="chips">${FORM_OPTS.slice(1).map(([v,l]) => `<button type="button" class="chip${a.formation===v?' on':''}" data-form="${v}">${l}</button>`).join('')}</div></div>
       <div class="quand-bloc"><div class="lb">Rendues entre</div>
       <div class="rlab"><span id="rAl">${a.date_min ? a.date_min.slice(0,4) : AN_MIN}</span><span id="rBl">${a.date_max ? a.date_max.slice(0,4) : AN_MAX}</span></div>
