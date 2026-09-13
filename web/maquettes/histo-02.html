@@ -245,6 +245,12 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .jl-hnow{display:flex;align-items:center;gap:10px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
 .jl-hnow::after{content:"";flex:1;height:1px;background:var(--teal)}
 .jl-hmark{background:var(--warn-bg);border:1px dashed var(--warn);color:var(--warn);font-size:11.5px;padding:5px 10px;border-radius:4px;margin:8px 0;display:flex;align-items:center;gap:8px;font-weight:600}
+
+.jl-view{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.jl-view a{padding:6px 12px;color:var(--muted);background:var(--white)}
+.jl-view a.on{background:var(--teal);color:#fff}
+.jl-view a:hover{text-decoration:none;color:var(--teal)} .jl-view a.on:hover{color:#fff}
+.jl-lf{font-size:11px;color:var(--teal);margin-left:6px;text-decoration:none;opacity:.8}
 </style>
 </head>
 <body>
@@ -445,7 +451,8 @@ function whenBadge(H){ return H.isToday
 function chrome(H, titre, parti){
   const cur = H.cur;
   const q = new URLSearchParams(location.search); const dq = q.get('date') ? '?date=' + encodeURIComponent(q.get('date')) : '';
-  return `<a class="back" href="carte-748.html${dq}">← Retour à l’état actuel</a>
+  const view = `<span class="jl-view" title="Changer de vue"><a href="histo-02.html${dq}" class="${'02'==='02'?'on':''}">Couloirs</a><a href="histo-05.html${dq}" class="${'02'==='05'?'on':''}">Poupées russes</a></span>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><a class="back" href="carte-748.html${dq}">← Retour à l’état actuel</a>${view}</div>
   <p class="hero">Art. ${esc(H.num)} · ${esc(H.cname)} <span class="jl-hkicker">historique</span></p>
   <div class="leadrow"><div class="lead"><b>${esc(titre)}.</b> ${esc(parti)}</div>
     <span class="datew">${whenBadge(H)}
@@ -504,6 +511,7 @@ const VCSS = `
 .g2row.n0{background:var(--teal-xl)}
 .g2row.n2 .g2name{padding-left:34px}
 .g2row.dead .g2name{opacity:.55}
+.g2name a{color:var(--ink)} .g2name a:hover{color:var(--teal)}
 .g2name{padding:8px 10px 8px 14px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid var(--line)}
 .g2name .s{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;color:var(--muted);display:block;letter-spacing:.05em;text-transform:uppercase}
 .g2lane{position:relative;height:34px}
@@ -537,12 +545,12 @@ function VIEW(H){
   for (const a of H.arretes) {
     const x = g2x(a.debut), w = Math.max(0.6, g2x(a.fin) - x);
     const notches = a.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${a.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
-    rows += `<div class="g2row n1${a.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa</span>${esc(a.titre)}</div>
+    rows += `<div class="g2row n1${a.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa${a.retouches.length ? ' · ' + a.retouches.length + ' retouche' + (a.retouches.length>1?'s':'') : ''}</span><a href="${a.lf}">${esc(a.titre)}</a></div>
       <div class="g2lane">${overlay}<div class="g2bar${a.st.k !== 'ok' ? ' dead' : ''}" data-txt="${a.id}" style="left:${x}%;width:${w}%"></div>${notches}</div></div>`;
     for (const p of a.predecesseurs) {
       const px = g2x(p.debut), pw = Math.max(0.6, g2x(p.fin) - px);
       const arrow = p.fin < '2999' ? `<div class="g2arr" style="left:${px + pw}%;width:${Math.max(0.4, g2x(a.debut) - (px + pw))}%" title="remplacé par ${esc(a.titre)}"></div>` : '';
-      rows += `<div class="g2row n2${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par le précédent</span>${esc(p.titre)}</div>
+      rows += `<div class="g2row n2${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par le précédent</span><a href="${p.lf}">${esc(p.titre)}</a></div>
         <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${arrow}</div></div>`;
     }
   }
