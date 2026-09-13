@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr" class="jl-dense">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chercher un texte · JusticeLibre</title>
+<meta name="description" content="Recherche libre dans les textes français : 75 codes consolidés, lois, ordonnances, décrets et arrêtés. Un article par sa référence, sa rédaction en vigueur, son état et son lien Légifrance daté. Source LEGI / DILA, Licence Ouverte 2.0.">
+<link rel="canonical" href="https://justicelibre.org/v2/textes.html">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Chercher un texte · JusticeLibre">
+<meta property="og:description" content="Les 75 codes consolidés et les textes hors code : un article par sa référence, ou le plein texte des articles de loi.">
+<meta property="og:url" content="https://justicelibre.org/v2/textes.html">
+<meta property="og:site_name" content="JusticeLibre">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles/jl.css?v=2">
+<script>/* Résolveur de thème avant le premier rendu (évite le flash blanc).
+   Même dispositif que recherche.html:21-24 et que les 8 pages prod. Clé unique : jl-theme. */
+(function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+<script defer src="/topbar.js?v=5"></script>
+<script defer src="/jl.js?v=2"></script>
+<script defer src="/v2/textes.js?v=1"></script>
+</head>
+<body>
+<div data-topbar-mount></div>
+<div class="jl-app">
+
+  <nav class="jl-rail" data-jl-rail aria-label="Chercher dans"></nav>
+
+  <main class="jl-body jl-body--centre">
+
+    <!-- Ce bloc n'existe QUE sur le papier : il porte la requête et le code
+         choisi, que la barre de recherche (masquée à l'impression) ne dit plus. -->
+    <div class="jl-recap-impression" id="recapImpression"></div>
+
+    <h1 class="jl-titre jl-titre--h1 jl-hero jl-centre">Chercher un <em>texte</em></h1>
+    <p class="jl-lead jl-centre" id="lead">75 codes consolidés et les textes hors code.
+      Une référence (« art. 1240 C. civ. ») ouvre l'article ; des mots cherchent
+      dans le plein texte des articles de loi.</p>
+
+    <div class="jl-sbox jl-centre">
+      <form class="jl-barre-reseau" id="sform" role="search">
+        <input type="search" id="q" name="q" autocomplete="off" aria-label="Votre recherche"
+               placeholder="art. 1240 C. civ. · L. 1152-1 du code du travail · CPC 748-6 · loi n° 78-17 · responsabilité">
+        <button type="submit" class="jl-barre-reseau__go" id="goBtn">Chercher</button>
+      </form>
+    </div>
+
+    <div class="jl-advsum" id="advSum"></div>
+    <div class="jl-hint jl-centre" id="hint"></div>
+
+    <!-- Accès direct par référence : l'article demandé, en tête, avant la
+         liste des résultats en plein texte. -->
+    <div id="fiche"></div>
+
+    <div class="jl-sources" id="srcState" aria-live="polite"></div>
+    <div id="avertissements"></div>
+    <div id="topline"></div>
+    <div class="jl-resultats" id="liste"></div>
+
+    <!-- Parcours, quand il n'y a pas de recherche : les codes, puis le hors code. -->
+    <section id="parcours">
+      <div class="jl-surtitre jl-surtitre--flex" data-espace="haut">
+        <span>Codes</span>
+        <span class="jl-muted jl-petit" id="codesSub"></span>
+      </div>
+      <div class="jl-barre-filtre">
+        <input type="text" id="codeFiltre" placeholder="Filtrer les codes : travail, CJA, santé…"
+               aria-label="Filtrer la liste des codes">
+        <span class="jl-barre-filtre__count" id="codeCount"></span>
+      </div>
+      <div class="jl-codes" id="codesGrid"></div>
+
+      <div class="jl-surtitre jl-surtitre--flex" data-espace="haut">
+        <span>Textes hors code</span>
+        <span class="jl-muted jl-petit">lois, ordonnances, décrets, arrêtés, rangés par ministère (code NOR),
+          filtrés par nature, parcourus par année</span>
+      </div>
+      <div id="horsCode"><p class="jl-muted"><span class="jl-spin"></span> Chargement…</p></div>
+    </section>
+
+    <footer class="jl-pied">
+      Source : LEGI (codes, lois, décrets consolidés) et JORF, diffusés par la DILA
+      — Licence Ouverte 2.0 (Etalab).
+      JusticeLibre est une copie miroir indexée ; la version qui fait foi est celle publiée
+      sur Légifrance, vers laquelle chaque article renvoie.
+      · <a href="https://github.com/Dahliyaal/justicelibre" rel="external noopener">GitHub</a>
+    </footer>
+
+  </main>
+</div>
+
+<!-- Signalement : ticket GitHub pré-rempli ; l'adresse est assemblée au clic
+     (même modale que recherche.html:175-185). -->
+<div class="jl-modale-overlay" id="signalModale" hidden>
+  <div class="jl-modale" role="dialog" aria-modal="true" aria-labelledby="signalT">
+    <h3 id="signalT">Signaler un problème</h3>
+    <p class="jl-muted">Article non résolu, mauvaise rédaction, état faux, résultat aberrant…
+      Le contexte (page, article concerné) est pré-rempli dans le ticket.</p>
+    <p data-espace="haut"><a class="jl-bouton jl-bouton--cta" id="signalGh" href="#" target="_blank" rel="external noopener">Ouvrir un ticket GitHub</a></p>
+    <p class="jl-muted" data-espace="haut">ou par courriel :
+      <a href="#" class="jl-mail-r" data-u="contact" data-d="justicelibre" data-t="org">afficher l'adresse</a></p>
+    <p data-espace="haut"><button type="button" class="jl-bouton jl-bouton--ghost jl-bouton--sm" id="signalX">Fermer</button></p>
+  </div>
+</div>
+
+<div class="jl-proto">prototype local · v2 · données réelles de justicelibre.org</div>
+
+<script type="application/json" id="jl-page">
+{
+  "rail": {
+    "actif": "textes",
+    "repliable": true,
+    "mcp": "/ressources.html",
+    "scopes": [
+      {"k":"juris",    "icon":"scale",  "label":"Jurisprudence",         "href":"/v2/recherche.html", "n":"3,3 M"},
+      {"k":"textes",   "icon":"book",   "label":"Textes",                "href":"/v2/textes.html",    "n":"1,8 M"},
+      {"k":"travaux",  "icon":"hall",   "label":"Travaux préparatoires", "soon":true},
+      {"k":"avis",     "icon":"chat",   "label":"Avis & doctrine",       "soon":true},
+      {"k":"annuaire", "icon":"people", "label":"Annuaire",              "soon":true}
+    ],
+    "outils": [
+      {"k":"citations", "icon":"check", "label":"Vérifier mes citations", "href":"/hub.html#/citations", "soon":true}
+    ]
+  },
+  "toc": false
+}
+</script>
+</body>
+</html>

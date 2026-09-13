@@ -1532,3 +1532,75 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-body--centre>*{max-width:1100px;margin-left:auto;margin-right:auto}
 .jl-body--centre .jl-sbox,.jl-body--centre .jl-barre-filtre{max-width:880px}
 .jl-body--centre>h1,.jl-body--centre>.jl-lead,.jl-body--centre>.jl-hint{text-align:center;max-width:880px}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * v2 textes, 13 sept. — ajout EN FIN DE FICHIER, aucune règle antérieure
+ * modifiée. Page : web/v2/textes.html + web/v2/textes.js
+ * Rapport : scratchpad/audit/v2_textes_13sept.md
+ * Composants : grille des codes, fiche d'article, filtres hors code,
+ *              troisième couleur d'axe 2 (.jl-tag--txt), pastille « bientôt ».
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Axe 2 : la famille « Texte » (.jl-tag--txt, --c:var(--txt)) existe DÉJÀ
+   ligne 702 : rien n'est redéfini ici, sous peine de casser sa couleur en
+   thème sombre. Elle est seulement utilisée par la page. ── */
+
+/* ── Bouton désactivé portant « bientôt » (carte de l'article, historique) ── */
+.jl-soonpill{font-size:var(--text-3xs);text-transform:uppercase;letter-spacing:var(--ls-wide);
+  font-weight:600;color:var(--muted);margin-left:6px}
+
+/* ── Grille des codes : trois colonnes à partir de 900 px, une seule au
+   téléphone. Un code = son libellé (filtre) + son abréviation (référence). ── */
+.jl-codes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 18px;
+  margin:var(--space-3) 0 var(--space-5)}
+.jl-code{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;
+  padding:3px 0;border-bottom:1px solid transparent}
+.jl-code__n{background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;
+  font:inherit;font-size:var(--text-sm);color:inherit;min-width:0;flex:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jl-code__n:hover{color:var(--teal);text-decoration:underline}
+.jl-code__s{background:none;border:0;padding:0 2px;margin:0;cursor:pointer;
+  font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted);white-space:nowrap}
+.jl-code__s:hover{color:var(--teal)}
+.jl-code.is-on{border-bottom-color:var(--teal)}
+.jl-code.is-on .jl-code__n{color:var(--teal);font-weight:600}
+@media(max-width:900px){.jl-codes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.jl-codes{grid-template-columns:1fr}}
+
+/* ── Fiche d'un article, en tête de page quand une référence est reconnue ── */
+.jl-fart{background:var(--white);border:1px solid var(--line);border-left:3px solid var(--teal);
+  border-radius:var(--radius-xl);padding:var(--space-4) var(--space-5)}
+.jl-fart__meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  font-size:var(--text-xs);color:var(--muted);margin-bottom:var(--space-2)}
+.jl-fart__t{font-family:var(--font-serif);font-size:var(--text-xl);margin:0;line-height:1.25}
+.jl-fart__code{font-family:var(--font-sans);font-size:var(--text-sm);color:var(--muted);
+  font-weight:400;white-space:nowrap}
+.jl-fart__sect{font-size:var(--text-sm);color:var(--muted);margin:4px 0 var(--space-3)}
+.jl-fart__pied{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;
+  margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
+.jl-fart__prov{font-size:var(--text-xs);color:var(--muted);margin-top:var(--space-2)}
+@media(max-width:620px){
+  .jl-fart{padding:var(--space-3)}
+  .jl-fart__code{white-space:normal;display:block}
+}
+
+/* ── Textes hors code : trois colonnes de filtres (ministère, nature, année),
+   la première et la dernière défilant sur place, comme .hc-scroll du
+   prototype (web/hub.html). ── */
+.jl-hc{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:var(--space-4);
+  border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--white);
+  padding:var(--space-4);margin:var(--space-3) 0 0}
+.jl-hcfam{min-width:0}
+.jl-hcscroll{max-height:230px;overflow:auto;padding-right:4px}
+@media(max-width:860px){
+  .jl-hc{grid-template-columns:1fr}
+  .jl-hcscroll{max-height:180px}
+}
+
+/* ── Impression : les filtres et la grille des codes ne sortent pas sur le
+   papier (ce sont des commandes) ; la fiche d'article, si, en entier. ── */
+@media print{
+  .jl-hc,.jl-codes,.jl-barre-filtre{display:none !important}
+  .jl-fart{border:1px solid #999;break-inside:avoid;padding:0 0 0 .6em}
+  .jl-fart__pied{display:none}
+}
