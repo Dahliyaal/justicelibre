@@ -1085,7 +1085,6 @@ def parse_kali(tarball: Path = None, db: Path = None):
     -- 100 % depuis 5 h 32 sans avoir fini, et ce coût se répétait à l'identique
     -- pour chacun des 234 deltas — la ré-ingestion n'avait aucune chance
     -- d'atteindre capp, cass, inca, jade, legi et jorf.
-    CREATE INDEX IF NOT EXISTS idx_kali_texte_id ON kali_textes(texte_id);
     CREATE VIRTUAL TABLE IF NOT EXISTS kali_fts USING fts5(
         id UNINDEXED, idcc, titre, texte,
         content='kali_textes', content_rowid='rowid'
@@ -1107,6 +1106,13 @@ def parse_kali(tarball: Path = None, db: Path = None):
     """)
     conn.commit()
     ensure_columns(conn, "kali_textes", KALI_NEW_COLS)
+    # L'index sur texte_id doit venir APRÈS l'ajout des colonnes : sur une base
+    # neuve (et dans le test de bout en bout) la colonne n'existe pas encore au
+    # moment du CREATE TABLE, et « no such column: texte_id » cassait parse_kali
+    # (cause : index ajouté le 9 sept. 2026 dans le script initial, avant la
+    # migration ; vu le 13 sept.).
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_kali_texte_id ON kali_textes(texte_id)")
+    conn.commit()
     conn.execute("PRAGMA temp_store=FILE")
     conn.executescript("""
     CREATE TEMP TABLE _sect (art_id TEXT PRIMARY KEY, sect_id TEXT, sect_titre TEXT);
