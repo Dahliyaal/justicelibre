@@ -324,6 +324,7 @@ const minus = s => String(s||'').replace(/^Arrêté/, 'arrêté');
 async function loadModel(){
   const r = await fetch('../hub_paysage_748.json'); if (!r.ok) throw new Error('hub_paysage_748.json : HTTP ' + r.status);
   const P = await r.json();
+  let C = null; try { const rc = await fetch('../hub_cite_748.json'); if (rc.ok) C = await rc.json(); } catch (e) { C = null; }
   const q = new URLSearchParams(location.search);
   const num = (q.get('num') && P.articles[q.get('num')]) ? q.get('num') : '748-6';
   const today = new Date().toISOString().slice(0, 10);
@@ -415,7 +416,17 @@ async function loadModel(){
 
   const sims = versions.map((v, i) => i ? jaccard(versions[i-1].texte, v.texte) : null);
   const recycled = sims.some(x => x !== null && x < 0.25);
-  return {P, num, cname, versions, at, isToday, cur, etage1, etage2, etage3, citantsList, exclus, sims, recycled};
+  /* jurisprudence qui le cite : recherche lexicale (outil search_decisions_citing), doublons Judilibre / JURITEXT fusionnés */
+  const verAt = d => versions.find(v => v.date_debut <= d && (v.date_fin || '2999') > d) || null;
+  let juri = [], fusion = 0;
+  if (C && C.brut) { const byKey = new Map();
+    for (const x of C.brut) { const k = x.date + '|' + x.juridiction + '|' + (x.extract || '').slice(0, 60); const e = byKey.get(k);
+      if (e) { e.ids.push(x.id); if (!e.title && x.title) e.title = x.title; } else byKey.set(k, {...x, ids: [x.id]}); }
+    juri = [...byKey.values()].map(x => { const v = verAt(x.date); const m = /n° ?([\d./-]+)|, (\d{5,7}),/.exec(x.title || ''); const numero = m ? (m[1] || m[2]) : x.ids[0];
+      return {...x, numero, v, differs: v !== cur, publication: /Publié/.test(x.title || '') ? 'Publié au recueil Lebon' : (/Inédit/.test(x.title || '') ? 'Inédit' : ''), href: `../hub.html#/decision/${x.source}/${encodeURIComponent(x.ids[0])}`, fam: ({dila:'jud', jade:'adm', cedh:'eu', cjue:'eu'})[x.source] || 'jud'}; })
+      .sort((a, b) => b.date.localeCompare(a.date));
+    fusion = C.brut.length - juri.length; }
+  return {P, C, num, cname, versions, at, isToday, cur, etage1, etage2, etage3, citantsList, exclus, sims, recycled, juri, fusion};
 }
 
 /* ───── briques communes de la colonne de gauche ───── */
@@ -449,6 +460,17 @@ function rightHTML(M){ return M.citantsList.map(c =>
   `<div class="it${c.st.k !== 'ok' ? ' dead' : ''}"><div class="rel">${esc(NATLABEL[c.nature] || String(c.nature).toLowerCase())}${[...c.how].map(h => `<span class="how">${esc(h)}</span>`).join('')}</div><div class="t"><a href="${c.lf}">${esc(c.titre)}</a>${c.arts.length ? ` <span class="muted">· art. ${esc(c.arts.join(', '))}</span>` : ''}</div><div class="d">${c.date ? `<span>${fmtCourt(c.date)}</span>` : ''}${c.nor ? `<span class="nor">${esc(c.nor)}</span>` : ''}${pill(c.st)}</div></div>`).join('')
   || '<div class="jl-empty">aucun texte ne le cite</div>'; }
 
+/* ───── jurisprudence qui le cite ───── */
+const SRC = {dila:'Judilibre · DILA', jade:'JADE · Conseil d’État', cedh:'HUDOC · Cour EDH', cjue:'CURIA · CJUE'};
+const FAMLABEL = {jud:'judiciaire', adm:'administratif', eu:'européen'};
+function jurisHTML(M){
+  if (!M.C) return `<div class="juris"><h2>Jurisprudence qui le cite <span class="n">indisponible</span></h2><div class="honest">Le fichier de décisions n’a pas pu être chargé.</div></div>`;
+  const per = Object.entries(M.C.per_source || {}).filter(([k, v]) => v).map(([k, v]) => `${esc(SRC[k] || k)} ${Number(v).toLocaleString('fr-FR')}`).join(' · ');
+  return `<div class="juris"><h2>Jurisprudence qui le cite <span class="n">${M.juri.length} décision${M.juri.length > 1 ? 's' : ''} · ${Number(M.C.total_lexical).toLocaleString('fr-FR')} pages lexicales brutes${M.fusion ? ` · ${M.fusion} doublon${M.fusion > 1 ? 's' : ''} fusionné${M.fusion > 1 ? 's' : ''}` : ''}</span></h2>
+    <div class="honest"><b>Ne sont listées que les décisions qui citent exactement cette référence</b> (« article 748-6 » avec « code de procédure civile » ou « CPC » sur la même page). Les renvois indirects (« du même code », « l’article précité ») ne sont pas encore captés : ce travail est en cours. Requête : <span class="mono">${esc(M.C.requete)}</span> · ${per}. ${esc(M.C.avertissement || '')}</div>
+    <div class="jgrid">${M.juri.map(x => `<div class="jc${x.differs && x.v ? ' old' : ''}" style="--c:var(--${x.fam})"><div class="m"><span class="tag" style="--c:var(--${x.fam})">${FAMLABEL[x.fam]}</span><span class="src">${esc(SRC[x.source] || x.source)}</span><span class="mono">${fmtCourt(x.date)}</span>${x.ids.length > 1 ? `<span class="how" title="${esc(x.ids.join(' · '))}">${x.ids.length} clés</span>` : ''}</div><div class="t"><a href="${x.href}">${esc(x.juridiction)}, n° ${esc(x.numero)}</a></div><div class="x">« ${esc(x.extract)} »</div><div class="ap">${x.publication ? `<span class="warnp" style="border-color:var(--muted);color:var(--muted)">${esc(x.publication)}</span>` : ''}${x.v ? `<span class="rd${x.v === M.cur ? '' : ' old'}" title="rédaction en vigueur à la date de la décision">rédaction ${x.v.date_debut.slice(0, 4)}${x.v === M.cur ? ' · lue' : ''}</span>` : '<span class="st q">hors rédaction connue</span>'}${x.differs && x.v ? '<span class="warnp" title="La rédaction en vigueur au jour de la décision n’est pas celle que tu lis. Et la rédaction réellement applicable dépend des dispositions transitoires du texte modificateur (voir le Nota), pas seulement de la date.">rédaction différente de celle lue</span>' : ''}</div></div>`).join('')}</div>
+  </div>`;
+}
 /* ───── page ───── */
 function render(M){
   const at = M.at, cur = M.cur;
@@ -476,7 +498,8 @@ function render(M){
       <p class="jl-sub">Textes de même rang ou supérieur qui le mentionnent sans agir sur lui. Les textes qui l’ont écrit et ceux pris pour l’appliquer figurent dans le cadre normatif ou dans l’historique.</p>
       ${rightHTML(M)}</div>
   </div>
-  <div id="historique" style="margin-top:26px"><div class="honest"><b>Historique.</b> Dans la maquette, cette ancre tient lieu de la page d’historique de l’article : toutes ses rédactions, les textes qui les ont écrites, et les textes morts qui ne figurent plus dans la colonne de gauche.</div></div>`;
+  ${jurisHTML(M)}
+  <div id="historique" style="margin-top:26px"><div class="honest"><b>Historique.</b> Toutes ses rédactions, les textes qui les ont écrites, et les textes morts qui ne figurent plus dans le cadre normatif : <a href="histo-02.html${M.isToday ? '' : '?date=' + M.at}">vue Couloirs</a> · <a href="histo-05.html${M.isToday ? '' : '?date=' + M.at}">vue Poupées russes</a>.</div></div>`;
   const goDate = d => { const q = new URLSearchParams(location.search); q.set('date', d); q.set('num', M.num); location.search = q.toString(); };
   $('#atDate').onchange = e => goDate(e.target.value);
   $('#calBtn').onclick = e => { e.stopPropagation(); $('#datePop').classList.toggle('open'); if ($('#datePop').classList.contains('open')) $('#dateTxt').focus(); };
