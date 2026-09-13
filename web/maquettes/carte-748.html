@@ -39,6 +39,11 @@ input,select{font:inherit;color:inherit}
 .hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .hero select{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)}
 .lead{color:var(--muted);font-size:14px;margin:0 0 14px;max-width:90ch}
+.leadrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+.leadrow .lead{margin:0}
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.85rem 1.8rem;background:var(--teal);color:#fff !important;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;border:none;border-radius:4px;cursor:pointer;text-align:center;white-space:nowrap}
+.cta:hover{background:var(--teal-l);text-decoration:none}
+.cta svg{width:15px;height:15px}
 .alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
 .alert b{color:var(--bad)}
 .warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
@@ -66,9 +71,9 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
 
 /* bande d'identité sous le titre */
-.idband{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border:1px solid var(--line);border-radius:8px;background:var(--white);margin:6px 0 18px;overflow:hidden}
-.idband>div{padding:10px 14px;border-left:1px solid var(--line);min-width:0}
-.idband>div:first-child{border-left:0}
+.idband{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin:4px 0 22px;width:100%}
+.idband>div{padding:4px 18px;border-left:1px solid var(--line);min-width:0}
+.idband>div:first-child{border-left:0;padding-left:0}
 .idband .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
 .idband .v{font-size:13px}
 
@@ -209,7 +214,7 @@ function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identif
   const d0 = t.date_debut || '0000', d1 = t.date_fin || '2999';
   if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
   if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
-  return {k:'ok', label: (t.etat||'')==='VIGUEUR_DIFF' ? 'en vigueur (différé)' : 'en vigueur', why:`depuis le ${fmtDate(d0)}`}; }
+  return {k:'ok', label:'en vigueur', why:`depuis le ${fmtDate(d0)}` + ((t.etat||'')==='VIGUEUR_DIFF' ? ' (entrée en vigueur qui avait été différée par le texte modificateur)' : '')}; }
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 function rdChip(v, cur){ return `<span class="rd${v===cur?'':' old'}" title="rédaction ${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)}">rédaction ${v.date_debut.slice(0,4)}${v===cur?' · lue':''}</span>`; }
 const alineas = v => (v.texte||'').split(/(?<=\.)\s+(?=[A-Z])/);
@@ -304,9 +309,9 @@ function render(M){
       <div class="members">${c.members.filter(m => m !== c.head).map(memHTML).join('') || '<div class="muted" style="padding:6px 0;font-size:12px">chaîne à un seul membre</div>'}</div></div>`; };
   const artSel = `<select id="numSel">${Object.keys(M.P.articles).map(n => `<option ${n===M.num?'selected':''}>${n}</option>`).join('')}</select>`;
   const idCell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
-  $('#body').innerHTML = `<a class="back" href="${HUB}#/textes">← Textes</a>
-  <p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)} ${artSel}</p>
-  <p class="lead">Lu au <b class="mono">${fmtDate(at)}</b> <label>· changer <input type="date" id="atDate" class="dtin" value="${at}"></label> · <a href="${HUB}#/article/${M.code}/${M.num}">page détaillée (diff, histoire) →</a></p>
+  $('#body').innerHTML = `<p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)} ${artSel}</p>
+  <div class="leadrow"><p class="lead">Lu au <b class="mono">${fmtDate(at)}</b> <label>· changer <input type="date" id="atDate" class="dtin" value="${at}"></label></p>
+  <a class="cta" href="${HUB}#/article/${M.code}/${M.num}" title="Toutes les rédactions, diff mot à mot, histoire de l’article"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</a></div>
   <div class="idband">
     ${idCell('État à la date lue', cur ? `${pill(lifeAt(cur, at))} depuis le ${fmtCourt(cur.date_debut)}` : `<span class="st fut">n’existe pas encore</span> (créé le ${fmtCourt(M.versions[0].date_debut)})`)}
     ${idCell('Rédactions', `${M.versions.length} depuis ${fmtCourt(M.versions[0].date_debut)}`)}
