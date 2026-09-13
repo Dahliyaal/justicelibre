@@ -391,28 +391,33 @@ async function loadHisto(){
 
   /* prédécesseurs récursifs : {de: Y, vers: lui, type abroge} = lui abroge Y */
   const seenP = new Set(niveau1);
-  const predsOf = id => { const out = [];
-    for (const e of S) { if (e.vers !== id || e.type !== 'abroge' || e.de === id) continue;
-      if (seenP.has(e.de)) continue; seenP.add(e.de);
-      const t = T[e.de]; if (!t) continue;
-      out.push(mkTexte(t, 2, 'predecesseur')); out.push(...predsOf(e.de)); }
-    return out; };
-
-  const arretes = vises.map(a => {
-    const A = mkTexte(a, 1, 'vise');
-    const seenR = new Set();
-    A.retouches = S.filter(e => e.de === a.legitext && e.type === 'modifie' && e.vers !== a.legitext)
+  const retouchesOf = (legitext, parent) => { const seenR = new Set();
+    return S.filter(e => e.de === legitext && e.type === 'modifie' && e.vers !== legitext)
       .map(e => T[e.vers]).filter(Boolean)
       .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
       .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
-      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = A.id; return R; });
-    A.predecesseurs = predsOf(a.legitext).sort((x, y) => (y.debut || '').localeCompare(x.debut || ''));
-    A.predecesseurs.forEach(p => p.cible = A.id);
+      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; return R; }); };
+  /* arbre RÉEL des remplacements : chaque prédécesseur garde ses propres prédécesseurs et ses propres retouches
+     (2025 abroge 2020 ; 2020 abroge 2009, 2010, 2011 : ceux-là sont sous 2020, pas sous 2025) */
+  const predsOf = (id, parent, prof) => { const out = [];
+    for (const e of S) { if (e.vers !== id || e.type !== 'abroge' || e.de === id) continue;
+      if (seenP.has(e.de)) continue; seenP.add(e.de);
+      const t = T[e.de]; if (!t) continue;
+      const P = mkTexte(t, 2, 'predecesseur'); P.cible = parent.id; P.parent = parent; P.prof = prof;
+      P.retouches = retouchesOf(e.de, P); P.predecesseurs = predsOf(e.de, P, prof + 1); out.push(P); }
+    return out.sort((x, y) => (y.debut || '').localeCompare(x.debut || '')); };
+  const flatPreds = a => a.predecesseurs.flatMap(p => [p, ...flatPreds(p)]);
+  const flatRet = a => [...a.retouches, ...a.predecesseurs.flatMap(flatRet)];
+
+  const arretes = vises.map(a => {
+    const A = mkTexte(a, 1, 'vise');
+    A.retouches = retouchesOf(a.legitext, A);
+    A.predecesseurs = predsOf(a.legitext, A, 1);
     return A;
   });
 
   const textes = [];
-  for (const a of arretes) { textes.push(a); a.retouches.forEach(r => textes.push(r)); a.predecesseurs.forEach(p => textes.push(p)); }
+  for (const a of arretes) { textes.push(a); flatRet(a).forEach(r => textes.push(r)); flatPreds(a).forEach(p => textes.push(p)); }
   const kept = new Set(textes.map(t => t.id));
 
   /* C. ce qu’on a écarté : les textes reliés par un lien SORTANT d’un texte retenu */
@@ -432,10 +437,10 @@ async function loadHisto(){
       quoi: a.titre, st: a.st });
     if (a.fin < '2999') ev.push({ date: a.fin, type: 'abroge', niveau: 1, texte: a, label: 'abrogé', how: 'succession',
       quoi: a.titre, st: a.st });
-    for (const r of a.retouches) ev.push({ date: r.date_texte || r.debut, type: 'retouche', niveau: 2, texte: r,
-      cible: a, label: 'retouche l’arrêté', how: 'succession', quoi: r.titre, st: r.st });
-    for (const p of a.predecesseurs) ev.push({ date: p.fin < '2999' ? p.fin : p.debut, type: 'remplace', niveau: 2, texte: p,
-      cible: a, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
+    for (const r of flatRet(a)) ev.push({ date: r.date_texte || r.debut, type: 'retouche', niveau: 2, texte: r,
+      cible: r.parent, label: 'retouche l’arrêté', how: 'succession', quoi: r.titre, st: r.st });
+    for (const p of flatPreds(a)) ev.push({ date: p.fin < '2999' ? p.fin : p.debut, type: 'remplace', niveau: 2, texte: p,
+      cible: p.parent, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
   }
   ev.sort((x, y) => (y.date || '').localeCompare(x.date || '') || (x.niveau - y.niveau));
   const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
@@ -539,17 +544,18 @@ function VIEW(H){
       </div></div>`).join('');
   const arr = a => {
     const friseA = `<div class="p5frise"><span class="p5seg${a.st.k !== 'ok' ? ' dead' : ''}"><i></i>pris le ${fmtCourt(a.debut)}</span>${a.retouches.map(r => `<span class="p5lnk"></span><span class="p5seg${apres(H, r.date_texte) ? ' jl-hfutur' : ''}"><i></i>retouché ${fmtCourt(r.date_texte)}</span>`).join('')}${a.fin < '2999' ? `<span class="p5lnk"></span><span class="p5seg dead"><i></i>abrogé ${fmtCourt(a.fin)}</span>` : `<span class="p5lnk"></span><span class="p5seg"><i></i>toujours en vigueur</span>`}</div>`;
-    const preds = a.predecesseurs.length ? `<div class="p5acc lvl2" data-acc>
-        <div class="p5h"><span>${chev}</span><span class="p5ttl">${a.predecesseurs.length} arrêté${a.predecesseurs.length > 1 ? 's' : ''} remplacé${a.predecesseurs.length > 1 ? 's' : ''}</span><span class="p5cnt">niveau 2 · succession</span></div>
-        <div class="p5body"><div class="p5frise">${a.predecesseurs.slice().reverse().map((p, i) => `${i ? '<span class="p5lnk"></span>' : ''}<span class="p5seg dead"><i></i>${fmtCourt(p.debut)}</span>`).join('')}</div>
-          ${a.predecesseurs.map(p => `<div class="jl-hdead" style="padding:7px 0;border-top:1px solid var(--line)">
-            <div class="jl-t"><a href="${p.lf}">${esc(p.titre)}</a></div><div class="jl-long">${esc(p.long)}</div>
-            <div class="jl-meta">${p.nor ? `<span class="nor">${esc(p.nor)}</span>` : ''}<span>en vigueur du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}</span>${pill(p.st)}${howHTML('succession')}</div></div>`).join('')}
-        </div></div>` : '<div class="p5foot">Aucun arrêté antérieur remplacé.</div>';
-    const rets = a.retouches.length ? `<div class="jl-h2" style="margin-top:12px">Ses retouches <span class="jl-hcount">${a.retouches.length}</span></div>${a.retouches.map(r => `<div style="padding:6px 0;border-top:1px solid var(--line)${apres(H, r.date_texte) ? ';opacity:.35' : ''}">
+    const predsHTML = list => list.map(p => `<div class="p5acc lvl2 dead" data-acc>
+        <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a></span><span class="p5cnt">abrogé ${fmtCourt(p.fin)}${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
+        <div class="p5body"><div class="jl-long">${esc(p.long)}</div>
+          <div class="jl-meta">${p.nor ? `<span class="nor">${esc(p.nor)}</span>` : ''}<span>en vigueur du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}</span>${pill(p.st)}${howHTML('succession')}</div>
+          ${retsHTML(p)}${p.predecesseurs.length ? `<div class="jl-h2" style="margin-top:12px">A remplacé <span class="jl-hcount">${p.predecesseurs.length}</span></div>${predsHTML(p.predecesseurs)}` : ''}
+        </div></div>`).join('');
+    const retsHTML = a => a.retouches.length ? `<div class="jl-h2" style="margin-top:12px">Ses retouches <span class="jl-hcount">${a.retouches.length}</span></div>${a.retouches.map(r => `<div style="padding:6px 0;border-top:1px solid var(--line)${apres(H, r.date_texte) ? ';opacity:.35' : ''}">
         <div class="jl-t"><span class="dt mono muted" style="margin-right:8px">${fmtCourt(r.date_texte)}</span><a href="${r.lf}">${esc(r.titre)}</a> <span class="muted">${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur</span></div>
         <div class="jl-meta">${r.nor ? `<span class="nor">${esc(r.nor)}</span>` : ''}${pill(r.st)}${howHTML('succession')}</div></div>`).join('')}`
       : '<div class="p5foot" style="margin-top:10px">Jamais retouché.</div>';
+    const rets = retsHTML(a);
+    const preds = a.predecesseurs.length ? `<div class="jl-h2" style="margin-top:12px">A remplacé <span class="jl-hcount">${a.predecesseurs.length}</span></div>${predsHTML(a.predecesseurs)}` : '<div class="p5foot">Aucun arrêté antérieur remplacé.</div>';
     return `<div class="p5acc lvl1 open${a.st.k !== 'ok' ? ' dead' : ''}" data-acc>
       <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${a.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(a.titre)}</a></span><span class="p5cnt">${a.retouches.length} retouche${a.retouches.length > 1 ? 's' : ''} · ${a.predecesseurs.length} remplacé${a.predecesseurs.length > 1 ? 's' : ''} ${pill(a.st)}</span></div>
       <div class="p5body">
@@ -558,7 +564,7 @@ function VIEW(H){
         ${friseA}${rets}<div class="p5in">${preds}</div>
       </div></div>`;
   };
-  return `<div class="jl-hbar"><span class="h5">Poupées russes</span><span class="muted" style="font-size:12px">L’article contient ses rédactions ; chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a remplacés. Tout est replié sauf le niveau 1.</span>
+  return `<div class="jl-hbar"><span class="h5">Poupées russes</span><span class="muted" style="font-size:12px">L’article contient ses rédactions ; chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010) ; il a remplacés. Tout est replié sauf le niveau 1.</span>
     <button class="jl-hfil" id="p5all">tout déplier</button><span class="jl-hcount">${H.counts.total} événements</span></div>
   <div class="p5">
     <div class="p5acc lvl0" data-acc>
@@ -579,7 +585,7 @@ function WIRE(H){
 document.head.appendChild(Object.assign(document.createElement('style'), {textContent: VCSS}));
 renderRail();
 loadHisto().then(H => { window.H = H;
-  $('#body').innerHTML = chrome(H, "Poupées russes", "Des accordéons emboîtés : l’article contient ses rédactions, chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a remplacés. Tout est replié sauf le niveau 1.") + VIEW(H) + honestHTML(H);
+  $('#body').innerHTML = chrome(H, "Poupées russes", "Des accordéons emboîtés : l’article contient ses rédactions, chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens (2025 › 2020 › 2010) ; il a remplacés. Tout est replié sauf le niveau 1.") + VIEW(H) + honestHTML(H);
   wireDate(H); WIRE(H);
   console.log('événements', H.counts);
 }).catch(e => { $('#body').innerHTML = '<div class="alert">⚠ <div><b>Chargement impossible.</b> ' + esc(e.message) + '</div></div>'; console.error(e); });

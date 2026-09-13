@@ -310,6 +310,7 @@ function lifeAt(t, at){ if (!t) return {k:'q', label:'non résolu', why:'identif
   if (d0 > at) return {k:'fut', label:`entre en vigueur le ${fmtCourt(d0)}`, why:'postérieur à la date lue'};
   if (d1 <= at) return {k:'ab', label:`${(t.etat||'').startsWith('PERIM')?'périmé':'abrogé'} le ${fmtCourt(d1)}`, why:'ne joue plus à la date lue'};
   return {k:'ok', label:'en vigueur', why:'depuis le ' + fmtDate(d0)}; }
+const minus = s => String(s||'').replace(/^Arrêté/, 'l’arrêté').replace(/^Décret/, 'le décret');
 function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
 const clean = s => String(s||'').replace(/\s+/g, ' ').trim();
 const titreArr = t => (t.titre_long && t.titre_long.length > (t.titre||'').length + 3) ? t.titre_long : (t.titre || t.legitext);
@@ -391,28 +392,33 @@ async function loadHisto(){
 
   /* prédécesseurs récursifs : {de: Y, vers: lui, type abroge} = lui abroge Y */
   const seenP = new Set(niveau1);
-  const predsOf = id => { const out = [];
-    for (const e of S) { if (e.vers !== id || e.type !== 'abroge' || e.de === id) continue;
-      if (seenP.has(e.de)) continue; seenP.add(e.de);
-      const t = T[e.de]; if (!t) continue;
-      out.push(mkTexte(t, 2, 'predecesseur')); out.push(...predsOf(e.de)); }
-    return out; };
-
-  const arretes = vises.map(a => {
-    const A = mkTexte(a, 1, 'vise');
-    const seenR = new Set();
-    A.retouches = S.filter(e => e.de === a.legitext && e.type === 'modifie' && e.vers !== a.legitext)
+  const retouchesOf = (legitext, parent) => { const seenR = new Set();
+    return S.filter(e => e.de === legitext && e.type === 'modifie' && e.vers !== legitext)
       .map(e => T[e.vers]).filter(Boolean)
       .filter(t => { if (seenR.has(t.legitext)) return false; seenR.add(t.legitext); return true; })
       .sort((x, y) => (x.date_texte || '').localeCompare(y.date_texte || ''))
-      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = A.id; return R; });
-    A.predecesseurs = predsOf(a.legitext).sort((x, y) => (y.debut || '').localeCompare(x.debut || ''));
-    A.predecesseurs.forEach(p => p.cible = A.id);
+      .map(t => { const R = mkTexte(t, 2, 'retouche'); R.cible = parent.id; R.parent = parent; return R; }); };
+  /* arbre RÉEL des remplacements : chaque prédécesseur garde ses propres prédécesseurs et ses propres retouches
+     (2025 abroge 2020 ; 2020 abroge 2009, 2010, 2011 : ceux-là sont sous 2020, pas sous 2025) */
+  const predsOf = (id, parent, prof) => { const out = [];
+    for (const e of S) { if (e.vers !== id || e.type !== 'abroge' || e.de === id) continue;
+      if (seenP.has(e.de)) continue; seenP.add(e.de);
+      const t = T[e.de]; if (!t) continue;
+      const P = mkTexte(t, 2, 'predecesseur'); P.cible = parent.id; P.parent = parent; P.prof = prof;
+      P.retouches = retouchesOf(e.de, P); P.predecesseurs = predsOf(e.de, P, prof + 1); out.push(P); }
+    return out.sort((x, y) => (y.debut || '').localeCompare(x.debut || '')); };
+  const flatPreds = a => a.predecesseurs.flatMap(p => [p, ...flatPreds(p)]);
+  const flatRet = a => [...a.retouches, ...a.predecesseurs.flatMap(flatRet)];
+
+  const arretes = vises.map(a => {
+    const A = mkTexte(a, 1, 'vise');
+    A.retouches = retouchesOf(a.legitext, A);
+    A.predecesseurs = predsOf(a.legitext, A, 1);
     return A;
   });
 
   const textes = [];
-  for (const a of arretes) { textes.push(a); a.retouches.forEach(r => textes.push(r)); a.predecesseurs.forEach(p => textes.push(p)); }
+  for (const a of arretes) { textes.push(a); flatRet(a).forEach(r => textes.push(r)); flatPreds(a).forEach(p => textes.push(p)); }
   const kept = new Set(textes.map(t => t.id));
 
   /* C. ce qu’on a écarté : les textes reliés par un lien SORTANT d’un texte retenu */
@@ -432,10 +438,10 @@ async function loadHisto(){
       quoi: a.titre, st: a.st });
     if (a.fin < '2999') ev.push({ date: a.fin, type: 'abroge', niveau: 1, texte: a, label: 'abrogé', how: 'succession',
       quoi: a.titre, st: a.st });
-    for (const r of a.retouches) ev.push({ date: r.date_texte || r.debut, type: 'retouche', niveau: 2, texte: r,
-      cible: a, label: 'retouche l’arrêté', how: 'succession', quoi: r.titre, st: r.st });
-    for (const p of a.predecesseurs) ev.push({ date: p.fin < '2999' ? p.fin : p.debut, type: 'remplace', niveau: 2, texte: p,
-      cible: a, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
+    for (const r of flatRet(a)) ev.push({ date: r.date_texte || r.debut, type: 'retouche', niveau: 2, texte: r,
+      cible: r.parent, label: 'retouche l’arrêté', how: 'succession', quoi: r.titre, st: r.st });
+    for (const p of flatPreds(a)) ev.push({ date: p.fin < '2999' ? p.fin : p.debut, type: 'remplace', niveau: 2, texte: p,
+      cible: p.parent, label: 'remplacé', how: 'succession', quoi: p.titre, st: p.st });
   }
   ev.sort((x, y) => (y.date || '').localeCompare(x.date || '') || (x.niveau - y.niveau));
   const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
@@ -510,6 +516,11 @@ const VCSS = `
 .g2row:last-child{border-bottom:0}
 .g2row.n0{background:var(--teal-xl)}
 .g2row.n2 .g2name{padding-left:34px}
+.g2row.n3 .g2name{padding-left:54px}
+.g2row.n4 .g2name{padding-left:74px}
+.g2row.ret .g2name{font-size:11.5px} .g2row.ret .g2name a{font-weight:500}
+.g2mark{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;background:var(--warn);transform:rotate(45deg);border-radius:2px;cursor:help;z-index:2}
+.g2cap{position:absolute;top:8px;width:3px;height:16px;margin-left:-1px;background:var(--bad);border-radius:1px;cursor:help;z-index:2}
 .g2row.dead .g2name{opacity:.55}
 .g2name a{color:var(--ink)} .g2name a:hover{color:var(--teal)}
 .g2name{padding:8px 10px 8px 14px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid var(--line)}
@@ -547,14 +558,21 @@ function VIEW(H){
     const notches = a.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${a.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
     rows += `<div class="g2row n1${a.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(a.long)}"><span class="s">pris pour lui · visa${a.retouches.length ? ' · ' + a.retouches.length + ' retouche' + (a.retouches.length>1?'s':'') : ''}</span><a href="${a.lf}">${esc(a.titre)}</a></div>
       <div class="g2lane">${overlay}<div class="g2bar${a.st.k !== 'ok' ? ' dead' : ''}" data-txt="${a.id}" style="left:${x}%;width:${w}%"></div>${notches}</div></div>`;
-    for (const p of a.predecesseurs) {
+    const retRow = (r, depth) => { const rx = g2x(r.date_texte || r.debut);
+      return `<div class="g2row n${depth} ret${apres(H, r.date_texte) ? ' jl-hfutur' : ''}"><div class="g2name" title="${esc(r.long || r.titre)}"><span class="s">retouché par · ${esc((NATLABEL[r.nature] || 'arrêté'))} modificateur</span><a href="${r.lf}">${esc(r.titre)}</a></div>
+        <div class="g2lane">${overlay}<div class="g2mark" data-txt="${r.id}" style="left:${rx}%" title="${esc(r.titre)} · ${fmtCourt(r.date_texte)}"></div></div></div>`; };
+    const predRows = (p, depth) => {
       const px = g2x(p.debut), pw = Math.max(0.6, g2x(p.fin) - px);
-      const arrow = p.fin < '2999' ? `<div class="g2arr" style="left:${px + pw}%;width:${Math.max(0.4, g2x(a.debut) - (px + pw))}%" title="remplacé par ${esc(a.titre)}"></div>` : '';
-      rows += `<div class="g2row n2${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par le précédent</span><a href="${p.lf}">${esc(p.titre)}</a></div>
-        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${arrow}</div></div>`;
-    }
+      const cap = p.fin < '2999' ? `<div class="g2cap" style="left:${px + pw}%" title="abrogé le ${fmtCourt(p.fin)} · remplacé par ${esc(p.parent.titre)}"></div>` : '';
+      let h = `<div class="g2row n${depth}${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))}</span><a href="${p.lf}">${esc(p.titre)}</a></div>
+        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${cap}</div></div>`;
+      for (const r of p.retouches) h += retRow(r, Math.min(depth + 1, 4));
+      for (const q of p.predecesseurs) h += predRows(q, Math.min(depth + 1, 4));
+      return h; };
+    for (const r of a.retouches) rows += retRow(r, 2);
+    for (const p of a.predecesseurs) rows += predRows(p, 2);
   }
-  return `<div class="jl-hbar"><span class="h5">Couloirs</span><span class="muted" style="font-size:12px">Chaque texte occupe une ligne, de sa naissance à sa mort. Les encoches orange sont ses retouches, la flèche rouge mène à celui qui l’a remplacé. Survole pour le détail, clique une rédaction pour la comparer.</span><span class="jl-hcount">${H.counts.total} événements</span></div>
+  return `<div class="jl-hbar"><span class="h5">Couloirs</span><span class="muted" style="font-size:12px">Chaque texte occupe une ligne, de sa naissance à sa mort. Les losanges orange sont ses retouches (chacune a aussi sa ligne), le bouchon rouge marque l’abrogation (survole-le : par qui). Survole pour le détail, clique une rédaction pour la comparer.</span><span class="jl-hcount">${H.counts.total} événements</span></div>
   <div class="g2wrap"><div class="g2">
     <div class="g2head"><div class="g2lbl">texte</div><div class="g2axis">${years.map(y => `<div class="g2yr" style="left:${g2x(y + '-01-01')}%">${y}</div>`).join('')}<div class="g2todayL" style="left:calc(${g2x(H.at)}% + 4px)">${H.isToday ? 'aujourd’hui' : 'date lue'}</div></div></div>
     ${rows}</div></div>
