@@ -285,7 +285,7 @@ table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:v
 <body>
 <div class="top">
   <div class="logo">justicelibre<span>.org</span></div>
-  <div class="nav"><a href="#/">Accueil</a><a href="#/juris" class="on">Recherche</a><a href="#/manque">Couverture</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+  <div class="nav"><a href="#/juris" class="on">Recherche</a><a href="#/manque">Couverture</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
 </div>
 <div class="app">
   <nav class="rail" id="rail"></nav>
@@ -323,7 +323,6 @@ const ico = k => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 /* Sous-fonds : clé, couleur, libellé, volume affiché, paramètres RÉELS d'appel à /api/search
    (sources = dila|ariane|admin|cedh|cjue ; juridiction = cass|ca|tj|constit|ce|caa|ta|cedh|cjue) */
 const SCOPES = [
-  {k:'', icon:'home', label:'Accueil'},
   {k:'juris', icon:'scale', label:'Jurisprudence', n:'4,3 M', subs:[
     {k:'cass', c:'jud', label:'Cour de cassation', n:'1,9 M', q:{sources:'dila', juridiction:'cass'}},
     {k:'ca',   c:'jud', label:"Cours d'appel", n:'460 k', q:{sources:'dila', juridiction:'ca'}},
@@ -489,7 +488,7 @@ function route(){
   state.page = {seg, p};
   state.adv = {}; for (const k of ADV_KEYS) if (p.get(k)) state.adv[k] = p.get(k);
   if (state.adv.sort) state.sort = state.adv.sort;
-  const head = seg[0] || '';
+  const head = seg[0] || 'juris';   // plus d'accueil : on atterrit sur la jurisprudence
   if (head === 'decision') { state.scope='juris'; renderRail(); showDecision(seg[1], seg.slice(2).join('/')); return; }
   if (head === 'article')  { state.scope='textes'; state.sub='codes'; renderRail(); showArticle(seg[1], seg[2], p.get('date')); return; }
   if (['citations','article-tool','suivre','manque'].includes(head)) { state.scope = head==='article-tool' ? 'article' : head; state.sub=''; renderRail(); renderTool(head); return; }
@@ -678,7 +677,7 @@ function renderScope(){
   }
   else if (s === 'juris') {
     if (state.advOpen === undefined) state.advOpen = true;
-    b.innerHTML = `<div class="center"><p class="hero">Jurisprudence</p><p class="lead" id="juriCount">${nb(totalCoche(new Set((state.adv.juridiction||'').split(',').filter(Boolean))))} décisions</p></div>
+    b.innerHTML = `<div class="center"><p class="hero">Le droit tel qu'il est publié. Sans compte.</p><p class="lead" id="juriCount">${nb(totalCoche(new Set((state.adv.juridiction||'').split(',').filter(Boolean))))} décisions</p></div>
     ${searchBar('trouble anormal de voisinage · 04-10.362 · 380374 · 14852/18')}<div class="hint" style="text-align:center">Ou une référence : ${kbs(['04-10.362','ECLI:FR:CCASS:2021:C300797','380374','CETATEXT000030923','licenciement sans cause réelle et sérieuse'])}</div>
     <div class="feed" id="feed"><div class="feed-h"><span>Nouveautés</span><span class="s" id="feedSub">les dernières décisions entrées en base</span></div><div class="cards" id="feedCards"></div><div class="feed-end" id="feedEnd"></div></div>`;
     bindSearch(q => go(jurisUrl(q)));
