@@ -277,6 +277,7 @@ a.tile:hover,button.tile:hover{text-decoration:none;border-color:var(--teal)}
 .src-state{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 4px}
 .src-state span{display:inline-flex;align-items:center;gap:5px}
 .src-state i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--line)}
+.src-state .spin.sd{width:8px;height:8px;border-width:1.5px;margin:0}
 .src-state i.ok{background:var(--ok)}.src-state i.ko{background:var(--bad)}.src-state i.run{background:var(--warn)}
 
 /* lecteur */
@@ -314,7 +315,7 @@ table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:v
 <body>
 <div class="top">
   <div class="logo">justicelibre<span>.org</span></div>
-  <div class="nav"><a href="#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+  <div class="nav"><a href="#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/Dahliyaal/justicelibre">GitHub</a></div>
 </div>
 <div class="app">
   <nav class="rail" id="rail"></nav>
@@ -335,6 +336,21 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 function fmtDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3]} ${MOIS[+m[2]-1]} ${m[1]}`; }
 function nb(n){ return Number(n).toLocaleString('fr-FR'); }
+/* Un extrait ne doit pas être une page : ArianeWeb renvoie son analyse entière
+   comme extrait. On coupe à `max` caractères, fenêtre centrée sur le premier
+   terme surligné (<em>) s'il y en a un, sinon depuis le début, sur une limite de mot. */
+function clipExtract(t, max){
+  if (!t || t.length <= max) return t;
+  const i = t.search(/<em>/i);
+  let a = 0;
+  if (i > max/2) { a = t.lastIndexOf(' ', i - Math.floor(max/2)); if (a < 0) a = i - Math.floor(max/2); }
+  let b = a + max; const sp = t.lastIndexOf(' ', b); if (sp > a + max*0.6) b = sp;
+  let out = t.slice(a, b);
+  // ne pas couper une balise <em> ouverte
+  const open = (out.match(/<em>/gi)||[]).length, close = (out.match(/<\/em>/gi)||[]).length;
+  if (open > close) out += '</em>';
+  return (a > 0 ? '…' : '') + out + '…';
+}
 
 const ICO = {
   menu:'M4 7h16M4 12h16M4 17h16', home:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -592,7 +608,9 @@ function route(){
   const h = location.hash.replace(/^#\/?/, '');
   const [path, qs] = h.split('?');
   const p = new URLSearchParams(qs || '');
-  const seg = path.split('/').filter(Boolean);
+  // Les segments arrivent percent-encodés dans le hash (cada%3A202402229) : on les
+  // décode ici, sinon showDecision ré-encode et l'API reçoit « cada%253A… ».
+  const seg = path.split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch(e) { return x; } });
   state.q = p.get('q') || '';
   state.page = {seg, p};
   state.adv = {}; for (const k of ADV_KEYS) if (p.get(k)) state.adv[k] = p.get(k);
@@ -969,16 +987,40 @@ async function runSearch(){
   const b = $('#body');
   state.advOpen = false;
   const chips = fmtAdv(adv);
-  b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}</div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
+  b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}</div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}</div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
   bindSearch(nq => go(state.scope === 'avis' ? `#/recherche?scope=avis&q=${encodeURIComponent(nq)}` : state.scope === 'textes' ? `#/recherche?scope=textes&q=${encodeURIComponent(nq)}` : jurisUrl(nq)));
-  $('#advAdd').onclick = () => $('#advT').click();
   document.querySelectorAll('[data-rm]').forEach(c => c.onclick = () => { const [k,v] = c.dataset.rm.split(':'); const a = {...adv}; if (k==='juridiction') { a.juridiction = a.juridiction.split(',').filter(x=>x!==v).join(','); if (!a.juridiction) delete a.juridiction; if (!a.juridiction?.split(',').includes('cass')) delete a.formation; } else if (k==='formation') delete a.formation; else { delete a.date_min; delete a.date_max; } go(jurisUrl(q, a)); });
   if (!q) { $('#list').innerHTML = `<p class="muted">Tapez quelque chose.</p>`; return; }
   const planKey = pl => pl.juridiction ? (JURI_LABEL[pl.juridiction]||pl.juridiction) : (SRC[pl.sources]||pl.sources);
   for (const pl of plans) state.srcState[planKey(pl)] = 'run';
   renderSrcState();
+  // Éclaireur référence (comme search.html) : si le serveur reconnaît une
+  // citation (n° de pourvoi, ECLI, juridiction + date), il la résout en
+  // précision maximale et on s'arrête là : pas de recherche lexicale qui
+  // exigerait « Cass. » ou « sept. » dans le texte de l'arrêt.
+  if (state.scope !== 'avis' && state.scope !== 'textes' && !juris.length) {
+    try {
+      const pre = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&limit=30&citation_only=1`);
+      const pd = pre.ok ? await pre.json() : null;
+      if (seq !== searchSeq) return;
+      if (pd && pd.citation_match) {
+        state.results = pd.results || [];
+        for (const pl of plans) state.srcState[planKey(pl)] = (pd.per_source||{})[pl.sources] ? 'ok' : 'ko:non interrogée (référence judiciaire)';
+        state.citation = pd.citation_parsed || null; state.citationNote = pd.note || '';
+        renderSrcState(); renderRail(); renderResults();
+        return;
+      }
+    } catch(e) { /* éclaireur muet : parcours classique */ }
+  }
+  state.citation = null; state.citationNote = '';
+  // Pagination par source (comme search.html) : offset et total connus par plan.
+  state.pager = { q, seq, plans, planKey, page: {}, total: {}, busy: false };
+  await fetchPlans(plans, 0);
+}
+async function fetchPlans(plans, offset){
+  const P = state.pager; const { q, seq, planKey } = P; const adv = state.adv;
   await Promise.all(plans.map(async plan => {
-    const params = new URLSearchParams({q, limit:'30', sources:plan.sources, timeout:'20'});
+    const params = new URLSearchParams({q, limit:'30', offset:String(offset), sources:plan.sources, timeout:'20'});
     if (plan.juridiction) params.set('juridiction', plan.juridiction);
     if (adv.formation && plan.juridiction === 'cass') params.set('formation', adv.formation);
     if (adv.date_min) params.set('date_min', adv.date_min);
@@ -996,7 +1038,14 @@ async function runSearch(){
         state.srcState[planKey(plan)] = plan.sources.split(',').every(s => (d.sources_no_result||[]).includes(s)) ? 'ko:pas de réponse' : 'ok';
         (d.filtres_ignores||[]).forEach(f => state.warnings.push(f));
         const seen = new Set(state.results.map(x => x.source+':'+x.id));
-        for (const x of d.results||[]) if (!seen.has(x.source+':'+x.id)) { seen.add(x.source+':'+x.id); state.results.push(x); }
+        let added = 0;
+        for (const x of d.results||[]) if (!seen.has(x.source+':'+x.id)) { seen.add(x.source+':'+x.id); state.results.push(x); added++; }
+        const k = planKey(plan);
+        if (typeof d.total === 'number' && (offset === 0 || d.total > 0)) P.total[k] = d.total;
+        // « il en reste » : d'après le total annoncé par la source (DILA peut
+        // renvoyer 25 sur 30 après dédoublonnage) ; sans total, tant qu'une page est pleine.
+        const got = (d.results||[]).length, next = offset + 30;
+        P.page[k] = { offset: next, more: got > 0 && (P.total[k] !== undefined ? next < P.total[k] : got >= 30) };
         // Avis & doctrine restreint à un fonds (tuile cliquée) : filtre sur l'organisme.
         const srcF = state.page?.p?.get('src');
         if (srcF) { await loadHD(); const nomF = HD.sources[srcF]?.nom; if (nomF) state.results = state.results.filter(r => r.source !== 'doctrine' || r.organisme === nomF); }
@@ -1010,7 +1059,7 @@ async function runSearch(){
 }
 function renderSrcState(){
   const el = $('#srcState'); if (!el) return;
-  el.innerHTML = Object.entries(state.srcState).map(([s,v]) => `<span><i class="${v==='ok'?'ok':v==='run'?'run':'ko'}"></i>${esc(s)}${v.startsWith('ko:')?' · <em>'+esc(v.slice(3))+'</em>':''}${v==='run'?' <span class="spin"></span>':''}</span>`).join('');
+  el.innerHTML = Object.entries(state.srcState).map(([s,v]) => `<span>${v==='run'?'<span class="spin sd"></span>':`<i class="${v==='ok'?'ok':'ko'}"></i>`}${esc(s)}${v.startsWith('ko:')?' · <em>'+esc(v.slice(3))+'</em>':''}</span>`).join('');
 }
 function filtered(){
   return state.results.filter(r => (!state.facet.fam || FAM(r)===state.facet.fam) && (!state.facet.juri || r.juridiction===state.facet.juri) && (!state.facet.an || (r.date||'').slice(0,4)===state.facet.an) && (!state.facet.src || r.source===state.facet.src));
@@ -1034,20 +1083,39 @@ function renderResults(){
   if (state.facet.reset !== undefined) { state.facet = {}; }
   const rows = filtered();
   const tot = state.results.length;
-  tl.innerHTML = `<div class="topline"><span class="serif" style="font-size:20px">${nb(rows.length)}${rows.length!==tot?` <span class="muted" style="font-size:13px">sur ${nb(tot)} chargés</span>`:' résultats chargés'}</span><span class="muted" style="font-size:12px">mode <b style="color:var(--teal)">lexical</b> · tous les mots exigés</span><span class="seg"><button class="${state.mode==='sommaire'?'on':''}" data-mode="sommaire">Sommaire</button><button class="${state.mode==='extrait'?'on':''}" data-mode="extrait">Extrait</button></span><span class="seg"><button class="${state.sort==='pertinence'?'on':''}" data-sort="pertinence">Pertinence</button><button class="${state.sort==='date_desc'?'on':''}" data-sort="date_desc">Récent</button><button class="${state.sort==='date_asc'?'on':''}" data-sort="date_asc">Ancien</button></span></div>
+  const P = state.pager || {total:{}, page:{}};
+  const known = Object.values(P.total).reduce((a,b)=>a+b, 0);
+  const more = Object.values(P.page).some(x => x.more);
+  const totTxt = known > tot ? ` <span class="muted" style="font-size:13px">sur ${nb(known)} existants</span>` : '';
+  tl.innerHTML = `<div class="topline"><span class="serif" style="font-size:20px">${nb(rows.length)}${rows.length!==tot?` <span class="muted" style="font-size:13px">sur ${nb(tot)} chargés</span>`:(rows.length===1?' résultat chargé':' résultats chargés')}${totTxt}</span><span class="muted" style="font-size:12px">${state.citation ? `mode <b style="color:var(--teal)">référence</b> · numéro reconnu, le reste de la requête est ignoré` : `mode <b style="color:var(--teal)">lexical</b> · tous les mots exigés`}</span><span class="seg"><button class="${state.mode==='sommaire'?'on':''}" data-mode="sommaire">Sommaire</button><button class="${state.mode==='extrait'?'on':''}" data-mode="extrait">Extrait</button></span><span class="seg"><button class="${state.sort==='pertinence'?'on':''}" data-sort="pertinence">Pertinence</button><button class="${state.sort==='date_desc'?'on':''}" data-sort="date_desc">Récent</button><button class="${state.sort==='date_asc'?'on':''}" data-sort="date_asc">Ancien</button></span></div>
+  ${state.citation ? `<div class="note" style="margin-bottom:8px">Référence reconnue${state.citation.numeros?.length?` : <b>${esc(state.citation.numeros.map(n=>n.replace(/^[a-z]+:/,'')).join(', '))}</b>`:''}${state.citation.date?` · ${esc(state.citation.date)}`:''}${state.citationNote?` — ${esc(state.citationNote)}`:''}</div>` : ''}
   ${(state.warnings||[]).map(w => `<div class="note" style="margin-bottom:8px">Filtre ignoré : <b>${esc(w.parametre)}</b> — ${esc(w.raison||w.message||'')}</div>`).join('')}`;
   tl.querySelectorAll('[data-mode]').forEach(x => x.onclick = () => { state.mode = x.dataset.mode; renderResults(); });
   tl.querySelectorAll('[data-sort]').forEach(x => x.onclick = () => { const adv = {...state.adv, sort: x.dataset.sort}; if (adv.sort === 'pertinence') delete adv.sort; go(jurisUrl(state.q, adv)); });
   if (!rows.length) { list.innerHTML = `<p class="muted" style="margin-top:16px">${Object.values(state.srcState).some(v=>v==='run') ? 'Recherche en cours…' : 'Rien pour cette requête dans les sources interrogées.'}</p>`; return; }
+  const moreBtn = more ? `<div style="text-align:center;margin:18px 0 8px"><button class="cta" id="moreBtn" ${P.busy?'disabled':''}>${P.busy?'Chargement…':'Charger la suite'}</button><div class="muted" style="font-size:12px;margin-top:6px">${Object.entries(P.page).filter(([k,x])=>x.more).map(([k,x])=>`${esc(k)} : ${nb(x.offset)}${P.total[k]!==undefined?' / '+nb(P.total[k]):''}`).join(' · ')}</div></div>` : '';
   list.innerHTML = rows.map(r => {
     const fam = FAM(r); const f = FORMATION[r.formation] || r.formation || '';
-    const sum = state.mode==='sommaire' && r.sommaire ? r.sommaire : (r.extract || '');
+    // Extrait : les retours à la ligne bruts de l'en-tête (« COUR DE CASSATION\n____\n\nArrêt du… ») sont compactés ; le sommaire officiel garde ses paragraphes.
+    const raw = state.mode==='sommaire' && r.sommaire ? r.sommaire : (r.extract || '').replace(/[ \t]*\n[ \t\n_]*/g, ' · ').replace(/\s{2,}/g,' ').replace(/^(…|\.\.\.)?\s*·\s*/,'…').trim();
+    const sum = clipExtract(raw, 420);
     const kind = state.mode==='sommaire' && r.sommaire ? '<span class="off">sommaire officiel</span>' : (r.extract ? '<span class="muted">extrait</span>' : '<span class="warnp">pas d’extrait renvoyé</span>');
     return `<div class="item"><div class="meta"><span class="tag" style="--c:var(--${fam})">${FAMLABEL[fam]}</span><span>${esc(r.juridiction||'')}${f?' · '+esc(f):''}</span><span>${fmtDate(r.date)}</span></div>
     <p class="t"><a href="#/decision/${r.source}/${encodeURIComponent(r.id)}">${esc(r.title||'(sans titre)').replace(/\b(\d{4}-\d{2}-\d{2})\b/g, m=>fmtDate(m))}</a></p>
     ${sum?`<p class="sum">${sum.replace(/<(?!\/?em>)[^>]*>/g,'')}</p>`:''}
     <div class="ref">${esc(r.ecli||r.numero||r.id)} · <span class="muted">${esc(SRC[r.source]||r.source)}</span> · ${kind}</div></div>`;
-  }).join('');
+  }).join('') + moreBtn;
+  const mb = $('#moreBtn');
+  if (mb) mb.onclick = async () => {
+    const P = state.pager; if (!P || P.busy) return;
+    P.busy = true; renderResults();
+    const plans = P.plans.filter(pl => P.page[P.planKey(pl)]?.more);
+    for (const pl of plans) state.srcState[P.planKey(pl)] = 'run';
+    renderSrcState();
+    // chaque source repart de SON offset (elles n'avancent pas au même rythme)
+    await Promise.all(plans.map(pl => fetchPlans([pl], P.page[P.planKey(pl)].offset)));
+    P.busy = false; renderResults();
+  };
 }
 
 /* ───────────────────────── lecteur de décision ───────────────────────── */
