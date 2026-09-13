@@ -794,15 +794,30 @@ function renderScope(){
   else if (s === 'textes') {
     b.innerHTML = `<div class="center"><p class="hero">Textes</p><p class="lead">Codes, lois, décrets, Journal officiel, conventions collectives — dans la rédaction en vigueur <b>à la date que vous choisissez</b>.</p></div>
     ${searchBar('art. 145 CPC · L. 1234-9 C. trav. · 1253 code civil', `<label class="dt">au <input id="qdate" type="date" value="${esc(state.page.p?.get('date')||'')}"></label>`, false)}
-    <div class="hint" style="text-align:center">Ça marche : ${kbs(['art. 1253 C. civ.','art. 145 CPC','L. 1234-9 C. trav.','L. 521-2 CJA','art. 544 code civil'])} — le plein texte des lois et du JO n'est pas encore exposé par l'API du site (MCP seulement).</div>
+    <div class="hint" style="text-align:center">Ça marche : ${kbs(['art. 1253 C. civ.','art. 145 CPC','L. 1234-9 C. trav.','loi n° 2026-650','loi 78-17','harcèlement moral'])} — un article, une loi par son numéro, ou des mots (plein texte des 1,8 M d'articles).</div>
     <div style="max-width:1100px;margin:34px auto 0"><div class="feed-h" style="margin-bottom:12px">Codes<span class="s">${CODES.length} codes servis · cliquez pour préparer la recherche d'un article</span></div>
     <div class="codes" id="codesGrid">${codesTries().map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(abrev(c))}</span></button>`).join('')}</div>
     <hr class="hc-sep">
     <div class="feed-h" style="margin-bottom:6px">Textes hors code<span class="s">lois, ordonnances, décrets, arrêtés — rangés par ministère (code NOR), filtrés par nature, parcourus par année</span></div>
     <div id="horsCode" class="hc"><div class="muted" style="font-size:12.5px">chargement…</div></div></div>`;
     initHorsCode();
-    bindSearch(q => { const a = parseArticle(q); if (a) go(`#/article/${a.code}/${encodeURIComponent(a.num)}${$('#qdate').value?'?date='+$('#qdate').value:''}`); else $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>Je ne reconnais pas « ${esc(q)} » comme un article (<span class="mono">art. 1253 C. civ.</span>, <span class="mono">L. 1234-9 code du travail</span>). La recherche plein texte dans les lois n'est pas encore branchée sur le site.</div></div>`); });
-    document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + CODES.find(c=>c[0]===t.dataset.code)[2][0]; $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
+    bindSearch(async q => {
+      const dateQ = $('#qdate').value ? '?date=' + $('#qdate').value : '';
+      // 1) un article d'un code : « art. 1253 C. civ. », « L. 1234-9 code du travail »
+      const a = parseArticle(q); if (a) return go(`#/article/${a.code}/${encodeURIComponent(a.num)}${dateQ}`);
+      // 2) une loi / ordonnance par son numéro : « loi n° 2026-650 », « loi 78-17 du 6 janvier 1978 »
+      const m = q.match(/\b(\d{2,4}-\d{1,6})\b/);
+      if (m && /\b(loi|ordonnance|n[°º]|décret)\b/i.test(q)) {
+        try {
+          const r = await (await fetch(`${API}/api/law/resolve?numero=${encodeURIComponent(m[1])}`)).json();
+          if (r && r.legitext) return go(`#/article/${r.legitext}/1${dateQ}`);
+          $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>Aucune loi ni ordonnance n° ${esc(m[1])} en base. On cherche le numéro dans le texte des articles à la place.</div></div>`);
+        } catch {}
+      }
+      // 3) sinon : plein texte dans les 1,8 M d'articles (LEGI)
+      go(`#/recherche?scope=textes&q=${encodeURIComponent(q)}`);
+    });
+    document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + abrev(CODES.find(c=>c[0]===t.dataset.code)); $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
   }
   else if (s === 'travaux') {
     b.innerHTML = `<div class="center"><p class="hero">Travaux préparatoires</p><p class="lead">Ce qui a précédé la loi : exposé des motifs, avis du Conseil d'État, rapports, débats, questions. <span class="warnp">rien en base pour l'instant</span> — voici la forme prévue, sur un vrai exemple.</p>
@@ -944,13 +959,14 @@ async function runSearch(){
   const adv = state.adv;
   const juris = (adv.juridiction||'').split(',').filter(j => JURI_SOURCES[j]);
   const plans = state.scope === 'avis' ? [{sources:'doctrine', juridiction:'doctrine'}]
+              : state.scope === 'textes' ? [{sources:'legi', juridiction:'legi'}]
               : juris.length ? juris.map(j => ({sources: JURI_SOURCES[j], juridiction: j})) : [{sources:'dila'},{sources:'ariane'},{sources:'admin'},{sources:'cedh'},{sources:'cjue'}];
   state.results = []; state.srcState = {}; state.facet = {}; state.warnings = [];
   const b = $('#body');
   state.advOpen = false;
   const chips = fmtAdv(adv);
   b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}</div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
-  bindSearch(nq => go(state.scope === 'avis' ? `#/recherche?scope=avis&q=${encodeURIComponent(nq)}` : jurisUrl(nq)));
+  bindSearch(nq => go(state.scope === 'avis' ? `#/recherche?scope=avis&q=${encodeURIComponent(nq)}` : state.scope === 'textes' ? `#/recherche?scope=textes&q=${encodeURIComponent(nq)}` : jurisUrl(nq)));
   $('#advAdd').onclick = () => $('#advT').click();
   document.querySelectorAll('[data-rm]').forEach(c => c.onclick = () => { const [k,v] = c.dataset.rm.split(':'); const a = {...adv}; if (k==='juridiction') { a.juridiction = a.juridiction.split(',').filter(x=>x!==v).join(','); if (!a.juridiction) delete a.juridiction; if (!a.juridiction?.split(',').includes('cass')) delete a.formation; } else if (k==='formation') delete a.formation; else { delete a.date_min; delete a.date_max; } go(jurisUrl(q, a)); });
   if (!q) { $('#list').innerHTML = `<p class="muted">Tapez quelque chose.</p>`; return; }
