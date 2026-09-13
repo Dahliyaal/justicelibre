@@ -567,8 +567,9 @@ function VIEW(H){
     const predRows = (p, depth) => {
       const px = g2x(p.debut), pw = Math.max(0.6, g2x(p.fin) - px);
       const cap = p.fin < '2999' ? `<div class="g2cap" style="left:${px + pw}%" title="abrogé le ${fmtCourt(p.fin)} · remplacé par ${esc(p.parent.titre)}"></div>` : '';
-      let h = `<div class="g2row n${depth}${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))}</span><a href="${p.lf}">${esc(p.titre)}</a></div>
-        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${cap}</div></div>`;
+      const pn = p.retouches.map(r => `<div class="g2notch" style="left:${g2x(r.date_texte || r.debut)}%" data-txt="${p.id}|${r.id}" title="retouché par ${esc(r.titre)} (${fmtCourt(r.date_texte)})"></div>`).join('');
+      let h = `<div class="g2row n${depth}${p.st.k !== 'ok' ? ' dead' : ''}"><div class="g2name" title="${esc(p.long)}"><span class="s">remplacé par ${esc(minus(p.parent.titre))}${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}</span><a href="${p.lf}">${esc(p.titre)}</a></div>
+        <div class="g2lane">${overlay}<div class="g2bar n2${p.st.k !== 'ok' ? ' dead' : ''}" data-txt="${p.id}" style="left:${px}%;width:${pw}%"></div>${pn}${cap}</div></div>`;
       for (const r of p.retouches) h += retRow(r, Math.min(depth + 1, 4));
       for (const q of p.predecesseurs) h += predRows(q, Math.min(depth + 1, 4));
       return h; };
