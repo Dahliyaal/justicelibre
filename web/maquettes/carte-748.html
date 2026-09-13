@@ -204,6 +204,7 @@ const ACTS  = new Set(['MODIFIE','ABROGE','TRANSFERE','CONCORDANCE','CONCORDE'])
 const SRC = {dila:'Judilibre · DILA', jade:'JADE · Conseil d’État', cedh:'HUDOC · Cour EDH', cjue:'CURIA · CJUE'};
 const FAMOF = {dila:'jud', jade:'adm', cedh:'eu', cjue:'eu'};
 const FAMLABEL = {jud:'judiciaire', adm:'administratif', eu:'européen'};
+const NATLABEL = {DECRET:'décret', ARRETE:'arrêté', CODE:'code', LOI:'loi', ORDONNANCE:'ordonnance', DIRECTIVE_EURO:'directive UE'};
 function legifrance(id, nature){ id = id || '';
   if (id.startsWith('JORFTEXT')) return `https://www.legifrance.gouv.fr/jorf/id/${id}`;
   if (id.startsWith('LEGIARTI')) return (nature==='CODE' ? 'https://www.legifrance.gouv.fr/codes/article_lc/' : 'https://www.legifrance.gouv.fr/loda/article_lc/') + id;
@@ -246,7 +247,7 @@ async function loadModel(){
     const t = tOf(l);
     const item = { l, v, t, rel: REL(l), titre: l.libelle || l.id, long: t && titreArr(t) !== l.libelle ? titreArr(t) : '', date: l.datesignatexte && l.datesignatexte < '2999' ? l.datesignatexte : (t && t.date_texte) || '',
       nor: l.nortexte || (t && t.nor) || '', st: lifeAt(t, at), lf: legifrance(l.id || l.cidtexte, l.naturetexte), joue: v === cur, how: 'lien LEGI' };
-    if (ROOTS.has(l.typelien)) roots.push(item); else if (ACTS.has(l.typelien) && l.sens === 'cible') acts.push(item);
+    if (ROOTS.has(l.typelien)) { if (l.typelien==='CREATION'||l.typelien==='CREE') item.rel='créé par'; roots.push(item); } else if (ACTS.has(l.typelien) && l.sens === 'cible') acts.push(item);
   }
   acts.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const cite = versions.flatMap(v => v.liens.filter(l => l.typelien==='CITATION' && l.sens==='source').map(l => ({l, v, t: tOf(l), rel:'cite', titre:l.libelle||l.id, lf: legifrance(l.id||l.cidtexte, l.naturetexte), st: lifeAt(tOf(l), at), date: l.datesignatexte < '2999' ? l.datesignatexte : ''})));
@@ -271,6 +272,15 @@ async function loadModel(){
     return { members, head, alive, objet: objetDe(head), nbDirect: members.filter(m => direct.has(m.legitext)).length };
   }).sort((a,b) => (b.alive.length - a.alive.length) || (b.head.date_texte||'').localeCompare(a.head.date_texte||''));
   const decretsVisent = Object.values(P.decrets||{}).filter(d => (d.vise||[]).includes(num)).sort((a,b)=>(b.date_texte||'').localeCompare(a.date_texte||''));
+  /* textes qui le citent : liens LEGI (CITATION cible) + visas des décrets, une ligne par TEXTE, groupées par nature */
+  const citants = new Map();
+  const addC = (key, o) => { if (!key) return; const e = citants.get(key); if (e) { if (o.arts) e.arts.push(...o.arts); e.how.add(o.how1); } else citants.set(key, {...o, arts:[...(o.arts||[])], how:new Set([o.how1])}); };
+  for (const x of citeTx) { const l = x.l; const key = l.legitext_resolu || l.cidtexte || l.id; const t = x.t;
+    const nature = l.naturetexte || (t && t.nature) || '?'; const artm = /- art\. ([^ (]+)/.exec(l.libelle||'');
+    addC(key, {key, nature, titre: t ? titreArr(t) : (l.libelle||'').replace(/ - art\..*$/,''), date: (l.datesignatexte && l.datesignatexte < '2999') ? l.datesignatexte : (t && t.date_texte) || '', nor: l.nortexte || (t && t.nor) || '', t, arts: artm ? [artm[1]] : [], how1:'lien LEGI', lf: legifrance(key, nature)}); }
+  for (const d of decretsVisent) addC(d.legitext, {key:d.legitext, nature:'DECRET', titre:titreArr(d), date:d.date_texte||'', nor:d.nor||'', t:d, arts:[], how1:'visa', lf: legifrance(d.legitext)});
+  const NATORD = {DECRET:0, ARRETE:1, CODE:2, LOI:3, ORDONNANCE:4};
+  const citantsList = [...citants.values()].map(c => ({...c, st: lifeAt(c.t, at), arts:[...new Set(c.arts)]})).sort((a,b) => ((NATORD[a.nature]??9)-(NATORD[b.nature]??9)) || (b.date||'').localeCompare(a.date||''));
 
   /* JURISPRUDENCE : fusion des doublons Judilibre / JURITEXT */
   const verAt = d => versions.find(v => v.date_debut <= d && (v.date_fin||'2999') > d);
@@ -291,10 +301,10 @@ async function loadModel(){
               membres: c.members.map(m => ({legitext:m.legitext, nor:m.nor, date:m.date_texte, du:m.date_debut, au:m.date_fin, etat_a_la_date: lifeAt(m, at).label, vise:m.vise, remplace_par:(succ[m.legitext]||[]).map(s=>({type:s.type, nor:A[s.vers].nor, date:A[s.vers].date_texte})), provenance: direct.has(m.legitext) ? 'visa (CITATION) vers l’article' : 'succession (abrogation / modification)'})) })),
             decrets_qui_visent: decretsVisent.map(d=>({nor:d.nor, date:d.date_texte, titre:titreArr(d), etat_a_la_date: lifeAt(d, at).label})),
             couverture: {arretes_en_vigueur_avec_lien_SPEC_APPLI:313, arretes_en_vigueur:68811, methode:'visas + successions'} },
-    cite: cite.map(x=>x.l), cite_par_textes: citeTx.map(x=>x.l),
+    renvois_du_texte: cite.map(x=>x.l), textes_qui_le_citent: citantsList.map(c=>({nature:c.nature, texte:c.titre, articles:c.arts, date:c.date, nor:c.nor, etat_a_la_date:c.st.label, provenance:[...c.how]})),
     cite_par_jurisprudence: { requete:C.requete, total_lexical:C.total_lexical, par_source:C.per_source, avertissement:C.avertissement, doublons_fusionnes: fusion,
       decisions: juri.map(x=>({source:x.source, ids:x.ids, juridiction:x.juridiction, date:x.date, numero:x.numero, publication:x.publication||null, redaction_applicable:x.v?x.v.date_debut:null, extract:x.extract})) } };
-  return {P, C, code, num, cname, versions, at, cur, sims, recycled, acts, roots, cite, citeTx, chainList, succ, A, direct, decretsVisent, juri, fusion, objet};
+  return {P, C, code, num, cname, versions, at, cur, sims, recycled, acts, roots, cite, citeTx, citantsList, chainList, succ, A, direct, decretsVisent, juri, fusion, objet};
 }
 
 /* ───── rendu ───── */
@@ -324,16 +334,16 @@ function render(M){
       <div class="legend"><span><i style="background:var(--ok)"></i>joue à la date lue</span><span style="opacity:.55"><i style="background:var(--muted)"></i>ne joue plus (gris)</span></div>
       ${M.acts.map(x => it(x)).join('') || '<div class="muted" style="font-size:12.5px">aucune modification enregistrée dans LEGI</div>'}
       ${M.roots.map(x => it({...x, joue:true}, ' root')).join('')}
-      ${M.cite.length ? `<div class="h5" style="margin:14px 0 6px">Il cite · ${M.cite.length}</div>${M.cite.map(x => it({...x, joue:true})).join('')}` : ''}</div>
+      <div class="honest" style="margin-top:14px">Seuls des <b>décrets</b> peuvent créer, modifier ou abroger un article de ce code. Aucun arrêté n’a jamais eu de pouvoir sur lui : les arrêtés sont tous <b>en aval</b>, pris en application (colonne de droite).</div></div>
     <div class="col mid"><h2>L’article <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.versions.length} rédaction${M.versions.length>1?'s':''}</span></h2>
       <div class="vlist">${M.versions.map((v,i)=>{ const st = lifeAt(v, at); return `<a class="vl${v===cur?' cur':''}${st.k!=='ok'?' dead':''}" href="?num=${M.num}&date=${v.date_debut}"><span>${v===cur?'●':'○'}</span><span>${fmtCourt(v.date_debut)} → ${fmtCourt(v.date_fin)}</span><span class="mono">${esc(v.etat)}${M.sims[i]!==null?`<br>${Math.round(M.sims[i]*100)} % mots communs`:''}</span></a>`; }).join('')}</div>
       ${cur ? `<div class="rtitle" id="rt"><span class="chev">▶</span><b>Texte à la date lue</b><span class="res">· ${alineas(cur).length} al.${cur.nota?' + Nota':''} · ${esc(resume(cur))}</span></div><div class="rtext" id="rx">${texteHTML(cur)}</div>` : `<div class="honest">À la date lue, l’article n’existe pas encore.</div>`}
-      ${M.citeTx.length ? `<div class="h5" style="margin:16px 0 6px">Textes qui le citent · ${M.citeTx.length}</div>${M.citeTx.map(x => it({...x, joue:true})).join('')}` : ''}</div>
+      ${M.cite.length ? `<div class="h5" style="margin:16px 0 6px">Renvois du texte · ${M.cite.length}</div>${M.cite.map(x => it({...x, joue:true, rel:'renvoie à'})).join('')}` : ''}</div>
     <div class="col"><h2><span class="arrow">→</span> Ce qui en dépend <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.chainList.length} chaîne${M.chainList.length>1?'s':''} d’arrêtés</span></h2>
       <div class="legend"><span><i style="background:var(--ok)"></i>vivant à la date lue</span><span><i style="background:var(--muted)"></i>mort</span><span><i style="background:var(--doc)"></i>pas encore en vigueur</span></div>
       ${M.chainList.map(chainHTML).join('') || `<div class="honest">Aucun arrêté ne vise l’article ${esc(M.num)} dans LEGI.</div>`}
       <div class="honest" style="margin-top:10px">Chaînes construites à partir des <b>visas</b> (« Vu … l’article ${esc(M.num)} ») puis fermées par les liens d’<b>abrogation</b> et de <b>modification</b> entre arrêtés. LEGI ne porte presque jamais le lien typé « texte d’application » (313 arrêtés en vigueur sur 68 811) : un arrêté sans visa explicite n’apparaît pas ici, et son absence ne prouve rien.</div>
-      ${M.decretsVisent.length ? `<div class="h5" style="margin:14px 0 6px">Décrets qui le visent · ${M.decretsVisent.length}</div>${M.decretsVisent.map(d => `<div class="it${lifeAt(d,at).k!=='ok'?' dead':''}"><div class="rel">vise <span class="how">visa</span></div><div class="t"><a href="${legifrance(d.legitext)}">${esc(titreArr(d))}</a></div><div class="d"><span>${fmtCourt(d.date_texte)}</span><span class="nor">${esc(d.nor||'')}</span>${pill(lifeAt(d,at))}</div></div>`).join('')}` : ''}</div>
+      ${M.citantsList.length ? `<div class="h5" style="margin:16px 0 6px">Textes qui le citent · ${M.citantsList.length}</div>${M.citantsList.map(c => `<div class="it${c.st.k!=='ok'?' dead':''}"><div class="rel">${esc((NATLABEL[c.nature]||c.nature.toLowerCase()))}${[...c.how].map(h=>`<span class="how">${esc(h)}</span>`).join('')}</div><div class="t"><a href="${c.lf}">${esc(c.titre)}</a>${c.arts.length?` <span class="muted">· art. ${esc(c.arts.join(', '))}</span>`:''}</div><div class="d">${c.date?`<span>${fmtCourt(c.date)}</span>`:''}${c.nor?`<span class="nor">${esc(c.nor)}</span>`:''}${pill(c.st)}</div></div>`).join('')}` : ''}</div>
   </div>
   <div class="juris"><h2>Jurisprudence qui le cite <span class="n">${M.juri.length} décisions · ${nb(M.C.total_lexical)} pages lexicales brutes · ${M.fusion} doublon${M.fusion>1?'s':''} fusionné${M.fusion>1?'s':''}</span></h2>
     <div class="honest">${esc(M.C.avertissement)} Requête : <span class="mono">${esc(M.C.requete)}</span> · ${Object.entries(M.C.per_source).map(([k,v])=>`${esc(SRC[k])} ${nb(v)}`).join(' · ')}</div>
