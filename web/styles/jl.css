@@ -444,17 +444,21 @@ html.jl-dense .topbar nav.main-nav{gap:var(--space-6)}
   padding:0 5px;border-radius:var(--radius);white-space:nowrap}
 /* Avertissement SUR LA DONNÉE (« maquette », « numéro recyclé ») : --warn plein */
 .jl-warnp{font-size:var(--text-3xs);letter-spacing:.05em;text-transform:uppercase;
-  border:1px solid var(--warn);color:var(--warn);padding:1px 6px;
-  border-radius:var(--radius);white-space:nowrap}
+  border:1px solid var(--warn);color:var(--warn);padding:1px 6px;background:transparent;
+  border-radius:var(--radius);white-space:nowrap;opacity:.85}
 /* Mention « sommaire officiel » : teal, sans bordure */
 .jl-off{font-size:var(--text-3xs);letter-spacing:.05em;text-transform:uppercase;
   color:var(--teal);padding:1px 6px;border-radius:var(--radius)}
 
 /* ═══════════════════ 10. BLOC HONNÊTETÉ ══════════════════════════════════ */
 /* Contenu ÉDITORIAL permanent (« ce que la page ne sait pas »). Jamais rouge. */
-.jl-honnetete{font-size:var(--text-sm);color:var(--muted);
+/* 13 sept. 2026, décision de la propriétaire : le fond ambre était laid.
+   Le bloc d'honnêteté prend le style des encadrés déjà en prod (.infobox de
+   l'annuaire et des ressources) : fond --teal-xl, filet teal à gauche. Il reste
+   distinct de l'alerte (rouge) et de l'avertissement sur la donnée (.jl-warnp). */
+.jl-honnetete{font-size:var(--text-sm);color:var(--body);
   padding:var(--space-2) var(--space-3);
-  border-left:3px solid var(--warn);background:var(--warn-bg);
+  border-left:3px solid var(--teal);background:var(--teal-xl);
   border-radius:0 var(--radius-lg) var(--radius-lg) 0;line-height:var(--lh-normal)}
 .jl-honnetete b{color:var(--ink)}
 .jl-honnetete--nue{border-left:2px solid var(--line);background:transparent}
@@ -1157,12 +1161,13 @@ body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
 .jl-jc__t a{color:var(--ink)}
 .jl-jc__x{font-size:var(--text-sm);color:var(--muted);line-height:1.5}
 .jl-jc__ap{margin-top:var(--space-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.jl-jc--ancienne{background:var(--warn-bg)}
+/* Décision rendue sous une autre rédaction : plus de fond ambre (laid), un filet ambre à gauche suffit. */
+.jl-jc--ancienne{border-left:3px solid var(--warn)}
 /* Étiquette de rédaction (« rédaction 2019 ») */
 .jl-rd{display:inline-block;font-family:var(--font-mono);font-size:var(--text-xs);
   padding:1px 7px;border-radius:var(--radius);background:var(--teal-xl);
   color:var(--teal);white-space:nowrap}
-.jl-rd--ancienne{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.jl-rd--ancienne{background:transparent;color:var(--warn);font-weight:600}
 @media (max-width:1100px){.jl-jgrid{grid-template-columns:1fr}}
 
 /* ── 28.6 Chrome commun de la page HISTORIQUE ──────────────────────────── */
