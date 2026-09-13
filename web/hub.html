@@ -191,6 +191,12 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .hc-list .meta{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:3px}
 .hc-list .t{display:block;font-family:"DM Serif Display",Georgia,serif;font-size:16px;letter-spacing:-.005em}
 .hc-list .t::first-letter{text-transform:uppercase}
+.hc-list .x{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.tile-src{cursor:pointer;font:inherit;transition:background .12s,border-color .12s}
+.tile-src:hover{background:var(--teal-xl);border-color:var(--teal)}
+.tile-src.on{border-color:var(--teal);background:var(--teal-xl)}
+.tile-src.soon{opacity:.7}
+.expbar .n{font-family:"JetBrains Mono",monospace;font-size:10.5px;opacity:.75}
 .hc-list li.muted{padding:8px 4px;font-size:12px}
 .expbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .expbar .pill{padding:2px 9px;border-radius:12px;background:var(--teal-xl);color:var(--teal);font-family:"JetBrains Mono",monospace;font-size:11px}
@@ -391,6 +397,30 @@ const TOOLS = [
 // ignorant « Code de la / du / des / de l' » — sinon tout est rangé à « Code ».
 function cleTri(nom){ return nom.toLowerCase().replace(/^code\s+(de\s+la\s+|de\s+l'|du\s+|des\s+|de\s+|d')?/, '').replace(/^(la|le|les|l')\s+/, ''); }
 function codesTries(){ return [...CODES].sort((a, b) => cleTri(a[1]).localeCompare(cleTri(b[1]), 'fr', {sensitivity:'base'})); }
+/* ── Avis & doctrine : une tuile = un fonds. Clic → la barre se restreint au
+   fonds et ses derniers documents s'affichent (web/hub_doctrine.json, extrait
+   réel de doctrine.db : 12 derniers par source, comptes par type). ── */
+let HD = null, hdSrc = '';
+async function loadHD(){ if (!HD) { try { HD = await (await fetch('hub_doctrine.json')).json(); } catch { HD = {sources:{}}; } } return HD; }
+async function showDocSrc(sid){
+  await loadHD();
+  const box = document.getElementById('docSrc'); if (!box) return;
+  if (hdSrc === sid) { hdSrc = ''; box.innerHTML = ''; document.querySelectorAll('.tile-src').forEach(t => t.classList.remove('on')); document.getElementById('srcChip')?.remove(); return; }
+  hdSrc = sid;
+  document.querySelectorAll('.tile-src').forEach(t => t.classList.toggle('on', t.dataset.src === sid));
+  const s = HD.sources[sid];
+  document.getElementById('srcChip')?.remove();
+  const chip = document.createElement('div'); chip.id = 'srcChip'; chip.className = 'expbar';
+  chip.innerHTML = `<span>Chercher dans :</span><span class="pill">${esc(s ? s.nom : sid.toUpperCase())}</span><a id="srcOff">tous les fonds</a>`;
+  (document.querySelector('.sbox .foot') || document.querySelector('.sbox'))?.insertAdjacentElement('afterend', chip);
+  chip.querySelector('#srcOff').onclick = () => showDocSrc(sid);
+  if (!s) { box.innerHTML = `<div class="alert" style="margin-top:18px">⚠ <div>Ce fonds n'est pas encore servi par le site (il l'est par le MCP : <code>search_cnil</code>).</div></div>`; return; }
+  const types = Object.entries(s.types).map(([t,n]) => `<span class="pill">${esc(t)} <span class="n">${nb(n)}</span></span>`).join('');
+  box.innerHTML = `<div class="hc-path">${esc(s.nom)}<span class="sep">›</span>derniers documents <span class="n">· ${nb(s.total)} au total</span></div>
+    <div class="expbar" style="margin:-6px 0 12px"><span>Types :</span>${types}</div>
+    <ul class="hc-list">${s.derniers.map(d => `<li><a href="#/decision/doctrine/${encodeURIComponent(d.id)}"><span class="meta">${d.date ? fmtDate(d.date) : ''}${d.type ? ' · ' + esc(d.type) : ''}${d.administration ? ' · ' + esc(d.administration) : ''}</span><span class="t">${esc(d.titre || d.sujet || d.id)}</span>${d.extrait ? `<span class="x">${esc(d.extrait)}…</span>` : ''}</a></li>`).join('')}</ul>`;
+}
+
 /* ── Textes hors code : ministère (NOR) › nature › année › titres ──
    Données : web/hub_horscode.json, extrait réel de jorf_textes (JO 1990→2026),
    24 ministères, comptes par nature et par année, titres pour les 10 premiers
@@ -786,9 +816,12 @@ function renderScope(){
   else if (s === 'avis') {
     b.innerHTML = `<div class="center"><p class="hero">Avis &amp; doctrine</p><p class="lead">Ce que disent les autorités quand elles ne jugent pas : avis de la CADA, décisions du Défenseur des droits, conclusions des rapporteurs publics, BOFiP — 107 273 documents.</p>
     ${searchBar('communication du dossier médical · refus de communication', '', false)}<div class="hint" style="text-align:center">Ça marche : ${kbs(['refus de communication dossier médical','discrimination handicap','délai de réponse administration','conclusions rapporteur public'])}</div></div>
-    <div class="grid2" style="margin-top:22px">${[['CADA','60 941','avis et conseils 1984–2026, partie et objet lisibles, lien data.gouv'],['Défenseur des droits','15 864','décisions et avis, domaines et mots-clés'],['CNIL','26 737','délibérations, sanctions, avis sur les textes'],['Rapporteurs publics','9 138','conclusions devant le Conseil d’État — servies nulle part ailleurs']].map(([t,n,s])=>`<div class="tile"><div class="tt"><span class="dot" style="--c:var(--doc)"></span>${esc(t)}<span class="mono muted" style="margin-left:auto;font-size:11px;font-weight:400">${n}</span></div><div class="ts">${esc(s)}</div></div>`).join('')}</div>
-    <div class="note" style="margin-top:22px;max-width:880px">Ces textes ne sont pas des jugements : la page le dira et ne les mélangera jamais à la jurisprudence sans le signaler.</div>`;
-    bindSearch(q => go(`#/recherche?scope=avis&q=${encodeURIComponent(q)}`));
+    <div class="grid2 tiles-src" style="margin-top:22px">${[['cada','CADA','60 941','avis et conseils 1984–2026 : qui peut obtenir quel document'],['ddd','Défenseur des droits','15 864','décisions, rappels à la loi, règlements amiables'],['ariane_crp','Rapporteurs publics','9 138','conclusions devant le Conseil d’État — servies nulle part ailleurs'],['bofip','BOFiP','6 301','doctrine fiscale de l’administration'],['cnil','CNIL','26 737','délibérations et sanctions — via le MCP seulement pour l’instant']].map(([k,t,n,s])=>`<button type="button" class="tile tile-src${k==='cnil'?' soon':''}" data-src="${k}"><div class="tt"><span class="dot" style="--c:var(--doc)"></span>${esc(t)}<span class="mono muted" style="margin-left:auto;font-size:11px;font-weight:400">${n}</span></div><div class="ts">${esc(s)}</div></button>`).join('')}</div>
+    <div id="docSrc"></div>
+    <div class="note" style="margin-top:22px;max-width:880px">Ces textes ne sont pas des jugements : la page le dit et ne les mélange jamais à la jurisprudence sans le signaler.</div>`;
+    bindSearch(q => go(`#/recherche?scope=avis${hdSrc ? '&src=' + hdSrc : ''}&q=${encodeURIComponent(q)}`));
+    document.querySelectorAll('.tile-src').forEach(t => t.onclick = () => showDocSrc(t.dataset.src));
+    if (hdSrc) showDocSrc(hdSrc);
   }
   else if (s === 'annuaire') {
     b.innerHTML = `<div class="center"><p class="hero">Annuaire</p><p class="lead">Les boîtes fonctionnelles des greffes, parquets, cabinets — 75 000 adresses. <span class="warnp">MCP seulement pour l'instant</span> (search_annuaire).</p>
@@ -944,6 +977,9 @@ async function runSearch(){
         (d.filtres_ignores||[]).forEach(f => state.warnings.push(f));
         const seen = new Set(state.results.map(x => x.source+':'+x.id));
         for (const x of d.results||[]) if (!seen.has(x.source+':'+x.id)) { seen.add(x.source+':'+x.id); state.results.push(x); }
+        // Avis & doctrine restreint à un fonds (tuile cliquée) : filtre sur l'organisme.
+        const srcF = state.page?.p?.get('src');
+        if (srcF) { await loadHD(); const nomF = HD.sources[srcF]?.nom; if (nomF) state.results = state.results.filter(r => r.source !== 'doctrine' || r.organisme === nomF); }
         const ORDER = ['dila','ariane','admin','cedh','cjue'];
         if (state.sort === 'pertinence') state.results.sort((a,b) => ORDER.indexOf(a.source) - ORDER.indexOf(b.source));
         else state.results.sort((a,b) => state.sort === 'date_desc' ? (b.date||'').localeCompare(a.date||'') : (a.date||'').localeCompare(b.date||''));
