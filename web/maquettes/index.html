@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8 maquettes · carte d’un article · Art. 145 CPC</title>
+<style>
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;--ok-bg:#dff0e3;
+ --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+:root[data-theme=dark]{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
+a{color:var(--teal);text-decoration:none}a:hover{color:var(--teal-l);text-decoration:underline}
+.serif{font-family:"DM Serif Display",Georgia,serif;font-weight:400}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+.h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--line);background:var(--white);position:sticky;top:0;z-index:5}
+.logo{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--teal)}
+.logo span{color:var(--muted)}
+.nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nav a{color:inherit}.nav a.on{color:var(--teal);font-weight:600}
+.app{display:flex;min-height:calc(100% - 56px)}
+.rail{width:248px;flex:none;border-right:1px solid var(--line);background:var(--white);padding:10px 8px 12px;display:flex;flex-direction:column;gap:1px;position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto;transition:width .15s}
+.rail.mini{width:60px}
+.rail.mini .lbl,.rail.mini .n,.rail.mini .sec{display:none}
+.rail .hd{display:flex;align-items:center;gap:10px;padding:8px 10px 10px;color:var(--muted)}
+.rail .sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--ink);width:100%;text-align:left}
+.ri:hover{background:var(--cream);text-decoration:none}
+.ri.on{background:var(--teal-xl);color:var(--teal);font-weight:600}
+.ri svg{flex:none}
+.ri .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);font-weight:400}
+.body{flex:1;min-width:0;padding:32px 56px 80px}
+@media (max-width:900px){.body{padding:20px 18px 80px}.rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}.rail.mini{width:52px}.app{padding-left:52px}.rail:not(.mini){width:248px}}
+.hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:80ch}
+.note{background:var(--warn-bg);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-size:12.5px}
+.alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
+.alert b{color:var(--bad)}
+.warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid currentColor;color:var(--c)}
+.back{font-size:12.5px;margin-bottom:12px;display:inline-block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+/* pastilles d'état, sources, rédactions : communs à toutes les maquettes */
+.st{display:inline-flex;align-items:center;gap:5px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px 1px 6px;border-radius:10px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st.ok{color:var(--ok)}.st.ab{color:var(--bad)}.st.q{color:var(--muted)}.st.q::before{background:transparent;border:1px solid currentColor;width:5px;height:5px}
+.src{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:0 5px;border-radius:3px;white-space:nowrap}
+.rd{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 7px;border-radius:3px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.rd.old{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.nor{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.honest{font-size:12.5px;color:var(--muted);padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-bg);border-radius:0 6px 6px 0}
+.honest b{color:var(--ink)}
+.dtin{padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;line-height:1.45;max-height:460px;overflow:auto;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0;white-space:pre-wrap}
+.alin{margin:0 0 .7em}.alin:last-child{margin-bottom:0}
+.alin .no{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);margin-right:8px}
+.notaBox{margin-top:12px;padding:9px 12px;background:var(--warn-bg);border-radius:6px;font-size:12.5px}
+.notaBox b{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:4px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+
+.list{max-width:860px;margin:40px auto;padding:0 20px}
+.m{display:grid;grid-template-columns:70px 1fr;gap:14px;padding:16px 0;border-top:1px solid var(--line);align-items:baseline}
+.m .k{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;color:var(--teal)}
+.m a.t{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--ink)}
+.m a.t:hover{color:var(--teal)}
+.m p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="top"><div class="logo">justicelibre<span>.org</span></div><div class="nav"><a href="../hub.html#/juris">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div></div>
+<div class="list">
+<p class="hero">Carte d’un article : 8 maquettes</p>
+<p class="lead">Même contenu (art. 145 CPC, données réelles extraites de LEGI et des quatre fonds de jurisprudence), huit structures différentes. Chaque page a son thème sombre par défaut et le bouton de thème du rail ; la date de lecture se change dans la page (<span class="mono">?date=1990-01-01</span> marche aussi).</p>
+<div class="m"><span class="k">carte-01</span><div><a class="t" href="carte-01.html">Dossier</a><p>Sections en cartes séparées, titres numérotés, bandeau de statut coloré, sommaire collant à droite. La carte se lit comme un dossier d’instruction : un onglet par question.</p></div></div><div class="m"><span class="k">carte-02</span><div><a class="t" href="carte-02.html">Frise centrale</a><p>Une seule timeline verticale au centre, de 1975 à aujourd’hui : codification, rédactions (texte replié dans l’événement), décret modificateur, décisions, textes citants sont des événements datés, alternés gauche/droite.</p></div></div><div class="m"><span class="k">carte-03</span><div><a class="t" href="carte-03.html">Trois colonnes</a><p>Amont à gauche, l’article au centre (statut, rédactions, texte replié derrière un titre cliquable), aval à droite ; la jurisprudence en pleine largeur dessous. On voit le flux gauche → article → droite d’un coup d’œil.</p></div></div><div class="m"><span class="k">carte-04</span><div><a class="t" href="carte-04.html">Onglets</a><p>En-tête riche (faits clés en grille) puis cinq onglets Amont / Texte / Aval / Jurisprudence / JSON. Une seule question à l’écran à la fois ; le texte se déplie dans son onglet.</p></div></div><div class="m"><span class="k">carte-05</span><div><a class="t" href="carte-05.html">Feed</a><p>Tout en flux, comme la page Jurisprudence du hub : une ligne meta monospace puis le sujet en serif, groupé par blocs à séparateur épais. Très dense, scannable de haut en bas, aucune boîte.</p></div></div><div class="m"><span class="k">carte-06</span><div><a class="t" href="carte-06.html">Graphe</a><p>Un schéma SVG des relations en tête (décrets → art. 145 → textes citants → décisions), cliquable : chaque nœud renvoie à sa liste détaillée dessous et la surligne. La carte se lit d’abord comme un réseau.</p></div></div><div class="m"><span class="k">carte-07</span><div><a class="t" href="carte-07.html">Tableau</a><p>Lecture de juriste : chaque section est un tableau à colonnes fixes (relation / texte / date / NOR / état / rédaction / source). Zéro décoration, hiérarchie par la typographie et les filets ; le texte se déplie dans sa cellule.</p></div></div><div class="m"><span class="k">carte-08</span><div><a class="t" href="carte-08.html">Focus texte</a><p>La rédaction à la date occupe le centre, repliée en trois lignes cliquables ; tout le contexte est en notes latérales numérotées, comme un code annoté. Le texte d’abord, l’appareil critique en marge.</p></div></div>
+</div>
+</body>
+</html>

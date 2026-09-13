@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette 07 · Tableau · Art. 145 CPC</title>
+<style>
+:root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;--ok-bg:#dff0e3;
+ --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+:root[data-theme=dark]{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--ok-bg:#1d3a28;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
+a{color:var(--teal);text-decoration:none}a:hover{color:var(--teal-l);text-decoration:underline}
+.serif{font-family:"DM Serif Display",Georgia,serif;font-weight:400}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+.h5{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--line);background:var(--white);position:sticky;top:0;z-index:5}
+.logo{font-family:"DM Serif Display",Georgia,serif;font-size:20px;color:var(--teal)}
+.logo span{color:var(--muted)}
+.nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nav a{color:inherit}.nav a.on{color:var(--teal);font-weight:600}
+.app{display:flex;min-height:calc(100% - 56px)}
+.rail{width:248px;flex:none;border-right:1px solid var(--line);background:var(--white);padding:10px 8px 12px;display:flex;flex-direction:column;gap:1px;position:sticky;top:56px;height:calc(100vh - 56px);overflow:auto;transition:width .15s}
+.rail.mini{width:60px}
+.rail.mini .lbl,.rail.mini .n,.rail.mini .sec{display:none}
+.rail .hd{display:flex;align-items:center;gap:10px;padding:8px 10px 10px;color:var(--muted)}
+.rail .sec{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--ink);width:100%;text-align:left}
+.ri:hover{background:var(--cream);text-decoration:none}
+.ri.on{background:var(--teal-xl);color:var(--teal);font-weight:600}
+.ri svg{flex:none}
+.ri .n{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);font-weight:400}
+.body{flex:1;min-width:0;padding:32px 56px 80px}
+@media (max-width:900px){.body{padding:20px 18px 80px}.rail{position:fixed;left:0;z-index:6;box-shadow:2px 0 12px rgba(0,0,0,.08)}.rail.mini{width:52px}.app{padding-left:52px}.rail:not(.mini){width:248px}}
+.hero{font-family:"DM Serif Display",Georgia,serif;font-size:30px;margin:0 0 4px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:80ch}
+.note{background:var(--warn-bg);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-size:12.5px}
+.alert{background:var(--bad-bg);border:2px solid var(--bad);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:13.5px;display:flex;gap:12px;align-items:flex-start}
+.alert b{color:var(--bad)}
+.warnp{font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--warn);color:var(--warn);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid currentColor;color:var(--c)}
+.back{font-size:12.5px;margin-bottom:12px;display:inline-block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+/* pastilles d'état, sources, rédactions : communs à toutes les maquettes */
+.st{display:inline-flex;align-items:center;gap:5px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 8px 1px 6px;border-radius:10px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st.ok{color:var(--ok)}.st.ab{color:var(--bad)}.st.q{color:var(--muted)}.st.q::before{background:transparent;border:1px solid currentColor;width:5px;height:5px}
+.src{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:0 5px;border-radius:3px;white-space:nowrap}
+.rd{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;padding:1px 7px;border-radius:3px;background:var(--teal-xl);color:var(--teal);white-space:nowrap}
+.rd.old{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.nor{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.honest{font-size:12.5px;color:var(--muted);padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-bg);border-radius:0 6px 6px 0}
+.honest b{color:var(--ink)}
+.dtin{padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;line-height:1.45;max-height:460px;overflow:auto;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0;white-space:pre-wrap}
+.alin{margin:0 0 .7em}.alin:last-child{margin-bottom:0}
+.alin .no{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);margin-right:8px}
+.notaBox{margin-top:12px;padding:9px 12px;background:var(--warn-bg);border-radius:6px;font-size:12.5px}
+.notaBox b{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:4px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+
+/* ── propre à la maquette ── */
+
+.tb-wrap{max-width:1180px}
+h2.sec{font-family:"DM Serif Display",Georgia,serif;font-weight:400;font-size:20px;margin:30px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--ink);display:flex;align-items:baseline;gap:12px}
+h2.sec .s{font-family:"DM Sans",system-ui,sans-serif;font-size:12px;color:var(--muted)}
+h2.sec .num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.tbx{overflow-x:auto}
+table.tb{border-collapse:collapse;font-size:13px;width:100%;min-width:760px}
+table.tb td,table.tb th{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--muted);white-space:nowrap}
+table.tb td.rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--teal);white-space:nowrap}
+table.tb td.t a{font-weight:600;color:var(--ink)}
+table.tb td.t .x{display:block;font-size:12px;color:var(--muted);margin-top:2px;max-width:60ch}
+table.tb td.d{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;white-space:nowrap}
+table.tb tr.old td{background:var(--warn-bg)}
+table.tb tr.cur td{background:var(--teal-xl)}
+table.tb td.txt{font-size:13.5px;line-height:1.55}
+.tgl{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--teal);border:1px solid var(--teal);border-radius:3px;padding:2px 8px;white-space:nowrap}
+.tgl:hover{background:var(--teal-xl)}
+.tfull{display:none;margin-top:8px}
+.tfull.open{display:block}
+.tres{color:var(--muted)}
+tr.open .tres{display:none}
+.kvh{display:grid;grid-template-columns:max-content 1fr;gap:4px 18px;font-size:13.5px;margin:10px 0 0;max-width:760px}
+.kvh b{font-weight:500;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted);margin-top:6px}
+
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">justicelibre<span>.org</span></div>
+  <div class="nav"><a href="../hub.html#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+</div>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <main class="body" id="body"><p class="lead"><span class="spin"></span> Chargement de la carte…</p></main>
+</div>
+<div class="proto">maquette 07 · Tableau · <a href="index.html">les 8</a></div>
+<script>
+
+function render(M){
+  const cur = M.cur;
+  const tr = x => `<tr><td class="rel">${esc(x.rel)}</td><td class="t"><a href="${x.href}">${esc(x.titre)}</a>${x.long?`<span class="x">${esc(x.long)}</span>`:''}${x.extrait?`<span class="x">${esc(x.extrait)}</span>`:''}</td><td class="d">${x.date?fmtCourt(x.date):'<span class="muted">non renseignée</span>'}</td><td class="nor">${x.nor?esc(x.nor):'non renseigné'}</td><td>${pill(x.st)}</td><td>${rdChip(x.v, M)}</td><td><a class="src" href="${x.lf}">LEGI ↗</a></td></tr>`;
+  const TH = `<tr><th>Relation</th><th>Texte</th><th>Date</th><th>NOR</th><th>État</th><th>Rédaction rattachée</th><th>Source</th></tr>`;
+  $('#body').innerHTML = `<div class="tb-wrap"><a class="back" href="${HUB}#/textes">← Textes</a>
+  <p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)}</p>
+  <div class="kvh"><b>État</b><span>${pill({k:'ok',label:'en vigueur'})} depuis le ${fmtDate(cur.date_debut)} <span class="src">LEGI · ${esc(cur.legiarti)}</span></span><b>Rédactions</b><span>${M.versions.length} depuis ${fmtDate(M.versions[0].date_debut)} · ${M.recycled?'<span class="warnp">numéro recyclé</span>':'même objet depuis l’origine (pas de recyclage de numéro)'}</span><b>Lu au</b><span><input type="date" id="atDate" class="dtin" value="${M.at}"> <span class="muted">changer la date recharge la carte</span></span><b>Détail</b><span><a href="${HUB}#/article/${M.code}/${M.num}">page détaillée (diff mot à mot, histoire) →</a></span></div>
+
+  <h2 class="sec"><span class="num">I.</span>D’où il vient <span class="s">amont · ${M.amont.length} liens LEGI</span></h2>
+  <div class="tbx"><table class="tb">${TH}${M.amont.map(tr).join('')}</table></div>
+
+  <h2 class="sec"><span class="num">II.</span>Rédactions <span class="s">${M.versions.length} · la ligne surlignée est celle lue au ${fmtCourt(M.at)}</span></h2>
+  <div class="tbx"><table class="tb"><tr><th>Période</th><th>État</th><th>Mots communs</th><th>Texte</th><th>Source</th></tr>
+    ${M.versions.map((v,i)=>`<tr class="${v===cur?'cur':''}" id="r${i}"><td class="d">${fmtCourt(v.date_debut)}<br>→ ${fmtCourt(v.date_fin)}${v!==cur?`<br><a href="?date=${v.date_debut}">lire à cette date</a>`:''}</td><td>${pill(v.etat.startsWith('VIGUEUR')?{k:'ok',label:'en vigueur'}:{k:'ab',label:'abrogé le '+fmtCourt(v.date_fin)})}<br><span class="mono muted" style="font-size:10.5px">${esc(v.etat)}</span></td><td class="d">${M.sims[i]!==null?Math.round(M.sims[i]*100)+' %':'<span class="muted">origine</span>'}</td><td class="txt"><button class="tgl" data-r="${i}">▶ ${M.alineas(v).length} alinéas${v.nota?' + Nota':''}</button> <span class="tres">${esc(M.resume(v))}</span><div class="tfull" id="tf${i}">${texteHTML(v, M)}</div></td><td><a class="src" href="https://www.legifrance.gouv.fr/codes/article_lc/${v.legiarti}">Légifrance ↗</a><br><span class="mono muted" style="font-size:10.5px">${esc(v.legiarti)}</span></td></tr>`).join('')}</table></div>
+
+  <h2 class="sec"><span class="num">III.</span>Ce qui en dépend <span class="s">aval</span></h2>
+  <div class="h5" style="margin:10px 0 4px">Textes d’application</div>
+  ${M.appli.length ? `<div class="tbx"><table class="tb">${TH}${M.appli.map(tr).join('')}</table></div>` : `<div class="honest">${HONEST(M.num)}</div>`}
+  <div class="h5" style="margin:16px 0 4px">Textes qui le citent · ${M.citeTx.length}</div>
+  <div class="tbx"><table class="tb">${TH}${M.citeTx.map(tr).join('')}</table></div>
+
+  <h2 class="sec"><span class="num">IV.</span>Jurisprudence qui le cite <span class="s">${M.juri.length} décisions vérifiées · les lignes ambrées relèvent d’une rédaction antérieure à celle lue</span></h2>
+  <div class="tbx"><table class="tb"><tr><th>Source</th><th>Juridiction</th><th>Date</th><th>Numéro</th><th>Publication</th><th>Rédaction applicable</th><th>Extrait</th></tr>
+    ${M.juri.map(x=>`<tr class="${x.differs&&x.v?'old':''}"><td><span class="src">${esc(SRC[x.source])}</span></td><td class="t"><a href="${x.href}">${esc(x.juridiction)}</a></td><td class="d">${fmtCourt(x.date)}</td><td class="d">${esc(x.numero)}</td><td>${x.publication?esc(x.publication):'<span class="muted">non renseignée</span>'}</td><td>${x.v?rdChip(x.v, M):'<span class="st q">hors rédaction connue</span>'}${x.differs&&x.v?'<br><span class="warnp">antérieure à celle lue</span>':''}</td><td style="font-size:12.5px;color:var(--muted)">« ${esc(x.extract)} »</td></tr>`).join('')}</table></div>
+  <div class="foot"><b class="mono" style="color:var(--ink)">${nb(M.C.total_lexical)}</b> pages lexicales brutes (${Object.entries(M.C.per_source).map(([k,v])=>`${k} ${nb(v)}`).join(', ')}). ${esc(M.C.avertissement)} Requête : <span class="mono">${esc(M.C.requete)}</span> · <a href="${M.searchHref}">tout voir →</a></div>
+
+  <div class="h5" style="margin:18px 0 4px">Homonymes écartés · ${M.homos.length}</div>
+  <div class="tbx"><table class="tb"><tr><th>Source</th><th>Juridiction</th><th>Date</th><th>Numéro</th><th>Motif d’exclusion</th></tr>
+    ${M.homos.map(x=>`<tr><td><span class="src">${esc(SRC[x.source])}</span></td><td><a class="muted" href="${x.href}">${esc(x.juridiction)}</a></td><td class="d">${fmtCourt(x.date)}</td><td class="d">${esc(x.numero)}</td><td>${esc(x.pourquoi)}</td></tr>`).join('')}</table></div>
+
+  <h2 class="sec"><span class="num">V.</span>La même carte pour un LLM <span class="s">un seul appel MCP</span></h2>
+  <div style="display:flex;gap:10px;margin:8px 0"><button class="btn ghost" id="jsonTog">afficher le JSON</button><button class="btn ghost" id="jsonCopy">copier</button></div><pre class="json" id="jsonOut" hidden>${esc(JSON.stringify(M.objet, null, 1))}</pre></div>`;
+  $$('.tgl').forEach(b => b.onclick = () => { const i = b.dataset.r; $('#tf'+i).classList.toggle('open'); $('#r'+i).classList.toggle('open'); b.textContent = ($('#tf'+i).classList.contains('open') ? '▼ ' : '▶ ') + b.textContent.slice(2); });
+  $('#jsonTog').onclick = () => { const j = $('#jsonOut'); j.hidden = !j.hidden; $('#jsonTog').textContent = j.hidden ? 'afficher le JSON' : 'masquer le JSON'; };
+  $('#jsonCopy').onclick = () => copyJson(M, $('#jsonCopy'));
+}
+
+
+/* ───── mécanique commune aux maquettes (copiée de hub.html) ───── */
+{ const t = new URLSearchParams(location.search).get('theme'); let th = t;
+  if (!th) { try { th = localStorage.getItem('hub-theme'); } catch {} }
+  if (th === 'light' || th === 'dark') { document.documentElement.dataset.theme = th; try { localStorage.setItem('hub-theme', th); } catch {} }
+  else if (t === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+  else { document.documentElement.dataset.theme = 'dark'; } }
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MOISC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function fmtDate(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3]} ${MOIS[+m[2]-1]} ${m[1]}`; }
+function fmtCourt(iso){ if(!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return iso; if(m[1]==='2999') return 'sans limite'; return `${+m[3]} ${MOISC[+m[2]-1]} ${m[1]}`; }
+function nb(n){ return Number(n).toLocaleString('fr-FR'); }
+const words = t => (t||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w => w.length > 2);
+function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (!A.size && !B.size) return 1; let i = 0; for (const w of A) if (B.has(w)) i++; return i / (A.size + B.size - i); }
+const ICO = {
+  menu:'M4 7h16M4 12h16M4 17h16',
+  scale:'M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zm10 0l-3 7a3 3 0 0 0 6 0l-3-7z',
+  book:'M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z',
+  chat:'M4 5h16v11H8l-4 4z', hall:'M3 21h18M5 21V10M19 21V10M9 21v-6h6v6M12 3l9 6H3z',
+  people:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8 0',
+  check:'M4 12l5 5L20 6', plug:'M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5',
+};
+const ico = k => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${ICO[k]}"/></svg>`;
+const HUB = '../hub.html';
+const SCOPES = [ {k:'juris',icon:'scale',label:'Jurisprudence',n:'4,3 M'}, {k:'textes',icon:'book',label:'Textes',n:'3,4 M'}, {k:'travaux',icon:'chat',label:'Travaux préparatoires',n:''}, {k:'avis',icon:'hall',label:'Avis & doctrine',n:'109 k'}, {k:'annuaire',icon:'people',label:'Annuaire',n:'75 k'} ];
+let railMini = false; try { railMini = localStorage.getItem('jl.railMini') === '1'; } catch {}
+function renderRail(){
+  const r = $('#rail'); r.className = 'rail' + (railMini ? ' mini' : '');
+  let h = `<button class="hd" id="railToggle" title="Replier / déplier">${ico('menu')}<span class="logo lbl" style="font-size:18px">justicelibre</span></button><div class="sec">Chercher dans</div>`;
+  for (const s of SCOPES) h += `<a class="ri${s.k==='textes'?' on':''}" href="${HUB}#/${s.k}" title="${esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span>${s.n?`<span class="n">${s.n}</span>`:''}</a>`;
+  h += `<div class="sec">Outils</div><a class="ri" href="${HUB}#/citations">${ico('check')}<span class="lbl">Vérifier mes citations</span></a>`;
+  const th = document.documentElement.dataset.theme || 'system';
+  const thLabel = {light:'Thème clair', dark:'Thème sombre', system:'Thème : système'}[th];
+  h += `<div style="flex:1"></div><button class="ri" id="themeBtn" title="Sombre → système → clair" style="color:var(--muted);font-size:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg><span class="lbl">${thLabel}</span></button><a class="ri" style="color:var(--muted);font-size:12px" href="https://justicelibre.org/mcp.html">${ico('plug')}<span class="lbl">API · MCP · GitHub</span></a>`;
+  r.innerHTML = h;
+  $('#themeBtn').onclick = () => {
+    const next = {dark:'system', system:'light', light:'dark'}[document.documentElement.dataset.theme || 'system'];
+    if (next === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} }
+    else { document.documentElement.dataset.theme = next; try { localStorage.setItem('hub-theme', next); } catch {} }
+    renderRail();
+  };
+  $('#railToggle').onclick = () => { railMini = !railMini; try { localStorage.setItem('jl.railMini', railMini?'1':'0'); } catch {} renderRail(); };
+}
+/* ───── modèle de la carte : tout vient des deux JSON ───── */
+const REL = (l) => { const t = l.typelien, c = l.sens === 'cible';
+  return ({CODIFICATION:'codifié par', TXT_SOURCE:'texte d’origine', CREATION:'crée', CREE:'créé par', MODIFIE: c?'modifié par':'modifie', MODIFICATION:'modifie',
+    ABROGE: c?'abrogé par':'abroge', ABROGATION:'abroge', SPEC_APPLI:'texte d’application', TXT_ASSOCIE:'texte associé', CITATION: c?'cité par':'cite',
+    CONCORDANCE:'concorde avec', CONCORDE:'concorde avec', TRANSFERT:'transféré vers', TRANSFERE:'transféré depuis', PEREMPTION:'périmé par', TRANSPOSITION:'transpose', PILOTE_SUIVEUR:'suit'})[t] || t.toLowerCase(); };
+const AMONT = new Set(['CODIFICATION','TXT_SOURCE','CREATION','CREE','MODIFIE','ABROGE','TRANSFERE','CONCORDANCE','CONCORDE']);
+const NAT = {DECRET:'décret', ARRETE:'arrêté', LOI:'loi', ORDONNANCE:'ordonnance', CODE:'code', DIRECTIVE_EURO:'directive UE'};
+const SRC = {dila:'Judilibre · DILA', jade:'JADE · Conseil d’État', cedh:'HUDOC · Cour EDH', cjue:'CURIA · CJUE'};
+const FAMOF = {dila:'jud', jade:'adm', cedh:'eu', cjue:'eu'};
+const FAMLABEL = {jud:'judiciaire', adm:'administratif', eu:'européen'};
+function legifrance(l){ const id = l.id || l.cidtexte || '';
+  if (id.startsWith('JORFTEXT')) return `https://www.legifrance.gouv.fr/jorf/id/${id}`;
+  if (id.startsWith('LEGIARTI')) return (l.naturetexte==='CODE' ? 'https://www.legifrance.gouv.fr/codes/article_lc/' : 'https://www.legifrance.gouv.fr/loda/article_lc/') + id;
+  if (id.startsWith('LEGITEXT')) return `https://www.legifrance.gouv.fr/codes/texte_lc/${id}`;
+  return 'https://www.legifrance.gouv.fr/'; }
+async function loadModel(){
+  const get = async f => { const r = await fetch(f); if (!r.ok) throw new Error(`${f} : HTTP ${r.status}`); return r.json(); };
+  const [P, C] = await Promise.all([get('../hub_paysage_145.json'), get('../hub_cite_145.json')]);
+  const code = 'CPC', num = '145';
+  const versions = P.versions.slice().sort((x,y)=>x.date_debut.localeCompare(y.date_debut));
+  const cname = versions[0].titre_text;
+  const q = new URLSearchParams(location.search);
+  const today = new Date().toISOString().slice(0,10); const at = q.get('date') || today;
+  const cur = versions.find(v => v.date_debut <= at && (v.date_fin||'2999') > at) || versions.at(-1);
+  const sims = versions.map((v,i) => i ? jaccard(versions[i-1].texte, v.texte) : null);
+  const recycled = sims.some(s => s !== null && s < 0.25);
+  const res = P.resolus || {};
+  const stOf = (id) => { const r = res[id]; if (r === undefined) return null; if (r === null) return {k:'q', label:'non résolu', why:'identifiant LEGI/JORF absent de l’entrepôt'};
+    const e = (r.etat||'').toUpperCase(); if (!e) return null;
+    if (e === 'VIGUEUR') return {k:'ok', label:'en vigueur', why:`depuis le ${fmtDate(r.date_debut)}`};
+    if (e === 'VIGUEUR_DIFF') return {k:'ok', label: r.date_debut > at ? `en vigueur au ${fmtCourt(r.date_debut)}` : 'en vigueur', why:`rédaction différée : ${fmtDate(r.date_debut)}`};
+    if (e.startsWith('ABROG')) return {k:'ab', label:'abrogé' + (r.date_fin && r.date_fin < '2999' ? ' le ' + fmtCourt(r.date_fin) : ''), why:''};
+    return {k:'q', label:e.toLowerCase(), why:''}; };
+  const stLink = l => stOf(l.id) || stOf(l.cidtexte) || {k:'q', label:'non résolu', why:'identifiant absent de l’entrepôt'};
+  const entOf = l => res[l.cidtexte] || res[l.id] || null;
+  const seen = new Set();
+  const all = versions.flatMap(v => v.liens.map(l => ({l, v}))).filter(x => { const k = x.l.typelien+'|'+x.l.sens+'|'+(x.l.id||x.l.cidtexte); if (seen.has(k)) return false; seen.add(k); return true; });
+  const mk = x => { const l = x.l, e = entOf(l); const art = res[l.id] && res[l.id].extrait ? res[l.id] : null;
+    return { l, v: x.v, rel: REL(l), nature: NAT[l.naturetexte] || (l.naturetexte||'').toLowerCase(), titre: l.libelle || l.id,
+      long: e && e.titre_long && e.titre_long !== l.libelle ? e.titre_long : '', date: l.datesignatexte && l.datesignatexte < '2999' ? l.datesignatexte : '',
+      nor: l.nortexte || (e && e.nor) || '', st: stLink(l), href: (l.id||'').startsWith('LEGIARTI') && l.naturetexte==='CODE' ? `${HUB}#/article/${code}/${encodeURIComponent(l.num||'')}` : `${HUB}#/texte/${l.cidtexte||l.id}`,
+      lf: legifrance(l), extrait: art ? art.extrait : '', id: l.id || l.cidtexte, isCur: x.v === cur }; };
+  const amont = all.filter(x => AMONT.has(x.l.typelien)).map(mk);
+  const appli = all.filter(x => ['SPEC_APPLI','TXT_ASSOCIE'].includes(x.l.typelien)).map(mk);
+  const cite  = all.filter(x => x.l.typelien==='CITATION' && x.l.sens==='source').map(mk);
+  const citeTx = all.filter(x => x.l.typelien==='CITATION' && x.l.sens==='cible').map(mk);
+  const ids = new Set(citeTx.map(x => x.id));
+  for (const t of (P.cite_par_textes||[])) { if (ids.has(t.legiarti)) continue; ids.add(t.legiarti);
+    const l = {id:t.legiarti, cidtexte:t.legitext, naturetexte: t.titre_text.startsWith('Code') ? 'CODE' : 'DECRET', num:t.num, sens:'cible', typelien:'CITATION', libelle:`${t.titre_text} - art. ${t.num}`, datesignatexte:''};
+    const m = mk({l, v: cur}); m.rel = t.via.map(v => REL({typelien:v.typelien, sens:'cible'})).join(', '); m.viaTxt = 'lien porté par l’autre texte'; citeTx.push(m); }
+  const verAt = d => versions.find(v => v.date_debut <= d && (v.date_fin||'2999') > d);
+  const juri = (C.pertinentes||[]).map(x => { const v = verAt(x.date); return {...x, v, differs: v !== cur, href:`${HUB}#/decision/${x.source}/${encodeURIComponent(x.id)}`, fam: FAMOF[x.source]||'jud'}; });
+  const homos = (C.homonymes||[]).map(x => ({...x, href:`${HUB}#/decision/${x.source}/${encodeURIComponent(x.id)}`, fam: FAMOF[x.source]||'jud'}));
+  const objet = {article:{code, num, legitext:versions[0].legitext}, lu_au: at,
+    redactions:versions.map((v,i)=>({legiarti:v.legiarti, du:v.date_debut, au:v.date_fin, etat:v.etat, mots_communs_avec_precedente: sims[i]===null?null:Math.round(sims[i]*100), texte:v.texte, nota:v.nota||null})),
+    recyclage:recycled, amont:amont.map(x=>({relation:x.rel, ...x.l, etat_resolu:x.st.label, redaction:x.v.date_debut})),
+    textes_application:appli.map(x=>x.l), couverture_textes_application:{arretes_en_vigueur_avec_lien:313, arretes_en_vigueur:68811},
+    cite:cite.map(x=>x.l), cite_par_textes:citeTx.map(x=>({relation:x.rel, ...x.l, etat_resolu:x.st.label})),
+    cite_par_jurisprudence:{requete:C.requete, total_lexical:C.total_lexical, par_source:C.per_source, avertissement:C.avertissement,
+      verifiees:juri.map(x=>({source:x.source, id:x.id, juridiction:x.juridiction, date:x.date, numero:x.numero, publication:x.publication||null, redaction_applicable:x.v?x.v.date_debut:null, extract:x.extract})), homonymes_ecartes:C.homonymes}};
+  const alineas = v => (v.texte||'').split(/(?<=\.)\s+(?=[A-Z])/);
+  const resume = v => { const t = v.texte||''; return t.length > 120 ? t.slice(0, 117).replace(/\s+\S*$/, '') + '…' : t; };
+  const searchHref = `${HUB}#/recherche?q=${encodeURIComponent('"article 145" "code de procédure civile"')}&scope=juris`;
+  return {P, C, code, num, cname, versions, at, today, cur, sims, recycled, amont, appli, cite, citeTx, juri, homos, objet, alineas, resume, searchHref, res, stOf};
+}
+function bindDate(){ const i = $('#atDate'); if (!i) return; i.onchange = e => { const q = new URLSearchParams(location.search); q.set('date', e.target.value); location.search = q.toString(); }; }
+function copyJson(M, btn){ try { navigator.clipboard.writeText(JSON.stringify(M.objet, null, 1)).then(() => { btn.textContent = 'copié'; setTimeout(() => btn.textContent = 'copier', 1500); }); } catch { btn.textContent = 'copie impossible'; } }
+function pill(st){ return `<span class="st ${st.k}" title="${esc(st.why||'')}">${esc(st.label)}</span>`; }
+function rdChip(v, M){ return `<span class="rd${v===M.cur?'':' old'}" title="rédaction ${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)}">rédaction ${v.date_debut.slice(0,4)}${v===M.cur?' · lue':''}</span>`; }
+function texteHTML(v, M){ return M.alineas(v).map((a,i)=>`<p class="alin"><span class="no">al. ${i+1}</span>${esc(a)}</p>`).join('') + (v.nota ? `<div class="notaBox"><b>Nota.</b> ${esc(v.nota)}</div>` : ''); }
+const HONEST = (num) => `Aucun décret ni arrêté d’application relié dans LEGI (liens <span class="mono">SPEC_APPLI</span> / <span class="mono">TXT_ASSOCIE</span>). Ce n’est <b>pas</b> la preuve qu’il n’y en a pas : seuls <b>313</b> arrêtés en vigueur sur <b>68 811</b> portent ce type de lien dans la base. À compléter par la recherche des visas (« Vu … l’article ${num} »).`;
+renderRail();
+loadModel().then(M => { window.M = M; render(M); bindDate(); }).catch(e => { $('#body').innerHTML = `<div class="alert">⚠ <div><b>Chargement impossible.</b> ${esc(e.message)}<br><span class="muted">Les JSON sont attendus à <span class="mono">../hub_paysage_145.json</span> et <span class="mono">../hub_cite_145.json</span> (servis par http://localhost:8787).</span></div></div>`; });
+
+</script>
+</body>
+</html>
