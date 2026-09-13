@@ -687,6 +687,9 @@ class TokenHandler(BaseHTTPRequestHandler):
         # sources renvoyaient bien un 404.
         if not data or (isinstance(data, dict) and data.get("error")):
             return self._html_response(404, render_decision_404(source, decision_id))
+        # Aiguillage v2 (JL_SSR_V2=1) : même signature, même head SEO.
+        if os.environ.get("JL_SSR_V2") == "1":
+            from ssr_v2 import render_decision as render_decision
         html = render_decision(source, decision_id, data)
         return self._html_response(200, html, cache_seconds=86400)
 
@@ -753,6 +756,8 @@ class TokenHandler(BaseHTTPRequestHandler):
             data = None
         if not data:
             return self._html_response(404, render_law_404(code, num))
+        if os.environ.get("JL_SSR_V2") == "1":          # aiguillage v2
+            from ssr_v2 import render_law as render_law
         return self._html_response(200, render_law(code, num, data), cache_seconds=86400)
 
     def _html_response(self, code: int, html: str, cache_seconds: int = 0):
