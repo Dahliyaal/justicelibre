@@ -1,0 +1,277 @@
+{
+ "versions": [
+  {
+   "rowid": 1653730,
+   "legiarti": "LEGIARTI000006410268",
+   "legitext": "LEGITEXT000006070716",
+   "num": "145",
+   "titre_text": "Code de procédure civile",
+   "etat": "ABROGE_DIFF",
+   "date_debut": "1976-01-01",
+   "date_fin": "2025-09-01",
+   "texte": "S'il existe un motif légitime de conserver ou d'établir avant tout procès la preuve de faits dont pourrait dépendre la solution d'un litige, les mesures d'instruction légalement admissibles peuvent être ordonnées à la demande de tout intéressé, sur requête ou en référé.",
+   "nota": "",
+   "jorftext": "LEGITEXT000006070716",
+   "hierarchie": "[{\"id\":\"LEGISCTA000006089127\",\"titre\":\"Livre Ier : Dispositions communes à toutes les juridictions\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006117228\",\"titre\":\"Titre VII : L'administration judiciaire de la preuve.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006135870\",\"titre\":\"Sous-titre II : Les mesures d'instruction.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006149653\",\"titre\":\"Chapitre Ier : Dispositions générales.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006165183\",\"titre\":\"Section I : Décisions ordonnant des mesures d'instruction.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"}]",
+   "liens": [
+    {
+     "cidtexte": "JORFTEXT000000507244",
+     "datesignatexte": "1975-12-05",
+     "id": "JORFTEXT000000507244",
+     "naturetexte": "DECRET",
+     "numtexte": "75-1123",
+     "sens": "source",
+     "typelien": "CODIFICATION",
+     "libelle": "Décret 75-1123 1975-12-05 JORF 9 décembre 1975 rectificatif JORF 27 janvier 1976"
+    },
+    {
+     "cidtexte": "JORFTEXT000037800540",
+     "datesignatexte": "2018-12-11",
+     "id": "LEGIARTI000037801718",
+     "naturetexte": "DECRET",
+     "nortexte": "JUSC1821661D",
+     "num": "1",
+     "numtexte": "2018-1126",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Décret n°2018-1126 du 11 décembre 2018 - art. 1"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000039386190",
+     "naturetexte": "CODE",
+     "num": "1449",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 1449 (V)"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000054560935",
+     "naturetexte": "CODE",
+     "num": "495",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 495 (VD)"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000054560939",
+     "naturetexte": "CODE",
+     "num": "496",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 496 (VD)"
+    }
+   ],
+   "ancien_id": "PBAXXXXXXXX5X0145AAAXXAA",
+   "type_article": "AUTONOME"
+  },
+  {
+   "rowid": 1658151,
+   "legiarti": "LEGIARTI000051869339",
+   "legitext": "LEGITEXT000006070716",
+   "num": "145",
+   "titre_text": "Code de procédure civile",
+   "etat": "VIGUEUR_DIFF",
+   "date_debut": "2025-09-01",
+   "date_fin": "2999-01-01",
+   "texte": "S'il existe un motif légitime de conserver ou d'établir avant tout procès la preuve de faits dont pourrait dépendre la solution d'un litige, les mesures d'instruction légalement admissibles peuvent être ordonnées à la demande de tout intéressé, sur requête ou en référé. La juridiction territorialement compétente pour statuer sur une demande formée en application du premier alinéa est, au choix du demandeur, celle susceptible de connaître de l'affaire au fond ou, s'il y a lieu, celle dans le ressort de laquelle la mesure d'instruction doit être exécutée. Par dérogation au deuxième alinéa, lorsque la mesure d'instruction porte sur un immeuble, la juridiction du lieu où est situé l'immeuble est seule compétente.",
+   "nota": "Conformément au I de l'article 14 du décret n° 2025-619 du 8 juillet 2025, sous réserve des dispositions d'entrée en vigueur prévues par la loi du 13 juin 2024 suvisée pour l'article 10, ces dispositions entrent en vigueur le 1 er septembre 2025 et sont applicables aux seules instances introduites et aux seules déclarations d'appel formées à compter de cette même date.",
+   "jorftext": "LEGITEXT000006070716",
+   "hierarchie": "[{\"id\":\"LEGISCTA000006089127\",\"titre\":\"Livre Ier : Dispositions communes à toutes les juridictions\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006117228\",\"titre\":\"Titre VII : L'administration judiciaire de la preuve.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006135870\",\"titre\":\"Sous-titre II : Les mesures d'instruction.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006149653\",\"titre\":\"Chapitre Ier : Dispositions générales.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"},{\"id\":\"LEGISCTA000006165183\",\"titre\":\"Section I : Décisions ordonnant des mesures d'instruction.\",\"debut\":\"1976-01-01\",\"fin\":\"2999-01-01\"}]",
+   "liens": [
+    {
+     "cidtexte": "JORFTEXT000000507244",
+     "datesignatexte": "1975-12-05",
+     "id": "JORFTEXT000000507244",
+     "naturetexte": "DECRET",
+     "numtexte": "75-1123",
+     "sens": "source",
+     "typelien": "CODIFICATION",
+     "libelle": "Décret n° 75-1123 du 5 décembre 1975"
+    },
+    {
+     "cidtexte": "JORFTEXT000037800540",
+     "datesignatexte": "2018-12-11",
+     "id": "LEGIARTI000037801718",
+     "naturetexte": "DECRET",
+     "nortexte": "JUSC1821661D",
+     "num": "1",
+     "numtexte": "2018-1126",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Décret n°2018-1126 du 11 décembre 2018 - art. 1"
+    },
+    {
+     "cidtexte": "JORFTEXT000051861897",
+     "datesignatexte": "2025-07-08",
+     "id": "LEGIARTI000051863450",
+     "naturetexte": "DECRET",
+     "nortexte": "JUSC2512289D",
+     "num": "4",
+     "numtexte": "2025-619",
+     "sens": "cible",
+     "typelien": "MODIFIE",
+     "libelle": "Décret n°2025-619 du 8 juillet 2025 - art. 4"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000039386190",
+     "naturetexte": "CODE",
+     "num": "1449",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 1449 (V)"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000054560935",
+     "naturetexte": "CODE",
+     "num": "495",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 495 (VD)"
+    },
+    {
+     "cidtexte": "LEGITEXT000006070716",
+     "datesignatexte": "2999-01-01",
+     "id": "LEGIARTI000054560939",
+     "naturetexte": "CODE",
+     "num": "496",
+     "sens": "cible",
+     "typelien": "CITATION",
+     "libelle": "Code de procédure civile - art. 496 (VD)"
+    }
+   ],
+   "ancien_id": "",
+   "type_article": "AUTONOME"
+  }
+ ],
+ "resolus": {
+  "JORFTEXT000000507244": null,
+  "JORFTEXT000037800540": {
+   "legitext": "LEGITEXT000037801701",
+   "titre": "Décret n°2018-1126 du 11 décembre 2018",
+   "titre_long": "Décret n° 2018-1126 du 11 décembre 2018 relatif à la protection du secret des affaires",
+   "nature": "DECRET",
+   "etat": "VIGUEUR",
+   "date_debut": "2018-12-14",
+   "date_fin": "2999-01-01",
+   "date_texte": "2018-12-11",
+   "nor": "JUSC1821661D",
+   "num_jorf": ""
+  },
+  "LEGIARTI000037801718": {
+   "legiarti": "LEGIARTI000037801718",
+   "legitext": "LEGITEXT000037801701",
+   "num": "1",
+   "titre_text": "Décret n°2018-1126 du 11 décembre 2018",
+   "etat": "",
+   "date_debut": "2999-01-01",
+   "date_fin": "2999-01-01",
+   "extrait": "A créé les dispositions suivantes : - Code de commerce Sct. TITRE V : De la protection du secret des affaires, Sct. Chapitre Ier : De l'objet et des conditions de la protection , Sct. Chapitre II : Des actions en prévention, en cessation ou en réparation d'une atteinte au secret des affaires , Art. R152-1, Sct. Chapitre III : Des mesures générales de protection du secret des affaires devant les ju"
+  },
+  "LEGITEXT000006070716": {
+   "legitext": "LEGITEXT000006070716",
+   "titre": "Code de procédure civile",
+   "titre_long": "Code de procédure civile",
+   "nature": "CODE",
+   "etat": "VIGUEUR",
+   "date_debut": "1976-01-01",
+   "date_fin": "2999-01-01",
+   "date_texte": "2999-01-01",
+   "nor": "",
+   "num_jorf": ""
+  },
+  "LEGIARTI000039386190": {
+   "legiarti": "LEGIARTI000039386190",
+   "legitext": "LEGITEXT000006070716",
+   "num": "1449",
+   "titre_text": "Code de procédure civile",
+   "etat": "VIGUEUR",
+   "date_debut": "2020-01-01",
+   "date_fin": "2999-01-01",
+   "extrait": "L'existence d'une convention d'arbitrage ne fait pas obstacle, tant que le tribunal arbitral n'est pas constitué, à ce qu'une partie saisisse une juridiction de l'Etat aux fins d'obtenir une mesure d'instruction ou une mesure provisoire ou conservatoire. Sous réserve des dispositions régissant les saisies conservatoires et les sûretés judiciaires, la demande est portée devant le président du tribu"
+  },
+  "LEGIARTI000054560935": {
+   "legiarti": "LEGIARTI000054560935",
+   "legitext": "LEGITEXT000006070716",
+   "num": "495",
+   "titre_text": "Code de procédure civile",
+   "etat": "VIGUEUR_DIFF",
+   "date_debut": "2026-10-01",
+   "date_fin": "2999-01-01",
+   "extrait": "L'ordonnance sur requête est motivée. Elle est exécutoire au seul vu de la minute. Copie de la requête et de l'ordonnance est laissée à la personne à laquelle elle est opposée. A peine de caducité relevée d'office, l'ordonnance prononcée sur le fondement de l'article 145 est exécutée dans les trois mois à compter de sa date, sauf pour le juge à fixer un délai d'exécution différent."
+  },
+  "LEGIARTI000054560939": {
+   "legiarti": "LEGIARTI000054560939",
+   "legitext": "LEGITEXT000006070716",
+   "num": "496",
+   "titre_text": "Code de procédure civile",
+   "etat": "VIGUEUR_DIFF",
+   "date_debut": "2026-10-01",
+   "date_fin": "2999-01-01",
+   "extrait": "S'il n'est pas fait droit à la requête, appel peut être interjeté à moins que l'ordonnance n'émane du premier président de la cour d'appel. Le délai d'appel est de quinze jours. L'appel est formé, instruit et jugé comme en matière gracieuse. S'il est fait droit à la requête, tout intéressé peut en référer au juge qui a rendu l'ordonnance. A peine d'irrecevabilité, lorsque l'ordonnance prononcée su"
+  },
+  "JORFTEXT000051861897": {
+   "legitext": "LEGITEXT000051863422",
+   "titre": "Décret n°2025-619 du 8 juillet 2025",
+   "titre_long": "Décret n° 2025-619 du 8 juillet 2025 portant diverses mesures de simplification de la procédure civile",
+   "nature": "DECRET",
+   "etat": "VIGUEUR",
+   "date_debut": "2025-09-01",
+   "date_fin": "2999-01-01",
+   "date_texte": "2025-07-08",
+   "nor": "JUSC2512289D",
+   "num_jorf": ""
+  },
+  "LEGIARTI000051863450": {
+   "legiarti": "LEGIARTI000051863450",
+   "legitext": "LEGITEXT000051863422",
+   "num": "4",
+   "titre_text": "Décret n°2025-619 du 8 juillet 2025",
+   "etat": "",
+   "date_debut": "2999-01-01",
+   "date_fin": "2999-01-01",
+   "extrait": "A modifié les dispositions suivantes : - Code de procédure civile Art. 145"
+  }
+ },
+ "cite_par_textes": [
+  {
+   "legiarti": "LEGIARTI000051863450",
+   "legitext": "LEGITEXT000051863422",
+   "num": "4",
+   "titre_text": "Décret n°2025-619 du 8 juillet 2025",
+   "etat": "",
+   "date_debut": "2999-01-01",
+   "date_fin": "2999-01-01",
+   "via": [
+    {
+     "typelien": "MODIFIE",
+     "sens": "source"
+    }
+   ]
+  },
+  {
+   "legiarti": "LEGIARTI000039386190",
+   "legitext": "LEGITEXT000006070716",
+   "num": "1449",
+   "titre_text": "Code de procédure civile",
+   "etat": "VIGUEUR",
+   "date_debut": "2020-01-01",
+   "date_fin": "2999-01-01",
+   "via": [
+    {
+     "typelien": "CITATION",
+     "sens": "source"
+    }
+   ]
+  }
+ ]
+}

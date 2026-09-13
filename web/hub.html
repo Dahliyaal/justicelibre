@@ -599,6 +599,7 @@ function route(){
   const head = seg[0] || 'juris';   // plus d'accueil : on atterrit sur la jurisprudence
   if (head === 'decision') { state.scope='juris'; renderRail(); showDecision(seg[1], seg.slice(2).join('/')); return; }
   if (head === 'article')  { state.scope='textes'; state.sub='codes'; renderRail(); showArticle(seg[1], seg[2], p.get('date')); return; }
+  if (head === 'carte')    { state.scope='textes'; state.sub='codes'; renderRail(); showCarte(seg[1], seg[2], p.get('date')); return; }
   if (['citations','article-tool','suivre','manque'].includes(head)) { state.scope = head==='article-tool' ? 'article' : head; state.sub=''; renderRail(); renderTool(head); return; }
   if (head === 'recherche') { state.scope = p.get('scope') || 'juris'; state.sub = p.get('sub') || ''; renderRail(); runSearch(); return; }
   state.scope = head; state.sub = seg[1] || '';
@@ -1082,6 +1083,79 @@ function diffWords(a, b){
   while (i<n && j<m) { if (A[i]===B[j]) { out += esc(A[i]); i++; j++; } else if (dp[i+1][j] >= dp[i][j+1]) { out += `<del>${esc(A[i])}</del>`; i++; } else { out += `<ins>${esc(B[j])}</ins>`; j++; } }
   while (i<n) out += `<del>${esc(A[i++])}</del>`; while (j<m) out += `<ins>${esc(B[j++])}</ins>`;
   return out;
+}
+// ─── CARTE d'un article : l'amont, la rédaction à la date, l'aval, la jurisprudence — maquette sur données réelles (JSON extraits de LEGI le 13/09/2026)
+const REL = (l) => {
+  const t = l.typelien, c = l.sens === 'cible';
+  return ({CODIFICATION:'codifie', TXT_SOURCE:'texte d’origine', CREATION:'crée', CREE:'créé par', MODIFIE: c?'modifié par':'modifie', MODIFICATION:'modifie',
+           ABROGE: c?'abrogé par':'abroge', ABROGATION:'abroge', SPEC_APPLI:'texte d’application', TXT_ASSOCIE:'texte associé', CITATION: c?'cité par':'cite',
+           CONCORDANCE:'concorde avec', CONCORDE:'concorde avec', TRANSFERT:'transféré vers', TRANSFERE:'transféré depuis', PEREMPTION:'périmé par', TRANSPOSITION:'transpose', PILOTE_SUIVEUR:'suit'})[t] || t.toLowerCase();
+};
+const AMONT = new Set(['CODIFICATION','TXT_SOURCE','CREATION','CREE','MODIFIE','ABROGE','TRANSFERE','CONCORDANCE','CONCORDE']);
+const AVAL  = new Set(['SPEC_APPLI','TXT_ASSOCIE','CITATION','MODIFICATION','ABROGATION','TRANSFERT','PILOTE_SUIVEUR']);
+const NAT = {DECRET:'décret', ARRETE:'arrêté', LOI:'loi', ORDONNANCE:'ordonnance', CODE:'code', DIRECTIVE_EURO:'directive UE'};
+async function showCarte(code, num, date){
+  const b = $('#body'); const cname = (CODES.find(c=>c[0]===code)||[])[1] || ({CPC:'Code de procédure civile'})[code] || code;
+  b.innerHTML = `<a class="back" href="#/textes">← Textes</a><p class="hero">Art. ${esc(num)} · ${esc(cname)}</p><p class="lead"><span class="spin"></span> Chargement de la carte…</p>`;
+  if (!(code==='CPC' && num==='145')) { b.querySelector('.lead').innerHTML = `<span class="warnp">maquette</span> — la carte n’est câblée que sur l’art. 145 CPC (données extraites de LEGI). <a href="#/carte/CPC/145">Voir la carte de l’art. 145 →</a>`; return; }
+  let P, C; try { [P, C] = await Promise.all([fetch('hub_paysage_145.json').then(r=>r.json()), fetch('hub_cite_145.json').then(r=>r.json())]); } catch(e) { b.innerHTML += `<div class="alert">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  if (!document.getElementById('carteCss')) { const s = document.createElement('style'); s.id='carteCss'; s.textContent = `
+    .carte .sec{margin-top:26px} .carte .h5{display:flex;align-items:baseline;gap:10px} .carte .h5 .n{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0}
+    .carte .row{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+    .carte .row:last-child{border-bottom:0} .carte .rel{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+    .carte .st{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:1px 6px;border-radius:3px;border:1px solid var(--line);margin-left:6px;vertical-align:1px}
+    .carte .st.ok{color:#2a7d4f;border-color:#8fcaa6} .carte .st.ab{color:#a33;border-color:#e0a0a0} .carte .st.q{color:var(--muted)}
+    .carte .vchip{display:inline-block;padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;margin:4px 6px 0 0;cursor:pointer} .carte .vchip.cur{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+    .carte .txtbox{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:14px 18px;margin-top:10px;font-size:14px;line-height:1.6;position:relative}
+    .carte .txtbox.fold{max-height:5.4em;overflow:hidden} .carte .txtbox.fold:after{content:'';position:absolute;left:0;right:0;bottom:0;height:2.6em;background:linear-gradient(transparent,var(--white))}
+    .carte .unfold{font-size:12px;margin-top:6px;cursor:pointer;color:var(--teal)} .carte .why{color:var(--muted);font-size:12px}
+    .carte .honest{font-size:12.5px;color:var(--muted);margin-top:8px;padding-left:10px;border-left:2px solid var(--line)}
+    .carte pre.json{font-size:11.5px;line-height:1.45;max-height:420px;overflow:auto;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px}`; document.head.appendChild(s); }
+  const versions = P.versions.slice().sort((x,y)=>x.date_debut.localeCompare(y.date_debut));
+  const today = new Date().toISOString().slice(0,10); const at = date || today;
+  const cur = versions.find(v => v.date_debut <= at && (v.date_fin||'2999') > at) || versions.at(-1);
+  const sims = versions.map((v,i) => i ? jaccard(versions[i-1].texte, v.texte) : null);
+  const recycled = sims.some(s => s !== null && s < 0.25);
+  const res = P.resolus || {};
+  const stChip = (id) => { const r = res[id]; if (!r) return `<span class="st q">non résolu</span>`; const e = (r.etat||'').toUpperCase(); return e.startsWith('VIGUEUR') ? `<span class="st ok">en vigueur</span>` : e.startsWith('ABROG') ? `<span class="st ab">abrogé${r.date_fin && r.date_fin<'2999'?' le '+fmtDate(r.date_fin):''}</span>` : `<span class="st q">${esc(e||'?')}</span>`; };
+  const lienRow = (l, v) => { const id = l.id || l.cidtexte; const href = (id||'').startsWith('LEGIARTI') ? `#/article/${code}/${encodeURIComponent(l.num||'')}` : `#/texte/${esc(l.cidtexte||id)}`;
+    return `<div class="row"><div class="rel">${REL(l)}</div><div><a href="${href}">${esc(l.libelle||id)}</a>${l.datesignatexte && l.datesignatexte<'2999' ? ` <span class="muted">· ${fmtDate(l.datesignatexte)}</span>`:''}${l.nortexte?` <span class="mono muted" style="font-size:11px">${esc(l.nortexte)}</span>`:''}${stChip(l.cidtexte)||''}${v?` <span class="why">→ rédaction du ${fmtDate(v.date_debut)}</span>`:''}</div></div>`; };
+  const seen = new Set();
+  const all = versions.flatMap(v => v.liens.map(l => ({l, v}))).filter(x => { const k = x.l.typelien+'|'+x.l.sens+'|'+(x.l.id||x.l.cidtexte); if (seen.has(k)) return false; seen.add(k); return true; });
+  const amont = all.filter(x => AMONT.has(x.l.typelien));
+  const aval  = all.filter(x => AVAL.has(x.l.typelien) && !(x.l.typelien==='CITATION' && x.l.sens==='cible'));
+  const citeTx = all.filter(x => x.l.typelien==='CITATION' && x.l.sens==='cible');
+  const appli = all.filter(x => ['SPEC_APPLI','TXT_ASSOCIE'].includes(x.l.typelien));
+  const verAt = d => versions.find(v => v.date_debut <= d && (v.date_fin||'2999') > d);
+  const juri = (C.pertinentes||[]).map(x => { const v = verAt(x.date); return `<div class="row"><div class="rel">${esc(x.source)}</div><div><a href="#/decision/${x.source}/${encodeURIComponent(x.id)}">${esc(x.juridiction)}, ${fmtDate(x.date)}, n° ${esc(x.numero)}</a>${x.publication?` <span class="st q">${esc(x.publication)}</span>`:''}<div class="why">${v ? `rédaction applicable : ${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)}${v!==cur?' <b>(différente de celle lue)</b>':''}` : 'date hors de toute rédaction connue'} · « ${esc(x.extract)} »</div></div></div>`; }).join('');
+  const homos = (C.homonymes||[]).map(x => `<div class="row"><div class="rel">écarté</div><div><span class="muted">${esc(x.juridiction)}, ${fmtDate(x.date)}, ${esc(x.numero)}</span><div class="why">${esc(x.pourquoi)}</div></div></div>`).join('');
+  const objet = {article:{code, num, legitext:versions[0].legitext}, redactions:versions.map((v,i)=>({legiarti:v.legiarti, du:v.date_debut, au:v.date_fin, etat:v.etat, mots_communs_avec_precedente:sims[i]===null?null:Math.round(sims[i]*100)})), recyclage:recycled, amont:amont.map(x=>({relation:REL(x.l), ...x.l, redaction:x.v.date_debut})), textes_application:appli.map(x=>x.l), cite:aval.map(x=>x.l), cite_par_textes:citeTx.map(x=>x.l).concat(P.cite_par_textes||[]), cite_par_jurisprudence:{requete:C.requete, total_lexical:C.total_lexical, avertissement:C.avertissement, verifiees:C.pertinentes, homonymes_ecartes:C.homonymes}};
+  b.innerHTML = `<div class="carte"><a class="back" href="#/textes">← Textes</a>
+  <p class="hero">Art. ${esc(num)} · ${esc(cname)}</p>
+  <p class="lead">${(cur.etat||'').startsWith('VIGUEUR') ? `<span class="st ok">en vigueur</span>` : `<span class="st ab">${esc(cur.etat)}</span>`} depuis le ${fmtDate(cur.date_debut)} · ${versions.length} rédaction${versions.length>1?'s':''} depuis ${fmtDate(versions[0].date_debut)} · ${recycled ? '<span class="warnp">numéro recyclé</span>' : 'même objet depuis l’origine'} · lu au <b class="mono">${fmtDate(at)}</b> <label class="dt" style="display:inline-flex;gap:6px;align-items:center">· changer <input type="date" id="atDate" value="${at}" class="mono" style="padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--white)"></label> · <a href="#/article/${code}/${encodeURIComponent(num)}">page détaillée (diff, histoire) →</a></p>
+
+  <div class="sec"><div class="h5">D’où il vient <span class="n">amont · ${amont.length} lien${amont.length>1?'s':''} LEGI</span></div>
+    ${amont.length ? amont.map(x=>lienRow(x.l, x.v)).join('') : '<div class="honest">aucun lien amont dans LEGI</div>'}</div>
+
+  <div class="sec"><div class="h5">Rédaction lue <span class="n">${esc(cur.legiarti)} · ${fmtDate(cur.date_debut)} → ${fmtDate(cur.date_fin)}</span></div>
+    <div>${versions.map((v,i)=>`<span class="vchip${v===cur?' cur':''}" onclick="go('#/carte/${code}/${encodeURIComponent(num)}?date=${v.date_debut}')">${fmtDate(v.date_debut)} → ${fmtDate(v.date_fin)}${sims[i]!==null?` · ${Math.round(sims[i]*100)} % mots communs`:''}</span>`).join('')}</div>
+    <div class="txtbox fold" id="txtbox">${esc(cur.texte||'')}${cur.nota?`<div class="note" style="margin-top:12px"><b>Nota.</b> ${esc(cur.nota)}</div>`:''}</div><div class="unfold" id="unfold">déplier le texte et le Nota ▾</div></div>
+
+  <div class="sec"><div class="h5">Ce qui en dépend <span class="n">aval</span></div>
+    ${appli.length ? appli.map(x=>lienRow(x.l, x.v)).join('') : `<div class="honest">Aucun décret ni arrêté d’application relié dans LEGI (liens SPEC_APPLI / TXT_ASSOCIE). Ce n’est <b>pas</b> la preuve qu’il n’y en a pas : seuls 313 arrêtés en vigueur sur 68 811 portent ce type de lien dans la base. À compléter par la recherche des visas (« Vu … l’article ${esc(num)} »).</div>`}
+    ${aval.length ? `<div class="h5" style="margin-top:14px">Il cite <span class="n">${aval.length}</span></div>` + aval.map(x=>lienRow(x.l, x.v)).join('') : ''}
+    ${(citeTx.length || (P.cite_par_textes||[]).length) ? `<div class="h5" style="margin-top:14px">Textes qui le citent <span class="n">${citeTx.length + (P.cite_par_textes||[]).length}</span></div>` + citeTx.map(x=>lienRow(x.l, x.v)).join('') + (P.cite_par_textes||[]).map(t=>`<div class="row"><div class="rel">cité par</div><div><a href="#/article/${code}/${encodeURIComponent(t.num)}">${esc(t.titre_text||t.legitext)} · art. ${esc(t.num)}</a> ${t.etat?.startsWith('VIGUEUR')?'<span class="st ok">en vigueur</span>':`<span class="st ab">${esc(t.etat||'')}</span>`} <span class="why">${t.via.map(v=>REL(v)).join(', ')}</span></div></div>`).join('') : ''}</div>
+
+  <div class="sec"><div class="h5">Cité par la jurisprudence <span class="n">${(C.pertinentes||[]).length} vérifiées · ${C.total_lexical.toLocaleString('fr-FR')} pages lexicales</span></div>
+    ${juri}
+    <div class="honest">${esc(C.avertissement)} Requête : <span class="mono">${esc(C.requete)}</span> · <a href="#/recherche?q=${encodeURIComponent('"article 145" "code de procédure civile"')}&scope=juris">tout voir →</a></div>
+    ${homos ? `<div class="h5" style="margin-top:14px">Homonymes écartés <span class="n">${(C.homonymes||[]).length}</span></div>${homos}` : ''}</div>
+
+  <div class="sec"><div class="h5">La même carte pour un LLM <span class="n">un seul appel MCP · <span id="jsonTog" style="cursor:pointer;color:var(--teal)">afficher le JSON</span></span></div><pre class="json" id="jsonOut" hidden>${esc(JSON.stringify(objet, null, 1))}</pre></div>
+  </div>`;
+  $('#atDate').onchange = e => go(`#/carte/${code}/${encodeURIComponent(num)}?date=${e.target.value}`);
+  $('#unfold').onclick = () => { const t = $('#txtbox'); t.classList.toggle('fold'); $('#unfold').textContent = t.classList.contains('fold') ? 'déplier le texte et le Nota ▾' : 'replier ▴'; };
+  $('#jsonTog').onclick = () => { const j = $('#jsonOut'); j.hidden = !j.hidden; $('#jsonTog').textContent = j.hidden ? 'afficher le JSON' : 'masquer le JSON'; };
 }
 async function showArticle(code, num, date){
   const b = $('#body'); const cname = (CODES.find(c=>c[0]===code)||[])[1] || code;

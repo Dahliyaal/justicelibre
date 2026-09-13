@@ -1,0 +1,23 @@
+{
+ "requete": "(\"article 145\" OR \"articles 145\" OR \"art. 145\" OR \"art 145\") AND (\"Code de procédure civile\" OR \"CPC\")",
+ "total_lexical": 70105,
+ "per_source": {"dila": 70071, "jade": 9, "cedh": 16, "cjue": 9},
+ "avertissement": "Recherche LEXICALE : le total compte toute page qui contient les deux expressions. Il inclut des homonymes (art. 145 d'un autre code, CPC d'un autre pays). Les exemples ci-dessous sont classés à la main pour la maquette ; en production le tri se fera par le résolveur de références.",
+ "pertinentes": [
+  {"source":"dila","id":"68ef2dbc8a85971c3ac20050","juridiction":"Cour d'appel de Chambéry","date":"2025-10-14","numero":"24/01473","extract":"Mme [E] fait une lecture erronée de l'article 145 du code de procédure civile car l'expertise qu'elle sollicite a pour vocation de fournir des éléments…"},
+  {"source":"dila","id":"6438f35ea942a604f5e93892","juridiction":"Cour d'appel de Pau","date":"2023-04-13","numero":"22/02449","extract":"…sur le fondement de l'art. 145 du code de procédure civile, dire que l'expert devra notamment évaluer le préjudice de jouissance…"},
+  {"source":"dila","id":"6a44ebbfcdc6046d4770db58","juridiction":"Tribunal de commerce de Mont-de-Marsan","date":"2026-06-26","numero":"2025003070","extract":"…l'ordonnancement d'une mesure d'expertise judiciaire comptable sur le fondement de l'Art 145 du CPC…"},
+  {"source":"dila","id":"69d226a6cdc6046d472f0c8c","juridiction":"Tribunal des activités économiques de Paris","date":"2025-09-23","numero":"2024080035","extract":"…la partie défenderesse à une mesure ordonnée sur le fondement de l'art 145 CPC ne peut pas être considérée comme une partie perdante au sens de l'art 696 CPC…"},
+  {"source":"jade","id":"CETATEXT000032509757","juridiction":"Tribunal des conflits","date":"2016-04-11","numero":"C4049","publication":"Publié au recueil Lebon","extract":"…que celle-ci a compétence, sur le fondement de l'article 145 du code de procédure civile, pour connaître d'une demande de communication de documents administratifs refusée…"},
+  {"source":"jade","id":"CETATEXT000007606604","juridiction":"Tribunal des conflits","date":"1988-05-02","numero":"02532","publication":"Mentionné aux tables","extract":"Si le juge civil des référés tient de l'article 145 du nouveau code de procédure civile le…"},
+  {"source":"jade","id":"CETATEXT000046605150","juridiction":"CAA de Marseille","date":"2022-11-22","numero":"20MA03365","publication":"Inédit","extract":"…en jugeant que la méconnaissance des dispositions de l'article 145 du code de procédure civile ne pouvait pas constituer une faute de nature à engager la…"},
+  {"source":"cedh","id":"001-42992","juridiction":"Cour EDH","date":"2001-09-11","numero":"MARKS et ORDINATEUR EXPRESS SARL c. France","extract":"L'article 145 du nouveau code de procédure civile est ainsi libellé : « S'il existe un motif légitime de conserver ou d'établir avant tout procès la…"},
+  {"source":"cjue","id":"62016CJ0029","juridiction":"CJUE, 2e ch.","date":"2017-05-04","numero":"C-29/16 HanseYachts","extract":"…il résulte de l'article 145 du code de procédure civile que, en droit français, lorsqu'il existe un motif légitime de conserver ou…"}
+ ],
+ "homonymes": [
+  {"source":"jade","id":"CETATEXT000033190941","juridiction":"CAA de Paris","date":"2016-09-30","numero":"15PA00764","pourquoi":"article 145 du code général des impôts (régime mère-fille)"},
+  {"source":"cedh","id":"001-107277","juridiction":"Cour EDH","date":"2011-11-03","numero":"DIMITRAS c. Grèce (n° 2)","pourquoi":"article 145 du code de procédure civile GREC"},
+  {"source":"cedh","id":"001-194990","juridiction":"Cour EDH","date":"2019-07-02","numero":"JIANG c. Portugal","pourquoi":"article 145 § 5 du CPC PORTUGAIS"},
+  {"source":"cjue","id":"62019CJ0913","juridiction":"CJUE","date":"2021-05-20","numero":"C-913/19","pourquoi":"« article 145 » d'un règlement UE, puis CPC polonais"}
+ ]
+}
