@@ -9,7 +9,10 @@
 <style>
 :root{--teal:#1a4e4e;--teal-l:#2a6b6b;--teal-xl:#e8f0f0;--ink:#1a1a1a;--muted:#6b6b6b;--white:#fff;--line:#e0ddd6;--cream:#fdfcf8;--warn-bg:#fbf1dc;--warn:#8a5a12;--bad-bg:#fbe3e0;--bad:#8a2a1f;--ok:#1f6f4a;
  --jud:#2f5d8a;--adm:#7a5c1e;--ce:#1f6f4a;--eu:#6d3e8c;--txt:#8a4a1f;--doc:#4e5a8c}
-@media (prefers-color-scheme:dark){:root{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+/* Thème : suit le système, sauf si l'URL force ?theme=light ou ?theme=dark
+   (posé en data-theme sur <html> par le script en tête). */
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}}
+:root[data-theme=dark]{--teal:#4ea0a0;--teal-l:#66baba;--teal-xl:#1e3a3a;--ink:#e8e6df;--muted:#8a867d;--white:#1e1e1c;--line:#2a2a27;--cream:#1a1a1a;--warn-bg:#3a2e14;--warn:#e0b060;--bad-bg:#3d1c18;--bad:#f0a090;--ok:#6fc29a;--jud:#7fa6d6;--adm:#c9a55c;--ce:#6fc29a;--eu:#b98ad6;--txt:#d6905c;--doc:#93a0d6}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--ink);background:var(--cream)}
@@ -98,7 +101,8 @@ details.recent .rec{font-size:12.5px;padding:6px 0}
 .sbar .go{background:var(--teal);color:#fff;font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:0 22px}
 .sbar .dt{border-left:1px solid var(--line);padding:0 10px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
 .sbar .dt input{padding:4px 6px;font-size:13px;width:120px;font-family:"JetBrains Mono",monospace}
-.kb{font-family:"JetBrains Mono",monospace;background:var(--teal-xl);padding:1px 6px;border-radius:3px;color:var(--ink);font-size:12px;cursor:pointer}
+.kb{font-family:"JetBrains Mono",monospace;padding:1px 2px;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;opacity:.85}
+.kb:hover{color:var(--teal);opacity:1}
 .kb:hover{background:var(--teal);color:#fff}
 .hint{color:var(--muted);font-size:12.5px;margin-top:10px}
 .vcenter{min-height:calc(100vh - 56px - 112px);display:flex;flex-direction:column;justify-content:center;padding-bottom:8vh}
@@ -263,7 +267,8 @@ a.tile:hover,button.tile:hover{text-decoration:none;border-color:var(--teal)}
 .diff{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:18px 22px;font-size:14.5px;line-height:1.7;white-space:pre-wrap}
 .diff del{background:var(--bad-bg);color:var(--bad);text-decoration:line-through}
 .diff ins{background:#dff0e3;color:var(--ok);text-decoration:none}
-@media (prefers-color-scheme:dark){.diff ins{background:#1d3a28}}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .diff ins{background:#1d3a28}}
+:root[data-theme=dark] .diff ins{background:#1d3a28}
 select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--white);color:var(--ink)}
 table.tb{border-collapse:collapse;font-size:13px;width:100%}
 table.tb td,table.tb th{border-top:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
@@ -285,6 +290,11 @@ table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:v
 <script>
 /* ───────────────────────── configuration ───────────────────────── */
 const API = (location.hostname === 'justicelibre.org') ? '' : 'https://justicelibre.org';
+// ?theme=light | ?theme=dark force le thème (sinon : celui du système). Mémorisé.
+{ const t = new URLSearchParams(location.search).get('theme'); let th = t;
+  if (!th) { try { th = localStorage.getItem('hub-theme'); } catch {} }
+  if (th === 'light' || th === 'dark') { document.documentElement.dataset.theme = th; try { localStorage.setItem('hub-theme', th); } catch {} }
+  if (t === 'system') { delete document.documentElement.dataset.theme; try { localStorage.removeItem('hub-theme'); } catch {} } }
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
