@@ -296,8 +296,18 @@ function jaccard(a, b){ const A = new Set(words(a)), B = new Set(words(b)); if (
 
 /* citation = lien : dans le texte d'un article de code, « l'article 748-1 » nu désigne le même code ; « du code X » qui suit désigne l'autre code */
 const CODE_SIGLE = [['code de procédure civile','CPC'],['code de procédure pénale','CPP'],['code de justice administrative','CJA'],['code civil','CC'],['code pénal','CP'],['code de la santé publique','CSP'],['code du travail','CT'],['code de commerce','CCom'],['code de l’organisation judiciaire','COJ'],['code de l\'organisation judiciaire','COJ'],['code des relations entre le public et l’administration','CRPA']];
+/* priorité aux liens LEGI de la rédaction (CITATION sens source = « il cite ») : identifiant sûr ; le numéro ne sert qu'à trouver la position dans la phrase */
+function linkArtsLEGI(html, liens){
+  const cites = (liens || []).filter(l => l.typelien === 'CITATION' && l.sens === 'source' && l.num && (l.id || '').startsWith('LEGIARTI'));
+  for (const l of cites) {
+    const num = String(l.num).replace(/\s+/g, ''); const re = new RegExp('(articles?|art\\.)(\\s+(?:[LRD]\\.?\\s?)?)(' + num.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&') + ')(?![\\d-])', 'gi');
+    const code = (l.libelle || '').match(/^(.*?) - art\./); const titre = code ? code[1] : '';
+    html = html.replace(re, (m, mot, sp, n) => `${mot}${sp}<a class="artlink" href="../hub.html#/article/${encodeURIComponent(l.cidtexte || '')}/${encodeURIComponent(num)}" data-legiarti="${esc(l.id)}" title="${esc(titre)} · ${esc(l.id)} · lien LEGI">${n}</a>`);
+  }
+  return html;
+}
 function linkArts(html, codeIci){
-  return html.replace(/(articles?|art\.)\s+((?:[LRD]\.?\s?)?\d[\d\-]*(?:\s*(?:,|et)\s*(?:[LRD]\.?\s?)?\d[\d\-]*)*)(\s+(?:du|de ce|du même|du présent)\s+(?:code(?: [^.,;:]{0,60})?|même code|présent code))?/gi, (m, mot, nums, suite) => {
+  return html.replace(/(articles?|art\.)\s+(?!<a )((?:[LRD]\.?\s?)?\d[\d\-]*(?:\s*(?:,|et)\s*(?:[LRD]\.?\s?)?\d[\d\-]*)*)(\s+(?:du|de ce|du même|du présent)\s+(?:code(?: [^.,;:]{0,60})?|même code|présent code))?/gi, (m, mot, nums, suite) => {
     let code = codeIci;
     if (suite && /\bdu\s+code\b/i.test(suite) && !/même|présent/i.test(suite)) { const s = suite.toLowerCase(); const hit = CODE_SIGLE.find(([n]) => s.includes(n)); if (!hit) return m; code = hit[1]; }
     const numsL = nums.replace(/((?:[LRD]\.?\s?)?\d[\d\-]*)/g, n => { const clean = n.replace(/\s+/g, '').replace(/\.$/, ''); const href = (code === 'CPC' && /^748-\d$/.test(clean)) ? `carte-748.html?num=${clean}` : `../hub.html#/article/${code}/${encodeURIComponent(clean)}`; return `<a class="artlink" href="${href}" title="art. ${clean} ${code}">${n}</a>`; });
@@ -433,7 +443,7 @@ const footHTML = () => '<div class="jl-foot"><a class="jl-histo" href="#historiq
 /* ───── milieu et droite : identiques dans les 5 variantes ───── */
 function midHTML(M){ const cur = M.cur;
   if (!cur) return '<div class="honest">À la date lue, l’article n’existe pas encore.</div>';
-  return alineas(cur).map((a, i) => `<p class="alin"><span class="no">al. ${i + 1}</span>${linkArts(esc(a), M.code || 'CPC')}</p>`).join('')
+  return alineas(cur).map((a, i) => `<p class="alin"><span class="no">al. ${i + 1}</span>${linkArts(linkArtsLEGI(esc(a), cur.liens), M.code || 'CPC')}</p>`).join('')
     + (cur.nota ? `<div class="notaBox"><b>Nota.</b> ${esc(cur.nota)}</div>` : ''); }
 function rightHTML(M){ return M.citantsList.map(c =>
   `<div class="it${c.st.k !== 'ok' ? ' dead' : ''}"><div class="rel">${esc(NATLABEL[c.nature] || String(c.nature).toLowerCase())}${[...c.how].map(h => `<span class="how">${esc(h)}</span>`).join('')}</div><div class="t"><a href="${c.lf}">${esc(c.titre)}</a>${c.arts.length ? ` <span class="muted">· art. ${esc(c.arts.join(', '))}</span>` : ''}</div><div class="d">${c.date ? `<span>${fmtCourt(c.date)}</span>` : ''}${c.nor ? `<span class="nor">${esc(c.nor)}</span>` : ''}${pill(c.st)}</div></div>`).join('')
