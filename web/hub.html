@@ -313,7 +313,7 @@ table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:v
 <body>
 <div class="top">
   <div class="logo">justicelibre<span>.org</span></div>
-  <div class="nav"><a href="#/juris" class="on">Recherche</a><a href="#/manque">Couverture</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
+  <div class="nav"><a href="#/juris" class="on">Recherche</a><a href="https://justicelibre.org/mcp.html">MCP</a><a href="https://github.com/justicelibre">GitHub</a></div>
 </div>
 <div class="app">
   <nav class="rail" id="rail"></nav>
@@ -385,9 +385,9 @@ const SCOPES = [
 ];
 const TOOLS = [
   {k:'citations', icon:'check', label:'Vérifier mes citations'},
-  {k:'article', icon:'tree', label:'Un article : son histoire'},
-  {k:'suivre', icon:'bell', label:'Suivre une recherche'},
-  {k:'manque', icon:'eye', label:"Ce que nous n'avons pas"},
+  // « Un article : son histoire » : déjà là en cliquant un article depuis Textes.
+  // « Suivre une recherche » : supposerait un service de veille — pas maintenant.
+  // « Ce que nous n'avons pas » : retiré du rail (13/09/2026).
 ];
 /* Codes : identifiant Légifrance (l’API du site ne résout pas les noms en clair) */
 // Les 75 codes servis par l'entrepôt (miroir de CODE_TO_LEGITEXT, 9/09/2026).
@@ -949,7 +949,7 @@ async function runSearch(){
   const b = $('#body');
   state.advOpen = false;
   const chips = fmtAdv(adv);
-  b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}<a class="pill" href="#/suivre?q=${encodeURIComponent(q)}">${ico('bell')} Suivre</a></div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
+  b.innerHTML = `<div style="display:flex;gap:12px;align-items:center;margin:-8px 0 0">${searchBar('Mots-clés, numéro, ECLI…')}</div><div class="advsum" id="advSum">${chips.map(c => `<button class="chip on x" data-rm="${c.k}:${c.v}">${esc(c.label)} ✕</button>`).join('')}<button class="chip add" id="advAdd">${chips.length?'+ modifier':'+ où, quelle chambre, quand'}</button></div><div id="srcState" class="src-state"></div><div id="topline"></div><div id="list"></div>`;
   bindSearch(nq => go(state.scope === 'avis' ? `#/recherche?scope=avis&q=${encodeURIComponent(nq)}` : jurisUrl(nq)));
   $('#advAdd').onclick = () => $('#advT').click();
   document.querySelectorAll('[data-rm]').forEach(c => c.onclick = () => { const [k,v] = c.dataset.rm.split(':'); const a = {...adv}; if (k==='juridiction') { a.juridiction = a.juridiction.split(',').filter(x=>x!==v).join(','); if (!a.juridiction) delete a.juridiction; if (!a.juridiction?.split(',').includes('cass')) delete a.formation; } else if (k==='formation') delete a.formation; else { delete a.date_min; delete a.date_max; } go(jurisUrl(q, a)); });
