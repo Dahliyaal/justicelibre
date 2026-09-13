@@ -364,6 +364,9 @@ const TOOLS = [
 ];
 /* Codes : identifiant Légifrance (l’API du site ne résout pas les noms en clair) */
 // Les 75 codes servis par l'entrepôt (miroir de CODE_TO_LEGITEXT, 9/09/2026).
+// Abréviation affichée sur une tuile : la plus courte qui ne soit pas le nom
+// complet (le CSP listait « code de la santé publique » avant « csp »).
+function abrev(c){ const nom = c[1].toLowerCase(); const a = c[2].filter(x => x.toLowerCase() !== nom).sort((x, y) => x.length - y.length); return a[0] || c[2][0] || ''; }
 const CODES = [
   ['LEGITEXT000006070721',"Code civil",["c. civ.", "cc", "cciv", "code civil"]],
   ['LEGITEXT000006070719',"Code pénal",["c. pén.", "code pénal", "cp"]],
@@ -678,7 +681,7 @@ function renderScope(){
     ${searchBar('art. 145 CPC · L. 1234-9 C. trav. · 1253 code civil', `<label class="dt">au <input id="qdate" type="date" value="${esc(state.page.p?.get('date')||'')}"></label>`, false)}
     <div class="hint" style="text-align:center">Ça marche : ${kbs(['art. 1253 C. civ.','art. 145 CPC','L. 1234-9 C. trav.','L. 521-2 CJA','art. 544 code civil'])} — le plein texte des lois et du JO n'est pas encore exposé par l'API du site (MCP seulement).</div>
     <div style="max-width:1100px;margin:34px auto 0"><div class="feed-h" style="margin-bottom:12px">Codes<span class="s">${CODES.length} codes servis · cliquez pour préparer la recherche d'un article</span><input id="codeFiltre" placeholder="filtrer…" style="margin-left:auto;font:inherit;font-size:12.5px;padding:5px 10px;border:1px solid var(--line);border-radius:5px;background:var(--white);color:var(--ink);width:180px"></div>
-    <div class="codes" id="codesGrid">${CODES.map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(c[2][0])}</span></button>`).join('')}</div></div>`;
+    <div class="codes" id="codesGrid">${CODES.map(c => `<button class="tile" data-code="${c[0]}" data-nom="${esc(c[1].toLowerCase())} ${esc(c[2].join(' '))}"><span class="cn">${esc(c[1])}</span><span class="cs">${esc(abrev(c))}</span></button>`).join('')}</div></div>`;
     bindSearch(q => { const a = parseArticle(q); if (a) go(`#/article/${a.code}/${encodeURIComponent(a.num)}${$('#qdate').value?'?date='+$('#qdate').value:''}`); else $('#body').insertAdjacentHTML('afterbegin', `<div class="alert" style="margin-bottom:16px">⚠ <div>Je ne reconnais pas « ${esc(q)} » comme un article (<span class="mono">art. 1253 C. civ.</span>, <span class="mono">L. 1234-9 code du travail</span>). La recherche plein texte dans les lois n'est pas encore branchée sur le site.</div></div>`); });
     document.querySelectorAll('[data-code]').forEach(t => t.onclick = () => { $('#q').value = 'art.  ' + CODES.find(c=>c[0]===t.dataset.code)[2][0]; $('#q').focus(); $('#q').setSelectionRange(5,5); window.scrollTo({top:0, behavior:'smooth'}); });
     $('#codeFiltre').oninput = e => { const v = normaliser(e.target.value); document.querySelectorAll('#codesGrid .tile').forEach(t => { t.hidden = !!v && !normaliser(t.dataset.nom).includes(v); }); };
