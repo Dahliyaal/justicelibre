@@ -988,6 +988,10 @@ body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
 .jl-kb{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--muted);
   cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .jl-kb:hover{background:var(--teal);color:#fff;text-decoration:none}
+/* Trois utilitaires, pour qu'AUCUN style ne soit écrit en ligne par le JS. */
+.jl-compte{font-size:var(--text-xl)}
+.jl-petit{font-size:var(--text-sm)}
+.jl-teal{color:var(--teal)}
 
 /* ═══════════════════ 26. IMPRESSION ══════════════════════════════════════ */
 /* ⚠ Une page A4 fait ~794 px : le point de rupture 900 px s'active À
