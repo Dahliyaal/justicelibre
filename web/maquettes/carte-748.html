@@ -187,6 +187,7 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .jl-empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:4px 0}
 .jl-rel{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
 .jl-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:3px}
+.jl-meta .how{cursor:help}
 .jl-t a{font-weight:600;color:var(--ink)}
 .jl-t a:hover{color:var(--teal)}
 .jl-long{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.42}
@@ -397,7 +398,12 @@ async function loadModel(){
 function whenBadge(M){ return M.isToday
   ? `<span class="jl-when">actuel · ${fmtCourt(M.at)}</span>`
   : `<span class="jl-when past" title="vous lisez l’article à une date passée">au ${fmtCourt(M.at)}</span>`; }
-function metaHTML(x){ return `<div class="jl-meta">${x.date ? `<span>${fmtCourt(x.date)}</span>` : ''}${x.nor ? `<span class="nor">${esc(x.nor)}</span>` : ''}${pill(x.st)}<span class="how">${esc(x.how)}</span></div>`; }
+const HOWTIP = {
+  'visa': 'Relié par ses visas : le texte commence par « Vu le code de procédure civile, notamment son article 748-6 ». C’est cette mention en tête qui permet de le rattacher à l’article.',
+  'lien LEGI': 'Lien posé par Légifrance dans les données LEGI (créé par, modifié par, cité par).',
+  'succession': 'Déduit d’un lien « modifie » ou « abroge » entre deux arrêtés dans LEGI.'
+};
+function metaHTML(x){ return `<div class="jl-meta">${x.date ? `<span>${fmtCourt(x.date)}</span>` : ''}${x.nor ? `<span class="nor">${esc(x.nor)}</span>` : ''}${pill(x.st)}<span class="how" title="${esc(HOWTIP[x.how] || 'provenance du lien')}">${esc(x.how)}</span></div>`; }
 function lienTitre(x){ return `<a href="${x.lf}">${esc(x.titre)}</a>`; }
 function remplaceHTML(a){ if (!a.remplace.length) return '';
   if (a.remplace.length === 1) return `<div class="jl-more">remplace <a href="#historique" title="voir l’historique">l’${esc(minus(a.remplace[0].titre))}</a></div>`;
