@@ -506,6 +506,7 @@ const VCSS = `
 .p5h{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none}
 .p5h:hover{background:var(--teal-xl)}
 .p5acc.dead .p5h{opacity:.6}
+.p5ttl a{color:var(--ink);text-decoration:none} .p5ttl a:hover{color:var(--teal);text-decoration:underline}
 .p5chev{color:var(--teal);transition:transform .15s;flex:none}
 .p5acc.open>.p5h .p5chev{transform:rotate(90deg)}
 .p5ttl{font-size:13.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -550,7 +551,7 @@ function VIEW(H){
         <div class="jl-meta">${r.nor ? `<span class="nor">${esc(r.nor)}</span>` : ''}${pill(r.st)}${howHTML('succession')}</div></div>`).join('')}`
       : '<div class="p5foot" style="margin-top:10px">Jamais retouché.</div>';
     return `<div class="p5acc lvl1 open${a.st.k !== 'ok' ? ' dead' : ''}" data-acc>
-      <div class="p5h"><span>${chev}</span><span class="p5ttl">${esc(a.titre)}<a class="jl-lf" href="${a.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">↗</a></span><span class="p5cnt">${a.retouches.length} retouche${a.retouches.length > 1 ? 's' : ''} · ${a.predecesseurs.length} remplacé${a.predecesseurs.length > 1 ? 's' : ''} ${pill(a.st)}</span></div>
+      <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${a.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(a.titre)}</a></span><span class="p5cnt">${a.retouches.length} retouche${a.retouches.length > 1 ? 's' : ''} · ${a.predecesseurs.length} remplacé${a.predecesseurs.length > 1 ? 's' : ''} ${pill(a.st)}</span></div>
       <div class="p5body">
         <div class="jl-long">${esc(a.long)}</div>
         <div class="jl-meta">${a.nor ? `<span class="nor">${esc(a.nor)}</span>` : ''}<span>signé le ${fmtCourt(a.date_texte)}</span><span>${a.nb_articles} articles</span>${pill(a.st)}${howHTML('visa')}</div>
