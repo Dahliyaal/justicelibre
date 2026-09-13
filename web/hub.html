@@ -308,6 +308,7 @@ table.tb{border-collapse:collapse;font-size:13px;width:100%}
 table.tb td,table.tb th{border-top:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .proto{position:fixed;right:12px;bottom:12px;font-size:11px;color:var(--muted);background:var(--white);border:1px solid var(--line);border-radius:4px;padding:4px 8px;z-index:9}
+.ri.soon{opacity:.45;cursor:not-allowed} .ri.soon:hover{background:transparent} .ri.soon .n{font-style:italic}
 </style>
 </head>
 <body>
@@ -609,12 +610,14 @@ window.addEventListener('hashchange', route);
 function go(h){ location.hash = h; }
 
 /* ───────────────────────── volet ───────────────────────── */
+const SOON = new Set(['textes','travaux','avis','annuaire']);   // en attente : seule la jurisprudence est branchée sur l'API
 function renderRail(){
   const r = $('#rail'); r.className = 'rail' + (state.railMini ? ' mini' : '');
   let h = `<button class="hd" id="railToggle" title="Replier / déplier">${ico('menu')}<span class="logo lbl" style="font-size:18px">justicelibre</span></button><div class="sec">Chercher dans</div>`;
   for (const s of SCOPES) {
     const on = state.scope === s.k;
-    h += `<button class="ri${on?' on':''}" data-go="#/${s.k}" title="${esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span>${s.n?`<span class="n">${s.n}</span>`:''}</button>`;
+    const soon = SOON.has(s.k);
+    h += `<button class="ri${on?' on':''}${soon?' soon':''}" ${soon ? 'disabled aria-disabled="true"' : `data-go="#/${s.k}"`} title="${soon ? esc(s.label) + ' · bientôt' : esc(s.label)}">${ico(s.icon)}<span class="lbl">${esc(s.label)}</span><span class="n">${soon ? 'bientôt' : (s.n || '')}</span></button>`;
     if (false) {
       h += `<div class="subs${state.railAnim===s.k?' opening':''}" data-subs="${s.k}">`;
       for (const u of s.subs) {
@@ -779,14 +782,14 @@ function renderScope(){
   const b = $('#body'); const s = state.scope;
   if (s === '') {
     state.advOpen = false;
-    b.innerHTML = `<div class="vcenter"><div class="center"><p class="hero">Le droit tel qu'il est publié. Sans compte.</p><p class="lead">Une barre pour tout : mots, numéro, ECLI, article, nom de juridiction. Le volet à gauche choisit où l'on cherche ; la page suit.</p></div>
+    b.innerHTML = `<div class="vcenter"><div class="center"><p class="hero">Chercher une décision</p><p class="lead">Une barre pour tout : mots, numéro, ECLI, article, nom de juridiction. Le volet à gauche choisit où l'on cherche ; la page suit.</p></div>
     ${searchBar('Mots-clés, numéro, ECLI, article…')}<div class="hint" style="text-align:center">Ça marche : ${kbs(['24-11.587','trouble anormal de voisinage','art. 1253 C. civ.','ECLI:FR:CCASS:2021:C300797','380374'])}</div></div>
     `;
     bindSearch(q => smartGo(q));
   }
   else if (s === 'juris') {
     if (state.advOpen === undefined) state.advOpen = true;
-    b.innerHTML = `<div class="center"><p class="hero">Le droit tel qu'il est publié. Sans compte.</p><p class="lead" id="juriCount">${nb(totalCoche(new Set((state.adv.juridiction||'').split(',').filter(Boolean))))} décisions</p></div>
+    b.innerHTML = `<div class="center"><p class="hero">Chercher une décision</p><p class="lead" id="juriCount">${nb(totalCoche(new Set((state.adv.juridiction||'').split(',').filter(Boolean))))} décisions · Cassation, cours d'appel, Conseil d'État, cours et tribunaux administratifs, tribunaux de commerce, CEDH, CJUE</p></div>
     ${searchBar('trouble anormal de voisinage · 04-10.362 · 380374 · 14852/18')}<div class="hint" style="text-align:center">Ou une référence : ${kbs(['04-10.362','ECLI:FR:CCASS:2021:C300797','380374','CETATEXT000030923','licenciement sans cause réelle et sérieuse'])}</div>
     <div class="feed" id="feed"><div class="feed-h"><span>Nouveautés</span><span class="s" id="feedSub">les dernières décisions entrées en base</span></div><div class="cards" id="feedCards"></div><div class="feed-end" id="feedEnd"></div></div>`;
     bindSearch(q => go(jurisUrl(q)));

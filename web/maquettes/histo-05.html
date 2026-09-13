@@ -439,9 +439,11 @@ async function loadHisto(){
 
   /* C. ce qu’on a écarté : les textes reliés par un lien SORTANT d’un texte retenu */
   const exclusIds = new Set();
-  for (const e of S) if (kept.has(e.vers) && !kept.has(e.de)) exclusIds.add(e.de);
+  const raison = {};
+  for (const e of S) if (kept.has(e.vers) && !kept.has(e.de)) { exclusIds.add(e.de); raison[e.de] = 'modifié au passage par un texte retenu'; }
+  for (const a of arretes) if (a.abrogePar && !kept.has(a.abrogePar.legitext)) { exclusIds.add(a.abrogePar.legitext); raison[a.abrogePar.legitext] = `a abrogé ${minus(a.titre)} sans viser l’article`; }
   const exclus = [...exclusIds].map(id => T[id]).filter(Boolean)
-    .map(t => ({ id: t.legitext, titre: clean(t.titre), nor: t.nor || '', date: t.date_texte || '' }))
+    .map(t => ({ id: t.legitext, titre: clean(t.titre), nor: t.nor || '', date: t.date_texte || '', lf: legifrance(t.legitext), raison: raison[t.legitext] || '' }))
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   /* les événements */
@@ -464,7 +466,7 @@ async function loadHisto(){
   const evAt = ev.filter(e => (e.date || '') <= at);
   const counts = { n0: ev.filter(e => e.niveau === 0).length, n1: ev.filter(e => e.niveau === 1).length,
     n2: ev.filter(e => e.niveau === 2).length, total: ev.length, avant: evAt.length, apres: ev.length - evAt.length, exclus: exclus.length,
-    textes: textesU.length, vivants: textesU.filter(t => t.st.k === 'ok').length, redactions: redactions.length, arretes: arretes.length };
+    textes: textesU.length, distincts: new Set(textesU.map(t => t.nor || t.id)).size, vivants: textesU.filter(t => t.st.k === 'ok').length, redactions: redactions.length, arretes: arretes.length };
   return {P, T, num, cname, at, isToday, today, versions, cur, redactions, arretes, textes, ev, exclus, counts, recycled, sims};
 }
 
@@ -489,15 +491,15 @@ function chrome(H, titre, parti){
   <div class="idband">
     <div><div class="k">État à la date lue</div><div class="v">${cur ? pill(lifeAt(cur, H.at)) + ' depuis le ' + fmtCourt(cur.date_debut) : '<span class="st fut">n’existe pas encore</span>'}</div></div>
     <div><div class="k">Rédactions</div><div class="v">${H.redactions.length} depuis ${fmtCourt(H.redactions[0].debut)}</div></div>
-    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${H.counts.n0} article · ${H.counts.n1} arrêtés · ${H.counts.n2} retouches et prédécesseurs${H.isToday ? '' : ` · <b>${H.counts.avant} avant la date lue</b>, ${H.counts.apres} après`}</span></div></div>
-    <div><div class="k">Textes en jeu <span class="help" tabindex="0" data-tip="Tous les textes affichés sur cette page, comptés une seule fois : l’article, les arrêtés pris pour lui, leurs retouches et leurs prédécesseurs. « En vigueur » s’entend à la date lue.">?</span></div><div class="v">${H.counts.textes} textes, ${H.counts.vivants} en vigueur à la date lue</div></div>
+    <div><div class="k">Événements retenus <span class="help" tabindex="0" data-tip="Un événement, c’est une date où quelque chose arrive à l’article ou à un texte pris pour lui : une rédaction écrite, un arrêté pris, retouché, abrogé ou remplacé. Le décompte suit la règle de périmètre rappelée en bas de page.">?</span></div><div class="v"><b class="mono">${H.counts.total}</b> <span class="muted">· ${nb(H.counts.n0, 'rédaction')} · ${nb(H.counts.n1, 'événement d’arrêté', 'événements d’arrêtés')} · ${H.counts.n2} retouches et prédécesseurs${H.isToday ? '' : ` · <b>${H.counts.avant} avant la date lue</b>, ${H.counts.apres} après`}</span></div></div>
+    <div><div class="k">Textes en jeu <span class="help" tabindex="0" data-tip="Tous les textes affichés sur cette page, comptés une seule fois : l’article, les arrêtés pris pour lui, leurs retouches et leurs prédécesseurs. « En vigueur » s’entend à la date lue.">?</span></div><div class="v">${H.counts.textes} textes${H.counts.distincts < H.counts.textes ? ` <span class="muted" title="Légifrance a ouvert un second identifiant pour un même arrêté (même NOR) lors d’un renommage : il apparaît sous ses deux entrées.">(${H.counts.distincts} distincts)</span>` : ''}, ${H.counts.vivants} en vigueur à la date lue</div></div>
     <div><div class="k">Objet</div><div class="v">${H.recycled ? '<span class="warnp">numéro recyclé</span>' : 'inchangé depuis l’origine'}</div></div>
   </div>`;
 }
 function honestHTML(H){
   return `<div class="honest jl-hhonest"><b>Ce que cette page montre, et ce qu’elle laisse dehors.</b>
   L’historique retient la vie de l’article (ses ${H.counts.redactions} rédactions et le texte qui a écrit chacune) et la vie de ce qui est pris pour lui : les ${H.counts.arretes} arrêtés qui le visent, vivants ou morts, leurs retouches et leurs prédécesseurs abrogés, de proche en proche.
-  <b>${H.counts.exclus} arrêté${H.counts.exclus>1?'s':''} relié${H.counts.exclus>1?'s':''} par un lien sortant, hors sujet, non affiché${H.counts.exclus>1?'s':''}</b> : ${H.exclus.map(x => esc(x.titre) + (x.nor ? ` <span class="nor">${esc(x.nor)}</span>` : '')).join(' · ')}.
+  <b>${H.counts.exclus} texte${H.counts.exclus>1?'s':''} écarté${H.counts.exclus>1?'s':''}</b> : ${H.exclus.map(x => `<a href="${x.lf}">${esc(x.titre)}</a>` + (x.nor ? ` <span class="nor">${esc(x.nor)}</span>` : '') + (x.raison ? ` <span class="muted">(${esc(x.raison)})</span>` : '')).join(' · ')}.
   Ces textes ne sont là que parce qu’un texte retenu les modifie au passage ; ils ne relèvent pas de l’article.
   Un décret peut retoucher un arrêté (le décret 2019-966 a remplacé « tribunal de grande instance » par « tribunal judiciaire » dans des centaines de textes) : il apparaît alors comme « décret modificateur ».
   ${H.isToday ? '' : `<br>Lecture au ${fmtCourt(H.at)} : ce qui n’existe pas encore à cette date est en bleu (« entre en vigueur le … ») et atténué ; les compteurs distinguent avant et après.`}</div>`;
@@ -532,6 +534,7 @@ const VCSS = `
 .p5h:hover{background:var(--teal-xl)}
 .p5acc.dead .p5h{opacity:.6}
 .p5acc.fut>.p5h .p5ttl{color:var(--doc)}
+.p5acc.mod>.p5h{opacity:.8} .p5acc.mod>.p5h .p5ttl{font-style:italic}
 .p5ab{color:var(--bad);opacity:.75}
 [data-r].hl{background:var(--ok-bg);border-radius:4px;transition:background .12s}
 .p5seg[data-r]{cursor:default;padding:1px 4px;margin:-1px -4px}
@@ -545,7 +548,7 @@ const VCSS = `
 .p5acc.open>.p5body{display:block}
 .p5in{padding-left:14px;border-left:2px solid var(--line);margin-top:10px}
 .p5frise{display:flex;align-items:center;gap:0;margin:12px 0 8px;padding:6px 0;overflow-x:auto}
-.p5seg{flex:none;display:flex;align-items:center;gap:6px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;color:var(--muted);white-space:nowrap}
+.p5seg{flex:none;display:flex;align-items:center;gap:6px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);white-space:nowrap}
 .p5seg i{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
 .p5seg.dead i{background:var(--muted)}
 .p5seg.art i{background:var(--teal);width:12px;height:12px}
@@ -568,7 +571,7 @@ function VIEW(H){
       </div></div>`).join('');
   const arr = a => {
     const friseA = `<div class="p5frise"><span class="p5seg${a.st.k !== 'ok' ? ' dead' : ''}"><i></i>pris le ${fmtCourt(a.debut)}</span>${a.retouches.map(r => `<span class="p5lnk"></span><span class="p5seg${apres(H, r.date_texte) ? ' jl-hfutur' : ''}" data-r="${r.id}"><i></i>retouché ${fmtCourt(r.date_texte)}</span>`).join('')}${a.fin < '2999' ? `<span class="p5lnk"></span><span class="p5seg${a.fin <= H.at ? ' dead' : ' jl-hfutur'}"><i></i>${a.fin <= H.at ? 'abrogé' : 'sera abrogé'} ${fmtCourt(a.fin)}${a.abrogePar ? ' par ' + esc(minus(a.abrogePar.titre)) : ''}</span>` : `<span class="p5lnk"></span><span class="p5seg"><i></i>toujours en vigueur</span>`}</div>`;
-    const predsHTML = list => list.map(p => p.deja ? `<div class="p5acc lvl2 dead"><div class="p5h" style="cursor:default"><span style="width:12px;display:inline-block"></span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance">${esc(p.titre)}</a> <span class="nor">${esc(p.nor||'')}</span></span><span class="p5cnt">déjà listé plus haut (pris pour lui)</span></div></div>` : `<div class="p5acc lvl2${p.st.k === 'ok' ? '' : p.st.k === 'fut' ? ' fut' : ' dead'}" data-acc>
+    const predsHTML = list => list.map(p => p.deja ? `<div class="p5acc lvl2 dead"><div class="p5h" style="cursor:default"><span style="width:12px;display:inline-block"></span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance">${esc(p.titre)}</a> <span class="nor">${esc(p.nor||'')}</span></span><span class="p5cnt">déjà listé plus haut (pris pour lui)</span></div></div>` : `<div class="p5acc lvl2${p.st.k === 'ok' ? '' : p.st.k === 'fut' ? ' fut' : (p.st.k === 'q' && /réécrit/.test(p.st.label)) ? ' mod' : ' dead'}" data-acc>
         <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a> <span class="nor">${esc(p.nor||'')}</span></span><span class="p5cnt">${p.st.k === 'ab' ? `<span class="p5ab">${esc(p.st.label)}</span>` : `<span class="st ${p.st.k}" title="${esc(p.st.why||'')}">${esc(p.st.label)}</span>`}${p.retouches.length ? ' · ' + nb(p.retouches.length, 'retouche') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
         <div class="p5body"><div class="jl-long">${esc(p.long)}</div>
           <div class="jl-meta">${p.nor ? `<span class="nor">${esc(p.nor)}</span>` : ''}<span>en vigueur du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}</span>${pill(p.st)}${howHTML('succession')}</div>
