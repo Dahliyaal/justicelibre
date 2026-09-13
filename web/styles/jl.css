@@ -1504,3 +1504,31 @@ body.jl-loi-ouverte .jl-voile{opacity:1;pointer-events:auto}
 .jl-centre{margin-left:auto;margin-right:auto}
 h1.jl-centre,p.jl-centre,div.jl-hint.jl-centre{text-align:center;max-width:880px}
 .jl-sbox.jl-centre{max-width:880px}
+
+/* ── v2 accueil light, 13 sept. ───────────────────────────────────────────
+   Hero à deux colonnes avec l'illustration circuit de la page d'accueil
+   prod (web/index.html:445-448). Une seule des deux images est affichée,
+   selon le thème ; l'autre est retirée du flux. */
+.jl-acc--hero{display:grid;grid-template-columns:1.15fr .85fr;gap:var(--space-5);align-items:center}
+.jl-acc--hero .jl-acc__texte{min-width:0}
+.jl-acc__visuel{display:flex;align-items:center;justify-content:flex-end;min-width:0}
+.jl-circuit{width:100%;max-width:380px;height:auto;margin-left:auto}
+.jl-circuit--sombre{display:none}
+html[data-theme="dark"] .jl-circuit--clair{display:none}
+html[data-theme="dark"] .jl-circuit--sombre{display:block}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) .jl-circuit--clair{display:none}
+  html:not([data-theme="light"]) .jl-circuit--sombre{display:block}
+}
+.jl-acc--chiffres{padding-top:0}
+@media(max-width:860px){
+  .jl-acc--hero{grid-template-columns:1fr}
+  .jl-acc__visuel{display:none}
+}
+@media print{.jl-acc__visuel{display:none}}
+
+/* 13 sept. : colonne de contenu centrée sur les pages à recherche (recherche,
+   doctrine, annuaire) : la barre ET la liste des résultats partagent le même axe. */
+.jl-body--centre>*{max-width:1100px;margin-left:auto;margin-right:auto}
+.jl-body--centre .jl-sbox,.jl-body--centre .jl-barre-filtre{max-width:880px}
+.jl-body--centre>h1,.jl-body--centre>.jl-lead,.jl-body--centre>.jl-hint{text-align:center;max-width:880px}
