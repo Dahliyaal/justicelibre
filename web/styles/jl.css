@@ -1604,3 +1604,11 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
   .jl-fart{border:1px solid #999;break-inside:avoid;padding:0 0 0 .6em}
   .jl-fart__pied{display:none}
 }
+
+/* 14 sept. : liste de textes hors code, rendu du hub (.hc-list) : une ligne par
+   texte, filets, survol teal pâle, référence en mono, intitulé en serif. */
+.jl-lt--ligne{display:block;padding:11px 6px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;line-height:1.4}
+.jl-lt--ligne:first-child{border-top:1px solid var(--line)}
+.jl-lt--ligne:hover{background:var(--teal-xl);text-decoration:none}
+.jl-lt--ligne .jl-lt__meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted);margin-bottom:3px}
+.jl-lt--ligne .jl-lt__t{font-family:var(--font-serif);font-size:var(--text-lg);font-weight:400;line-height:1.3}

@@ -883,7 +883,7 @@
       (titres && titres.length
         ? titres.map(function (t) {
             var p = titreParts(t.titre, t.date);
-            return '<a class="jl-lt" href="' + esc(LOI_BASE + '/' + encodeURIComponent(t.id) + '/1') + '">' +
+            return '<a class="jl-lt jl-lt--ligne" href="' + esc(LOI_BASE + '/' + encodeURIComponent(t.id) + '/1') + '">' +
               '<div class="jl-lt__meta">' + esc(p.meta) + '</div>' +
               '<div class="jl-lt__t">' + esc(p.sujet) + '</div></a>';
           }).join('') +
