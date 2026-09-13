@@ -1,199 +1,654 @@
-<!DOCTYPE html>
-<html lang="fr" class="jl-dense">
+<!doctype html>
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>justicelibre.org · la jurisprudence française, sans péage</title>
-<meta name="description" content="L'accès libre et gratuit à toute la jurisprudence française : 3 285 952 décisions de justice et 1,75 million d'articles de loi, sans compte, sans abonnement, sous Licence Ouverte 2.0.">
-<link rel="canonical" href="https://justicelibre.org/v2/index.html">
+<script>/* theme resolver — évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
+<title>justicelibre.org · la jurisprudence française, sans péage</title>
+<meta name="description" content="Serveur MCP open source : ~3 millions de décisions de justice + ~1,8 million d'articles de loi (avec versions historiques) accessibles gratuitement. Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel, 9 CAA, 40 TA, CNIL.">
+<link rel="canonical" href="https://justicelibre.org/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="justicelibre.org - la jurisprudence française, sans péage">
-<meta property="og:description" content="Accès libre à 3 285 952 décisions de justice et 1,75 M d'articles de loi. Licence Ouverte 2.0.">
-<meta property="og:url" content="https://justicelibre.org/v2/index.html">
+<meta property="og:description" content="Accès libre à ~3 M décisions de justice + 1,75 M articles de loi. Alternative open source à Doctrine, Lexis et Légifrance. Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel, 9 CAA, 40 TA.">
+<meta property="og:url" content="https://justicelibre.org/">
 <meta property="og:site_name" content="JusticeLibre">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:image" content="https://justicelibre.org/logo.svg">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JusticeLibre - la jurisprudence française, sans péage">
+<meta name="twitter:description" content="~3 M décisions, 1,75 M articles de loi. Open source. Cour de cassation, Conseil d'État, CEDH, CJUE, Conseil constitutionnel, 40 TA.">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"JusticeLibre","alternateName":"justicelibre.org","url":"https://justicelibre.org/","description":"Accès libre à la jurisprudence française et européenne.","inLanguage":"fr","license":"https://www.etalab.gouv.fr/licence-ouverte-open-licence","publisher":{"@type":"Organization","name":"JusticeLibre","url":"https://justicelibre.org/"},"potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://justicelibre.org/search.html?q={query}"},"query-input":"required name=query"}}
+{"@context":"https://schema.org","@type":"WebSite","name":"JusticeLibre","alternateName":"justicelibre.org","url":"https://justicelibre.org/","description":"Serveur MCP open source d'accès libre à la jurisprudence française et européenne.","inLanguage":"fr","license":"https://www.etalab.gouv.fr/licence-ouverte-open-licence","publisher":{"@type":"Organization","name":"JusticeLibre","url":"https://justicelibre.org/"},"potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://justicelibre.org/search.html?q={query}"},"query-input":"required name=query"}}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/styles/jl.css?v=4">
-<script>/* Résolveur de thème avant le premier rendu (évite le flash blanc).
-   Même dispositif que les 8 pages prod (annuaire.html:6-9). Clé : jl-theme. */
-(function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
-<script defer src="/topbar.js?v=5"></script>
-<script defer src="/jl.js?v=3"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260720">
+<style>
+/* Page-specific : landing page (body 16px, surface white) */
+body{font-size:16px;background:var(--white)}
+html[data-theme="dark"] body{background:var(--white)}
+html[data-theme="dark"] .topbar{background:rgba(30,30,28,.96)}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) body{background:var(--white)}
+  html:not([data-theme="light"]) .topbar{background:rgba(30,30,28,.96)}
+}
+
+/* ─── TOPBAR ─── */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  max-width:100%;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 2.5rem;
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1200px;margin:0 auto;width:100%;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo-area{display:flex;align-items:center;gap:1rem}
+.logo-area img,.logo-area svg{width:60px;height:60px}
+.logo-area .name{font-family:var(--display);font-size:1.25rem;color:var(--ink)}
+.logo-area .name .tld{color:var(--teal)}
+nav.main-nav{display:flex;align-items:center;gap:2.2rem}
+nav.main-nav a{
+  font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--ink);padding-bottom:.4rem;border-bottom:3px solid transparent;
+  transition:border-color .2s,color .2s
+}
+nav.main-nav a:hover{text-decoration:none;border-bottom-color:var(--teal)}
+nav.main-nav a.active{color:var(--teal);border-bottom-color:var(--teal)}
+nav.main-nav a.btn{color:#ffffff;border-bottom:none;padding:.85rem 1.8rem}
+.kofi-btn{
+  display:inline-flex;align-items:center;gap:.6rem;
+  margin-top:1.5rem;padding:.75rem 1.6rem;
+  background:var(--teal);color:#fff;
+  font-size:.85rem;font-weight:600;
+  border-radius:4px;text-decoration:none;
+  transition:background .2s;
+
+}
+.kofi-btn:hover{background:var(--teal-l);text-decoration:none}
+.kofi-btn img{display:inline}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.85rem 1.8rem;
+  background:var(--teal);color:#ffffff;
+  font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  border:none;border-radius:4px;cursor:pointer;text-align:center;
+  transition:background .2s
+}
+.btn:hover{background:var(--teal-l);text-decoration:none}
+.btn-search-nav{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.85rem 1.8rem;background:var(--teal);
+  font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  border:none;border-radius:4px;cursor:pointer;text-align:center;
+  /* overrides nav.main-nav a heritage : padding-bottom + border-bottom 3px transparent (décentrage)
+     + color:var(--ink) (texte sombre en light mode au lieu de blanc) */
+  padding-bottom:.85rem !important;border-bottom:none !important;
+  color:#ffffff !important;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.btn-search-nav:hover{background:var(--teal-l);text-decoration:none;color:#fff}
+.btn-search-nav .btn-icon{display:none}
+.btn-disabled{
+  background:var(--muted);cursor:not-allowed;opacity:.6;position:relative;
+}
+.btn-disabled:hover{background:var(--muted)}
+.btn-disabled::after{
+  content:"en cours ⟳";position:absolute;top:-28px;right:0;
+  background:var(--ink);color:#fff;font-size:.7rem;font-weight:500;
+  text-transform:none;letter-spacing:.04em;
+  padding:.3rem .6rem;border-radius:3px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+  white-space:nowrap;
+}
+.btn-disabled:hover::after{opacity:1}
+@media(max-width:860px){
+  nav.main-nav a:not(.btn):not(.btn-search-nav){display:none}
+}
+@media(max-width:860px){
+  nav.main-nav .btn{display:none}
+  .btn-search-nav{
+    background:none !important;border:1px solid var(--line) !important;
+    width:34px !important;height:34px !important;border-radius:50% !important;
+    padding:0 !important;color:var(--muted) !important;
+  }
+  .btn-search-nav:hover{background:none !important;color:var(--teal) !important;border-color:var(--teal) !important}
+  .btn-search-nav .btn-label{display:none}
+  .btn-search-nav .btn-icon{display:block;width:16px;height:16px}
+}
+
+/* ── Mobile : burger + drawer latéral ── */
+.topbar-burger{
+  display:none;background:none;border:none;cursor:pointer;
+  width:40px;height:40px;padding:8px;flex-direction:column;
+  justify-content:space-between;align-items:stretch;
+}
+.topbar-burger span{
+  display:block;height:2px;background:var(--ink);border-radius:2px;
+  transition:transform .25s,opacity .25s;
+}
+.topbar-burger.open span:nth-child(1){transform:translateY(8px) rotate(45deg)}
+.topbar-burger.open span:nth-child(2){opacity:0}
+.topbar-burger.open span:nth-child(3){transform:translateY(-8px) rotate(-45deg)}
+.topbar-drawer{
+  position:fixed;top:0;right:0;bottom:0;width:280px;max-width:85vw;
+  background:var(--white);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .25s ease-out;
+  z-index:200;padding:80px 24px 24px;
+  display:flex;flex-direction:column;gap:6px;
+  box-shadow:-4px 0 24px rgba(0,0,0,.08);
+  font-family:'DM Sans','Inter',sans-serif;
+}
+html[data-theme="dark"] .topbar-drawer{background:#222}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]) .topbar-drawer{background:#222}}
+.topbar-drawer.open{transform:translateX(0)}
+.topbar-drawer-close{
+  position:absolute;top:18px;right:18px;
+  background:none;border:none;cursor:pointer;
+  width:38px;height:38px;border-radius:50%;
+  font-size:28px;line-height:1;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;padding:0 0 4px;
+  transition:background .15s;
+}
+.topbar-drawer-close:hover{background:var(--cream)}
+html[data-theme="dark"] .topbar-drawer-close:hover{background:#333}
+.topbar-drawer a{
+  font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--ink);padding:14px 4px;border-bottom:1px solid var(--line);
+  text-decoration:none;
+}
+.topbar-drawer a:last-child{border-bottom:none}
+.topbar-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;
+  pointer-events:none;transition:opacity .25s;z-index:150;
+}
+.topbar-overlay.open{opacity:1;pointer-events:auto}
+@media(max-width:860px){.topbar-burger{display:flex}}
+@media(max-width:480px){
+  .topbar{padding:.8rem 1.2rem}
+  .hero{padding:2rem 1.2rem 3rem}
+  .hero-text h1{font-size:2rem}
+  .section{padding:3rem 1.2rem}
+  .connect-url{font-size:.78rem}
+  .stats-section{padding:2.5rem 1.2rem}
+  .btn{padding:.75rem 1.4rem;font-size:.7rem}
+  footer{padding:2rem 1.2rem}
+}
+
+/* ─── HERO ─── */
+.hero{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:1.15fr 0.85fr;gap:1rem;
+  padding:3rem 2.5rem 4rem;align-items:center;
+}
+.hero-text h1{
+  font-family:var(--display);
+  font-size:clamp(2.4rem,5.5vw,4rem);
+  line-height:1.08;letter-spacing:-.01em;
+  color:var(--ink);margin-bottom:1.5rem;
+  text-transform:uppercase;
+}
+.hero-text h1 em{font-style:normal;color:var(--teal)}
+.hero-text p{
+  font-size:1.1rem;line-height:1.7;color:var(--body);
+  max-width:28rem;margin-bottom:2rem;
+}
+.hero-visual{
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.hero-visual{display:flex;align-items:center;justify-content:flex-end;overflow:hidden}
+.circuit-img{width:100%;max-width:440px;height:auto;margin-left:auto}
+.circuit-dark{display:none}
+html[data-theme="dark"] .circuit-light{display:none}
+html[data-theme="dark"] .circuit-dark{display:block}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .circuit-light{display:none}
+  html:not([data-theme="light"]) .circuit-dark{display:block}
+}
+@media(max-width:860px){
+  .hero{grid-template-columns:1fr;text-align:center}
+  .hero-text p{margin-left:auto;margin-right:auto}
+  .hero-visual{display:none}
+}
+
+/* ─── DIVIDER ─── */
+.band{background:var(--teal);height:2px}
+
+/* ─── STATS ─── */
+.stats-section{
+  background:var(--light);
+  padding:4rem 2.5rem;
+}
+.stats-grid{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;
+  text-align:center;
+}
+.stat-card{padding:1.5rem 1rem}
+.stat-card .num{
+  font-family:var(--display);font-size:2.6rem;
+  color:var(--teal);display:block;margin-bottom:.4rem
+}
+.stat-card .label{
+  font-size:.78rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted)
+}
+@media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ─── SECTION ─── */
+.section{
+  max-width:900px;margin:0 auto;
+  padding:5rem 2.5rem;
+}
+.section h2{
+  font-family:var(--display);font-size:2rem;
+  margin-bottom:1.2rem;color:var(--ink);line-height:1.15
+}
+.section h2 em{font-style:italic;color:var(--teal)}
+.section p{font-size:1.03rem;line-height:1.7;color:var(--body);margin-bottom:1rem}
+.section+.section{padding-top:0}
+
+/* ─── CONNECT ─── */
+.connect-box{
+  background:var(--teal-xl);border:1px solid var(--line);
+  border-left:4px solid var(--teal);
+  padding:2rem 2.2rem;margin:1.5rem 0 2rem;border-radius:0 6px 6px 0;
+}
+.connect-box h3{
+  font-size:.76rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--teal);margin-bottom:.8rem
+}
+.connect-url{
+  display:block;background:#1a1a1a;color:#f0f0e8;
+  padding:1rem 1.3rem;font-family:var(--mono);font-size:.95rem;
+  border-radius:4px;margin-bottom:1.2rem;user-select:all;overflow-x:auto
+}
+html[data-theme="dark"] .connect-url{background:#0a0a0a;border:1px solid var(--line)}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]) .connect-url{background:#0a0a0a;border:1px solid var(--line)}
+}
+.connect-url::before{content:"$ ";color:var(--gold);font-weight:500}
+.steps{list-style:none;counter-reset:st}
+.steps li{
+  counter-increment:st;padding-left:2rem;position:relative;
+  margin-bottom:.5rem;font-size:.95rem;color:var(--body)
+}
+.steps li::before{
+  content:counter(st);position:absolute;left:0;top:.05rem;
+  width:1.4rem;height:1.4rem;line-height:1.4rem;text-align:center;
+  background:var(--teal);color:#fff;border-radius:50%;
+  font-size:.7rem;font-weight:700
+}
+
+/* ─── TOOLS ─── */
+.tools-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;
+  margin:1.5rem 0
+}
+.tool-card{
+  padding:1.4rem 1.6rem;border:1px solid var(--line);border-radius:6px;
+  background:var(--white);transition:border-color .2s,box-shadow .2s
+}
+.tool-card:hover{border-color:var(--teal);box-shadow:0 2px 12px rgba(26,78,78,.08)}
+.tool-card code{
+  font-family:var(--mono);font-size:.82rem;color:var(--teal);
+  font-weight:500;display:block;margin-bottom:.4rem
+}
+.tool-card p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.55}
+@media(max-width:640px){.tools-grid{grid-template-columns:1fr}}
+
+/* ─── LEGAL CALLOUT ─── */
+.callout{
+  background:var(--teal);color:#fff;border-radius:6px;
+  padding:1.8rem 2rem;margin:2rem 0
+}
+.callout strong{color:#fff;font-weight:700}
+.callout p{color:rgba(255,255,255,.88);margin:0;font-size:.95rem;line-height:1.65}
+
+/* ─── FOOTER ─── */
+footer{
+  background:var(--light);border-top:1px solid var(--line);
+  padding:3rem 2.5rem 2.5rem;
+}
+.footer-inner{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:3rem;
+  font-size:.88rem;color:var(--muted);line-height:1.7
+}
+footer h4{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink);margin-bottom:.6rem
+}
+footer a{color:var(--muted)}
+footer a:hover{color:var(--teal)}
+footer p{margin:.2rem 0}
+.footer-bottom{
+  max-width:1200px;margin:0 auto;
+  padding-top:2rem;margin-top:2rem;border-top:1px solid var(--line);
+  font-size:.8rem;color:var(--muted);text-align:center;
+}
+.footer-bottom .punch{
+  display:block;
+  margin-top:1.5rem;
+  color:var(--teal);
+  font-weight:600;
+  font-style:normal;
+  font-size:.85rem;
+}
+@media(max-width:640px){.footer-inner{grid-template-columns:1fr;gap:1.5rem}}
+
+/* ─── TIMELINE ─── */
+/* Alignement : barre verticale et dots centrés sur le même axe X (1.25rem du bord
+   gauche de .timeline). Utilisation de transform:translateX(-50%) pour centrer
+   sans dépendre des box-sizing/border subtilités. */
+.timeline{margin:2.5rem 0 0;position:relative;padding-left:2.5rem}
+.timeline::before{
+  content:"";position:absolute;
+  left:1.25rem;transform:translateX(-50%);
+  top:.5rem;bottom:.5rem;
+  width:2px;background:var(--line)
+}
+.tl-item{position:relative;padding:0 0 2rem 1.5rem}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{
+  content:"";position:absolute;top:.35rem;
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--teal);background:var(--white);
+  box-sizing:border-box;
+  z-index:1;
+  /* left:-1.25rem par rapport au tl-item (qui commence à padding-left:2.5rem du timeline)
+     = position absolue à 1.25rem du timeline = pile sur la barre ✓ */
+  left:-1.25rem;transform:translateX(-50%)
+}
+.tl-item.done::before{background:var(--teal)}
+.tl-item.next::before{
+  background:var(--white);
+  box-shadow:0 0 0 3px rgba(26,78,78,.25)
+}
+.tl-item.pending::before{
+  border-color:var(--line);background:var(--white)
+}
+.tl-date{
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;
+  font-weight:600;color:var(--teal);margin-bottom:.2rem
+}
+.tl-item.pending .tl-date{color:var(--muted)}
+.tl-content strong{display:block;margin-bottom:.2rem;color:var(--ink)}
+.tl-content p{margin:0;font-size:.92rem;color:var(--body);line-height:1.55}
+.tl-item.pending .tl-content strong{color:var(--muted)}
+.tl-item.pending .tl-content p{color:var(--muted)}
+
+/* ─── REVEAL ─── */
+@media(prefers-reduced-motion:no-preference){
+  .reveal{opacity:0;transform:translateY(16px);animation:fadeUp .8s cubic-bezier(.22,1,.36,1) forwards}
+  .reveal.d1{animation-delay:.1s}.reveal.d2{animation-delay:.2s}
+  .reveal.d3{animation-delay:.3s}.reveal.d4{animation-delay:.45s}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+}
+</style>
 </head>
 <body>
-<div data-topbar-mount></div>
-<div class="jl-app">
 
-  <nav class="jl-rail" data-jl-rail aria-label="Chercher dans"></nav>
-
-  <main class="jl-body">
-
-    <!-- ═══ HERO ═══ (web/index.html:441-448) -->
-    <section class="jl-acc jl-acc--hero">
-      <div class="jl-acc__texte">
-        <h1 class="jl-acc__h1">L'accès libre et gratuit à toute la jurisprudence <em>française.</em></h1>
-        <p class="jl-acc__lead">Standardisation de l'accès programmatique au Droit. Notre serveur MCP
-          vous connecte directement aux bases de données juridiques officielles. Sans abonnement,
-          sans compte, sans barrière.</p>
-        <p class="jl-acc__actions">
-          <a class="jl-bouton jl-bouton--cta" href="/v2/recherche.html">Rechercher librement</a>
-          <a class="jl-bouton jl-bouton--ghost" href="/v2/apropos.html">À propos</a>
-        </p>
-      </div>
-      <div class="jl-acc__visuel" aria-hidden="false">
-        <img src="/circuit.png" alt="Illustration circuit réseau juridique" class="jl-circuit jl-circuit--clair" width="440" height="440">
-        <img src="/circuit-dark.png" alt="" class="jl-circuit jl-circuit--sombre" aria-hidden="true" width="440" height="440">
-      </div>
-    </section>
-
-    <!-- ═══ CHIFFRES ═══ (web/index.html:456-459 ; valeurs du rapport
-         scratchpad/audit/v2_accueil_doctrine_annuaire_13sept.md §1.3) -->
-    <section class="jl-acc jl-acc--chiffres">
-      <div class="jl-chiffres">
-        <div class="jl-chiffre">
-          <span class="jl-chiffre__n">3 285 952</span>
-          <span class="jl-chiffre__l">décisions de justice cherchables</span>
-          <span class="jl-provenance" title="Somme mesurée en base le 9 septembre 2026 : judiciaire 2 594 344, JADE 570 881, Cour EDH 76 062, CJUE 44 665. Les 985 996 décisions de l'open data TA/CAA ne sont pas comptées : elles sont en base mais pas encore cherchables.">compté en base, 9 sept. 2026</span>
-        </div>
-        <div class="jl-chiffre">
-          <span class="jl-chiffre__n">1,75 M+</span>
-          <span class="jl-chiffre__l">articles de loi, avec leurs versions successives</span>
-          <span class="jl-provenance" title="Articles de 72 codes issus du fonds LEGI (bulk DILA). Chiffre publié par la page d'accueil actuelle.">fonds LEGI</span>
-        </div>
-        <div class="jl-chiffre">
-          <span class="jl-chiffre__n">107 273</span>
-          <span class="jl-chiffre__l">avis et documents de doctrine</span>
-          <span class="jl-provenance" title="CADA 60 941, Défenseur des droits 15 864, rapporteurs publics 9 138, BOFiP 6 301, Code du travail numérique 15 029.">5 fonds, comptés</span>
-        </div>
-        <div class="jl-chiffre">
-          <span class="jl-chiffre__n">71 142</span>
-          <span class="jl-chiffre__l">adresses de juridictions et de PRADA</span>
-          <span class="jl-provenance" title="annuaire_meta.json, clé counts.grand_total. Sources capturées le 14 juillet 2026 : dump DILA, api-lannuaire.service-public.fr, annuaire CADA.">capturé le 14 juil. 2026</span>
-        </div>
-        <div class="jl-chiffre">
-          <span class="jl-chiffre__n">0 €</span>
-          <span class="jl-chiffre__l">coût d'accès, pour tout le monde</span>
-          <span class="jl-provenance" title="Aucune inscription, aucun quota, aucune clé d'API. Le projet est financé par les dons.">sans condition</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ INSTALLATION ═══ (condensé de web/index.html:465-475) -->
-    <section class="jl-sect" id="connect">
-      <h2 class="jl-titre">Installation en <em>trois étapes</em></h2>
-      <div class="jl-prose">
-        <p>Le serveur utilise le protocole Streamable HTTP. L'URL est permanente et ne nécessite
-          aucune inscription.</p>
-      </div>
-      <code class="jl-url">https://justicelibre.org/mcp</code>
-      <ol class="jl-etapes">
-        <li><strong>Configurez votre client</strong> : ouvrez les paramètres de votre client MCP
-          (Claude, ChatGPT, Cursor, Zed, Continue, ou tout autre client compatible).</li>
-        <li><strong>Ajoutez le connecteur</strong> : sélectionnez « Custom MCP Server » et collez
-          l'URL ci-dessus.</li>
-        <li><strong>Interrogez le droit</strong> : dans un nouveau chat, demandez simplement :
-          <em>« Cherche les décisions du TA de Lyon concernant la métropole. »</em></li>
-      </ol>
-    </section>
-
-    <!-- ═══ OUTILS ═══ (6 outils phares ; les 30 sont sur À propos.
-         Titre et descriptions repris de web/index.html:480-607) -->
-    <section class="jl-sect" id="tools">
-      <h2 class="jl-titre">30 outils, <em>toute la matière</em> juridique française</h2>
-      <div class="jl-prose">
-        <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes
-          (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions
-          historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence
-          BM25 + thésaurus de synonymes juridiques FR.</p>
-      </div>
-      <div class="jl-grille-3">
-        <div class="jl-outil"><code>search_all</code><p>Fan-out sur toutes les sources. Thésaurus FR auto (harcèlement → intimidation, vexation…). À utiliser en priorité.</p></div>
-        <div class="jl-outil"><code>search_admin</code><p>552 k décisions JADE (CE + 9 CAA) bulk DILA + ~700 k décisions live opendata.justice-administrative.fr (40 TA inclus). <strong>Pertinence</strong> BM25.</p></div>
-        <div class="jl-outil"><code>search_judiciaire_libre</code><p>1,3 M décisions : Cour de cassation, cours d'appel, tribunaux judiciaires, tribunaux de commerce, Conseil constitutionnel.</p></div>
-        <div class="jl-outil"><code>get_law_article</code><p>Article à une date (ex : art. 1128 CC en 1992 → texte napoléonien). Codes consolidés + lois non codifiées (LIL, LO58…) + JORFTEXT direct.</p></div>
-        <div class="jl-outil"><code>get_law_versions</code><p>Timeline complète d'un article (1804 → 1964 → 1994 → 2016…). Chaque version avec dates de début/fin.</p></div>
-        <div class="jl-outil"><code>search_decisions_citing</code><p>Cross-référence inverse : quelles décisions citent cet article ?</p></div>
-      </div>
-      <p class="jl-liens"><a href="/v2/apropos.html">Voir les 30 outils →</a></p>
-    </section>
-
-    <!-- ═══ MISSION ═══ (web/index.html:632-644, réduit à trois phrases ;
-         l'encadré Indépendance / Transparence est sur À propos) -->
-    <section class="jl-sect" id="mission">
-      <h2 class="jl-titre">Pourquoi c'est <em>gratuit</em> et <em>légal</em></h2>
-      <div class="jl-prose">
-        <p><strong>C'est la loi.</strong> Les lois de 2016 (République Numérique) et 2019 imposent
-          l'Open Data pour les décisions de justice. Sous <strong>Licence Ouverte 2.0 (Etalab)</strong>,
-          la redistribution est libre, y compris via une API, à la seule condition de citer la source.
-          Nous rendons la jurisprudence à son propriétaire légal : le citoyen.</p>
-      </div>
-      <p class="jl-liens" data-espace="haut">
-        <a href="/v2/apropos.html">Indépendance, transparence, sources : en savoir plus →</a>
-      </p>
-      <p data-espace="haut">
-        <a class="jl-bouton jl-bouton--cta" href="https://ko-fi.com/justicelibre" target="_blank" rel="external noopener">Soutenir le projet sur Ko-fi</a>
-      </p>
-    </section>
-
-    <!-- ═══ COMBAT ═══ (web/index.html:650-658, réduit ; les quatre paragraphes,
-         le tutoriel PISTE et la frise sont sur À propos) -->
-    <section class="jl-sect" id="combat">
-      <h2 class="jl-titre">La France, <em>seul pays européen</em> à bloquer l'accès à sa jurisprudence judiciaire</h2>
-      <div class="jl-prose">
-        <p>La Cour de cassation a choisi de conditionner l'accès programmatique à la base Judilibre
-          derrière un mur d'authentification obligatoire (protocole OAuth2 via la plateforme PISTE,
-          gérée par l'AIFE). Or, cette restriction n'est justifiée par <strong>aucun texte de
-          loi</strong>. Il s'agit aujourd'hui d'une <strong>entrave disproportionnée à la
-          transparence de la justice</strong>, une anomalie que nous avons l'intention de lever par
-          les voies de droit.</p>
-      </div>
-      <p class="jl-liens" data-espace="haut">
-        <a href="/v2/apropos.html">Le dossier complet, le tutoriel PISTE et le calendrier →</a>
-      </p>
-    </section>
-
-    <footer class="jl-pied">
-      Sources : Judilibre / DILA, ArianeWeb (Conseil d'État), open data de la justice administrative,
-      HUDOC (Cour EDH), EUR-Lex (CJUE) - Licence Ouverte 2.0 (Etalab). Licence MIT pour le code.
-      JusticeLibre est une copie miroir indexée ; la version qui fait foi est celle publiée par la juridiction.
-      · <a href="/v2/apropos.html">À propos</a>
-      · <a href="https://github.com/Dahliyaal/justicelibre" rel="external noopener">GitHub</a>
-      · <a href="/mentions-legales.html">Mentions légales</a>
-      · <a href="/confidentialite.html">Confidentialité</a>
-      · <a href="#" class="jl-mail-r" data-u="contact" data-d="justicelibre" data-t="org">Afficher l'adresse de contact</a>
-    </footer>
-  </main>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo-area">
+    <img src="/logo.svg" alt="justicelibre logo" width="60" height="60">
+    <span class="name">justicelibre<span class="tld">.org</span></span>
+  </div>
+  <nav class="main-nav">
+    <a href="#connect">Se connecter</a>
+    <a href="#tools">Outils</a>
+    <a href="/ressources.html">Ressources</a>
+    <a href="#mission">Légalité</a>
+    <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
+    <a href="https://ko-fi.com/justicelibre" target="_blank" rel="noopener" style="color:var(--teal)">Soutenir</a>
+    <a href="/v2/recherche.html" class="btn-search-nav" aria-label="Rechercher librement">
+      <span class="btn-label">Rechercher librement</span>
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    </a>
+    <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+    <button class="topbar-burger" id="topbarBurger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</header>
+<div class="topbar-drawer" id="topbarDrawer" aria-hidden="true">
+  <button class="topbar-drawer-close" id="topbarDrawerClose" aria-label="Fermer">×</button>
+  <a href="#connect">Se connecter</a>
+  <a href="#tools">Outils</a>
+  <a href="/ressources.html">Ressources</a>
+  <a href="#mission">Légalité</a>
+  <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
+  <a href="https://ko-fi.com/justicelibre" target="_blank" rel="noopener" style="color:var(--teal)">Soutenir</a>
 </div>
+<div class="topbar-overlay" id="topbarOverlay"></div>
 
-<div class="jl-proto">prototype local · v2 · données réelles de justicelibre.org</div>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text reveal">
+    <h1>L'accès libre et gratuit à toute la jurisprudence <em>française.</em></h1>
+    <p>Standardisation de l'accès programmatique au Droit. Notre serveur MCP vous connecte directement aux bases de données juridiques officielles. Sans abonnement, sans compte, sans barrière.</p>
+    <a href="#connect" class="btn">Accéder à l'endpoint MCP</a>
+  </div>
+  <div class="hero-visual reveal d2">
+    <img src="/circuit.png" alt="Illustration circuit réseau juridique" class="circuit-img circuit-light">
+    <img src="/circuit-dark.png" alt="" class="circuit-img circuit-dark" aria-hidden="true">
+  </div>
+</section>
 
-<script type="application/json" id="jl-page">
-{
-  "rail": {
-    "actif": "",
-    "repliable": true,
-    "mcp": "/v2/apropos.html",
-    "scopes": [
-      {"k":"juris",    "icon":"scale",  "label":"Jurisprudence",         "href":"/v2/recherche.html", "n":"3,3 M"},
-      {"k":"textes",   "icon":"book",   "label":"Textes",                "soon":true},
-      {"k":"travaux",  "icon":"hall",   "label":"Travaux préparatoires", "soon":true},
-      {"k":"avis",     "icon":"chat",   "label":"Avis & doctrine",       "href":"/v2/doctrine.html", "n":"107 k"},
-      {"k":"annuaire", "icon":"people", "label":"Annuaire",              "href":"/v2/annuaire.html", "n":"71 k"}
-    ],
-    "outils": [
-      {"k":"citations", "icon":"check", "label":"Vérifier mes citations", "href":"/hub.html#/citations", "soon":true}
-    ]
-  },
-  "toc": false
-}
+<div class="band"></div>
+
+<!-- STATS -->
+<section class="stats-section reveal d3">
+  <div class="stats-grid">
+    <div class="stat-card"><span class="num">~3 M</span><span class="label">Décisions accessibles</span></div>
+    <div class="stat-card"><span class="num">1,75 M+</span><span class="label">Articles de loi (avec versions)</span></div>
+    <div class="stat-card"><span class="num">30</span><span class="label">Outils MCP</span></div>
+    <div class="stat-card"><span class="num">0 €</span><span class="label">Coût d'accès</span></div>
+  </div>
+</section>
+
+<!-- CONNECT -->
+<section class="section" id="connect">
+  <h2>Installation en <em>trois étapes</em></h2>
+  <p>Le serveur utilise le protocole Streamable HTTP. L'URL est permanente et ne nécessite aucune inscription.</p>
+  <div class="connect-box">
+    <h3>Endpoint MCP <span id="mcp-maj" style="font-style:italic;font-weight:400;color:#8a8f98;font-size:.7em"></span></h3>
+    <code class="connect-url">https://justicelibre.org/mcp</code>
+    <ol class="steps">
+      <li><strong>Configurez votre client</strong> : ouvrez les paramètres de votre client MCP (Claude, ChatGPT, Cursor, Zed, Continue, ou tout autre client compatible).</li>
+      <li><strong>Ajoutez le connecteur</strong> : sélectionnez « Custom MCP Server » et collez l'URL ci-dessus.</li>
+      <li><strong>Interrogez le droit</strong> : dans un nouveau chat, demandez simplement : <em>« Cherche les décisions du TA de Lyon concernant la métropole. »</em></li>
+    </ol>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="section" id="tools">
+  <h2>30 outils, <em>toute la matière</em> juridique française</h2>
+  <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
+  <h3 style="font-family:var(--display);font-size:1.1rem;margin:2rem 0 .8rem;color:var(--teal)">Recherche fédérée (pertinence BM25)</h3>
+  <div class="tools-grid">
+    <div class="tool-card">
+      <code>search_all</code>
+      <p>Fan-out sur toutes les sources. Thésaurus FR auto (harcèlement → intimidation, vexation…). À utiliser en priorité.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_admin</code>
+      <p>552 k décisions JADE (CE + 9 CAA) bulk DILA + ~700 k décisions live opendata.justice-administrative.fr (40 TA inclus). <strong>Pertinence</strong> BM25.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_judiciaire_libre</code>
+      <p>1,3 M décisions : Cour de cassation, cours d'appel, tribunaux judiciaires, tribunaux de commerce, Conseil constitutionnel. Archives DILA locales + synchronisation quotidienne Judilibre.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_conseil_etat</code>
+      <p>270 k+ décisions du CE via moteur Sinequa (ArianeWeb, 114 k indexées en full text).</p>
+    </div>
+    <div class="tool-card">
+      <code>search_cedh</code>
+      <p>76 k décisions de la Cour européenne des droits de l'homme (HUDOC FR).</p>
+    </div>
+    <div class="tool-card">
+      <code>search_cjue</code>
+      <p>44 k arrêts CJUE + Tribunal UE + conclusions AG en français.</p>
+    </div>
+    <div class="tool-card">
+      <code>search_cc</code>
+      <p>7 k+ décisions du Conseil constitutionnel. Filtrable par nature (QPC, DC, L, SEN, AN…).</p>
+    </div>
+  </div>
+  <p style="margin-top:1.2rem"><a href="/v2/apropos.html#outils">Voir les 30 outils, par famille →</a></p>
+</section>
+
+<!-- MISSION -->
+<section class="section" id="mission" style="padding-bottom:3rem">
+  <h2>Pourquoi c'est <em>gratuit</em> et <em>légal</em></h2>
+  <p><strong>C'est la loi.</strong> Les lois de 2016 (République Numérique) et 2019 imposent l'Open Data pour les décisions de justice. Sous <strong>Licence Ouverte 2.0 (Etalab)</strong>, la redistribution est libre, y compris via une API, à la seule condition de citer la source.</p>
+  <p>Nous rendons la jurisprudence à son propriétaire légal : le citoyen. Ce projet exerce simplement ce droit en simplifiant l'accès technique.</p>
+  <div class="callout">
+    <p><strong>Indépendance</strong> : projet citoyen non affilié au Conseil d'État.<br>
+    <strong>Transparence</strong> : serveur Open Source maintenu bénévolement.<br>
+    <strong>Sources</strong> : opendata.justice-administrative.fr, ArianeWeb (conseil-etat.fr) &amp; archives DILA (echanges.dila.gouv.fr).</p>
+  </div>
+  <div style="text-align:right;margin-top:2rem;padding-bottom:1rem">
+    <a href="https://ko-fi.com/justicelibre" class="kofi-btn" target="_blank" rel="noopener">
+      <img src="/kofi.svg" alt="Ko-fi" width="20" height="20" style="filter:brightness(0) invert(1)">
+      Soutenir le projet sur Ko-fi
+    </a>
+  </div>
+</section>
+
+<!-- COMBAT (version courte) -->
+<section class="section" id="combat" style="padding-bottom:3rem">
+  <h2>La France, <em>seul pays européen</em> à bloquer l'accès à sa jurisprudence judiciaire</h2>
+
+  <p>L'ouverture des décisions de justice en Open Data en France ne relève pas d'une initiative spontanée de l'administration, mais bien d'une victoire de la société civile. C'est en effet sous la contrainte d'une injonction du Conseil d'État, rendue le 21 janvier 2021 (CE, 10<sup>e</sup> et 9<sup>e</sup> chambres réunies, n° 429956, <em>Association Ouvre-Boîte</em>), censurant la carence fautive du Garde des Sceaux, que le Gouvernement a finalement dû organiser la diffusion de la jurisprudence. L'arrêté du 28 avril 2021 organisant le calendrier de mise à disposition n'existe que grâce à ce recours citoyen. Si cette décision a permis de poser les fondations de la transparence judiciaire dans notre pays, son application sur le terrain révèle aujourd'hui une asymétrie de traitement injustifiable entre nos deux ordres juridictionnels.</p>
+
+  <p><a href="/v2/apropos.html#combat">Lire la suite : le verrou technique de la Cour de cassation, la comparaison européenne, la chronologie du combat →</a></p>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <h4>Sources de données</h4>
+      <p><a href="https://opendata.justice-administrative.fr/">opendata.justice-administrative.fr</a></p>
+      <p><a href="https://www.conseil-etat.fr/">conseil-etat.fr (ArianeWeb)</a></p>
+      <p><a href="https://echanges.dila.gouv.fr/OPENDATA/">echanges.dila.gouv.fr (DILA)</a></p>
+      <p style="font-style:italic;font-size:.82rem;margin-top:.5rem">Licence Ouverte 2.0 (Etalab). Admin : temps réel. Judiciaire : MAJ hebdomadaire.</p>
+    </div>
+    <div>
+      <h4>Le projet</h4>
+      <p><a href="https://github.com/Dahliyaal/justicelibre">Code source (GitHub)</a></p>
+      <p>Licence MIT</p>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <p>Questions, suggestions, contributions :</p>
+      <p><a href="https://github.com/Dahliyaal/justicelibre/issues">GitHub Issues</a></p>
+      <p><a href="#" class="mail-r" style="white-space:nowrap" data-u="contact" data-d="justicelibre" data-t="org" title="Cliquer pour afficher l'adresse"><svg width="13" height="13" viewBox="0 0 24 24" fill="var(--teal)" style="display:inline-block;vertical-align:-1px;margin-right:.35em" aria-hidden="true"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v.35l-10 6.25L2 6.35V6zm0 2.7V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8.7l-9.47 5.92a1 1 0 0 1-1.06 0L2 8.7z"/></svg>afficher l'adresse e-mail</a></p>
+    </div>
+  </div>
+  <p class="footer-bottom">
+    © 2026 justicelibre.org · Licence MIT · <a href="/mentions-legales.html">Mentions légales</a> · <a href="/confidentialite.html">Confidentialité (RGPD)</a><br>
+    Hébergement : Hetzner Online GmbH<br>
+    Éditeur : personne physique (coordonnées communiquées à l'hébergeur conformément à l'article 6 III-2 de la LCEN)
+    <span class="punch">Propulsé par la loi, pas par vos frais de licence.</span>
+  </p>
+</footer>
+
+<script>
+(function(){
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('nav.main-nav a[href^="#"]');
+  function onScroll(){
+    var current = '';
+    var atBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 80);
+    if(atBottom){
+      current = sections[sections.length - 1].id;
+    } else {
+      sections.forEach(function(s){
+        if(window.scrollY >= s.offsetTop - 200) current = s.id;
+      });
+    }
+    navLinks.forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+
+/* ─── Burger menu mobile ─── */
+(function(){
+  var burger = document.getElementById('topbarBurger');
+  var drawer = document.getElementById('topbarDrawer');
+  var overlay = document.getElementById('topbarOverlay');
+  if (!burger || !drawer || !overlay) return;
+  function setDrawer(open){
+    burger.classList.toggle('open', open);
+    drawer.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+  burger.addEventListener('click', function(){ setDrawer(!drawer.classList.contains('open')); });
+  overlay.addEventListener('click', function(){ setDrawer(false); });
+  var closeBtn = document.getElementById('topbarDrawerClose');
+  if (closeBtn) closeBtn.addEventListener('click', function(){ setDrawer(false); });
+  drawer.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ setDrawer(false); }); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') setDrawer(false); });
+})();
+
+/* ─── Dark mode (binaire light/dark, jamais "auto") ─── */
+(function(){
+  var KEY = 'jl-theme';
+  var html = document.documentElement;
+  try {
+    var stored = localStorage.getItem(KEY);
+    if (stored === 'light' || stored === 'dark') html.setAttribute('data-theme', stored);
+  } catch (e) {}
+  var btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var isDark = html.getAttribute('data-theme') === 'dark'
+      || (!html.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  });
+})();
+</script>
+<script>
+// Badge "MàJ" auto : lit web/version.json (stampé au déploiement avec la date
+// du dernier commit git) et l'affiche en français. Pas de date en dur.
+fetch('/version.json', {cache: 'no-store'}).then(r => r.json()).then(d => {
+  if (!d.updated) return;
+  const dt = new Date(d.updated + 'T00:00:00');
+  const s = dt.toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'});
+  const el = document.getElementById('mcp-maj');
+  if (el) el.textContent = '— MàJ ' + s;
+}).catch(() => {});
+</script>
+<script>
+/* Anti-scrape : le mail n'existe pas dans le HTML, il est assemblé au clic. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest('.mail-r'); if(!a) return;
+  var m = a.dataset.u + '@' + a.dataset.d + '.' + a.dataset.t;
+  if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
+});
 </script>
 </body>
 </html>
