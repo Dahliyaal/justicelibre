@@ -134,6 +134,8 @@ pre.json{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;li
 .chain.open .ch .chev{transform:rotate(90deg)}
 .chain .ch .obj{font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chain .ch .cnt{margin-left:auto;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.chain .alive{padding:0 12px 6px}
+.chain .dead-tog{border-top:1px solid var(--line);font-size:12px;padding:7px 12px}
 .chain .members{display:none;border-top:1px solid var(--line);background:var(--white);padding:4px 12px 8px}
 .chain.open .members{display:block}
 .chain .head{padding:0 12px 10px}
@@ -332,9 +334,11 @@ function render(M){
   const memHTML = m => { const st = lifeAt(m, at); const rep = (M.succ[m.legitext]||[]).map(s => `${s.type==='abroge'?'abrogé par':'modifié par'} <a href="${legifrance(s.vers)}">${esc(M.A[s.vers].titre)}</a>`).join(' · ');
     return `<div class="mem ${st.k==='ok'?'':st.k==='fut'?'fut':'dead'}"><div class="dot"></div><div><div class="t"><a href="${legifrance(m.legitext)}">${esc(m.titre)}</a> <span class="nor">${esc(m.nor||'')}</span></div><div class="d">${pill(st)}${m.date_debut?`<span>${fmtCourt(m.date_debut)} → ${fmtCourt(m.date_fin)}</span>`:''}<span class="how">${M.direct.has(m.legitext) ? 'visa vers l’art. ' + esc((m.vise||[]).join(', ')) : 'par succession'}</span>${m.nb_articles?`<span>${m.nb_articles} art.</span>`:''}</div>${rep?`<div class="d">→ ${rep}</div>`:''}</div></div>`; };
   const chainHTML = (c, i) => { const hs = lifeAt(c.head, at); const dead = c.members.length - c.alive.length;
-    return `<div class="chain${c.alive.length ? '' : ' '}" id="ch${i}"><div class="ch" onclick="this.parentElement.classList.toggle('open')"><span class="chev">▶</span><span class="obj" title="${esc(c.objet)}">${esc(c.objet)}</span><span class="cnt">${c.alive.length} vivant${c.alive.length>1?'s':''} · ${dead} mort${dead>1?'s':''}</span></div>
+    return `<div class="chain" id="ch${i}"><div class="ch" onclick="this.parentElement.classList.toggle('open')"><span class="obj" title="${esc(c.objet)}">${esc(c.objet)}</span><span class="cnt">${c.alive.length} en vigueur</span></div>
       <div class="head"><div class="mem ${hs.k==='ok'?'':hs.k==='fut'?'fut':'dead'}"><div class="dot"></div><div><div class="t"><a href="${legifrance(c.head.legitext)}">${esc(c.head.titre)}</a> <span class="nor">${esc(c.head.nor||'')}</span></div><div class="d">${pill(hs)}<span class="how">${M.direct.has(c.head.legitext) ? 'visa vers l’art. ' + esc((c.head.vise||[]).join(', ')) : 'par succession'}</span>${c.head.nb_articles?`<span>${c.head.nb_articles} art.</span>`:''}</div></div></div></div>
-      <div class="members">${c.members.filter(m => m !== c.head).map(memHTML).join('') || '<div class="muted" style="padding:6px 0;font-size:12px">chaîne à un seul membre</div>'}</div></div>`; };
+      <div class="alive">${c.members.filter(m => m !== c.head && lifeAt(m, at).k !== 'ab').map(memHTML).join('')}</div>
+      <div class="ch dead-tog" onclick="this.parentElement.classList.toggle('open')"><span class="chev">▶</span><span class="obj muted" style="font-weight:500">${dead} arrêté${dead>1?'s':''} abrogé${dead>1?'s':''} ou périmé${dead>1?'s':''} · les voir</span></div>
+      <div class="members">${c.members.filter(m => m !== c.head && lifeAt(m, at).k === 'ab').map(memHTML).join('') || '<div class="muted" style="padding:6px 0;font-size:12px">aucun arrêté mort dans cette chaîne</div>'}</div></div>`; };
   const artSel = `<select id="numSel">${Object.keys(M.P.articles).map(n => `<option ${n===M.num?'selected':''}>${n}</option>`).join('')}</select>`;
   const idCell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
   $('#body').innerHTML = `<p class="hero">Art. ${esc(M.num)} · ${esc(M.cname)} ${artSel}</p>
@@ -354,7 +358,7 @@ function render(M){
     ${idCell('Source', `<a href="https://www.legifrance.gouv.fr/codes/article_lc/${cur ? cur.legiarti : M.versions[0].legiarti}">Légifrance ↗</a> · <span class="src">LEGI</span>`)}
   </div>
   <div class="cols">
-    <div class="col"><h2>D’où il vient <span class="arrow">→</span><span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">du plus récent au plus ancien</span></h2>
+    <div class="col"><h2>Ce qui a agi sur lui <span class="arrow">→</span><span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">décrets, du plus récent au plus ancien</span></h2>
       <div class="legend"><span><i style="background:var(--ok)"></i>joue à la date lue</span><span style="opacity:.55"><i style="background:var(--muted)"></i>ne joue plus (gris)</span></div>
       ${M.acts.map(x => it(x)).join('') || '<div class="muted" style="font-size:12.5px">aucune modification enregistrée dans LEGI</div>'}
       ${M.roots.map(x => it({...x, joue:true}, ' root')).join('')}
@@ -363,7 +367,7 @@ function render(M){
       <div class="vlist">${M.versions.map((v,i)=>{ const st = lifeAt(v, at); return `<a class="vl${v===cur?' cur':''}${st.k!=='ok'?' dead':''}" href="?num=${M.num}&date=${v.date_debut}"><span>${v===cur?'●':'○'}</span><span>${fmtCourt(v.date_debut)} → ${fmtCourt(v.date_fin)}</span><span class="mono">${esc(v.etat)}${M.sims[i]!==null?`<br>${Math.round(M.sims[i]*100)} % mots communs`:''}</span></a>`; }).join('')}</div>
       ${cur ? `<div class="rtitle" id="rt"><span class="chev">▶</span><b>Texte à la date lue</b><span class="res">· ${alineas(cur).length} al.${cur.nota?' + Nota':''} · ${esc(resume(cur))}</span></div><div class="rtext" id="rx">${texteHTML(cur)}</div>` : `<div class="honest">À la date lue, l’article n’existe pas encore.</div>`}
       ${M.cite.length ? `<div class="h5" style="margin:16px 0 6px">Renvois du texte · ${M.cite.length}</div>${M.cite.map(x => it({...x, joue:true, rel:'renvoie à'})).join('')}` : ''}</div>
-    <div class="col"><h2><span class="arrow">→</span> Ce qui en dépend <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.chainList.length} chaîne${M.chainList.length>1?'s':''} d’arrêtés</span></h2>
+    <div class="col"><h2><span class="arrow">→</span> Pris en application <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">arrêtés, ${M.chainList.reduce((n,c)=>n+c.members.length,0)} au total</span></h2>
       <div class="legend"><span><i style="background:var(--ok)"></i>vivant à la date lue</span><span><i style="background:var(--muted)"></i>mort</span><span><i style="background:var(--doc)"></i>pas encore en vigueur</span></div>
       ${M.chainList.map(chainHTML).join('') || `<div class="honest">Aucun arrêté ne vise l’article ${esc(M.num)} dans LEGI.</div>`}
       <div class="honest" style="margin-top:10px">Chaînes construites à partir des <b>visas</b> (« Vu … l’article ${esc(M.num)} ») puis fermées par les liens d’<b>abrogation</b> et de <b>modification</b> entre arrêtés. LEGI ne porte presque jamais le lien typé « texte d’application » (313 arrêtés en vigueur sur 68 811) : un arrêté sans visa explicite n’apparaît pas ici, et son absence ne prouve rien.</div>
