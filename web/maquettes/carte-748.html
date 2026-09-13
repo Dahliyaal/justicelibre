@@ -387,7 +387,9 @@ async function loadModel(){
   const citantsList = [...citants.values()].filter(c => c.nature !== 'ARRETE' && !auteurs.has(c.key))
     .map(c => ({...c, st: lifeAt(c.t, at), arts: [...new Set(c.arts)]}))
     .sort((a, b) => ((NATORD[a.nature] ?? 5) - (NATORD[b.nature] ?? 5)) || (b.date || '').localeCompare(a.date || ''));
-  const exclus = {auteurs: [...citants.values()].filter(c => auteurs.has(c.key)).length, arretes: [...citants.values()].filter(c => c.nature === 'ARRETE' && !auteurs.has(c.key)).length};
+  const arrCit = [...citants.values()].filter(c => c.nature === 'ARRETE' && !auteurs.has(c.key));
+  const exclus = {auteurs: [...citants.values()].filter(c => auteurs.has(c.key)).length,
+    arretes_vivants: arrCit.filter(c => lifeAt(c.t, at).k === 'ok').length, arretes_morts: arrCit.filter(c => lifeAt(c.t, at).k !== 'ok').length};
 
   const sims = versions.map((v, i) => i ? jaccard(versions[i-1].texte, v.texte) : null);
   const recycled = sims.some(x => x !== null && x < 0.25);
@@ -449,7 +451,7 @@ function render(M){
     <div class="col mid"><h2>${M.isToday ? 'Texte en vigueur' : 'Texte au ' + fmtCourt(at)} <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${cur ? 'rédaction du ' + fmtCourt(cur.date_debut) + (cur.date_fin && cur.date_fin < '2999' ? ' au ' + fmtCourt(cur.date_fin) : '') : ''}</span></h2>
       ${midHTML(M)}</div>
     <div class="col"><h2>Références croisées <span class="muted" style="margin-left:auto;text-transform:none;letter-spacing:0">${M.citantsList.length}</span></h2>
-      <p class="jl-sub">Mentions de l’article par des textes de même rang ou supérieur, sans effet sur sa portée. Exclus du décompte : ${M.exclus.auteurs} texte${M.exclus.auteurs>1?'s':''} d’origine (historique) et ${M.exclus.arretes} arrêté${M.exclus.arretes>1?'s':''} subordonné${M.exclus.arretes>1?'s':''} (colonne de gauche).</p>
+      <p class="jl-sub">Mentions de l’article par des textes de même rang ou supérieur, sans effet sur sa portée. Non comptés ici : les ${M.exclus.auteurs} textes qui ont écrit ses rédactions (le dernier à gauche, les autres dans l’historique), ${M.exclus.arretes_vivants} arrêté${M.exclus.arretes_vivants>1?'s':''} en vigueur pris pour lui (à gauche) et ${M.exclus.arretes_morts} arrêté${M.exclus.arretes_morts>1?'s':''} abrogé${M.exclus.arretes_morts>1?'s':''} (historique).</p>
       ${rightHTML(M)}</div>
   </div>
   <div id="historique" style="margin-top:26px"><div class="honest"><b>Historique.</b> Dans la maquette, cette ancre tient lieu de la page d’historique de l’article : toutes ses rédactions, les textes qui les ont écrites, et les textes morts qui ne figurent plus dans la colonne de gauche.</div></div>`;
