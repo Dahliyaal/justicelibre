@@ -511,6 +511,7 @@ const VCSS = `
 .p5h{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none}
 .p5h:hover{background:var(--teal-xl)}
 .p5acc.dead .p5h{opacity:.6}
+.p5ab{color:var(--bad);opacity:.75}
 .p5ttl a{color:var(--ink);text-decoration:none} .p5ttl a:hover{color:var(--teal);text-decoration:underline}
 .p5chev{color:var(--teal);transition:transform .15s;flex:none}
 .p5acc.open>.p5h .p5chev{transform:rotate(90deg)}
@@ -545,7 +546,7 @@ function VIEW(H){
   const arr = a => {
     const friseA = `<div class="p5frise"><span class="p5seg${a.st.k !== 'ok' ? ' dead' : ''}"><i></i>pris le ${fmtCourt(a.debut)}</span>${a.retouches.map(r => `<span class="p5lnk"></span><span class="p5seg${apres(H, r.date_texte) ? ' jl-hfutur' : ''}"><i></i>retouché ${fmtCourt(r.date_texte)}</span>`).join('')}${a.fin < '2999' ? `<span class="p5lnk"></span><span class="p5seg dead"><i></i>abrogé ${fmtCourt(a.fin)}</span>` : `<span class="p5lnk"></span><span class="p5seg"><i></i>toujours en vigueur</span>`}</div>`;
     const predsHTML = list => list.map(p => `<div class="p5acc lvl2 dead" data-acc>
-        <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a></span><span class="p5cnt">abrogé ${fmtCourt(p.fin)}${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
+        <div class="p5h"><span>${chev}</span><span class="p5ttl"><a href="${p.lf}" title="Ouvrir sur Légifrance" onclick="event.stopPropagation()">${esc(p.titre)}</a></span><span class="p5cnt"><span class="p5ab">abrogé ${fmtCourt(p.fin)}</span>${p.retouches.length ? ' · ' + p.retouches.length + ' retouche' + (p.retouches.length > 1 ? 's' : '') : ''}${p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : ''}</span></div>
         <div class="p5body"><div class="jl-long">${esc(p.long)}</div>
           <div class="jl-meta">${p.nor ? `<span class="nor">${esc(p.nor)}</span>` : ''}<span>en vigueur du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}</span>${pill(p.st)}${howHTML('succession')}</div>
           ${retsHTML(p)}${p.predecesseurs.length ? `<div class="jl-h2" style="margin-top:12px">A remplacé <span class="jl-hcount">${p.predecesseurs.length}</span></div>${predsHTML(p.predecesseurs)}` : ''}
