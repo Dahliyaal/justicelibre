@@ -826,11 +826,15 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     renvois = data.get("renvois") or ""
     ecli = data.get("ecli", "")
     formation = data.get("formation", "")
-    solution = data.get("solution", "")
-    nature = data.get("nature", "")
+    # Judilibre code « other » quand la valeur n'est pas renseignée : ce n'est
+    # pas une information, on ne l'affiche pas (vu sur la prod le 13 sept. 2026,
+    # « Nature : other », « Type de recours : other »).
+    _brut = lambda v: "" if (v or "").strip().lower() in ("other", "none", "null") else (v or "")
+    solution = _brut(data.get("solution", ""))
+    nature = _brut(data.get("nature", ""))
     rapporteur = data.get("rapporteur", "")
     commissaire_gvt = data.get("commissaire_gvt", "")
-    type_rec = data.get("type_rec", "")
+    type_rec = _brut(data.get("type_rec", ""))
     publi_recueil = data.get("publi_recueil", "")
     publi_bull = data.get("publi_bull", "")
     nature_qualifiee = data.get("nature_qualifiee", "")

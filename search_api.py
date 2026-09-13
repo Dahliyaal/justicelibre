@@ -802,6 +802,7 @@ def _dispatch_cedh_sync(
 ) -> list[dict]:
     out = []
     seen = set()
+    total_base = None
     try:
         if intent.kind == "itemid_hudoc":
             row = european.get_cedh(intent.value)
@@ -810,6 +811,7 @@ def _dispatch_cedh_sync(
                 seen.add(row["id"])
         if not out or intent.kind in ("fts", "phrase"):
             r = european.search_cedh(query=intent.fts_query, limit=limit, offset=offset)
+            total_base = r.get("total")
             for d in r.get("decisions", []):
                 if d["id"] in seen:
                     continue
@@ -819,7 +821,11 @@ def _dispatch_cedh_sync(
                 seen.add(d["id"])
     except Exception as e:
         print(f"[cedh err] {e}")
-    return out
+    # Le vrai total FTS (8 173 pour « torture ») était perdu : la page disait
+    # « total 5 » pour 5 résultats rendus (13 sept. 2026).
+    hits = _Hits(out)
+    hits.total_base = total_base if isinstance(total_base, int) else None
+    return hits
 
 
 def _dispatch_cjue_sync(
@@ -828,6 +834,7 @@ def _dispatch_cjue_sync(
 ) -> list[dict]:
     out = []
     seen = set()
+    total_base = None
     try:
         if intent.kind == "celex":
             row = european.get_cjue(intent.value)
@@ -836,6 +843,7 @@ def _dispatch_cjue_sync(
                 seen.add(row["id"])
         if not out or intent.kind in ("fts", "phrase"):
             r = european.search_cjue(query=intent.fts_query, limit=limit, offset=offset)
+            total_base = r.get("total")
             for d in r.get("decisions", []):
                 if d["id"] in seen:
                     continue
@@ -845,7 +853,9 @@ def _dispatch_cjue_sync(
                 seen.add(d["id"])
     except Exception as e:
         print(f"[cjue err] {e}")
-    return out
+    hits = _Hits(out)
+    hits.total_base = total_base if isinstance(total_base, int) else None
+    return hits
 
 
 # ─── RECHERCHE FÉDÉRÉE (orchestrateur) ─────────────────────────────
@@ -998,7 +1008,9 @@ async def search_federated(
     # connaît son total (dila, legi, doctrine transportent `total_base`).
     _totaux = {"dila": total_dila,
                "legi": getattr(legi_r, "total_base", None),
-               "doctrine": getattr(doctrine_r, "total_base", None)}
+               "doctrine": getattr(doctrine_r, "total_base", None),
+               "cedh": getattr(cedh_r, "total_base", None),
+               "cjue": getattr(cjue_r, "total_base", None)}
     _seule = list(sources_to_query)[0] if len(list(sources_to_query)) == 1 else None
     total_exact_val = _totaux.get(_seule) if _seule else None
     dila_r = _dedupe_ecli(dila_r)
