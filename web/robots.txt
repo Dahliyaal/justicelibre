@@ -1,3 +1,20 @@
+# 17 septembre 2026 : aspirateurs SEO commerciaux, aucun visiteur n'en vient,
+# et leur passage (100 000+ pages/jour) saturait l'entrepôt des articles de loi.
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
 User-agent: *
 Allow: /
 Disallow: /api/
