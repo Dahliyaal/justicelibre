@@ -163,6 +163,7 @@
       '<span><i class="lg lg--cap"></i>fin (abrogation)</span>' +
       '<span><i class="lg lg--notch"></i>retouche</span>' +
       '<span><i class="lg lg--inf"></i>sans fin prévue</span>' +
+      '<span><i class="lg lg--ab">A</i>rédactions comparées mot à mot plus bas (clique une rédaction pour changer)</span>' +
       '<span class="jl-cl__legende-arbre">Chaque ligne en retrait dépend de celle au-dessus d\u2019elle : ' +
       '« ↳ remplacé par X » = texte que X a remplacé ; « ↳ a modifié X » = texte qui a modifié X.</span></div>';
     /* 3/10/2026 : titre et phrase d'abord, légende ensuite dans son propre
@@ -218,6 +219,7 @@
       $('#cl-out').innerHTML = diffPane(a, b);
       $$('.jl-cl__seg').forEach(function (s) {
         s.classList.toggle('is-sel', +s.dataset.red === a || +s.dataset.red === b);
+        if (+s.dataset.red === a) s.dataset.ab = 'A'; else if (+s.dataset.red === b) s.dataset.ab = 'B'; else delete s.dataset.ab;
       });
     };
     $$('.jl-cl__seg').forEach(function (s) {
