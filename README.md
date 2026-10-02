@@ -11,6 +11,8 @@
 [![Articles de loi](https://img.shields.io/badge/Articles_de_loi-1.5_M%2B-1a4e4e?style=flat-square)](https://justicelibre.org)
 [![Licence](https://img.shields.io/badge/Licence-MIT-c79e3a?style=flat-square)](LICENSE)
 
+**JusticeLibre est un serveur MCP de jurisprudence française et européenne.** Il permet à Claude, ChatGPT, Mistral, Cursor ou tout client MCP de rechercher, lire et citer les décisions de la Cour de cassation, des cours d'appel, du Conseil d'État, des cours administratives d'appel, des tribunaux administratifs, du Conseil constitutionnel, de la CEDH et de la CJUE, ainsi que les articles de loi dans leur version à une date donnée. Gratuit, sans compte, sans clé : ajoutez simplement `https://justicelibre.org/mcp` comme connecteur (voir [Quick start](#quick-start)).
+
 Serveur **Model Context Protocol** (MCP) qui expose **~3,3 M décisions de justice** + **~1,5 M articles de loi consolidés** + ~700 k textes annexes (KALI/JORF/CNIL) de la France, de l'UE et du Conseil de l'Europe — gratuit, sans authentification, indexé sur Google.
 
 | Source | Volume | Couverture |
@@ -26,7 +28,7 @@ Serveur **Model Context Protocol** (MCP) qui expose **~3,3 M décisions de justi
 | Articles de loi en vigueur (LEGI) | 1 481 309 | DILA bulk |
 | Conventions collectives (KALI) | 286 732 | DILA bulk |
 | JO (textes non codifiés) | 409 564 | DILA bulk |
-| Délibérations CNIL | 8 126 | DILA bulk |
+| Délibérations CNIL | 26 706 | DILA bulk |
 
 ---
 
@@ -60,7 +62,7 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 | **Conseil constit.** | ✅ 7k décisions + tool dédié | ⚠️ | ❌ | ⚠️ | ✅ |
 | **40 TA en parallèle** | ✅ fan-out | ⚠️ partiel | ❌ | ❌ | ✅ |
 | **9 CAA en parallèle** | ✅ fan-out | ⚠️ | ❌ | ❌ | ✅ |
-| **CNIL délibérations** | ✅ ~8k | ❌ | ❌ | ⚠️ | ❌ |
+| **CNIL délibérations** | ✅ ~27k | ❌ | ❌ | ⚠️ | ❌ |
 | **Articles loi versionnés** | ✅ 1.5M | ⚠️ | ⚠️ Légifrance brut | ⚠️ | ✅ |
 | **BM25 pertinence** | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ |
 | **Open source** | ✅ MIT | ❌ | ⚠️ | ❌ | ❌ |
@@ -69,7 +71,7 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 
 ---
 
-## Outils MCP exposés (29)
+## Outils MCP exposés (33)
 
 ### Recherche fédérée
 
@@ -127,7 +129,14 @@ Les outils juridiques propriétaires (**Pappers Justice**, **Doctrine.fr**, **Le
 |---|---|
 | `search_jorf` | 1.24M textes JO (lois, décrets, arrêtés, circulaires depuis 1990) |
 | `search_kali` | 335k conventions collectives + accords de branche |
-| `search_cnil` | ~8k délibérations CNIL (RGPD, données personnelles) |
+| `search_cnil` | ~27k délibérations CNIL (RGPD, données personnelles) |
+
+### Doctrine publique
+
+| Outil | Description |
+|---|---|
+| `search_doctrine` | Conclusions des rapporteurs publics du Conseil d'État, avis CADA, BOFiP, Défenseur des droits |
+| `get_doctrine_document` | Texte intégral d'un document de doctrine, avec sa nature et sa référence officielle (jamais présenté comme une décision) |
 
 ---
 
@@ -141,9 +150,15 @@ URL : https://justicelibre.org/mcp
 Auth : aucune
 ```
 
-### ChatGPT / Cursor / Zed / Continue
+### Claude Code
 
-Ajoute le serveur MCP `https://justicelibre.org/mcp` à ta config (cf doc de chaque client).
+```
+claude mcp add --transport http justicelibre https://justicelibre.org/mcp
+```
+
+### ChatGPT / Mistral / Cursor / Zed / Continue
+
+Ajoutez un connecteur (ou serveur) MCP distant avec l'URL `https://justicelibre.org/mcp`, transport Streamable HTTP, sans authentification (cf. la doc de chaque client).
 
 ### Auto-hébergement
 
