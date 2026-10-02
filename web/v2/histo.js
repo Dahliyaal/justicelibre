@@ -270,7 +270,7 @@
       return '<div class="jl-pr__acc jl-pr__red' + (cur ? ' is-cur' : '') + futCls(R.debut) + '" data-acc>' +
         '<button type="button" class="jl-pr__h">' + CHEV +
         '<span class="jl-pr__ttl">Rédaction du ' + fmtCourt(R.debut) +
-        ' <span class="jl-muted jl-poids-normal">au ' + fmtCourt(R.fin) + '</span></span>' +
+        ' <span class="jl-muted jl-poids-normal">' + (R.fin && R.fin < '2999' ? 'au ' + fmtCourt(R.fin) : '· en vigueur') + '</span></span>' +
         '<span class="jl-pr__cnt">' + (R.type === 'cree' ? 'création' : 'réécriture') +
         (R.sim !== null ? ' · ' + Math.round(R.sim * 100) + ' % communs' : '') + '</span></button>' +
         '<div class="jl-pr__body"><div class="jl-lt__meta">' +
@@ -287,7 +287,7 @@
               fmtCourt(H.redactions[i - 1].debut) + '</div>' + diffPane(i - 1, i) + '</div>'
            : '<div class="jl-pr__foot">Première rédaction : rien à comparer.</div>') +
         '</div></div>';
-    }).join('');
+    }).reverse().join('');   // 3/10/2026 : la plus récente en haut
 
     var retsHTML = function (o) {
       if (!o.retouches.length) return '<div class="jl-pr__foot" data-espace="haut">Jamais retouché.</div>';
