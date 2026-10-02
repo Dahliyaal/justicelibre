@@ -1691,3 +1691,9 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-pr__acc.is-dead>.jl-pr__h .jl-pr__ttl{color:var(--body)}
 .jl-pr__acc.is-dead>.jl-pr__h .jl-pr__ttl a{color:var(--body)}
 .jl-pr__acc[open]>.jl-pr__h .jl-pr__ttl,.jl-pr__acc.is-open>.jl-pr__h .jl-pr__ttl{font-weight:600;color:var(--ink)}
+/* « voir plus haut ↑ » : lien-bouton, et la cible clignote (3/10/2026). */
+.jl-goto{background:none;border:0;padding:0;cursor:pointer;color:var(--teal);text-decoration:underline dotted;font:inherit}
+.jl-cl__name > .jl-goto{order:3;flex-basis:100%;text-align:left;font-family:var(--font-mono);font-size:var(--text-3xs)}
+@keyframes jl-flash{0%,100%{box-shadow:0 0 0 0 transparent}20%,60%{box-shadow:0 0 0 3px var(--warn)}}
+.jl-flash{animation:jl-flash 1.8s ease-in-out 1;position:relative;z-index:2}
+.jl-cl__row.jl-flash{background:var(--warn-bg,#fdf3e1)}

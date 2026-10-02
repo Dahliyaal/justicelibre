@@ -119,7 +119,7 @@
       if (p.deja) {
         return '<div class="jl-cl__row jl-cl__row--n' + depth + ' is-dead">' +
           '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">↳ remplacé par ' +
-          esc(A.minus(p.parent.titre)) + ' · vise aussi l\u2019article : détaillé plus haut ↑</span>' +
+          esc(A.minus(p.parent.titre)) + '</span><button type="button" class="jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir plus haut ↑</button>' +
           '<a href="' + p.lf + '">' + esc(p.titre) + '</a></div>' +
           '<div class="jl-cl__lane">' + overlay + '</div></div>';
       }
@@ -160,7 +160,7 @@
           r.id + '" title="retouché par ' + esc(r.titre) +
           (r.date_texte ? ' (' + fmtCourt(r.date_texte) + ')' : '') + '"></div>';
       }).join('');
-      rows += '<div class="jl-cl__row jl-cl__row--n1' + clsOf(a.st) + '">' +
+      rows += '<div class="jl-cl__row jl-cl__row--n1' + clsOf(a.st) + '" data-arr="' + esc(a.id) + '">' +
         '<div class="jl-cl__name" title="' + esc(a.long) + '"><span class="jl-cl__role">pris pour lui · visa' +
         (a.retouches.length ? ' · ' + A.acc(a.retouches.length, 'retouche') : '') + '</span>' +
         '<a href="' + a.lf + '">' + esc(a.titre) + '</a></div>' +
@@ -328,7 +328,7 @@
             '<span style="width:12px;display:inline-block"></span><span class="jl-pr__ttl">' +
             '<a href="' + p.lf + '" title="Ouvrir sur Légifrance">' + esc(p.titre) + '</a> ' +
             '<span class="jl-nor">' + esc(p.nor || '') + '</span></span>' +
-            '<span class="jl-pr__cnt">vise aussi l\u2019article : détaillé plus haut ↑</span></div></div>';
+            '<button type="button" class="jl-pr__cnt jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir plus haut ↑</button></div></div>';
         }
         return '<div class="jl-pr__acc jl-pr__acc--lvl2' + clsOf(p.st) + '" data-acc>' +
           '<button type="button" class="jl-pr__h">' + CHEV + '<span class="jl-pr__ttl">' +
@@ -374,7 +374,7 @@
       H.arretes.forEach(function (b) {
         b.retouches.forEach(function (r) { if (r.id === a.id) aussiRet.push(b); });
       });
-      return '<div class="jl-pr__acc jl-pr__acc--lvl1 is-open' + clsOf(a.st) + '" data-acc>' +
+      return '<div class="jl-pr__acc jl-pr__acc--lvl1 is-open' + clsOf(a.st) + '" data-acc data-arr="' + esc(a.id) + '">' +
         '<button type="button" class="jl-pr__h">' + CHEV + '<span class="jl-pr__ttl">' + esc(a.titre) +
         '</span><span class="jl-pr__cnt">' + A.acc(a.retouches.length, 'retouche') + ' · ' +
         (a.predecesseurs.length ? 'a remplacé ' + trierPreds(a.predecesseurs).length : 'n’a rien remplacé') +
@@ -555,3 +555,16 @@
     console.error(e);
   });
 })(window);
+
+/* 3/10/2026 : « voir plus haut ↑ » amène au texte en question et le fait
+   clignoter (on ne le trouvait pas). */
+document.addEventListener('click', function (e) {
+  var g = e.target.closest && e.target.closest('[data-goto]');
+  if (!g) return;
+  e.preventDefault();
+  var t = document.querySelector('[data-arr="' + g.getAttribute('data-goto') + '"]');
+  if (!t) return;
+  t.classList.add('is-open');
+  t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  t.classList.remove('jl-flash'); void t.offsetWidth; t.classList.add('jl-flash');
+});
