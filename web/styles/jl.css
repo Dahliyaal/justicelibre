@@ -1636,3 +1636,4 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-juris > .jl-honnetete{margin:0 0 28px;padding:16px 20px;line-height:1.65}
 .jl-juris .jl-jgrid{gap:22px}
 .jl-juris .jl-jc{padding:20px 22px}
+.jl-coltete--texte h2 em{font-style:italic;color:var(--teal,#1a4e4e)}
