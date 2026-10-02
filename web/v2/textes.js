@@ -46,7 +46,7 @@
   var CODES = [
     ["CC","LEGITEXT000006070721","Code civil",["c. civ.", "cc", "cciv"]],
     ["CP","LEGITEXT000006070719","Code pénal",["c. pén.", "cp"]],
-    ["CPC","LEGITEXT000006070716","Code de procédure civile",["c. pr. civ.", "cpc"]],
+    ["CPC","LEGITEXT000006070716","Code de procédure civile",["ncpc", "c. pr. civ.", "cpc"]],
     ["CPP","LEGITEXT000006071154","Code de procédure pénale",["cpp"]],
     ["CT","LEGITEXT000006072050","Code du travail",["c. trav.", "ct", "ctrav"]],
     ["CSP","LEGITEXT000006072665","Code de la santé publique",["csp"]],
@@ -68,7 +68,7 @@
     ["CSS","LEGITEXT000006073189","Code de la sécurité sociale",["css", "sécurité sociale"]],
     ["CCH","LEGITEXT000006074096","Code de la construction et de l'habitation",["cch", "construction et habitation"]],
     ["CTransp","LEGITEXT000023086525","Code des transports",["ctransp", "transports"]],
-    ["CAss","LEGITEXT000006073984","Code des assurances",["assurances", "cass"]],
+    ["CAss","LEGITEXT000006073984","Code des assurances",["assurances", "c. ass."]],
     ["CDef","LEGITEXT000006071307","Code de la défense",["cdef", "défense"]],
     ["CSI","LEGITEXT000025503132","Code de la sécurité intérieure",["csi", "sécurité intérieure"]],
     ["CEner","LEGITEXT000023983208","Code de l'énergie",["cener", "énergie"]],
@@ -146,7 +146,9 @@
   /* « C. civ. », « c.civ », « Code Civil » → une seule clé. Les accents sont
      conservés : « pénal » et « penal » sont tous deux indexés plus bas. */
   function normAlias(s) {
-    return String(s || '').toLowerCase().replace(/[. ]/g, '').replace(/\s+/g, ' ').trim();
+    // 3/10/2026 : la classe retirait l'espace INSÉCABLE au lieu de l'espace
+    // (« C. cons. » ne marchait jamais). On retire points et tous les blancs.
+    return String(s || '').toLowerCase().replace(/[’`]/g, "'").replace(/[.\s\u00a0]/g, '').trim();
   }
   function sansAccent(s) {
     return String(s || '').normalize ? String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '') : String(s || '');
@@ -196,34 +198,52 @@
   /* « L. 1152-1 » → « L1152-1 » ; « 1240 » → « 1240 » ; « 1655 sexies » reste.
      C'est la forme attendue par /api/law (mesuré : CC/1240, CPC/748-6). */
   function normNum(n) {
-    var s = String(n).trim().replace(/\s*\.\s*/g, '.').replace(/^([LRDAlrda])\.?\s*/, function (m, l) {
-      return l.toUpperCase();
+    var s = String(n).trim().replace(/\s*\.\s*/g, '.').replace(/^([LRDAlrda])(\*?)\.?\s*/, function (m, l, e) {
+      return l.toUpperCase() + e;
     });
-    return s.replace(/\s+/g, ' ').replace(/^([LRDA])\s+(\d)/, '$1$2').trim();
+    s = s.replace(/\s+/g, ' ').replace(/^([LRDA]\*?)\s+(\d)/, '$1$2').trim();
+    return s.replace(/ ([a-z])$/, function (m, l) { return ' ' + l.toUpperCase(); });
   }
 
-  var NUM = "(?:[LRDAlrda]\\.?\\s*)?\\d+(?:[-\\u2011]\\d+)*(?:\\s+(?:bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies|[A-Z]))?";
+  /* 3/10/2026 : astérisque (R*1435-28-2) et lettre finale (L80 B) acceptés ;
+     la saisie est en minuscules à ce stade, d'où [a-zA-Z]. */
+  var NUM = "(?:[LRDAlrda]\\*?\\.?\\s*)?\\d+(?:-\\d+)*(?:\\s+(?:bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies|[a-zA-Z]))?";
 
   function analyserRef(q) {
-    var s = String(q || '').trim();
+    /* 3/10/2026 (spam test) : formes Unicode compatibles (chiffres pleine
+       chasse), tous les tirets ramenés à « - », apostrophe courbe, espaces de
+       largeur nulle, virgules. */
+    var s = String(q || '').slice(0, 500);
+    if (s.normalize) s = s.normalize('NFKC');
+    s = s.replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[’`]/g, "'")
+      .replace(/[\u200b-\u200d\ufeff]/g, '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
     if (!s) return null;
+    /* « Cass. » désigne la Cour de cassation, pas le Code des assurances. */
+    if (/(^|\s)cass\.?(\s|$)/i.test(s)) return null;
 
     /* (a) une loi / ordonnance / décret par son NUMÉRO : « loi n° 78-17 »,
        « loi 2005-102 du 11 février 2005 », « décret n° 2016-1480 ». */
     var mn = /\b(\d{2,4}-\d{1,6})\b/.exec(s);
-    if (mn && /\b(loi|ordonnance|d[ée]cret|n[°º])\b/i.test(s) && !codeDansLaChaine(s)) {
+    if (mn && /\b(loi|ordonnance|d[ée]cret)\b|\bn[°º]/i.test(s) && !codeDansLaChaine(s)) {
       return { genre: 'numero', numero: mn[1], brut: s };
     }
 
     /* (b) référence d'article : numéro puis nom du code (« 1240 C. civ. »,
        « art. L. 1152-1 du code du travail ») */
+    /* 3/10/2026 : « du / de la » n'est plus retiré au hasard dans la chaîne
+       (il mangeait celui de « code du travail ») ; « article » est retiré où
+       qu'il soit. */
     var t = s.toLowerCase()
-      .replace(/^articles?\b\.?\s*/, '').replace(/^art\.?\s*/, '')
-      .replace(/\s+du\s+/, ' ').replace(/\s+de\s+la\s+/, ' ').replace(/\s+/g, ' ').trim();
-    var m = new RegExp('^(' + NUM + ')\\s+(.+)$').exec(t);
-    if (m) {
-      var c = codeParNom(m[2].replace(/[.,;]$/, ''));
-      if (c) return { genre: 'article', code: c[0], nom: c[2], num: normNum(m[1]), brut: s };
+      .replace(/(^|\s)(articles?|art)\b\.?(?=\s|$|\d)/g, ' ').replace(/\s+/g, ' ').trim();
+    /* Numéro puis code : on essaie les découpes de la plus courte à la plus
+       longue, pour que « 1240 c civ » (c = début du code) et « L80 B LPF »
+       (B = suffixe du numéro) soient tous deux lus correctement. */
+    var mt = t.split(' ');
+    for (var j = 1; j < mt.length; j++) {
+      var tn = mt.slice(0, j).join(' '), tc = mt.slice(j).join(' ');
+      if (!new RegExp('^' + NUM + '$').test(tn)) continue;
+      var c = codeTolerant(tc);
+      if (c && !motNu(tn, s)) return { genre: 'article', code: c[0], nom: c[2], num: normNum(tn), brut: s };
     }
     /* (c) l'inverse : nom du code puis numéro (« CPC 748-6 », « code du
        travail L. 1152-1 »). On essaie les découpes de la plus longue à la
@@ -231,12 +251,27 @@
     var mots = t.split(' ');
     for (var i = mots.length - 1; i >= 1; i--) {
       var tete = mots.slice(0, i).join(' '), queue = mots.slice(i).join(' ');
-      var c2 = codeParNom(tete.replace(/[.,;]$/, ''));
-      if (c2 && new RegExp('^' + NUM + '$').test(queue)) {
+      var c2 = codeTolerant(tete);
+      if (c2 && new RegExp('^' + NUM + '$').test(queue) && !motNu(queue, s)) {
         return { genre: 'article', code: c2[0], nom: c2[2], num: normNum(queue), brut: s };
       }
     }
     return null;
+  }
+  /* Nom de code, avec ou sans liaison en tête (« du code du travail »). */
+  function codeTolerant(x) {
+    x = String(x).replace(/[.;]$/, '').trim();
+    return codeParNom(x) || codeParNom(x.replace(/^(du|de la|de l'|des|de|d')\s*/, '')) || null;
+  }
+  /* 3/10/2026 : « route 66 », « sport 2024 », « commerce 1 » ne sont pas des
+     références. Un nom de code fait d'un seul mot courant n'est accepté
+     qu'avec un marqueur : préfixe L/R/D/A, tiret, « art. », « code », « c. ». */
+  var MOTS_COURANTS = /^(route|sport|d[ée]fense|commerce|recherche|patrimoine|environnement|travail|sant[ée]|[ée]nergie|tourisme|transports?|urbanisme|consommation|[ée]ducation|douanes|assurances|artisanat|mutualit[ée])$/i;
+  function motNu(num, brut) {
+    var mot = String(brut).toLowerCase().replace(/[\d*.\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!MOTS_COURANTS.test(mot)) return false;
+    if (/[LRDA]\*?\.?\s*\d|-/i.test(num)) return false;
+    return !/\b(art|article|code)\b|\bc\./i.test(brut);
   }
   function codeDansLaChaine(s) {
     var t = s.toLowerCase();
@@ -487,12 +522,16 @@
       var lue = S.ref;
       S.ref = { genre: 'chargement' };
       rendreFiche();
-      var d = lue.genre === 'numero'
-        ? await resoudreNumero(lue.numero)
-        : await resoudreArticle(lue.code, lue.num, S.date);
-      if (seq !== S.seq) return;
-      S.ref = lue; S.article = d;
-      rendreFiche();
+      /* 3/10/2026 : la fiche et la recherche partent EN MÊME TEMPS. Un article
+         introuvable met ~8 s à répondre et bloquait la liste pendant ce temps. */
+      (async function () {
+        var d = lue.genre === 'numero'
+          ? await resoudreNumero(lue.numero)
+          : await resoudreArticle(lue.code, lue.num, S.date);
+        if (seq !== S.seq) return;
+        S.ref = lue; S.article = d;
+        rendreFiche();
+      })();
     } else {
       $('#fiche').innerHTML = '';
     }
