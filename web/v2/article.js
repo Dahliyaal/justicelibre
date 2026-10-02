@@ -76,8 +76,8 @@
     if (d1 <= at) {
       var e = t.etat || '';
       if (e.indexOf('MODIFIE') === 0) {
-        return { k: 'q', label: 'réécrit le ' + fmtCourt(d1),
-          why: 'Légifrance a ouvert un nouvel identifiant pour ce texte à cette date (même NOR) : la suite est sous l’autre entrée' };
+        return { k: 'q', label: 'nouvelle version le ' + fmtCourt(d1),
+          why: 'Légifrance a ouvert une nouvelle version de ce texte à cette date (même NOR, même texte au JO) : il n’a pas été abrogé' };
       }
       return { k: 'ab', label: (e.indexOf('PERIM') === 0 ? 'périmé' : 'abrogé') + ' le ' + fmtCourt(d1),
         why: 'ne joue plus à la date lue' };

@@ -28,7 +28,7 @@
   function clsOf(st) {
     if (st.k === 'ok') return '';
     if (st.k === 'fut') return ' is-fut';
-    if (st.k === 'q' && /réécrit/.test(st.label)) return ' is-mod';
+    if (st.k === 'q' && /nouvelle version/.test(st.label)) return ' is-mod';
     return ' is-dead';
   }
 
@@ -159,7 +159,7 @@
     var legende = '<div class="jl-cl__legende">' +
       '<span><i class="lg lg--ok"></i>en vigueur</span>' +
       '<span><i class="lg lg--dead"></i>abrogé ou remplacé</span>' +
-      '<span><i class="lg lg--mod"></i>réécrit : la suite est sous une autre entrée Légifrance</span>' +
+      '<span><i class="lg lg--mod"></i>continue sous une nouvelle version (même arrêté, nouvel identifiant Légifrance : ce n\u2019est pas une abrogation)</span>' +
       '<span><i class="lg lg--cap"></i>fin (abrogation)</span>' +
       '<span><i class="lg lg--notch"></i>retouche</span>' +
       '<span><i class="lg lg--inf"></i>sans fin prévue</span>' +
