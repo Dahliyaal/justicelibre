@@ -275,6 +275,15 @@ def parse_legi(tarball: Path = None, db: Path = None):
     conn.commit()
     ensure_columns(conn, "legi_articles", LEGI_ART_NEW_COLS)
     ensure_columns(conn, "legi_textes", LEGI_TXT_NEW_COLS)
+    # 2 oct. 2026 : l'entrepôt cherche un article par « (legitext = ? OR
+    # jorftext = ?) AND num IN (…) ». Sans index (legitext, num) ET (jorftext,
+    # num), SQLite balayait toute la table (1,84 M lignes, 9 Go) à chaque
+    # article : 1,8 s par lecture, et la saturation du 17/09 quand chaque page
+    # de décision en demandait seize. Créés APRÈS ensure_columns : sur une
+    # base neuve, jorftext n'existe qu'à partir d'ici.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_art_legitext_num ON legi_articles(legitext, num)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_art_jorftext_num ON legi_articles(jorftext, num)")
+    conn.commit()
 
     # Index des titres par legitext (rempli quand on rencontre un TEXTELR)
     # Les articles arrivent parfois avant leur TEXTELR parent → on remplira titre_text
@@ -292,8 +301,19 @@ def parse_legi(tarball: Path = None, db: Path = None):
     # ⚠️ Pourquoi un UPSERT et non plus un INSERT OR IGNORE : les lignes déjà en
     # base portent un `legitext` FAUX (un JORFTEXT). Avec OR IGNORE, une
     # ré-ingestion les laissait telles quelles — le correctif n'aurait jamais
-    # atteint le stock. On ne touche QUE les colonnes réparées ou nouvelles ;
-    # texte, num, titre_text, etat et nota gardent leur valeur.
+    # atteint le stock.
+    #
+    # ⛔ 2 oct. 2026 : la version du 10/09 de cet UPSERT ne touchait QUE les
+    # colonnes réparées et laissait « texte, num, titre_text, etat et nota »
+    # tels quels. Conséquence mesurée par l'audit contre l'API Légifrance
+    # (scratchpad/audit/audit_lois_2oct.md) : toute correction publiée par la
+    # DILA sur une version déjà en base était JETÉE (état « VIGUEUR_DIFF » figé
+    # sur 9 025 versions entrées en vigueur, fins de validité au 2999 au lieu
+    # de 2029, texte périmé sous le bon identifiant : C.com L625-2). La DILA
+    # republie un article quand elle le corrige : sa dernière publication fait
+    # foi. On met donc à jour TOUTES les colonnes ; pour le texte, le numéro et
+    # le titre seulement si la nouvelle valeur n'est pas vide (un fichier
+    # partiel ne doit jamais effacer un texte).
     ART_SQL = (
         "INSERT INTO legi_articles "
         "(legiarti, legitext, num, titre_text, etat, date_debut, date_fin, texte, nota,"
@@ -302,8 +322,21 @@ def parse_legi(tarball: Path = None, db: Path = None):
         "ON CONFLICT(legiarti, date_debut) DO UPDATE SET "
         "legitext=excluded.legitext, jorftext=excluded.jorftext, "
         "hierarchie=excluded.hierarchie, liens=excluded.liens, "
-        "ancien_id=excluded.ancien_id, type_article=excluded.type_article"
+        "ancien_id=excluded.ancien_id, type_article=excluded.type_article, "
+        "etat=excluded.etat, date_fin=excluded.date_fin, nota=excluded.nota, "
+        "texte=COALESCE(NULLIF(excluded.texte, ''), legi_articles.texte), "
+        "num=COALESCE(NULLIF(excluded.num, ''), legi_articles.num), "
+        "titre_text=COALESCE(NULLIF(excluded.titre_text, ''), legi_articles.titre_text)"
     )
+    # ⛔ 2 oct. 2026 : un LEGIARTI est UNE version d'article, avec UNE date de
+    # début. Quand la DILA reporte cette date (report d'entrée en vigueur par
+    # une loi ultérieure), la clé (legiarti, date_debut) change et l'UPSERT
+    # INSÉRAIT une seconde ligne au lieu de remplacer : 2 764 articles avaient
+    # des lignes fantômes, servies à la place de la bonne version (LPF L80 B,
+    # CGI 279, 200, 1754, 1496 ter, C.com L441-10…). Avant d'écrire une
+    # version, on supprime donc les autres lignes du MÊME LEGIARTI : la
+    # publication courante de la DILA est la seule vraie.
+    PURGE_SQL = "DELETE FROM legi_articles WHERE legiarti = ? AND date_debut IS NOT ?"
     # Un même LEGITEXT arrive DEUX fois par tarball : texte/struct (TEXTELR, qui
     # ne porte PAS le titre) puis texte/version (TEXTE_VERSION, qui le porte).
     # Un INSERT OR REPLACE brut ferait donc dépendre le titre de l'ordre des
@@ -315,7 +348,14 @@ def parse_legi(tarball: Path = None, db: Path = None):
     def flush():
         nonlocal batch, batch_txt
         if batch:
-            conn.executemany(ART_SQL, batch)
+            # Un même LEGIARTI deux fois dans un lot : la dernière occurrence
+            # (la plus loin dans l'archive) gagne, sinon la purge laisserait deux lignes.
+            dernier = {}
+            for b in batch:
+                dernier[b[0]] = b
+            lot = list(dernier.values())
+            conn.executemany(PURGE_SQL, [(b[0], b[5]) for b in lot])
+            conn.executemany(ART_SQL, lot)
             batch = []
         if batch_txt:
             conn.executemany(TXT_SQL, batch_txt)

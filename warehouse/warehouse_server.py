@@ -488,6 +488,9 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
         WHERE {key} AND num IN ({ph})
           AND (date_debut IS NULL OR date_debut = '' OR date_debut <= ?)
           AND (date_fin IS NULL OR date_fin = '' OR date_fin >= ?)
+          -- 2 oct. 2026 : une version « morte-née » (MODIFIE_MORT_NE) n'a
+          -- jamais été en vigueur ; elle ne doit jamais être servie comme telle.
+          AND COALESCE(etat, '') NOT LIKE '%MORT_NE%'
         ORDER BY date_debut DESC
         LIMIT 1
         """,
@@ -501,6 +504,7 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
         SELECT legiarti, num, titre_text, etat, date_debut, date_fin, texte, nota, {_extra}
         FROM legi_articles
         WHERE {key} AND num IN ({ph}) AND etat = 'VIGUEUR'
+          AND COALESCE(etat, '') NOT LIKE '%MORT_NE%'
         ORDER BY date_debut DESC
         LIMIT 1
         """,
@@ -523,7 +527,11 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
-        d["note"] = "Article non trouvé à la date demandée ; version la plus récente retournée."
+        # 2 oct. 2026 : la note ne parlait de « date demandée » que pour une
+        # date réellement demandée ; sans date, elle accusait l'usager à tort.
+        d["note"] = ("Article non trouvé à la date demandée ; version la plus récente retournée."
+                     if target_date else
+                     "Aucune version en vigueur aujourd'hui ; version la plus récente retournée.")
         return d
     return None
 
@@ -623,7 +631,8 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
     # retournée pour que Légifrance affiche bien cette version-là (et pas la
     # version par défaut, qui peut être une autre).
     effective_date = at_date or (row["date_debut"] or None)
-    return {
+    etat, etat_dila = _etat_effectif(row["etat"], row["date_debut"], row["date_fin"])
+    d = {
         "legiarti": row["legiarti"],
         "num": row["num"],
         "code": code,
@@ -635,7 +644,7 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
         # des cas. On dit désormais ce qu'on a, et null pour ce qu'on n'a pas.
         "titre_texte": row["titre_text"],
         "titre_section": _titre_section(row),
-        "etat": row["etat"],
+        "etat": etat,
         "date_debut": row["date_debut"] or None,
         "date_fin": row["date_fin"] or None,
         "texte": row["texte"],
@@ -644,6 +653,31 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
         # c'est lui qui décide de /loda/ (loi non codifiée) contre /codes/.
         "source_url": _build_source_url(row["legiarti"], legitext=(_col(row, "jorftext") or legitext), at_date=effective_date),
     }
+    if etat_dila:
+        d["etat_dila"] = etat_dila
+    return d
+
+
+def _etat_effectif(etat: str | None, debut: str | None, fin: str | None) -> tuple[str | None, str | None]:
+    """État à afficher AUJOURD'HUI, et l'état brut DILA quand il diffère.
+
+    2 oct. 2026 : la DILA étiquette « VIGUEUR_DIFF » une version dont l'entrée
+    en vigueur est différée, et l'étiquette reste en base une fois la date
+    passée (9 025 versions, dont CPC 145 et CJA R811-1, servies « entrée en
+    vigueur différée » alors qu'elles s'appliquent). Légifrance, lui, les dit
+    « en vigueur ». On calcule donc l'état effectif à la date du jour, et on
+    garde l'étiquette brute dans `etat_dila` pour la transparence.
+    ⛔ On NE convertit PAS « ABROGE_DIFF » passé en « ABROGE » : Légifrance
+    donne parfois « MODIFIE » pour ces versions (CPC 145, rédaction de 1976),
+    et « abrogé » serait une affirmation fausse. La ré-ingestion corrige ces
+    états depuis les publications de la DILA.
+    """
+    if not etat:
+        return etat, None
+    aujourdhui = _date.today().isoformat()
+    if etat == "VIGUEUR_DIFF" and debut and debut <= aujourdhui and (not fin or fin > aujourdhui):
+        return "VIGUEUR", etat
+    return etat, None
 
 
 def _col(row: sqlite3.Row, name: str):
@@ -761,6 +795,40 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
                date_min: str | None, date_max: str | None,
                filter_legitext: str | None = None,
                filter_juridiction: str | None = None) -> dict:
+    """Recherche plein texte ; repli sur une requête simplifiée si FTS5 refuse
+    la syntaxe.
+
+    2 oct. 2026 : 52 réponses 500 en 48 h sur /v1/search/legi (et 60 sur
+    jade) pour des requêtes réelles comme « règlement (UE) 2023/988 » ou des
+    groupes OR issus du thésaurus : la moindre parenthèse mal placée faisait
+    lever « fts5: syntax error ». Plutôt qu'une erreur, on rejoue la requête
+    réduite à ses mots (ET implicite), et on le dit dans `note`.
+    """
+    try:
+        return _fts_search(fond, q, limit, offset, sort, date_min, date_max,
+                           filter_legitext, filter_juridiction)
+    except sqlite3.OperationalError as e:
+        if "fts5" not in str(e).lower() and "syntax" not in str(e).lower():
+            raise
+        # Chaque mot entre guillemets : plus aucun opérateur ni parenthèse ne
+        # peut subsister (« OR » final d'un groupe tronqué, « (UE) »…).
+        mots = [m for m in re.findall(r"\w+", q or "", flags=re.UNICODE)
+                if m.upper() not in ("AND", "OR", "NOT", "NEAR")
+                and m.lower() not in _MOTS_VIDES]
+        simple = " ".join(f'"{m}"' for m in mots)
+        if not simple:
+            raise
+        r = _fts_search(fond, simple, limit, offset, sort, date_min, date_max,
+                        filter_legitext, filter_juridiction)
+        r["note"] = ("Requête simplifiée : sa syntaxe (parenthèses, opérateurs) "
+                     f"n'était pas acceptée ; recherche faite sur « {simple} ».")
+        return r
+
+
+def _fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
+                date_min: str | None, date_max: str | None,
+                filter_legitext: str | None = None,
+                filter_juridiction: str | None = None) -> dict:
     if fond not in FONDS:
         raise ValueError(f"unknown fond: {fond}")
     q_clean = _fts_query(q)
@@ -844,6 +912,13 @@ def fts_search(fond: str, q: str, limit: int, offset: int, sort: str,
 
     # Sort: relevance (BM25) by default, chronological fallback
     order = "bm25(" + fts_table + ") ASC"
+    if fond == "legi":
+        # 2 oct. 2026 : « motif légitime … avant tout procès » rendait en tête
+        # la rédaction de 1976 de CPC 145, la version en vigueur hors des 5
+        # premiers : un usager citait l'extrait périmé. Toutes les versions
+        # restent cherchables, mais celles en vigueur passent devant.
+        order = ("(CASE WHEN m.etat IN ('VIGUEUR', 'VIGUEUR_DIFF') THEN 0 ELSE 1 END), "
+                 "bm25(" + fts_table + ") ASC")
     if sort == "date_desc":
         order = f"m.{date_col} DESC"
     elif sort == "date_asc":

@@ -46,6 +46,7 @@ from parse_dila_bulk import (  # noqa: E402
     liens_json,
     parse_jorf_like,
     parse_kali,
+    parse_legi,
     upsert_sql,
     xml_text,
 )
@@ -478,6 +479,61 @@ def test_migration_est_add_column_seulement():
                      "DELETE FROM"):
         assert interdit not in src, f"{interdit} interdit dans la migration"
     assert "ADD COLUMN" in src
+
+
+def _legi_art(legiarti, etat, debut, fin, texte, num="L80 B"):
+    contenu = f"<BLOC_TEXTUEL><CONTENU><p>{texte}</p></CONTENU></BLOC_TEXTUEL>" if texte is not None else ""
+    return (f"<ARTICLE><META><META_COMMUN><ID>{legiarti}</ID><NATURE>Article</NATURE></META_COMMUN>"
+            f"<META_SPEC><META_ARTICLE><NUM>{num}</NUM><ETAT>{etat}</ETAT>"
+            f"<DATE_DEBUT>{debut}</DATE_DEBUT><DATE_FIN>{fin}</DATE_FIN><TYPE>AUTONOME</TYPE>"
+            f"</META_ARTICLE></META_SPEC></META>"
+            f'<CONTEXTE><TEXTE cid="JORFTEXT000000315389" nature="CODE">'
+            f'<TITRE_TXT c_titre_court="LPF" id_txt="LEGITEXT000006069583">Livre des procédures fiscales</TITRE_TXT>'
+            f"</TEXTE></CONTEXTE>{contenu}</ARTICLE>")
+
+
+def test_legi_la_derniere_publication_dila_fait_foi():
+    """2 oct. 2026 : l'UPSERT jetait toute correction DILA d'une version déjà
+    en base (état, fin de validité, texte) et ajoutait une ligne fantôme quand
+    la DILA reportait la date d'entrée en vigueur. Cas réel : LPF L80 B,
+    LEGIARTI000053189313, annoncé au 1er septembre 2026, reporté au 1er
+    janvier 2027 puis déclaré mort-né ; le site servait la ligne fantôme."""
+    d = tempfile.mkdtemp()
+    db = os.path.join(d, "legi.db")
+    fantome = "LEGIARTI000053189313"
+    corrige = "LEGIARTI000038312069"
+    # 1re publication : version différée au 1/09/2026 ; article en vigueur sans fin.
+    tb1 = os.path.join(d, "1.tar.gz")
+    _mini_tarball(tb1, [
+        ("x/legi/global/article/LEGI/ARTI/a.xml", _legi_art(fantome, "VIGUEUR_DIFF", "2026-09-01", "2999-01-01", "Texte reporté.")),
+        ("x/legi/global/article/LEGI/ARTI/b.xml", _legi_art(corrige, "VIGUEUR", "2019-03-25", "2999-01-01", "Ancien texte.", num="85")),
+    ])
+    # 2e publication : report au 1/01/2027 + mort-né ; l'autre article est
+    # abrogé au 1/01/2029 avec un texte corrigé ; un 3e fichier sans texte
+    # ne doit rien effacer.
+    tb2 = os.path.join(d, "2.tar.gz")
+    _mini_tarball(tb2, [
+        ("x/legi/20261001/article/LEGI/ARTI/a.xml", _legi_art(fantome, "MODIFIE_MORT_NE", "2027-01-01", "2026-07-29", "Texte reporté.")),
+        ("x/legi/20261001/article/LEGI/ARTI/b.xml", _legi_art(corrige, "ABROGE_DIFF", "2019-03-25", "2029-01-01", "Texte corrigé.", num="85")),
+    ])
+    tb3 = os.path.join(d, "3.tar.gz")
+    _mini_tarball(tb3, [
+        ("x/legi/20261002/article/LEGI/ARTI/b.xml", _legi_art(corrige, "ABROGE_DIFF", "2019-03-25", "2029-01-01", None, num="85")),
+    ])
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        parse_legi(tarball=tb1, db=db)
+        parse_legi(tarball=tb2, db=db)
+        parse_legi(tarball=tb3, db=db)
+    c = sqlite3.connect(db)
+    lignes = c.execute("SELECT etat, date_debut, date_fin FROM legi_articles WHERE legiarti=?", (fantome,)).fetchall()
+    assert lignes == [("MODIFIE_MORT_NE", "2027-01-01", "2026-07-29")], (
+        f"une seule ligne, celle de la dernière publication, attendue : {lignes}")
+    r = c.execute("SELECT etat, date_fin, texte FROM legi_articles WHERE legiarti=?", (corrige,)).fetchall()
+    assert len(r) == 1 and r[0][0] == "ABROGE_DIFF" and r[0][1] == "2029-01-01", f"état et fin mis à jour : {r}"
+    assert "Texte corrigé" in (r[0][2] or ""), f"le texte corrigé doit remplacer l'ancien, et un fichier sans texte ne l'efface pas : {r}"
+    fts = c.execute("SELECT COUNT(*) FROM legi_articles_fts WHERE legiarti=?", (fantome,)).fetchone()[0]
+    assert fts == 1, f"l'index plein texte suit la purge (1 entrée attendue) : {fts}"
 
 
 if __name__ == "__main__":
