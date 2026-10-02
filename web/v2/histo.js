@@ -430,8 +430,8 @@
       (vue === 'couloirs'
         ? 'Une ligne par texte et le temps en abscisse : on voit d’un coup d’œil qui vivait en même temps que qui, et quelle barre a pris la place de quelle autre.'
         : 'Des accordéons emboîtés : l’article contient ses rédactions, chaque arrêté pris pour lui contient ses retouches et les arrêtés qu’il a lui-même remplacés, chacun avec les siens.') +
-      ' ' + A.whenBadge(H, 'l’historique') + ' ' +
-      A.datePopHTML(H, H.redactions.map(function (R) { return R.debut; })) + '</div></div>' +
+      '</div><span class="jl-leadrow__date">' + A.whenBadge(H, 'l’historique') + ' ' +
+      A.datePopHTML(H, H.redactions.map(function (R) { return R.debut; })) + '</span></div>' +
 
       A.bandeHTML([
         { k: 'État à la date lue', v: cur

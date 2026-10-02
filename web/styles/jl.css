@@ -1642,3 +1642,5 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 /* Historique : le détail survolé restait sous la frise quand elle était haute,
    donc invisible. Il colle au bas de l'écran tant que la frise est visible (3/10/2026). */
 .jl-cl__tip{position:sticky;bottom:16px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+/* Historique : « actuel · date » + calendrier à droite, comme la maquette histo-02 (3/10/2026). */
+.jl-leadrow__date{display:inline-flex;align-items:center;gap:var(--space-2);flex-shrink:0;margin-left:auto}
