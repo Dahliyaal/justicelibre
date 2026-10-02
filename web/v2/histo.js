@@ -82,13 +82,13 @@
       '<span class="jl-cl__role">l’article</span>art. ' + esc(H.num) + ' CPC</div>' +
       '<div class="jl-cl__lane">' + overlay + segs + '</div></div>';
 
-    var retRow = function (r, depth) {
+    var retRow = function (r, depth, parent) {
       var rx = gx(r.date_texte || r.debut);
       return '<div class="jl-cl__row jl-cl__row--n' + depth + ' jl-cl__row--ret' + futCls(r.date_texte) + '">' +
         '<div class="jl-cl__name" title="' + esc(r.long || r.titre) + '">' +
         '<span class="jl-cl__role" title="' + (r.nature === 'DECRET'
-          ? 'Un décret peut modifier un arrêté : il lui est supérieur.' : '') + '">retouché par · ' +
-        esc(A.NATLABEL[r.nature] || 'arrêté') + ' modificateur' +
+          ? 'Un décret peut modifier un arrêté : il lui est supérieur.' : '') + '">↳ a modifié ' +
+        esc(A.minus(parent || '')) +
         (r.aussiNiveau1 ? ' · aussi pris pour lui (plus haut)' : '') + '</span>' +
         '<a href="' + r.lf + '">' + esc(r.titre) + '</a></div>' +
         '<div class="jl-cl__lane">' + overlay + '<div class="jl-cl__mark" role="button" tabindex="0" ' +
@@ -103,7 +103,7 @@
          stub, on ne le duplique pas — mais le compte, lui, le comptait (G1-5). */
       if (p.deja) {
         return '<div class="jl-cl__row jl-cl__row--n' + depth + ' is-dead">' +
-          '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">remplacé par ' +
+          '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">↳ remplacé par ' +
           esc(A.minus(p.parent.titre)) + ' · déjà listé plus haut (pris pour lui)</span>' +
           '<a href="' + p.lf + '">' + esc(p.titre) + '</a></div>' +
           '<div class="jl-cl__lane">' + overlay + '</div></div>';
@@ -119,15 +119,15 @@
           (r.date_texte ? ' (' + fmtCourt(r.date_texte) + ')' : '') + '"></div>';
       }).join('');
       var h = '<div class="jl-cl__row jl-cl__row--n' + depth + clsOf(p.st) + '">' +
-        '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">remplacé par ' +
+        '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">↳ remplacé par ' +
         esc(A.minus(p.parent.titre)) + (p.retouches.length ? ' · ' + A.acc(p.retouches.length, 'retouche') : '') +
         '</span><a href="' + p.lf + '">' + esc(p.titre) + '</a>' +
         (p.nor ? ' <span class="jl-nor">' + esc(p.nor) + '</span>' : '') + '</div>' +
         '<div class="jl-cl__lane">' + overlay + '<div class="jl-cl__bar jl-cl__bar--n2' + clsOf(p.st) +
         (p.fin >= '2999' ? ' is-inf' : '') + '" data-txt="' + p.id + '" style="left:' + px + '%;width:' +
         pw + '%"></div>' + pn + cap + '</div></div>';
-      p.retouches.slice().reverse().forEach(function (r) { h += retRow(r, Math.min(depth + 1, 4)); });
-      p.predecesseurs.forEach(function (q) { h += predRows(q, Math.min(depth + 1, 4)); });
+      p.retouches.slice().reverse().forEach(function (r) { h += retRow(r, Math.min(depth + 1, 7), p.titre); });
+      p.predecesseurs.forEach(function (q) { h += predRows(q, Math.min(depth + 1, 7)); });
       return h;
     };
 
@@ -152,11 +152,19 @@
         '<div class="jl-cl__lane">' + overlay + '<div class="jl-cl__bar' + clsOf(a.st) +
         (a.fin >= '2999' ? ' is-inf' : '') + '" data-txt="' + a.id + '" style="left:' + x + '%;width:' +
         w + '%"></div>' + notches + capA + '</div></div>';
-      a.retouches.slice().reverse().forEach(function (r) { rows += retRow(r, 2); });
+      a.retouches.slice().reverse().forEach(function (r) { rows += retRow(r, 2, a.titre); });
       a.predecesseurs.forEach(function (p) { rows += predRows(p, 2); });
     });
 
-    return '<div class="jl-hbar"><span class="jl-surtitre">Couloirs</span>' +
+    var legende = '<div class="jl-cl__legende">' +
+      '<span><i class="lg lg--ok"></i>en vigueur</span>' +
+      '<span><i class="lg lg--dead"></i>abrogé ou remplacé</span>' +
+      '<span><i class="lg lg--mod"></i>réécrit : la suite est sous une autre entrée Légifrance</span>' +
+      '<span><i class="lg lg--cap"></i>fin (abrogation)</span>' +
+      '<span><i class="lg lg--notch"></i>retouche</span>' +
+      '<span class="jl-cl__legende-arbre">Chaque ligne en retrait dépend de celle au-dessus d\u2019elle : ' +
+      '« ↳ remplacé par X » = texte que X a remplacé ; « ↳ a modifié X » = texte qui a modifié X.</span></div>';
+    return legende + '<div class="jl-hbar"><span class="jl-surtitre">Couloirs</span>' +
       '<span class="jl-muted jl-sub jl-sub--enligne">Chaque texte occupe une ligne, de sa naissance ' +
       'à sa mort. Les losanges ambre sont ses retouches (chacune a aussi sa ligne), le bouchon rouge ' +
       'marque l’abrogation (survole-le : par qui), la pointe à droite signifie « sans limite ». ' +

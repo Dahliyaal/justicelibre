@@ -1644,3 +1644,20 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-cl__tip{position:sticky;bottom:16px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.12)}
 /* Historique : « actuel · date » + calendrier à droite, comme la maquette histo-02 (3/10/2026). */
 .jl-leadrow__date{display:inline-flex;align-items:center;gap:var(--space-2);flex-shrink:0;margin-left:auto}
+/* Historique (couloirs) : légende + arbre lisible (3/10/2026). */
+.jl-cl__legende{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;font-size:var(--text-xs);color:var(--muted);margin:0 0 14px}
+.jl-cl__legende span{display:inline-flex;align-items:center;gap:7px}
+.jl-cl__legende .lg{display:inline-block;width:26px;height:9px;border-radius:3px}
+.jl-cl__legende .lg--ok{background:var(--teal)}
+.jl-cl__legende .lg--dead{background:var(--muted);opacity:.45}
+.jl-cl__legende .lg--mod{background:repeating-linear-gradient(90deg,var(--muted) 0 6px,transparent 6px 10px);opacity:.7}
+.jl-cl__legende .lg--cap{width:3px;height:14px;background:var(--bad);border-radius:1px}
+.jl-cl__legende .lg--notch{width:3px;height:16px;background:var(--warn);border-radius:1px}
+.jl-cl__legende-arbre{flex-basis:100%}
+.jl-cl__row--n2 .jl-cl__name{padding-left:30px}
+.jl-cl__row--n3 .jl-cl__name{padding-left:46px}
+.jl-cl__row--n4 .jl-cl__name{padding-left:62px}
+.jl-cl__row--n5 .jl-cl__name{padding-left:78px}
+.jl-cl__row--n6 .jl-cl__name{padding-left:94px}
+.jl-cl__row--n7 .jl-cl__name{padding-left:110px}
+.jl-cl__row .jl-cl__name{background-image:linear-gradient(90deg,transparent 0,transparent 100%)}
