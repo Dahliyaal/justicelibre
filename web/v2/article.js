@@ -281,7 +281,12 @@
           .sort(function (x, y) { return (x.date_texte || '').localeCompare(y.date_texte || ''); })
           .map(function (t) {
             return { rel: 'retouché par', titre: clean(t.titre), long: '', date: t.date_texte || '',
-              nor: t.nor || '', st: lifeAt(t, at), how: 'succession',
+              nor: t.nor || '',
+              // 3/10/2026 : un arrêté MODIFICATIF « en vigueur » ne disait rien
+              // (tout l'était). Ce qui compte, c'est quand il a changé l'arrêté.
+              st: { k: 'q', label: 'a modifié l\u2019arrêté le ' + fmtCourt(t.date_debut),
+                    why: 'Texte modificatif : ses changements sont intégrés dans l\u2019arrêté qu\u2019il retouche' },
+              how: 'succession',
               lf: legifrance(t.legitext), nature: t.nature || '' };
           });
         var seenP = new Set();
