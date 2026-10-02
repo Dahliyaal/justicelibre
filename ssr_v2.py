@@ -432,7 +432,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 
     jsonld = {
         "@context": "https://schema.org",
-        "@type": ["LegalCase", "CreativeWork"],
+        "@type": "CreativeWork" if source == "doctrine" else ["LegalCase", "CreativeWork"],
         "name": title_h1_plain,
         "headline": title_h1_plain,
         "url": canonical,
@@ -517,15 +517,19 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
             h1 += f' <em>· {esc(_format_fr_date(date))}</em>'
     kicker = " · ".join(x for x in (juri, formation) if x) or \
         SOURCE_LABELS.get(source, source)
+    # Doctrine : jamais présentée comme une décision (audit 2 oct. 2026, F1).
+    nature_doc = (data.get("nature_document") or "Document de doctrine") if source == "doctrine" else ""
+    if nature_doc:
+        kicker = " · ".join(x for x in (nature_doc, juri) if x)
 
     # ── Barre de référence copiable ──────────────────────────────────────
     ref_long = ", ".join(x for x in (
-        juri, formation, _format_fr_date(date) if date else "",
+        nature_doc, juri, formation, _format_fr_date(date) if date else "",
         f"n° {numero}" if numero else "", ecli,
         "publié au Bulletin" if publi_bull == "oui" else "",
     ) if x)
     ref_court = ", ".join(x for x in (
-        juri, _format_fr_date(date) if date else "",
+        nature_doc, juri, _format_fr_date(date) if date else "",
         f"n° {numero}" if numero else "") if x)
     cta = ""
     if source_url:

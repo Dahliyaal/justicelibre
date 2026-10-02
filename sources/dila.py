@@ -461,8 +461,18 @@ def search_cc(
     conn = _get_conn()
     try:
         SNIPPET = "snippet(decisions_fts, -1, '<em>', '</em>', '…', 28)"
+        # Filtre de juridiction DANS la requête FTS (audit du 2 oct. 2026, P2).
+        # Avant : MATCH sur le seul mot-clé, puis `d.juridiction = …` vérifié
+        # ligne à ligne. Plan mesuré en prod (EXPLAIN QUERY PLAN) :
+        # « SCAN f VIRTUAL TABLE » puis « SEARCH d USING INTEGER PRIMARY KEY »
+        # pour CHAQUE décision contenant le mot : « loi » = plus d'un million
+        # de lectures aléatoires dans une table de 28 Go, 794 à 891 s et 90 %
+        # d'iowait. Avec `juridiction:"conseil constitutionnel"` dans le MATCH,
+        # FTS5 croise d'abord les listes de l'index (7 388 décisions du CC,
+        # mesuré identique au filtre SQL) : 3,3 s pour la même requête, même
+        # total (60). Le filtre SQL exact est gardé en garde-fou.
         base_where = "decisions_fts MATCH ? AND d.juridiction = 'Conseil constitutionnel'"
-        params: list = [fts_query]
+        params: list = [f'({fts_query}) AND juridiction:"conseil constitutionnel"']
         if nature and nature.upper() in CC_NATURES:
             base_where += " AND d.nature = ?"
             params.append(nature.upper())

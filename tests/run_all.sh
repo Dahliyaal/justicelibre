@@ -32,6 +32,10 @@ run tests/test_homonymes_numero.py
 run tests/test_juridictions.py
 run tests/test_parse_dila_champs.py
 run tests/test_lois_codes_dates.py
+run tests/test_second_audit_B.py
+run tests/test_doctrine_identite.py
+run tests/test_ariane_checkpoint.py
+run tests/test_pagination_dila_dedup.py
 run tests/test_no_dead_code.py
 
 # Tests qui interrogent la prod live (justicelibre.org) : à ne pas lancer en

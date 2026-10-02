@@ -1625,7 +1625,7 @@ function renderResults(data, query) {
     parts.push(`</article>`);
   }
   // Bouton "Charger plus" si la dernière page était pleine
-  const canLoadMore = !lastSearchState?.pendingSources?.size && lastSearchState?.lastChunkSize >= PAGE_SIZE;
+  const canLoadMore = !lastSearchState?.pendingSources?.size && aEncoreUneSuite();
   if (canLoadMore) {
     parts.push(`<div class="load-more-wrap"><button class="load-more" id="loadMoreBtn">Charger la suite</button></div>`);
   }
@@ -2186,6 +2186,28 @@ function renderAriane(data) {
 }
 
 const PAGE_SIZE = 30;
+// Y a-t-il une page suivante ? Le serveur le dit (`has_more`) quand il le sait :
+// le judiciaire retire les doublons JURITEXT/Judilibre, une page peut donc
+// compter 19 arrêts sur 30 et avoir une suite (audit du 2 oct. 2026, R3 :
+// filtre « Cour de cassation », 19 rendus sur 33 596, jamais « Charger la suite »).
+function aEncoreUneSuite() {
+  const s = lastSearchState;
+  if (!s) return false;
+  const connu = s.srcHasMore || {};
+  if (Object.values(connu).some(Boolean)) return true;
+  // Toutes les sources ont répondu « plus rien » : pas de bouton, même si la
+  // dernière page était pleine.
+  const autres = Object.keys(s.perSource || {}).filter(k => !(k in connu));
+  if (Object.keys(connu).length && !autres.length) return false;
+  return s.lastChunkSize >= PAGE_SIZE;
+}
+// Offset de la prochaine page pour une source : celui que le serveur a rendu
+// (`next_offset`, en lignes de base), sinon le compteur commun.
+function offsetPour(src) {
+  const s = lastSearchState;
+  const n = s?.srcNext?.[src];
+  return (typeof n === 'number') ? n : s.offset;
+}
 let lastSearchState = null; // { q, juri, lieu, offset, accumulated }
 
 const FORMATION_LABELS = {
@@ -2448,7 +2470,10 @@ async function _runSearchInner(append = false) {
   }
 
   // Lancer un fetch par source, en parallèle
-  await Promise.all(sources.map(src => fetchOneSource(src, q, juri, lieu, lastSearchState.offset, 12, dateMin, dateMax)));
+  // Une source qui a dit « plus rien » (`has_more: false`) n'est pas relancée.
+  const aRelancer = isNew ? sources : sources.filter(src => lastSearchState.srcHasMore?.[src] !== false);
+  for (const src of sources) if (!aRelancer.includes(src)) lastSearchState.pendingSources.delete(src);
+  await Promise.all(aRelancer.map(src => fetchOneSource(src, q, juri, lieu, offsetPour(src), 12, dateMin, dateMax)));
 
   // Tout est fini (1re passe)
   lastSearchState.offset += PAGE_SIZE;
@@ -2472,6 +2497,11 @@ async function _runSearchInner(append = false) {
 }
 
 async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin = '', dateMax = '') {
+  // Offset réellement demandé à cette source : une re-tentative le rejoue.
+  if (lastSearchState) {
+    lastSearchState.srcUsed = lastSearchState.srcUsed || {};
+    lastSearchState.srcUsed[src] = offset;
+  }
   try {
     updateHeader(src);
     const params = new URLSearchParams({
@@ -2501,6 +2531,12 @@ async function fetchOneSource(src, q, juri, lieu, offset, timeout = 12, dateMin 
       return false;
     }
     if (data.error) throw new Error(data.error);
+    if (typeof data.next_offset === 'number') {
+      lastSearchState.srcNext = lastSearchState.srcNext || {};
+      lastSearchState.srcHasMore = lastSearchState.srcHasMore || {};
+      lastSearchState.srcNext[src] = data.next_offset;
+      lastSearchState.srcHasMore[src] = !!data.has_more;
+    }
     if (Array.isArray(data.filtres_ignores) && lastSearchState.avertissements) {
       for (const f of data.filtres_ignores) lastSearchState.avertissements.set(f.parametre, f);
     }
@@ -2541,7 +2577,8 @@ async function retryTimedOutSources() {
     // Marquer comme "en re-tentative" dans le warning
     lastSearchState.pendingSources.add(src);
     updateHeader(src);
-    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, lastSearchState.offset - PAGE_SIZE, 60, lastSearchState.dateMin || '', lastSearchState.dateMax || '');
+    const off = lastSearchState.srcUsed?.[src] ?? (lastSearchState.offset - PAGE_SIZE);
+    await fetchOneSource(src, lastSearchState.q, lastSearchState.juri, lastSearchState.lieu, off, 60, lastSearchState.dateMin || '', lastSearchState.dateMax || '');
   }
   finalizeHeader();
 }
@@ -2551,7 +2588,7 @@ function updateHeader(currentSrc) {
   const hdr = document.getElementById('resultsHeader');
   if (!hdr) return;
   const count = lastSearchState?.accumulated?.length || 0;
-  const hasMore = lastSearchState?.lastChunkSize >= PAGE_SIZE;
+  const hasMore = aEncoreUneSuite();
   const countStr = `${count}${hasMore ? '+' : ''} résultat${count > 1 ? 's' : ''}`;
   if (pending.length) {
     const srcName = SOURCE_NAMES[currentSrc || pending[0]] || pending[0];

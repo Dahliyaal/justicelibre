@@ -197,6 +197,19 @@ async def get_decision(decision_id: str) -> dict[str, Any] | None:
     return await wh.get_decision_remote("jade", decision_id)
 
 
+# Lettres de cour dans les numéros de CAA (« 26VE02318 » → CAA78).
+_CAA_LETTRES = {
+    "MA": "CAA13", "TL": "CAA31", "BX": "CAA33", "NT": "CAA44", "NC": "CAA54",
+    "DA": "CAA59", "LY": "CAA69", "PA": "CAA75", "VE": "CAA78",
+}
+_CAA_NUMERO_RE = re.compile(r"^\d{2}([A-Z]{2})\d{4,6}$")
+
+
+def _caa_depuis_numero(numero: str) -> str | None:
+    m = _CAA_NUMERO_RE.match((numero or "").upper())
+    return _CAA_LETTRES.get(m.group(1)) if m else None
+
+
 async def get_admin_decision(numero: str, juridiction: str | None = None) -> dict[str, Any] | None:
     """Récupère une décision administrative par son numéro de requête exact.
 
@@ -232,6 +245,13 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
         # ET le nom long ("Tribunal Administratif de Lyon", "Conseil d'Etat"...)
         # via mapping inversé. Sans match, fanout par défaut sur CE+CAA+TA.
         juri_code = "CE-CAA"
+        if not juridiction:
+            # Audit du 2 oct. 2026, F3 : « CE-CAA » est le fonds de la
+            # jurisprudence CITÉE du CE et des CAA, pas le fonds des CAA ;
+            # 26VE02318 (CAA Versailles, 30/09/2026) y ressortait introuvable.
+            # Un numéro de CAA porte sa cour (AA + 2 lettres + chiffres) :
+            # on interroge directement cette cour.
+            juri_code = _caa_depuis_numero(num_clean) or juri_code
         if juridiction:
             juri_in = juridiction.strip()
             juri_up = juri_in.upper()
@@ -260,8 +280,17 @@ async def get_admin_decision(numero: str, juridiction: str | None = None) -> dic
         # l'appelant croit tenir la décision demandée (bug de famille
         # identifié le 23 août 2026 sur get_cc_decision). On avoue.
         return None
-    except Exception:
-        return None
+    except Exception as e:
+        # Une panne du live n'est pas une absence : avant le 2 oct. 2026,
+        # `return None` la faisait passer pour « introuvable ». Les appelants
+        # (server.get_admin_decision, citation_search) lisent déjà `error`.
+        return {
+            "error": (f"Décision n° {numero} absente du bulk JADE, et l'API live "
+                      f"opendata.justice-administrative.fr n'a pas répondu "
+                      f"({type(e).__name__}). Réessayer plus tard."),
+            "error_category": "upstream",
+            "retryable": True,
+        }
 
 
 async def get_ce_decision(numero: str) -> dict[str, Any] | None:

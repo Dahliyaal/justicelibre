@@ -867,6 +867,29 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     # le portaient déjà — d'où l'invisibilité du défaut.
     seo_ident = numero or (titre_brut[:90].strip() if titre_brut != juri else "")
     title_seo = f"{juri or seo_ident}, {seo_ident} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
+    # Doctrine (conclusions de rapporteur public, avis CADA…) : ce n'est PAS
+    # une décision. La page disait « Décision rendue par Conseil d'État …
+    # n° 4294 » (n° interne) pour ariane_crp:4294, conclusions dans l'affaire
+    # n° 412996 (audit du 2 oct. 2026, F1). On nomme la nature réelle.
+    nature_doc = (data.get("nature_document") or "").strip() if source == "doctrine" else ""
+    est_crp = source == "doctrine" and decision_id.lower().startswith("ariane_crp:")
+    if source == "doctrine":
+        nature_doc = nature_doc or "Document de doctrine"
+        num_lib = (f"affaire n° {numero}" if est_crp else f"n° {numero}") if numero else ""
+        main_id = f"{nature_doc}{' — ' + num_lib if num_lib else ''}"
+        main_id_html = esc(main_id)
+        title_h1 = main_id_html + (f" <em>· {esc(_format_fr_date(date))}</em>" if date else "")
+        title_h1_plain = f"{main_id} · {_format_fr_date(date)}" if date else main_id
+        title_seo = f"{main_id} {(_format_fr_date(date) or '').strip()} -{SITE_NAME}".strip()
+        if est_crp:
+            subline_txt = (f"Conclusions du rapporteur public{' dans l’affaire n° ' + numero if numero else ''}"
+                           f"{', ' + juri if juri else ''}{', décision lue le ' + _format_fr_date(date) if date else ''}."
+                           " Ce n’est pas une décision de justice : l’avis du rapporteur public ne lie pas le juge.")
+        else:
+            subline_txt = (f"{nature_doc}{', ' + _format_fr_date(date) if date else ''}."
+                           " Ce n’est pas une décision de justice.")
+    else:
+        subline_txt = f"Décision rendue par {juri or 'la juridiction'}{', le ' + _format_fr_date(date) if date else ''}."
 
     desc = _strip(text, 200) or f"{SOURCE_LABELS.get(source, '')} -{juri}".strip(" -")
     canonical = _canonical(source, decision_id)
@@ -903,7 +926,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 
     jsonld = {
         "@context": "https://schema.org",
-        "@type": ["LegalCase", "CreativeWork"],
+        "@type": "CreativeWork" if source == "doctrine" else ["LegalCase", "CreativeWork"],
         "name": title_h1_plain,
         "headline": title_h1_plain,
         "url": canonical,
@@ -912,7 +935,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
         "publisher": {"@type": "Organization", "name": SITE_NAME, "url": BASE_URL},
         "inLanguage": "fr",
         "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence",
-        "identifier": ecli or numero or decision_id,
+        "identifier": ecli or numero or (None if source == "doctrine" else decision_id),
         "sameAs": source_url or None,
     }
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
@@ -921,7 +944,8 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
     rows = []
     if juri: rows.append(("Juridiction", esc(juri)))
     if date: rows.append(("Date", esc(_format_fr_date(date))))
-    if numero: rows.append(("Numéro", esc(numero)))
+    if nature_doc: rows.append(("Nature", esc(nature_doc)))
+    if numero: rows.append(("N° d'affaire" if est_crp else "Numéro", esc(numero)))
     if ecli: rows.append(("ECLI", f'<code>{esc(ecli)}</code>'))
     if formation: rows.append(("Formation", esc(formation)))
     if nature_qualifiee: rows.append(("Nature", esc(nature_qualifiee)))
@@ -994,7 +1018,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 <main class="wrap">
   <div class="kicker">{esc(juri or SOURCE_LABELS.get(source, ''))}</div>
   <h1>{title_h1}</h1>
-  <p class="subline">Décision rendue par {esc(juri or 'la juridiction')}{', le ' + esc(_format_fr_date(date)) if date else ''}.</p>
+  <p class="subline">{esc(subline_txt)}</p>
   {_official_source_button(decision_id)}
   <table class="meta-table">{meta_html}</table>
   {_lang_warning(text_lang, decision_id, source)}
@@ -1442,7 +1466,7 @@ def render_sitemap_cedh(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> st
     except Exception:
         pass
     items = "\n".join(
-        f'  <url><loc>{BASE_URL}/decision/cedh/{esc(rid)}</loc>'
+        f'  <url><loc>{esc(_canonical("cedh", rid))}</loc>'
         f'<lastmod>{esc(d) if d else ""}</lastmod></url>'
         for rid, d in rows if rid
     )
@@ -1466,7 +1490,7 @@ def render_sitemap_cjue(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> st
     except Exception:
         pass
     items = "\n".join(
-        f'  <url><loc>{BASE_URL}/decision/cjue/{esc(rid)}</loc>'
+        f'  <url><loc>{esc(_canonical("cjue", rid))}</loc>'
         f'<lastmod>{esc(d) if d else ""}</lastmod></url>'
         for rid, d in rows if rid
     )
@@ -1535,7 +1559,7 @@ def render_sitemap_cnil(page: int = 1, page_size: int = SITEMAP_PAGE_SIZE) -> st
     offset = (page - 1) * page_size
     rows = _wh.sync_enumerate_fond("cnil", offset=offset, limit=page_size)
     items = "\n".join(
-        f'  <url><loc>{BASE_URL}/decision/cnil/{esc(r.get("id",""))}</loc>'
+        f'  <url><loc>{esc(_canonical("cnil", r.get("id") or ""))}</loc>'
         f'<lastmod>{esc(r.get("date") or "")}</lastmod></url>'
         for r in rows if r.get("id")
     )

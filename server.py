@@ -312,6 +312,23 @@ def _tool_error(message, *, category, retryable=False, **extra):
     return out
 
 
+# Valeurs admises des filtres énumérés (audit du 2 oct. 2026, F4) : un
+# filtre inconnu rendait « 0 résultat » ou était ignoré sans un mot.
+_SORTS_ADMIS = ("relevance", "date_desc", "date_asc")
+_SOURCES_SEARCH_ALL = ("dila", "jade", "legi", "cedh", "cjue")
+
+
+def _check_enum(param: str, value: str, admis) -> dict | None:
+    """Erreur de validation si `value` n'est pas dans `admis`, sinon None."""
+    if value in admis:
+        return None
+    return _tool_error(
+        f"Valeur inconnue pour `{param}` : {value!r}. Valeurs admises : "
+        + ", ".join(sorted(admis)) + ".",
+        category="validation", valeurs_admises=sorted(admis),
+    )
+
+
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -1475,9 +1492,11 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     (chaque TA a sa propre série annuelle qui repart à 1). **Si tu sais
     quelle juridiction a rendu la décision, passe-la TOUJOURS.**
 
-    Sans `juridiction`, le repli sur l'API live n'interroge que le Conseil
-    d'État et les CAA : un numéro de TA peut alors ressortir « introuvable »
-    alors qu'il existe. Dans ce cas, réessaie en nommant le tribunal.
+    Sans `juridiction`, un numéro de CAA (« 26VE02318 ») est cherché dans
+    la cour que désignent ses lettres (VE = Versailles, DA = Douai…) ; les
+    autres numéros sont cherchés au Conseil d'État et dans la jurisprudence
+    citée des CAA. Un numéro de TA peut alors ressortir « introuvable »
+    alors qu'il existe : réessaie en nommant le tribunal.
 
     ⚠️ **Numéros réutilisés dans le temps** : au-delà du partage entre
     tribunaux, un même numéro désigne parfois plusieurs décisions de LA
@@ -1519,6 +1538,8 @@ async def get_admin_decision(numero: str, juridiction: str = "") -> dict[str, An
     """
     _record_call("get_admin_decision")
     result = await jade_remote.get_admin_decision(numero, juridiction or None)
+    if isinstance(result, dict) and result.get("error"):
+        return result  # panne du live (upstream, retryable) : pas « introuvable »
     if result is None:
         return _tool_error(
             f"Décision n° {numero} introuvable dans JADE (bulk DILA). "
@@ -1790,6 +1811,10 @@ async def search_admin(
     _bad = _check_dates(date_min=date_min, date_max=date_max)
     if _bad:
         return _bad
+    sort = (sort or "relevance").strip().lower()
+    _bad = _check_enum("sort", sort, _SORTS_ADMIS)
+    if _bad:
+        return _bad
     result = await jade_remote.search(
         query=query, juridiction=juridiction or None, sort=sort,
         date_min=date_min or None, date_max=date_max or None,
@@ -1992,7 +2017,27 @@ async def search_doctrine(
         return {"error": f"source inconnue : {source!r} — attendu cada, ddd, ariane_crp, bofip ou ctn",
                 "total": 0, "returned": 0, "results": []}
     result = await _wh.search_fond("doctrine", query, limit=limit, offset=offset, juridiction=src)
+    if isinstance(result, dict):
+        result["results"] = [_doctrine_identite(r) for r in result.get("results") or []]
     return _annotate_pagination(result, limit, offset, "results")
+
+
+def _doctrine_identite(r: dict) -> dict:
+    """Ajoute `nature` et `numero` citables à un document de doctrine.
+
+    `doc_id` est interne pour ariane_crp (ariane_crp:4294 = conclusions dans
+    l'affaire n° 412996) : un client qui citait « CE, n° 4294 » citait une
+    décision inexistante (audit du 2 oct. 2026, F1).
+    """
+    if not isinstance(r, dict):
+        return r
+    from search_api import doctrine_nature, doctrine_numero
+    out = {**r, "nature": doctrine_nature(r), "numero": doctrine_numero(r)}
+    if (r.get("source_id") or str(r.get("id") or "")).lower().startswith("ariane_crp"):
+        out["avertissement"] = ("Conclusions du rapporteur public, pas une décision ; "
+                                "`doc_id` est un identifiant interne, à ne jamais citer. "
+                                "Citer le n° d'affaire (`numero`).")
+    return out
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -2008,7 +2053,7 @@ async def get_doctrine_document(doc_id: str) -> dict[str, Any]:
     r = await _wh.get_decision_remote("doctrine", doc_id)
     if not r:
         return {"error": f"document introuvable : {doc_id!r} (forme attendue source:doc_id)"}
-    return {**r, "id": doc_id}
+    return _doctrine_identite({**r, "id": doc_id})
 
 
 @mcp.tool(annotations=ToolAnnotations(
@@ -2374,8 +2419,23 @@ async def search_all(
     _bad = _check_dates(date_min=date_min, date_max=date_max)
     if _bad:
         return _bad
+    sort = (sort or "relevance").strip().lower()
+    _bad = _check_enum("sort", sort, _SORTS_ADMIS)
+    if _bad:
+        return _bad
+    if isinstance(sources, str):
+        sources = [sources]
+    sources = [str(x).strip().lower() for x in (sources or []) if str(x).strip()]
+    inconnues = [x for x in sources if x not in _SOURCES_SEARCH_ALL]
+    if inconnues:
+        return _tool_error(
+            f"Source(s) inconnue(s) : {', '.join(inconnues)}. Valeurs admises : "
+            + ", ".join(_SOURCES_SEARCH_ALL) + ". Pour la CNIL, la doctrine ou "
+            "l'open data TA/CAA, utiliser search_cnil, search_doctrine, search_admin.",
+            category="validation", valeurs_admises=list(_SOURCES_SEARCH_ALL),
+        )
     limit = max(1, min(int(limit), 100))
-    allowed = set(sources) if sources else {"dila", "jade", "legi", "cedh", "cjue"}
+    allowed = set(sources) if sources else set(_SOURCES_SEARCH_ALL)
     # Expansion thésaurus
     from query_intent import expand_synonyms as _expand, detect_intent
     intent = detect_intent(query)
@@ -2704,6 +2764,21 @@ async def search_annuaire(
     cat_f = (category or "").strip().lower() or None
     src_f = (source or "").strip().lower() or None
     limit = max(1, min(limit or 20, 200))
+    # Filtre inconnu = refus explicite (audit du 2 oct. 2026, F4). Les valeurs
+    # admises sont lues dans les données : même règle que le filtrage
+    # ci-dessous (catégorie = sous-chaîne du slug ou du libellé, source exacte).
+    if rows and cat_f and not any(
+            cat_f in (r["categorie_slug"] or "").lower() or cat_f in (r["categorie"] or "").lower()
+            for r in rows):
+        admis = sorted({(r["categorie_slug"] or "") for r in rows} - {""})
+        return _tool_error(
+            f"Catégorie inconnue : {category!r}. Valeurs admises : " + ", ".join(admis) + ".",
+            category="validation", valeurs_admises=admis)
+    if rows and src_f and not any(src_f == (r["source"] or "").lower() for r in rows):
+        admis = sorted({(r["source"] or "").lower() for r in rows} - {""})
+        return _tool_error(
+            f"Source inconnue : {source!r}. Valeurs admises : " + ", ".join(admis) + ".",
+            category="validation", valeurs_admises=admis)
 
     # La recherche cherchait la requête ENTIÈRE comme une seule sous-chaîne
     # (`q in mail_l`). Or dans les champs, le type d'organe et le lieu sont

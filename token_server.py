@@ -142,6 +142,23 @@ def _parse_loi_path(raw_path: str):
     return code, num
 
 
+# Route /decision/{source}/{id}. Audit du 2 oct. 2026, F5 : les CELEX de la
+# CJUE portent des parenthèses (« 61959CC0033(01) ») ; la classe ne les
+# admettait pas, d'où ~1 370 URL du sitemap CJUE en 404. On accepte les
+# parenthèses brutes (anciennes URL, Google) ET encodées (%28 %29, forme
+# publiée désormais par le sitemap et la canonique). Toujours refusés :
+# « / » après décodage hors ArianeWeb, espaces, guillemets, < >.
+_DECISION_PATH_RE = re.compile(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.%|()]{4,160})$")
+
+
+def _parse_decision_path(raw_path: str):
+    """« /decision/cjue/61959CC0033%2801%29 » → ("cjue", "61959CC0033(01)")."""
+    m = _DECISION_PATH_RE.match(raw_path)
+    if not m:
+        return None
+    return m.group(1), urllib.parse.unquote(m.group(2))
+
+
 def _date_calendaire_ok(value: str) -> bool:
     """Date ISO AAAA-MM-JJ qui EXISTE au calendrier.
 
@@ -260,10 +277,9 @@ class TokenHandler(BaseHTTPRequestHandler):
         # Le %-encodé est nécessaire pour les ids ArianeWeb ("/Ariane_Web/AW_DCE/|209395")
         # que les sitemaps publient URL-encodés — sans ça, 113k pages sitemap → 404.
         # Le | brut est aussi accepté : Google normalise parfois %7C → | dans ses crawls.
-        m = re.match(r"^/decision/([a-z]+)/([A-Za-z0-9_\-:.%|]{4,160})$", parsed.path)
-        if m:
-            from urllib.parse import unquote
-            return self._handle_ssr_decision(m.group(1), unquote(m.group(2)))
+        dec = _parse_decision_path(parsed.path)
+        if dec:
+            return self._handle_ssr_decision(*dec)
         if parsed.path == "/sitemap.xml":
             return self._handle_sitemap_index()
         if parsed.path == "/sitemap-static.xml":

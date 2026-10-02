@@ -158,6 +158,16 @@ def load_checkpoint(conn=None) -> int:
         print(f"[ariane] checkpoint {depuis_fichier} en retard sur la base "
               f"({depuis_base}) — on repart du sommet réel")
         return depuis_base
+    # Un checkpoint AU-DELÀ du sommet en base est un point de reprise
+    # mensonger : le checkpoint n'enregistre plus que des identifiants vivants
+    # (donc en base). Du 11/09 au 2/10/2026 il valait « dernier vivant + 5 000 »
+    # et avançait de 5 000 par jour (325793 → 430775) pendant que toutes les
+    # décisions publiées depuis le 9/09 (ids 325794+) étaient sautées (audit du
+    # 2 oct. 2026, F2). La base fait autorité.
+    if depuis_base and depuis_fichier > depuis_base:
+        print(f"[ariane] checkpoint {depuis_fichier} AU-DELÀ du sommet en base "
+              f"({depuis_base}) — ignoré, on repart du sommet réel")
+        return depuis_base
     return depuis_fichier
 
 
@@ -169,6 +179,42 @@ def save_checkpoint(n: int):
     except Exception as e:
         print(f"  [checkpoint NON ENREGISTRÉ id={n}] {e} — "
               f"la reprise se fera sur le sommet en base")
+
+
+# Alerte : 0 décision nouvelle au sommet depuis plus de N jours = moisson morte.
+ALERTE_JOURS = int(os.environ.get("ARIANE_ALERTE_JOURS", "3") or 3)
+EXIT_MOISSON_MORTE = 3
+
+
+def jours_depuis_sommet(conn) -> float | None:
+    """Âge (jours) de la décision au plus grand ariane_num (index idx_ariane_num).
+
+    ⛔ Pas de MAX(fetched_at) : colonne sans index, ~8 min de lecture sur la
+    prod (audit du 2 oct. 2026).
+    """
+    try:
+        row = conn.execute(
+            "SELECT julianday('now') - julianday(fetched_at) FROM ariane_decisions "
+            "ORDER BY ariane_num DESC LIMIT 1").fetchone()
+        return float(row[0]) if row and row[0] is not None else None
+    except Exception as e:
+        print(f"[ariane] âge du sommet illisible ({e})")
+        return None
+
+
+def bilan(conn, added_session: int, borne: bool) -> int:
+    """Dit franchement ce que la session a rapporté ; code de sortie."""
+    if added_session > 0:
+        return 0
+    age = jours_depuis_sommet(conn)
+    age_txt = f"{age:.1f} j" if age is not None else "inconnu"
+    print(f"[ariane] 0 nouvelle décision cette session (dernière décision du sommet "
+          f"moissonnée il y a {age_txt})")
+    if not borne and age is not None and age > ALERTE_JOURS:
+        print(f"[ariane] ERREUR : aucune décision nouvelle depuis plus de {ALERTE_JOURS} j "
+              f"— moisson probablement morte (code {EXIT_MOISSON_MORTE})")
+        return EXIT_MOISSON_MORTE
+    return 0
 
 
 def reconnaitre(client, depuis: int) -> int | None:
@@ -215,6 +261,15 @@ def main():
         start_at = depuis
         print(f"[ariane] balayage borné demandé : {depuis} → {jusqua or '∞'}")
     print(f"[ariane] resume from id={start_at}")
+    borne = bool(depuis)
+    # Le checkpoint n'enregistre JAMAIS que le dernier identifiant vivant
+    # (récupéré ou déjà en base), jamais l'identifiant atteint par le balayage
+    # (audit du 2 oct. 2026, F2). Un balayage borné ne le touche pas.
+    dernier_vivant = start_at
+
+    def ckpt():
+        if not borne:
+            save_checkpoint(dernier_vivant)
 
     client = httpx.Client(headers={"User-Agent": USER_AGENT})
     consecutive_errors = 0
@@ -243,9 +298,10 @@ def main():
             # 200 — ils étaient simplement déjà en base.
             consecutive_404 = 0
             consecutive_skipped += 1
+            dernier_vivant = max(dernier_vivant, num)
             if consecutive_skipped % 1000 == 0:
                 print(f"  [skip x{consecutive_skipped}] at id={num}")
-                save_checkpoint(num)
+                ckpt()
             continue
         consecutive_skipped = 0
 
@@ -257,8 +313,8 @@ def main():
             if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
                 print(f"\n*** CIRCUIT BREAKER ***")
                 print(f"  {MAX_CONSECUTIVE_ERRORS} erreurs consécutives, arrêt.")
-                print(f"  Dernier id tenté : {num}")
-                save_checkpoint(num)
+                print(f"  Dernier id tenté : {num} ; dernier vivant : {dernier_vivant}")
+                ckpt()
                 sys.exit(2)
             time.sleep(min(60, 5 * consecutive_errors))  # backoff
             continue
@@ -270,8 +326,9 @@ def main():
                 vivant = reconnaitre(client, num)
                 if vivant is None:
                     print(f"\n*** {MAX_CONSECUTIVE_404} x 404 puis {len(SONDES)} sondes vides jusqu'à "
-                          f"id={num + SONDES[-1]} : fin du corpus.")
-                    save_checkpoint(num)
+                          f"id={num + SONDES[-1]} : fin du corpus "
+                          f"(dernier vivant : {dernier_vivant}).")
+                    ckpt()
                     break
                 print(f"  [trou] {consecutive_404} x 404 depuis id={num - consecutive_404 + 1} ; "
                       f"le corpus continue (id={vivant} répond) — on poursuit sans sauter")
@@ -292,6 +349,7 @@ def main():
             )
             conn.commit()
             added_session += 1
+            dernier_vivant = max(dernier_vivant, num)
         except Exception as e:
             print(f"  [DB err id={num}] {e}")
 
@@ -299,16 +357,18 @@ def main():
             elapsed = time.time() - start_t
             rate = added_session / elapsed if elapsed > 0 else 0
             print(f"  +{added_session} added (id={num}, {rate:.1f}/s)")
-            save_checkpoint(num)
+            ckpt()
 
         time.sleep(SLEEP_BETWEEN_REQUESTS)
 
-    save_checkpoint(num)
+    ckpt()
     final = conn.execute("SELECT COUNT(*) FROM ariane_decisions").fetchone()[0]
     print(f"\nDONE. Total ariane : {final} (+{added_session} cette session, "
-          f"{trous_franchis} trou(s) franchi(s))")
+          f"{trous_franchis} trou(s) franchi(s), dernier vivant : {dernier_vivant})")
+    rc = bilan(conn, added_session, borne)
     conn.close()
+    return rc
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

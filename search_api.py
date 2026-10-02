@@ -149,6 +149,19 @@ def _norm_ariane(raw: dict) -> dict:
         "relevance": raw.get("relevance"),
     }
 
+def _cles_doublon(r: dict) -> list[str]:
+    """Clés d'identité d'un arrêt (mêmes règles que `_dedupe_ecli`)."""
+    cles = []
+    e = (r.get("ecli") or "").strip().upper()
+    if e:
+        cles.append("E:" + e)
+    n = re.sub(r"[.\s/-]", "", str(r.get("numero") or ""))
+    d = (r.get("date") or "")[:10]
+    if n and d:
+        cles.append(f"N:{n}@{d}")
+    return cles
+
+
 def _dedupe_ecli(rows: list[dict]) -> list[dict]:
     """Un arrêt, une carte : clé ECLI, et à défaut numéro normalisé + date
     (la ligne JURITEXT ancienne n'a souvent pas d'ECLI alors que sa jumelle
@@ -570,6 +583,49 @@ _DOCTRINE_SOURCES = {
 }
 
 
+_DOCTRINE_NATURES = {
+    "ariane_crp": "Conclusions du rapporteur public",
+    "ddd": "Document du Défenseur des droits",
+    "bofip": "Commentaire administratif (BOFiP)",
+    "ctn": "Fiche du Code du travail numérique",
+}
+
+
+def doctrine_nature(raw: dict) -> str:
+    """Ce qu'est réellement le document (jamais « décision »)."""
+    src = (raw.get("source_id") or str(raw.get("id") or "").split(":", 1)[0]).lower()
+    if src == "cada":
+        t = (raw.get("type") or "Avis").strip()
+        return f"{t} de la CADA"
+    return _DOCTRINE_NATURES.get(src, "Document de doctrine")
+
+
+def doctrine_numero(raw: dict) -> str:
+    """Numéro citable d'un document de doctrine, ou "".
+
+    `doc_id` est un identifiant INTERNE pour ariane_crp (ariane_crp:4294 =
+    conclusions dans l'affaire n° 412996) et pour ddd (notice du catalogue) :
+    le servir comme « numéro » faisait citer « CE, n° 4294 », une décision
+    qui n'existe pas (audit du 2 oct. 2026, F1). Pour ariane_crp on rend le
+    numéro d'affaire (tags `AFF:`, sinon titre « Conclusions N », sinon fin
+    de l'URL officielle) ; pour cada et bofip, doc_id EST la référence
+    officielle (n° d'avis, identifiant BOI).
+    """
+    src = (raw.get("source_id") or str(raw.get("id") or "").split(":", 1)[0]).lower()
+    if src in ("cada", "bofip"):
+        return str(raw.get("doc_id") or str(raw.get("id") or "").split(":", 1)[-1] or "")
+    if src != "ariane_crp":
+        return ""
+    affs = re.findall(r"AFF:\s*(\d{3,7})", raw.get("tags") or "")
+    if affs:
+        return ", ".join(dict.fromkeys(affs))
+    m = re.match(r"^\s*Conclusions\s+(\d{3,7})\b", raw.get("titre") or raw.get("title") or "")
+    if m:
+        return m.group(1)
+    m = re.search(r"/conclusion/[^/]+/(\d{3,7})/?$", raw.get("source_url") or "")
+    return m.group(1) if m else ""
+
+
 def _norm_doctrine(raw: dict) -> dict:
     """Un document de doctrine au format des cartes de résultat.
 
@@ -589,12 +645,13 @@ def _norm_doctrine(raw: dict) -> dict:
         "id": raw.get("id") or "",
         "source": "doctrine",
         "source_label": SOURCE_LABELS["doctrine"],
-        "title": raw.get("titre") or f"{organisme} — {raw.get('doc_id', '')}",
+        "title": raw.get("titre") or " — ".join(x for x in (doctrine_nature(raw), doctrine_numero(raw) and f"n° {doctrine_numero(raw)}") if x),
         "juridiction": raw.get("administration") or organisme,
         "organisme": organisme,
         "date": _clean_date(raw.get("date", "") or ""),
         "formation": raw.get("type", "") or "",
-        "numero": raw.get("doc_id", "") or "",
+        "numero": doctrine_numero(raw),
+        "nature_document": doctrine_nature(raw),
         "ecli": "",
         "source_url": raw.get("source_url", "") or "",
         "extract": raw.get("extract", "") or "",
@@ -718,6 +775,18 @@ class _Hits(list):
     transporte jusqu'à la réponse au lieu de le jeter.
     """
     total_base: int | None = None
+    # Pagination en lignes de BASE (dila) : l'offset de la page suivante et
+    # s'il en reste. Le dédoublonnage JURITEXT/Judilibre retire des lignes, donc
+    # « offset + limit » et « page pleine ⇔ suite » ne valent plus (audit du
+    # 2 oct. 2026, R3 : 19 rendus sur 30 demandés, pas de « Charger la suite »).
+    next_offset: int | None = None
+    has_more: bool | None = None
+    doublons_retires: int = 0
+
+
+# Sur-lecture pour remplir une page après dédoublonnage (taux de jumeaux
+# mesuré ~37 % : 19 uniques sur 30 lignes, audit du 2 oct. 2026).
+_DILA_SURLECTURE = 2
 
 
 def _dispatch_dila_sync(
@@ -768,22 +837,58 @@ def _dispatch_dila_sync(
                     out.append(_norm_dila(hit))
                     seen.add(hit["id"])
         # 2) FTS5 toujours en complément (sauf si on a déjà un hit unique)
+        next_offset = has_more = None
+        doublons = 0
         if not out or intent.kind in ("fts", "phrase"):
+            # On lit des pages SQL successives jusqu'à avoir `limit` arrêts
+            # DISTINCTS, et l'on rend l'offset de base réellement consommé :
+            # la page suivante repart juste après la dernière ligne lue.
+            cles_vues: set[str] = set()
+            for r0 in out:
+                cles_vues.update(_cles_doublon(r0))
+            cur = offset
+            # Une SEULE requête, sur-dimensionnée (×2) : chaque appel à
+            # dila.search refait un COUNT, avec jointure dès qu'un filtre de
+            # juridiction est posé — boucler par pages le multiplierait.
+            lu = min(limit * _DILA_SURLECTURE, 100)   # dila.search plafonne à 100
             r = dila.search(
                 query=intent.fts_query, juridiction=juri_filter,
                 date_min=date_min, date_max=date_max,
-                limit=limit, offset=offset,
+                limit=lu, offset=cur,
                 formation=formation,
             )
-            for d in r.get("decisions", []):
-                if d["id"] not in seen:
-                    out.append(_norm_dila(d))
-                    seen.add(d["id"])
             total_base = r.get("total")
+            lot = r.get("decisions", []) or []
+            for d in lot:
+                if len(out) >= limit:
+                    break
+                cur += 1
+                if d["id"] in seen:
+                    continue
+                nd = _norm_dila(d)
+                cles = _cles_doublon(nd)
+                if any(c in cles_vues for c in cles):
+                    doublons += 1
+                    continue
+                cles_vues.update(cles)
+                out.append(nd)
+                seen.add(d["id"])
+            if len(lot) < lu and cur >= offset + len(lot):   # lot court ET entièrement lu
+                has_more = False              # la base est épuisée
+            elif isinstance(total_base, int):
+                has_more = cur < total_base
+            else:
+                has_more = True
+            next_offset = cur
     except Exception as e:
         print(f"[dila err] {e}")
+        next_offset = has_more = None
+        doublons = 0
     hits = _Hits(out)
     hits.total_base = total_base if isinstance(total_base, int) else None
+    hits.next_offset = next_offset
+    hits.has_more = has_more
+    hits.doublons_retires = doublons
     return hits
 
 
@@ -1004,6 +1109,9 @@ async def search_federated(
     # Judilibre à id hexadécimal + ligne JURITEXT, même ECLI) : on n'en montre
     # qu'un. Le dédoublonnage en base est un chantier à part.
     total_dila = getattr(dila_r, "total_base", None)   # AVANT le dédoublonnage, qui rend une liste neuve
+    dila_next = getattr(dila_r, "next_offset", None)
+    dila_more = getattr(dila_r, "has_more", None)
+    dila_doublons = getattr(dila_r, "doublons_retires", 0) or 0
     # Total EXACT seulement quand une seule source est interrogée et qu'elle
     # connaît son total (dila, legi, doctrine transportent `total_base`).
     _totaux = {"dila": total_dila,
@@ -1088,7 +1196,21 @@ async def search_federated(
             date_min=date_min, date_max=date_max, sort=sort, expand=False,
         )
 
+    # Pagination exacte quand dila est la seule source (cas du filtre
+    # « Cour de cassation ») : la page suivante commence à `next_offset`,
+    # pas à offset + limit (audit du 2 oct. 2026, R3).
+    pagination = {}
+    if _seule == "dila" and dila_next is not None:
+        pagination = {"next_offset": dila_next, "has_more": bool(dila_more)}
+    total_note = None
+    if _seule == "dila" and total_exact_val is not None:
+        total_note = ("nombre de lignes en base : un même arrêt peut y figurer deux fois "
+                      "(JURITEXT et Judilibre), le nombre d'arrêts distincts est donc inférieur"
+                      + (f" ; {dila_doublons} doublon(s) retiré(s) de cette page" if dila_doublons else ""))
+
     return {
+        **pagination,
+        **({"total_note": total_note} if total_note else {}),
         "query_normalized": intent.fts_query,
         "intent": intent.kind,
         "expansion_appliquee": expansion_appliquee,
