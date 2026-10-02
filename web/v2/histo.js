@@ -162,15 +162,17 @@
       '<span><i class="lg lg--mod"></i>réécrit : la suite est sous une autre entrée Légifrance</span>' +
       '<span><i class="lg lg--cap"></i>fin (abrogation)</span>' +
       '<span><i class="lg lg--notch"></i>retouche</span>' +
+      '<span><i class="lg lg--inf"></i>sans fin prévue</span>' +
       '<span class="jl-cl__legende-arbre">Chaque ligne en retrait dépend de celle au-dessus d\u2019elle : ' +
       '« ↳ remplacé par X » = texte que X a remplacé ; « ↳ a modifié X » = texte qui a modifié X.</span></div>';
-    return legende + '<div class="jl-hbar"><span class="jl-surtitre">Couloirs</span>' +
+    /* 3/10/2026 : titre et phrase d'abord, légende ensuite dans son propre
+       encadré ; la phrase ne répète plus la légende, et la date du décret
+       2005, écrite en dur pour le seul art. 748-6, est retirée. */
+    return '<div class="jl-hbar"><span class="jl-surtitre">Couloirs</span>' +
       '<span class="jl-muted jl-sub jl-sub--enligne">Chaque texte occupe une ligne, de sa naissance ' +
-      'à sa mort. Les losanges ambre sont ses retouches (chacune a aussi sa ligne), le bouchon rouge ' +
-      'marque l’abrogation (survole-le : par qui), la pointe à droite signifie « sans limite ». ' +
-      'L’axe commence à la première rédaction de l’article (2008) ; le décret qui l’a créé date du ' +
-      '28 décembre 2005. Survole pour le détail, clique une rédaction pour la comparer.</span>' +
+      'à sa fin. Survole un élément pour le détail, clique une rédaction pour la comparer.</span>' +
       '<span class="jl-hcount">' + A.acc(H.counts.total, 'événement') + '</span></div>' +
+      legende +
       '<div class="jl-cl"><div class="jl-cl__in">' +
         '<div class="jl-cl__head"><div class="jl-cl__lbl">texte</div><div class="jl-cl__axis">' +
         years.map(function (y) {

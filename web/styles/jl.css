@@ -1669,3 +1669,7 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-cl__name > a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .jl-cl__name > .jl-cl__role{order:2;flex-basis:100%;margin:2px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jl-cl__name > .jl-nor{white-space:nowrap}
+/* Légende dans son encadré, aérée (3/10/2026). */
+.jl-cl__legende{margin:14px 0 22px;padding:14px 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--white,#fff);gap:10px 26px}
+.jl-cl__legende-arbre{margin-top:6px;padding-top:10px;border-top:1px dashed var(--line);line-height:1.6}
+.jl-cl__legende .lg--inf{width:0;height:0;border-radius:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--ok)}
