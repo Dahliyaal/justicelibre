@@ -128,7 +128,7 @@ footer.foot a{color:var(--muted)}
     <button role="tab" aria-selected="false" data-tab="chatgpt">ChatGPT</button>
     <button role="tab" aria-selected="false" data-tab="mistral">Le Chat (Mistral)</button>
     <button role="tab" aria-selected="false" data-tab="code">Claude Code</button>
-    <button role="tab" aria-selected="false" data-tab="autres">Cursor et autres</button>
+    <button role="tab" aria-selected="false" data-tab="autres">Cursor, VS Code, Zed</button>
   </div>
 
   <div class="panel" data-panel="claude">
@@ -156,9 +156,13 @@ footer.foot a{color:var(--muted)}
     <div class="cmd"><code>claude mcp add --transport http justicelibre https://justicelibre.org/mcp</code><button type="button" data-copy="claude mcp add --transport http justicelibre https://justicelibre.org/mcp">Copier</button></div>
   </div>
   <div class="panel" data-panel="autres" hidden>
-    <p>Cursor, VS Code, Zed, Continue, Cline… : ajoutez un serveur MCP distant dans la configuration du client.</p>
+    <p><strong>Cursor</strong> : fichier <code>mcp.json</code></p>
     <div class="cmd"><code>{"mcpServers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}</code><button type="button" data-copy='{"mcpServers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}'>Copier</button></div>
-    <p class="note">La forme exacte du fichier varie d'un client à l'autre : reportez-vous à sa documentation.</p>
+    <p><strong>VS Code</strong> : fichier <code>.vscode/mcp.json</code></p>
+    <div class="cmd"><code>{"servers": {"justicelibre": {"type": "http", "url": "https://justicelibre.org/mcp"}}}</code><button type="button" data-copy='{"servers": {"justicelibre": {"type": "http", "url": "https://justicelibre.org/mcp"}}}'>Copier</button></div>
+    <p><strong>Zed</strong> : réglages, clé <code>context_servers</code></p>
+    <div class="cmd"><code>{"context_servers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}</code><button type="button" data-copy='{"context_servers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}'>Copier</button></div>
+    <p class="note">Autre client : ajoutez un serveur MCP distant (Streamable HTTP, sans authentification) à l'adresse <code>https://justicelibre.org/mcp</code>, selon sa documentation.</p>
   </div>
 </section>
 
