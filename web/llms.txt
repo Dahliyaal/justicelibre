@@ -18,7 +18,7 @@ administrations françaises.
 ## MCP (Model Context Protocol)
 
 Endpoint public : `https://justicelibre.org/mcp` (streamable HTTP, sans
-authentification). 31 outils en lecture seule, 3 prompts, 3 resources.
+authentification). 33 outils en lecture seule, 3 prompts, 3 resources.
 Fiche registre : `io.github.Dahliyaal/justicelibre`.
 
 Outils clés : `search_all` (recherche fédérée avec thésaurus juridique FR),

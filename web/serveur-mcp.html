@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme resolver : évite le flash, doit rester avant les CSS */
+(function(){try{var s=localStorage.getItem("jl-theme");
+if(s==="light"||s==="dark")document.documentElement.setAttribute("data-theme",s);}catch(e){}})();</script>
+<title>Serveur MCP de jurisprudence française, gratuit et sans compte - JusticeLibre</title>
+<meta name="description" content="Connectez Claude, ChatGPT, Mistral ou Cursor à la jurisprudence française et européenne et aux codes à date : Cour de cassation, Conseil d'État, CAA, TA, Conseil constitutionnel, CEDH, CJUE. Serveur MCP gratuit, sans compte, sans clé.">
+<link rel="canonical" href="https://justicelibre.org/serveur-mcp.html">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta property="og:title" content="JusticeLibre : serveur MCP de jurisprudence française">
+<meta property="og:description" content="Votre IA connectée au droit français et européen. Gratuit, sans compte, sans clé : collez une adresse, c'est tout.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://justicelibre.org/serveur-mcp.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/tokens.css?v=20260501">
+<link rel="stylesheet" href="/styles/base.css?v=20260720">
+<link rel="stylesheet" href="/styles/components.css?v=20260719b">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "JusticeLibre MCP",
+  "applicationCategory": "Recherche juridique",
+  "operatingSystem": "Tout client MCP (Claude, ChatGPT, Mistral Le Chat, Cursor…)",
+  "url": "https://justicelibre.org/serveur-mcp.html",
+  "description": "Serveur MCP de jurisprudence française et européenne et de textes de loi à date, gratuit, sans compte ni clé.",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+  "isAccessibleForFree": true,
+  "sameAs": ["https://github.com/Dahliyaal/justicelibre"]
+}
+</script>
+<style>
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.6}
+html,body{background:var(--cream);color:var(--ink)}
+
+.hero{padding:4rem 1.5rem 1.5rem;text-align:center;max-width:860px;margin:0 auto}
+.kick{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:1rem}
+.hero h1{font-family:var(--display);font-size:clamp(2.1rem,5vw,3.4rem);font-weight:400;line-height:1.12;margin-bottom:1.1rem}
+.hero h1 em{color:var(--teal);font-style:italic}
+.hero p.lead{font-size:1.1rem;color:var(--body);max-width:680px;margin:0 auto 1.8rem;line-height:1.7}
+
+.endpoint{display:flex;align-items:stretch;max-width:560px;margin:0 auto;border:1.5px solid var(--teal);border-radius:6px;overflow:hidden;background:var(--white)}
+.endpoint code{flex:1;padding:.85rem 1rem;font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--ink);text-align:left;overflow-x:auto;white-space:nowrap}
+.endpoint button{border:0;background:var(--teal);color:#fff;font-weight:600;padding:0 1.2rem;cursor:pointer;font-size:.88rem}
+.endpoint button:hover{background:var(--teal-l)}
+.badges{display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem;margin-top:1.2rem}
+.badges span{font-size:.8rem;padding:.25rem .7rem;border-radius:999px;background:var(--teal-xl);color:var(--teal);font-weight:600}
+
+.wrap{max-width:1000px;margin:0 auto;padding:1rem 1.5rem 4rem}
+section.block{margin:3.2rem 0}
+section.block > h2{font-family:var(--display);font-size:1.8rem;font-weight:400;margin-bottom:.4rem;padding-bottom:.6rem;border-bottom:2px solid var(--teal-xl)}
+section.block > h2 em{color:var(--teal);font-style:italic}
+section.block > p.intro{color:var(--muted);font-size:.95rem;margin-bottom:1.4rem;max-width:760px}
+
+/* installation */
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.tabs button{border:1px solid var(--line);background:var(--white);color:var(--body);padding:.45rem .9rem;border-radius:999px;font-size:.88rem;cursor:pointer;font-weight:500}
+.tabs button[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:1.3rem 1.5rem}
+.panel[hidden]{display:none}
+.panel ol{margin:0;padding-left:1.3rem}
+.panel li{margin:.45rem 0;color:var(--body)}
+.panel li strong{color:var(--ink)}
+.panel .note{font-size:.85rem;color:var(--muted);margin-top:.9rem}
+.cmd{display:flex;margin:.6rem 0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.cmd code{flex:1;padding:.6rem .8rem;font-family:'JetBrains Mono',monospace;font-size:.85rem;background:var(--cream);overflow-x:auto;white-space:nowrap}
+.cmd button{border:0;border-left:1px solid var(--line);background:var(--white);color:var(--teal);font-weight:600;padding:0 .9rem;cursor:pointer;font-size:.8rem}
+
+/* couverture */
+table.cov{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:.92rem}
+table.cov th,table.cov td{padding:.6rem .9rem;border-bottom:1px solid var(--line);text-align:left}
+table.cov th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--cream)}
+table.cov td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.cov tr:last-child td{border-bottom:0}
+.wraptable{overflow-x:auto}
+
+/* outils */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.fam{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:1.1rem 1.2rem}
+.fam h3{font-family:var(--display);font-weight:400;font-size:1.15rem;margin-bottom:.5rem}
+.fam ul{list-style:none;margin:0;padding:0}
+.fam li{padding:.3rem 0;font-size:.88rem;color:var(--body);border-top:1px dashed var(--line)}
+.fam li:first-child{border-top:0}
+.fam li code{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--teal)}
+
+/* garanties */
+.guar{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.g{border-left:3px solid var(--teal);padding:.2rem 0 .2rem 1rem}
+.g b{display:block;color:var(--ink);margin-bottom:.2rem}
+.g span{font-size:.88rem;color:var(--body)}
+
+.infobox{background:var(--teal-xl);border-left:4px solid var(--teal);padding:1.1rem 1.3rem;border-radius:0 6px 6px 0;margin:1.4rem 0;font-size:.92rem}
+
+footer.foot{padding:2rem 1.5rem;background:var(--white);border-top:1px solid var(--line);text-align:center;font-size:.78rem;color:var(--muted)}
+footer.foot a{color:var(--muted)}
+@media (max-width:600px){.hero{padding-top:2.5rem}.endpoint code{font-size:.85rem}}
+</style>
+<script defer src="/topbar.js?v=6"></script>
+<script defer src="/corpus.js?v=1"></script>
+</head>
+<body>
+
+<div data-topbar-mount></div>
+
+<section class="hero">
+  <div class="kick">Serveur MCP · gratuit · sans compte</div>
+  <h1>Votre IA, connectée à la <em>jurisprudence française</em>.</h1>
+  <p class="lead">JusticeLibre permet à Claude, ChatGPT, Mistral, Cursor ou à tout client MCP de rechercher, lire et citer les décisions françaises et européennes, et les articles de loi dans leur version à une date donnée. Il n'y a ni compte, ni clé, ni connexion : collez cette adresse dans votre assistant.</p>
+  <div class="endpoint">
+    <code id="url">https://justicelibre.org/mcp</code>
+    <button type="button" data-copy="https://justicelibre.org/mcp">Copier</button>
+  </div>
+  <div class="badges"><span>Sans authentification</span><span>Lecture seule</span><span>Sources officielles</span><span><span data-k="outils" data-k-fmt="brut">33</span> outils</span></div>
+</section>
+
+<main class="wrap">
+
+<section class="block" id="installer">
+  <h2>Installer, <em>en deux minutes</em></h2>
+  <p class="intro">Le serveur utilise le transport « Streamable HTTP ». Aucune authentification n'est demandée : si votre client propose un choix, sélectionnez « Aucune ».</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="claude">Claude</button>
+    <button role="tab" aria-selected="false" data-tab="chatgpt">ChatGPT</button>
+    <button role="tab" aria-selected="false" data-tab="mistral">Le Chat (Mistral)</button>
+    <button role="tab" aria-selected="false" data-tab="code">Claude Code</button>
+    <button role="tab" aria-selected="false" data-tab="autres">Cursor et autres</button>
+  </div>
+
+  <div class="panel" data-panel="claude">
+    <ol>
+      <li>Sur <strong>claude.ai</strong> ou dans Claude Desktop : <strong>Paramètres › Connecteurs › Ajouter un connecteur personnalisé</strong>.</li>
+      <li>Nom : <strong>JusticeLibre</strong>. URL : <code>https://justicelibre.org/mcp</code>. Laissez les paramètres OAuth vides.</li>
+    </ol>
+    <p class="note">Dans une conversation, activez JusticeLibre dans le menu des outils, puis posez votre question.</p>
+  </div>
+  <div class="panel" data-panel="chatgpt" hidden>
+    <ol>
+      <li><strong>Paramètres › Applications et connecteurs › Paramètres avancés</strong> : activez le <strong>mode développeur</strong>.</li>
+      <li><strong>Créer</strong> un connecteur. Nom : <strong>JusticeLibre</strong>, URL : <code>https://justicelibre.org/mcp</code>, authentification : <strong>aucune</strong>.</li>
+    </ol>
+    <p class="note">Le mode développeur dépend de votre offre ChatGPT.</p>
+  </div>
+  <div class="panel" data-panel="mistral" hidden>
+    <ol>
+      <li>Sur <strong>chat.mistral.ai</strong> : <strong>Contexte › Connecteurs › Ajouter un connecteur › Connecteur MCP personnalisé</strong>.</li>
+      <li>Nom : <strong>JusticeLibre</strong>, URL : <code>https://justicelibre.org/mcp</code>, authentification : <strong>aucune</strong>.</li>
+    </ol>
+  </div>
+  <div class="panel" data-panel="code" hidden>
+    <p>Dans un terminal :</p>
+    <div class="cmd"><code>claude mcp add --transport http justicelibre https://justicelibre.org/mcp</code><button type="button" data-copy="claude mcp add --transport http justicelibre https://justicelibre.org/mcp">Copier</button></div>
+  </div>
+  <div class="panel" data-panel="autres" hidden>
+    <p>Cursor, VS Code, Zed, Continue, Cline, Gemini CLI… : ajoutez un serveur MCP distant dans la configuration du client.</p>
+    <div class="cmd"><code>{"mcpServers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}</code><button type="button" data-copy='{"mcpServers": {"justicelibre": {"url": "https://justicelibre.org/mcp"}}}'>Copier</button></div>
+    <p class="note">La forme exacte du fichier varie d'un client à l'autre : reportez-vous à sa documentation.</p>
+  </div>
+</section>
+
+
+<section class="block" id="couverture">
+  <h2>Ce qui est <em>couvert</em></h2>
+  <p class="intro">Données publiques officielles. Les chiffres sont recomptés chaque nuit dans les bases<span data-k-date></span>. Un même arrêt peut figurer dans deux fonds.</p>
+  <div class="wraptable">
+  <table class="cov">
+    <thead><tr><th>Fonds</th><th class="n">Volume</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Cour de cassation, cours d'appel, tribunaux judiciaires et de commerce</td><td class="n" data-k="judiciaire">2,6 M</td><td>DILA, Judilibre</td></tr>
+      <tr><td>Conseil constitutionnel</td><td class="n" data-k="constit">7 388</td><td>DILA</td></tr>
+      <tr><td>Conseil d'État, cours administratives d'appel, tribunaux administratifs</td><td class="n" data-k="jade">571 669</td><td>DILA (JADE)</td></tr>
+      <tr><td>Tribunaux administratifs et cours administratives d'appel, décisions récentes</td><td class="n" data-k="opendata">1,1 M</td><td>Open data de la justice administrative</td></tr>
+      <tr><td>Conseil d'État, base ArianeWeb</td><td class="n" data-k="ariane">166 512</td><td>Conseil d'État</td></tr>
+      <tr><td>Cour européenne des droits de l'homme</td><td class="n" data-k="cedh">76 482</td><td>HUDOC</td></tr>
+      <tr><td>Cour de justice et Tribunal de l'Union européenne</td><td class="n" data-k="cjue">44 820</td><td>EUR-Lex</td></tr>
+      <tr><td>Articles de loi et de codes, toutes versions</td><td class="n" data-k="legi">1,8 M</td><td>DILA (LEGI)</td></tr>
+      <tr><td>Journal officiel</td><td class="n" data-k="jorf">1,3 M</td><td>DILA (JORF)</td></tr>
+      <tr><td>Conventions collectives</td><td class="n" data-k="kali">352 178</td><td>DILA (KALI)</td></tr>
+      <tr><td>Délibérations de la CNIL</td><td class="n" data-k="cnil">26 867</td><td>DILA (CNIL)</td></tr>
+      <tr><td>Doctrine publique : conclusions des rapporteurs publics, avis CADA, BOFiP, Défenseur des droits</td><td class="n" data-k="doctrine">107 273</td><td>Conseil d'État, CADA, DGFiP, Défenseur des droits</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="block" id="outils">
+  <h2>Les <em><span data-k="outils" data-k-fmt="brut">33</span> outils</em></h2>
+  <p class="intro">Votre assistant choisit lui-même l'outil adapté. Tous sont en lecture seule.</p>
+  <div class="tools">
+    <div class="fam"><h3>Recherche générale</h3><ul>
+      <li><code>search_all</code> toutes les sources à la fois, avec thésaurus juridique</li>
+      <li><code>about_justicelibre</code> carte des sources et méthode conseillée</li>
+      <li><code>build_source_url</code> lien vers la source officielle</li>
+    </ul></div>
+    <div class="fam"><h3>Justice judiciaire</h3><ul>
+      <li><code>search_judiciaire_libre</code> · <code>get_decision_judiciaire_libre</code></li>
+      <li><code>search_judiciaire</code> · <code>get_decision_judiciaire</code> (Judilibre, clé PISTE)</li>
+      <li><code>search_cc</code> · <code>get_cc_decision</code> Conseil constitutionnel</li>
+    </ul></div>
+    <div class="fam"><h3>Justice administrative</h3><ul>
+      <li><code>search_admin</code> · <code>get_admin_decision</code> · <code>get_decision_text</code></li>
+      <li><code>search_conseil_etat</code> · <code>get_ce_decision</code></li>
+      <li><code>search_admin_recent</code> · <code>search_admin_recent_all_caa</code> · <code>search_admin_recent_all_ta</code></li>
+      <li><code>list_juridictions</code></li>
+    </ul></div>
+    <div class="fam"><h3>Europe</h3><ul>
+      <li><code>search_cedh</code> · <code>get_decision_cedh</code></li>
+      <li><code>search_cjue</code> · <code>get_decision_cjue</code></li>
+    </ul></div>
+    <div class="fam"><h3>Lois et codes</h3><ul>
+      <li><code>get_law_article</code> un article à une date</li>
+      <li><code>get_law_versions</code> toutes ses versions</li>
+      <li><code>search_legi</code> · <code>resolve_law_number</code></li>
+      <li><code>search_decisions_citing</code> décisions qui citent un article</li>
+      <li><code>search_jorf</code> · <code>search_kali</code> · <code>search_cnil</code></li>
+    </ul></div>
+    <div class="fam"><h3>Doctrine et annuaire</h3><ul>
+      <li><code>search_doctrine</code> · <code>get_doctrine_document</code></li>
+      <li><code>search_annuaire</code> adresses des juridictions et administrations</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="block" id="garanties">
+  <h2>Ce qui est <em>garanti</em></h2>
+  <div class="guar">
+    <div class="g"><b>Aucun compte</b><span>Ni inscription, ni clé, ni OAuth. L'adresse suffit.</span></div>
+    <div class="g"><b>Sources officielles</b><span>Chaque décision renvoie à sa source publique (DILA, Judilibre, Conseil d'État, HUDOC, EUR-Lex).</span></div>
+    <div class="g"><b>Pas de référence approchante</b><span>Un numéro introuvable renvoie une erreur, jamais une décision voisine.</span></div>
+    <div class="g"><b>Lecture seule</b><span>Le serveur ne fait que lire : il ne modifie rien et ne demande aucune donnée personnelle.</span></div>
+  </div>
+  <div class="infobox">Une IA peut se tromper en résumant une décision. Avant de citer, ouvrez la décision ou l'article : chaque résultat donne son identifiant et le lien vers sa page.</div>
+</section>
+
+</main>
+
+<footer class="foot">
+  justicelibre.org · <a href="/">Accueil</a> · <a href="/search.html">Recherche</a> · <a href="/ressources.html">Ressources</a> · <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a> · Contenus sous Licence Ouverte 2.0 (Etalab) sauf mention contraire.
+</footer>
+
+<script>
+(function(){
+  function copier(btn, txt){
+    try{ navigator.clipboard.writeText(txt).then(function(){ var o=btn.textContent; btn.textContent='Copié'; setTimeout(function(){btn.textContent=o},1500); }); }catch(e){}
+  }
+  document.querySelectorAll('[data-copy]').forEach(function(b){ b.addEventListener('click', function(){ copier(b, b.getAttribute('data-copy')); }); });
+  var tabs=document.querySelectorAll('.tabs button');
+  tabs.forEach(function(t){ t.addEventListener('click', function(){
+    tabs.forEach(function(x){ x.setAttribute('aria-selected', x===t ? 'true' : 'false'); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.hidden = p.getAttribute('data-panel') !== t.getAttribute('data-tab'); });
+  }); });
+})();
+</script>
+</body>
+</html>

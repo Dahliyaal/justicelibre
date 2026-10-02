@@ -1319,6 +1319,7 @@ STATIC_PAGES = [
     ("/tutoriel-piste.html", "0.6", "monthly"),
     ("/stats.html", "0.4", "weekly"),
     ("/ressources.html", "0.6", "monthly"),
+    ("/serveur-mcp.html", "0.9", "weekly"),
     # Annuaire d'adresses administratives (HTML statique, indexable —
     # objectif : qu'une recherche Google sur un de ces mails tombe ici).
     ("/annuaire.html", "0.9", "weekly"),

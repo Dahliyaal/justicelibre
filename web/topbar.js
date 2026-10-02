@@ -25,7 +25,7 @@
     <a href="/" data-route="/">Accueil</a>
     <a href="/search.html" data-route="/search.html">Recherche</a>
     <a href="/ressources.html" data-route="/ressources.html">Ressources</a>
-    <a href="/#connect" data-route="#connect">MCP</a>
+    <a href="/serveur-mcp.html" data-route="/serveur-mcp.html">MCP</a>
     <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
     <button class="theme-toggle" id="themeToggle" title="Bascule clair / sombre" aria-label="Changer thème">
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -41,7 +41,7 @@
   <a href="/" data-route="/">Accueil</a>
   <a href="/search.html" data-route="/search.html">Recherche</a>
   <a href="/ressources.html" data-route="/ressources.html">Ressources</a>
-  <a href="/#connect" data-route="#connect">MCP</a>
+  <a href="/serveur-mcp.html" data-route="/serveur-mcp.html">MCP</a>
   <a href="https://github.com/Dahliyaal/justicelibre">GitHub</a>
 </div>
 <div class="topbar-overlay" id="topbarOverlay"></div>`.trim();

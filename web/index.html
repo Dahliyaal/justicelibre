@@ -454,8 +454,8 @@ footer p{margin:.2rem 0}
 <section class="stats-section reveal d3">
   <div class="stats-grid">
     <div class="stat-card"><span class="num">~3 M</span><span class="label">Décisions accessibles</span></div>
-    <div class="stat-card"><span class="num">1,75 M+</span><span class="label">Articles de loi (avec versions)</span></div>
-    <div class="stat-card"><span class="num">30</span><span class="label">Outils MCP</span></div>
+    <div class="stat-card"><span class="num" data-k="legi">1,8 M</span><span class="label">Articles de loi (avec versions)</span></div>
+    <div class="stat-card"><span class="num" data-k="outils" data-k-fmt="brut">33</span><span class="label">Outils MCP</span></div>
     <div class="stat-card"><span class="num">0 €</span><span class="label">Coût d'accès</span></div>
   </div>
 </section>
@@ -477,7 +477,7 @@ footer p{margin:.2rem 0}
 
 <!-- TOOLS -->
 <section class="section" id="tools">
-  <h2>30 outils, <em>toute la matière</em> juridique française</h2>
+  <h2><span data-k="outils" data-k-fmt="brut">33</span> outils, <em>toute la matière</em> juridique française</h2>
   <p>Décisions administratives (CE, 9 CAA, 40 TA), judiciaires (Cass, CA, CC), européennes (CEDH, CJUE), et le droit positif lui-même : articles de code avec leurs versions historiques, lois au JO, conventions collectives, délibérations CNIL. Tout en pertinence BM25 + thésaurus de synonymes juridiques FR.</p>
 
   <div class="callout" style="margin:2rem 0;border-color:var(--teal)">
@@ -813,5 +813,6 @@ document.addEventListener('click', function(e){
   if (a.getAttribute('href') === '#'){ e.preventDefault(); a.href = 'mailto:' + m; a.textContent = m; }
 });
 </script>
+<script defer src="/corpus.js?v=1"></script>
 </body>
 </html>
