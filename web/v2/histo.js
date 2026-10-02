@@ -119,7 +119,7 @@
       if (p.deja) {
         return '<div class="jl-cl__row jl-cl__row--n' + depth + ' is-dead">' +
           '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">↳ remplacé par ' +
-          esc(A.minus(p.parent.titre)) + ' · déjà listé plus haut (pris pour lui)</span>' +
+          esc(A.minus(p.parent.titre)) + ' · vise aussi l\u2019article : détaillé plus haut ↑</span>' +
           '<a href="' + p.lf + '">' + esc(p.titre) + '</a></div>' +
           '<div class="jl-cl__lane">' + overlay + '</div></div>';
       }
@@ -328,7 +328,7 @@
             '<span style="width:12px;display:inline-block"></span><span class="jl-pr__ttl">' +
             '<a href="' + p.lf + '" title="Ouvrir sur Légifrance">' + esc(p.titre) + '</a> ' +
             '<span class="jl-nor">' + esc(p.nor || '') + '</span></span>' +
-            '<span class="jl-pr__cnt">déjà listé plus haut (pris pour lui)</span></div></div>';
+            '<span class="jl-pr__cnt">vise aussi l\u2019article : détaillé plus haut ↑</span></div></div>';
         }
         return '<div class="jl-pr__acc jl-pr__acc--lvl2' + clsOf(p.st) + '" data-acc>' +
           '<button type="button" class="jl-pr__h">' + CHEV + '<span class="jl-pr__ttl">' +
