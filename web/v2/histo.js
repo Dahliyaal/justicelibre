@@ -474,14 +474,16 @@
     var liste = H.exclus.map(function (x) {
       return '<li><a href="' + x.lf + '">' + esc(x.titre) + '</a>' +
         (x.nor ? ' <span class="jl-nor">' + esc(x.nor) + '</span>' : '') +
-        (x.raison ? ' <span class="jl-muted">— ' + esc(x.raison) + '</span>' : '') + '</li>';
+        (x.raison && !/modifi[ée] au passage/.test(x.raison)
+          ? ' <span class="jl-muted">— ' + esc(x.raison) + '</span>' : '') + '</li>';
     }).join('');
     return '<div class="jl-honnetete jl-hhonest"><b>Ce que montre cette page.</b> La vie de l’article (' +
       A.acc(H.counts.redactions, 'rédaction') + ') et celle des ' + A.acc(H.counts.arretes, 'arrêté') +
       ' pris pour lui, avec leurs retouches et les textes qu’ils ont remplacés.' +
       (H.counts.exclus ? '<details class="jl-hhonest__det"><summary>' +
         A.acc(H.counts.exclus, 'texte écarté', 'textes écartés') +
-        ' : modifiés au passage par un texte retenu, sans rapport direct avec l’article</summary><ul>' +
+        ' sans lien direct avec l’article : atteints seulement par ricochet (un texte retenu les modifie ' +
+        'aussi, au passage)</summary><ul>' +
         liste + '</ul></details>' : '') +
       (H.isToday ? '' : '<p class="jl-muted" style="margin:.6em 0 0">Lecture au ' + fmtCourt(H.at) +
         ' : ce qui n’existe pas encore à cette date est en bleu et atténué.</p>') + '</div>';
