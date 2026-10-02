@@ -140,10 +140,10 @@ footer.foot a{color:var(--muted)}
   </div>
   <div class="panel" data-panel="chatgpt" hidden>
     <ol>
-      <li><strong>Paramètres › Applications et connecteurs › Paramètres avancés</strong> : activez le <strong>mode développeur</strong>.</li>
-      <li><strong>Créer</strong> un connecteur. Nom : <strong>JusticeLibre</strong>, URL : <code>https://justicelibre.org/mcp</code>, authentification : <strong>aucune</strong>.</li>
+      <li>Activez le <strong>mode développeur</strong> dans les paramètres de ChatGPT (rubrique sécurité et connexion, selon les versions).</li>
+      <li>Ajoutez une application MCP personnalisée (menu des plugins ou des applications : <strong>Ajouter › Créer</strong>). Nom : <strong>JusticeLibre</strong>, URL : <code>https://justicelibre.org/mcp</code>, authentification : <strong>aucune</strong>.</li>
     </ol>
-    <p class="note">Le mode développeur dépend de votre offre ChatGPT.</p>
+    <p class="note">Réservé aux offres payantes qui proposent le mode développeur (Plus, Pro…). L'emplacement des menus change souvent chez ChatGPT.</p>
   </div>
   <div class="panel" data-panel="mistral" hidden>
     <ol>
@@ -169,7 +169,7 @@ footer.foot a{color:var(--muted)}
 
 <section class="block" id="couverture">
   <h2>Ce qui est <em>couvert</em></h2>
-  <p class="intro">Données publiques officielles. Les chiffres sont recomptés chaque nuit dans les bases<span data-k-date></span>. Un même arrêt peut figurer dans deux fonds.</p>
+  <p class="intro">Données publiques officielles. Les chiffres sont recomptés chaque nuit dans les bases<span data-k-date></span>. Un même arrêt peut figurer deux fois (dans deux fonds, ou sous deux identifiants de la même source).</p>
   <div class="wraptable">
   <table class="cov">
     <thead><tr><th>Fonds</th><th class="n">Volume</th><th>Source</th></tr></thead>
@@ -185,7 +185,7 @@ footer.foot a{color:var(--muted)}
       <tr><td>Journal officiel</td><td class="n" data-k="jorf">1,3 M</td><td>DILA (JORF)</td></tr>
       <tr><td>Conventions collectives</td><td class="n" data-k="kali">352 178</td><td>DILA (KALI)</td></tr>
       <tr><td>Délibérations de la CNIL</td><td class="n" data-k="cnil">26 867</td><td>DILA (CNIL)</td></tr>
-      <tr><td>Doctrine publique : conclusions des rapporteurs publics, avis CADA, BOFiP, Défenseur des droits</td><td class="n" data-k="doctrine">107 273</td><td>Conseil d'État, CADA, DGFiP, Défenseur des droits</td></tr>
+      <tr><td>Doctrine publique : conclusions des rapporteurs publics, avis CADA, BOFiP, Défenseur des droits, Code du travail numérique</td><td class="n" data-k="doctrine">107 273</td><td>Conseil d'État, CADA, DGFiP, Défenseur des droits, ministère du Travail</td></tr>
     </tbody>
   </table>
   </div>
@@ -233,7 +233,7 @@ footer.foot a{color:var(--muted)}
   <h2>Ce qui est <em>garanti</em></h2>
   <div class="guar">
     <div class="g"><b>Aucun compte</b><span>Ni inscription, ni clé, ni OAuth. L'adresse suffit.</span></div>
-    <div class="g"><b>Sources officielles</b><span>Chaque décision renvoie à sa source publique (DILA, Judilibre, Conseil d'État, HUDOC, EUR-Lex).</span></div>
+    <div class="g"><b>Sources officielles</b><span>Chaque résultat porte son identifiant officiel et, quand la source en publie une, le lien vers sa page (Légifrance, Cour de cassation, Conseil d'État, HUDOC, EUR-Lex).</span></div>
     <div class="g"><b>Pas de référence approchante</b><span>Un numéro introuvable renvoie une erreur, jamais une décision voisine.</span></div>
     <div class="g"><b>Lecture seule</b><span>Le serveur ne fait que lire : il ne modifie rien et ne demande aucune donnée personnelle.</span></div>
   </div>
