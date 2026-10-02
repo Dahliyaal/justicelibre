@@ -361,7 +361,8 @@
         (a.fin < '2999'
           ? '<span class="jl-pr__lnk"></span><span class="jl-pr__seg' + (a.fin <= H.at ? '' : ' jl-hfutur') +
             '"><i class="jl-point jl-point--morte"></i>' + (a.fin <= H.at ? 'abrogé' : 'sera abrogé') + ' ' +
-            fmtCourt(a.fin) + (a.abrogePar ? ' par ' + esc(A.minus(a.abrogePar.titre)) : '') + '</span>'
+            fmtCourt(a.fin) + (a.abrogePar ? ' par <button type="button" class="jl-goto" data-goto="' +
+              esc(a.abrogePar.legitext || a.abrogePar.id || '') + '">' + esc(A.minus(a.abrogePar.titre)) + ' ↓</button>' : '') + '</span>'
           : '<span class="jl-pr__lnk"></span><span class="jl-pr__seg"><i class="jl-point"></i>toujours en vigueur</span>') +
         '</div>';
       var preds = a.predecesseurs.length
@@ -491,7 +492,7 @@
     /* 3/10/2026 : bloc court et généré ; la liste des textes écartés est
        repliée (elle faisait un pavé), l'exemple figé du décret 2019-966 retiré. */
     var liste = H.exclus.map(function (x) {
-      return '<li><a href="' + x.lf + '">' + esc(x.titre) + '</a>' +
+      return '<li data-arr="' + esc(x.legitext || x.id || '') + '"><a href="' + x.lf + '">' + esc(x.titre) + '</a>' +
         (x.nor ? ' <span class="jl-nor">' + esc(x.nor) + '</span>' : '') +
         (x.raison && !/modifi[ée] au passage/.test(x.raison)
           ? ' <span class="jl-muted">— ' + esc(x.raison) + '</span>' : '') + '</li>';
@@ -563,8 +564,9 @@ document.addEventListener('click', function (e) {
   if (!g) return;
   e.preventDefault();
   var t = document.querySelector('[data-arr="' + g.getAttribute('data-goto') + '"]');
-  if (!t) return;
+  if (!t) { var u = g.getAttribute('data-goto'); if (/^LEGITEXT/.test(u)) window.open('https://www.legifrance.gouv.fr/loda/id/' + u, '_blank', 'noopener'); return; }
   t.classList.add('is-open');
+  var det = t.closest && t.closest('details'); if (det) det.open = true;
   t.scrollIntoView({ behavior: 'smooth', block: 'center' });
   t.classList.remove('jl-flash'); void t.offsetWidth; t.classList.add('jl-flash');
 });
