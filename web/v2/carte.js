@@ -282,7 +282,7 @@
 
       '<div class="jl-cols">' +
         '<div class="jl-col">' + gauche(M) + '</div>' +
-        '<div class="jl-col jl-col--mid"><div class="jl-coltete"><h2>' +
+        '<div class="jl-col jl-col--mid"><div class="jl-coltete jl-coltete--texte"><h2>' +
           (M.isToday ? 'Texte en vigueur' : 'Texte au ' + fmtCourt(at)) + '</h2>' +
           '<span class="jl-muted jl-sub jl-sub--enligne" data-align="fin">' +
           (cur ? 'rédaction du ' + fmtCourt(cur.date_debut) +
