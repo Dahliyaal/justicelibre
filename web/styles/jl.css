@@ -1661,3 +1661,6 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-cl__row--n6 .jl-cl__name{padding-left:94px}
 .jl-cl__row--n7 .jl-cl__name{padding-left:110px}
 .jl-cl__row .jl-cl__name{background-image:linear-gradient(90deg,transparent 0,transparent 100%)}
+.jl-hhonest__det{margin-top:.6em}
+.jl-hhonest__det summary{cursor:pointer;color:var(--teal)}
+.jl-hhonest__det ul{margin:.5em 0 0;padding-left:1.2em;line-height:1.7}

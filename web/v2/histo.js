@@ -469,24 +469,22 @@
   }
 
   function honnetete() {
-    return '<div class="jl-honnetete jl-hhonest"><b>Ce que cette page montre, et ce qu’elle laisse ' +
-      'dehors.</b> L’historique retient la vie de l’article (ses ' + H.counts.redactions +
-      ' rédactions et le texte qui a écrit chacune) et la vie de ce qui est pris pour lui : les ' +
-      H.counts.arretes + ' arrêtés qui le visent, vivants ou morts, leurs retouches et leurs ' +
-      'prédécesseurs abrogés, de proche en proche. <b>' +
-      A.acc(H.counts.exclus, 'texte écarté', 'textes écartés') + '</b> : ' +
-      H.exclus.map(function (x) {
-        return '<a href="' + x.lf + '">' + esc(x.titre) + '</a>' +
-          (x.nor ? ' <span class="jl-nor">' + esc(x.nor) + '</span>' : '') +
-          (x.raison ? ' <span class="jl-muted">(' + esc(x.raison) + ')</span>' : '');
-      }).join(' · ') + '. ' +
-      'Ces textes ne sont là que parce qu’un texte retenu les modifie au passage ; ils ne relèvent ' +
-      'pas de l’article. Un décret peut retoucher un arrêté (le décret 2019-966 a remplacé ' +
-      '« tribunal de grande instance » par « tribunal judiciaire » dans des centaines de textes) : ' +
-      'il apparaît alors comme « décret modificateur ». ' +
-      (H.isToday ? '' : '<br>Lecture au ' + fmtCourt(H.at) + ' : ce qui n’existe pas encore à cette ' +
-        'date est en bleu (« entre en vigueur le … ») et atténué ; les compteurs distinguent avant ' +
-        'et après.') + '</div>';
+    /* 3/10/2026 : bloc court et généré ; la liste des textes écartés est
+       repliée (elle faisait un pavé), l'exemple figé du décret 2019-966 retiré. */
+    var liste = H.exclus.map(function (x) {
+      return '<li><a href="' + x.lf + '">' + esc(x.titre) + '</a>' +
+        (x.nor ? ' <span class="jl-nor">' + esc(x.nor) + '</span>' : '') +
+        (x.raison ? ' <span class="jl-muted">— ' + esc(x.raison) + '</span>' : '') + '</li>';
+    }).join('');
+    return '<div class="jl-honnetete jl-hhonest"><b>Ce que montre cette page.</b> La vie de l’article (' +
+      A.acc(H.counts.redactions, 'rédaction') + ') et celle des ' + A.acc(H.counts.arretes, 'arrêté') +
+      ' pris pour lui, avec leurs retouches et les textes qu’ils ont remplacés.' +
+      (H.counts.exclus ? '<details class="jl-hhonest__det"><summary>' +
+        A.acc(H.counts.exclus, 'texte écarté', 'textes écartés') +
+        ' : modifiés au passage par un texte retenu, sans rapport direct avec l’article</summary><ul>' +
+        liste + '</ul></details>' : '') +
+      (H.isToday ? '' : '<p class="jl-muted" style="margin:.6em 0 0">Lecture au ' + fmtCourt(H.at) +
+        ' : ce qui n’existe pas encore à cette date est en bleu et atténué.</p>') + '</div>';
   }
 
   function vueDemandee() {
