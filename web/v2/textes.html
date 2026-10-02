@@ -17,13 +17,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/styles/jl.css?v=2">
+<link rel="stylesheet" href="/styles/jl.css?v=4">
 <script>/* Résolveur de thème avant le premier rendu (évite le flash blanc).
    Même dispositif que recherche.html:21-24 et que les 8 pages prod. Clé unique : jl-theme. */
 (function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <script defer src="/topbar.js?v=5"></script>
 <script defer src="/jl.js?v=2"></script>
-<script defer src="/v2/textes.js?v=2"></script>
+<script defer src="/v2/textes.js?v=3"></script>
 </head>
 <body>
 <div data-topbar-mount></div>
@@ -64,22 +64,16 @@
 
     <!-- Parcours, quand il n'y a pas de recherche : les codes, puis le hors code. -->
     <section id="parcours">
-      <div class="jl-surtitre jl-surtitre--flex" data-espace="haut">
-        <span>Codes</span>
-        <span class="jl-muted jl-petit" id="codesSub"></span>
-      </div>
-      <div class="jl-barre-filtre">
+      <h2 class="jl-titre-section">Codes<span class="s" id="codesSub"></span></h2>
+      <div class="jl-barre-filtre jl-barre-filtre--centre">
         <input type="text" id="codeFiltre" placeholder="Filtrer les codes : travail, CJA, santé…"
                aria-label="Filtrer la liste des codes">
         <span class="jl-barre-filtre__count" id="codeCount"></span>
       </div>
       <div class="jl-codes" id="codesGrid"></div>
 
-      <div class="jl-surtitre jl-surtitre--flex" data-espace="haut">
-        <span>Textes hors code</span>
-        <span class="jl-muted jl-petit">lois, ordonnances, décrets, arrêtés, rangés par ministère (code NOR),
-          filtrés par nature, parcourus par année</span>
-      </div>
+      <hr class="jl-sep-section">
+      <h2 class="jl-titre-section">Textes hors code<span class="s">lois, ordonnances, décrets, arrêtés — rangés par ministère (code NOR), filtrés par nature, parcourus par année</span></h2>
       <div id="horsCode"><p class="jl-muted"><span class="jl-spin"></span> Chargement…</p></div>
     </section>
 

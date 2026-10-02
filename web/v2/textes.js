@@ -876,7 +876,7 @@
           J.nb(m.natures[hcSel.nat][a]) + '</span></button>';
       }).join('')) +
       '</div>' +
-      '<div class="jl-fil" data-espace="haut">' + esc(m.nom) + ' <span>›</span> ' +
+      '<div class="jl-fil jl-fil--aere" data-espace="haut">' + esc(m.nom) + ' <span>›</span> ' +
         esc(NATLABEL[hcSel.nat]) + ' <span>›</span> ' + esc(hcSel.an) +
         ' <span class="jl-muted jl-petit">· ' + J.nb(nAn) + ' texte' + (nAn > 1 ? 's' : '') + '</span>' +
         ' <span class="jl-provenance" title="JORF, diffusé par la DILA. Comptes mesurés sur jorf_textes (JO 1990 → 2026).">JORF · DILA</span></div>' +
