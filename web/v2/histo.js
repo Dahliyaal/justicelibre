@@ -32,6 +32,21 @@
     return ' is-dead';
   }
 
+  /* 3/10/2026 : les prédécesseurs s'affichaient dans l'ordre des liens LEGI
+     (2021, 2020, 2009, 2017…). Tri du plus récent au plus ancien ; et un même
+     arrêté présent sous deux entrées LEGI (même NOR, « nouvelle version ») ne
+     s'affiche qu'une fois, sous son entrée la plus récente. */
+  function trierPreds(list) {
+    var parNor = {};
+    (list || []).forEach(function (p) {
+      var k = p.nor || p.id;
+      if (!parNor[k] || String(p.debut || '') > String(parNor[k].debut || '')) parNor[k] = p;
+    });
+    return Object.keys(parNor).map(function (k) { return parNor[k]; }).sort(function (a, b) {
+      return String(b.date_texte || b.debut || '').localeCompare(String(a.date_texte || a.debut || ''));
+    });
+  }
+
   /* ═══════════════ Diff mot à mot ══════════════════════════════════════ */
 
   function diffPane(ia, ib) {
@@ -127,7 +142,7 @@
         (p.fin >= '2999' ? ' is-inf' : '') + '" data-txt="' + p.id + '" style="left:' + px + '%;width:' +
         pw + '%"></div>' + pn + cap + '</div></div>';
       p.retouches.slice().reverse().forEach(function (r) { h += retRow(r, Math.min(depth + 1, 7), p.titre); });
-      p.predecesseurs.forEach(function (q) { h += predRows(q, Math.min(depth + 1, 7)); });
+      trierPreds(p.predecesseurs).forEach(function (q) { h += predRows(q, Math.min(depth + 1, 7)); });
       return h;
     };
 
@@ -153,7 +168,7 @@
         (a.fin >= '2999' ? ' is-inf' : '') + '" data-txt="' + a.id + '" style="left:' + x + '%;width:' +
         w + '%"></div>' + notches + capA + '</div></div>';
       a.retouches.slice().reverse().forEach(function (r) { rows += retRow(r, 2, a.titre); });
-      a.predecesseurs.forEach(function (p) { rows += predRows(p, 2); });
+      trierPreds(a.predecesseurs).forEach(function (p) { rows += predRows(p, 2); });
     });
 
     var legende = '<div class="jl-cl__legende">' +
@@ -307,7 +322,7 @@
     };
 
     var predsHTML = function (list) {
-      return list.map(function (p) {
+      return trierPreds(list).map(function (p) {
         if (p.deja) {
           return '<div class="jl-pr__acc jl-pr__acc--lvl2 is-dead"><div class="jl-pr__h jl-pr__h--inerte">' +
             '<span style="width:12px;display:inline-block"></span><span class="jl-pr__ttl">' +
@@ -321,7 +336,7 @@
           '<span class="jl-pr__cnt">' +
           (p.st.k === 'ab' ? '<span class="jl-pr__ab">' + esc(p.st.label) + '</span>' : A.pill(p.st)) +
           (p.retouches.length ? ' · ' + A.acc(p.retouches.length, 'retouche') : '') +
-          (p.predecesseurs.length ? ' · a remplacé ' + p.predecesseurs.length : '') + '</span></button>' +
+          (p.predecesseurs.length ? ' · a remplacé ' + trierPreds(p.predecesseurs).length : '') + '</span></button>' +
           '<div class="jl-pr__body"><div class="jl-lt__long">' + esc(p.long) + '</div>' +
           '<div class="jl-lt__meta">' + (p.nor ? '<span class="jl-nor">' + esc(p.nor) + '</span>' : '') +
           '<span>en vigueur du ' + fmtCourt(p.debut) + ' au ' + fmtCourt(p.fin) + '</span>' +
@@ -329,7 +344,7 @@
           '<a href="' + p.lf + '" rel="external noopener">Légifrance ↗</a></div>' +
           retsHTML(p) +
           (p.predecesseurs.length ? '<div class="jl-h2" data-espace="haut">A remplacé ' +
-            '<span class="jl-hcount">' + p.predecesseurs.length + '</span></div>' +
+            '<span class="jl-hcount">' + trierPreds(p.predecesseurs).length + '</span></div>' +
             predsHTML(p.predecesseurs) : '') +
           '</div></div>';
       }).join('');
@@ -351,7 +366,7 @@
         '</div>';
       var preds = a.predecesseurs.length
         ? '<div class="jl-h2" data-espace="haut">A remplacé <span class="jl-hcount">' +
-          a.predecesseurs.length + '</span></div>' + predsHTML(a.predecesseurs)
+          trierPreds(a.predecesseurs).length + '</span></div>' + predsHTML(a.predecesseurs)
         : '<div class="jl-pr__foot">Aucun arrêté antérieur remplacé.</div>';
       /* Renvoi RETOUR : si cet arrêté figure aussi comme retouche d'un autre,
          on le dit ici (G2-5 : le renvoi n'était qu'à sens unique). */
@@ -362,7 +377,7 @@
       return '<div class="jl-pr__acc jl-pr__acc--lvl1 is-open' + clsOf(a.st) + '" data-acc>' +
         '<button type="button" class="jl-pr__h">' + CHEV + '<span class="jl-pr__ttl">' + esc(a.titre) +
         '</span><span class="jl-pr__cnt">' + A.acc(a.retouches.length, 'retouche') + ' · ' +
-        (a.predecesseurs.length ? 'a remplacé ' + a.predecesseurs.length : 'n’a rien remplacé') +
+        (a.predecesseurs.length ? 'a remplacé ' + trierPreds(a.predecesseurs).length : 'n’a rien remplacé') +
         ' ' + A.pill(a.st) + '</span></button>' +
         '<div class="jl-pr__body"><div class="jl-lt__long">' + esc(a.long) + '</div>' +
         '<div class="jl-lt__meta">' + (a.nor ? '<span class="jl-nor">' + esc(a.nor) + '</span>' : '') +
