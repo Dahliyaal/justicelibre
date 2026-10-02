@@ -356,7 +356,8 @@
         fmtCourt(a.debut) + '</span>' +
         a.retouches.map(function (r) {
           return '<span class="jl-pr__lnk"></span><span class="jl-pr__seg' + futCls(r.date_texte) +
-            '" data-r="' + r.id + '"><i class="jl-point"></i>retouché ' + fmtCourt(r.date_texte) + '</span>';
+            '" data-r="' + r.id + '"><i class="jl-point"></i><button type="button" class="jl-goto" data-goto-r="' +
+            esc(r.id) + '" title="' + esc(r.titre) + '">retouché ' + fmtCourt(r.date_texte) + '</button></span>';
         }).join('') +
         (a.fin < '2999'
           ? '<span class="jl-pr__lnk"></span><span class="jl-pr__seg' + (a.fin <= H.at ? '' : ' jl-hfutur') +
@@ -587,3 +588,16 @@ function jlFlecheGoto() {
 new MutationObserver(function () { if (!jlFlecheGoto.busy) { jlFlecheGoto.busy = true; requestAnimationFrame(function () { jlFlecheGoto(); jlFlecheGoto.busy = false; }); } })
   .observe(document.getElementById('jl-corps') || document.body, { childList: true, subtree: false });
 document.addEventListener('DOMContentLoaded', jlFlecheGoto);
+
+/* Puces « retouché le … » : mènent à la ligne de la retouche dans le même arrêté. */
+document.addEventListener('click', function (e) {
+  var g = e.target.closest && e.target.closest('[data-goto-r]');
+  if (!g) return;
+  e.preventDefault();
+  var bloc = g.closest('.jl-pr__acc') || document;
+  var t = bloc.querySelector('.jl-pr__ret[data-r="' + g.getAttribute('data-goto-r') + '"]');
+  if (!t) return;
+  bloc.classList && bloc.classList.add('is-open');
+  t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  t.classList.remove('jl-flash'); void t.offsetWidth; t.classList.add('jl-flash');
+});
