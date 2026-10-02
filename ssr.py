@@ -1051,6 +1051,8 @@ def _subline_statut(statut: str, date_debut: str, date_fin: str, etat: str, note
     elif statut == "abroge_diff":
         html_ = (f'<p class="subline">Article en vigueur depuis le {deb}'
                  f'{(" — abrogation à effet du " + fin) if fin else ""}.</p>')
+    elif statut == "modificateur":
+        html_ = '<p class="subline">Article d\'une loi modificative (non consolidé).</p>'
     elif statut == "vigueur":
         html_ = f'<p class="subline">Article en vigueur{(" depuis le " + deb) if deb else ""}.</p>'
     else:
@@ -1118,9 +1120,12 @@ def render_law(code: str, num: str, data: dict) -> str:
     # articles des codes servis (32,5 %) n'ont aucune version courante et
     # rendaient cette page. L'API, le MCP et le panneau latéral disaient vrai ;
     # seule cette page mentait, et c'est l'URL que llms.txt donne pour citer.
+    _modificateur = bool(data.get("article_modificateur"))
     _fin_passee = bool(date_fin) and date_fin != "2999-01-01" and date_fin <= _dt.date.today().isoformat()
     _etat_maj = (etat or "").upper()
-    if _etat_maj in ("ABROGE", "PERIME", "TRANSFERE", "ANNULE") or _fin_passee:
+    if _modificateur:
+        statut = "modificateur"
+    elif _etat_maj in ("ABROGE", "PERIME", "TRANSFERE", "ANNULE") or _fin_passee:
         statut = "abroge"
     elif _etat_maj == "ABROGE_DIFF":
         statut = "abroge_diff"        # abrogation à venir : encore en vigueur aujourd'hui
@@ -1167,7 +1172,8 @@ def render_law(code: str, num: str, data: dict) -> str:
     jsonld_clean = {k: v for k, v in jsonld.items() if v is not None}
     jsonld_str = _jsonld_embed(jsonld_clean)
 
-    rows = [("Code", esc(code_label)), ("État", esc(etat or "-"))]
+    rows = [("Code", esc(code_label)),
+            ("État", "Loi modificative, non consolidée" if _modificateur else esc(etat or "-"))]
     if date_debut: rows.append(("En vigueur depuis", esc(_format_fr_date(date_debut))))
     if date_fin and date_fin != "2999-01-01":
         rows.append(("Jusqu'au", esc(_format_fr_date(date_fin))))

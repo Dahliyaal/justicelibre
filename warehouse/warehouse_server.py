@@ -512,7 +512,8 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
-        d["note"] = f"Aucune version en vigueur à {target}. Version courante affichée."
+        if not d.get("article_modificateur"):
+            d["note"] = f"Aucune version en vigueur à {target}. Version courante affichée."
         return d
     # Strategy 3: look for any version (abrogated, etc.)
     row = c.execute(
@@ -527,6 +528,8 @@ def law_at_date(code: str, num: str, target_date: str | None) -> dict | None:
     ).fetchone()
     if row:
         d = _law_row_to_dict(row, code, legitext)
+        if d.get("article_modificateur"):
+            return d
         # 2 oct. 2026 : la note ne parlait de « date demandée » que pour une
         # date réellement demandée ; sans date, elle accusait l'usager à tort.
         d["note"] = ("Article non trouvé à la date demandée ; version la plus récente retournée."
@@ -655,6 +658,22 @@ def _law_row_to_dict(row: sqlite3.Row, code: str, legitext: str, at_date: str | 
     }
     if etat_dila:
         d["etat_dila"] = etat_dila
+    # 3 oct. 2026 : un article d'une loi MODIFICATIVE (« A modifié les
+    # dispositions suivantes… ») n'est pas consolidé par la DILA : elle lui met
+    # des dates bouche-trou 2999-01-01 et aucun état (241 615 lignes). La page
+    # affichait « en vigueur depuis le 1er janvier 2999 ». On dit ce que c'est,
+    # et on renvoie au texte publié au Journal officiel.
+    if (row["date_debut"] or "").startswith("2999"):
+        jorf = _col(row, "jorftext") or legitext
+        d["date_debut"] = None
+        d["date_fin"] = None
+        d["etat"] = None
+        d["article_modificateur"] = True
+        d["note"] = ("Article d'une loi modificative : il n'est pas consolidé. Ses dispositions "
+                     "ont été intégrées dans les textes qu'il modifie (listés ci-dessous) ; "
+                     "sa rédaction d'origine est celle publiée au Journal officiel.")
+        if jorf and str(jorf).startswith("JORFTEXT"):
+            d["source_url"] = f"https://www.legifrance.gouv.fr/jorf/id/{jorf}"
     return d
 
 
