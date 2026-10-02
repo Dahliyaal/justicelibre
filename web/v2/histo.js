@@ -119,7 +119,7 @@
       if (p.deja) {
         return '<div class="jl-cl__row jl-cl__row--n' + depth + ' is-dead">' +
           '<div class="jl-cl__name" title="' + esc(p.long) + '"><span class="jl-cl__role">↳ remplacé par ' +
-          esc(A.minus(p.parent.titre)) + '</span><button type="button" class="jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir plus haut ↑</button>' +
+          esc(A.minus(p.parent.titre)) + '</span><button type="button" class="jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir sa fiche</button>' +
           '<a href="' + p.lf + '">' + esc(p.titre) + '</a></div>' +
           '<div class="jl-cl__lane">' + overlay + '</div></div>';
       }
@@ -328,7 +328,7 @@
             '<span style="width:12px;display:inline-block"></span><span class="jl-pr__ttl">' +
             '<a href="' + p.lf + '" title="Ouvrir sur Légifrance">' + esc(p.titre) + '</a> ' +
             '<span class="jl-nor">' + esc(p.nor || '') + '</span></span>' +
-            '<button type="button" class="jl-pr__cnt jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir plus haut ↑</button></div></div>';
+            '<button type="button" class="jl-pr__cnt jl-goto" data-goto="' + esc(p.id) + '">vise aussi l\u2019article : voir sa fiche</button></div></div>';
         }
         return '<div class="jl-pr__acc jl-pr__acc--lvl2' + clsOf(p.st) + '" data-acc>' +
           '<button type="button" class="jl-pr__h">' + CHEV + '<span class="jl-pr__ttl">' +
@@ -570,3 +570,20 @@ document.addEventListener('click', function (e) {
   t.scrollIntoView({ behavior: 'smooth', block: 'center' });
   t.classList.remove('jl-flash'); void t.offsetWidth; t.classList.add('jl-flash');
 });
+
+/* 3/10/2026 : « voir plus haut » menait… en bas. La direction est calculée
+   d'après la position réelle de la cible, après chaque rendu. */
+function jlFlecheGoto() {
+  document.querySelectorAll('[data-goto]').forEach(function (g) {
+    var t = document.querySelector('[data-arr="' + g.getAttribute('data-goto') + '"]');
+    var base = g.getAttribute('data-libelle') || g.textContent.replace(/\s*[↑↓→]$/, '').replace(/ plus (haut|bas)$/, '');
+    g.setAttribute('data-libelle', base);
+    if (!t) { g.textContent = base + ' →'; return; }
+    var bas = (t.compareDocumentPosition(g) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+    var phrase = /^vise/.test(base);
+    g.textContent = base + (phrase ? (bas ? ' plus bas ↓' : ' plus haut ↑') : (bas ? ' ↓' : ' ↑'));
+  });
+}
+new MutationObserver(function () { if (!jlFlecheGoto.busy) { jlFlecheGoto.busy = true; requestAnimationFrame(function () { jlFlecheGoto(); jlFlecheGoto.busy = false; }); } })
+  .observe(document.getElementById('jl-corps') || document.body, { childList: true, subtree: false });
+document.addEventListener('DOMContentLoaded', jlFlecheGoto);
