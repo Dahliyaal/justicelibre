@@ -1683,3 +1683,11 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-cl__seg[data-ab]::before{content:attr(data-ab);font-weight:700;color:var(--doc);margin-right:5px}
 .jl-cl__seg.is-cur[data-ab]::before{color:#fff}
 .jl-cl__legende .lg--ab{width:auto;height:auto;padding:0 6px;font-style:normal;font-weight:700;font-size:10px;color:var(--doc);outline:2px solid var(--doc);background:transparent}
+/* Poupées : la retouche, discrète ; le texte parent, lisible même abrogé (3/10/2026). */
+.jl-pr__ret{font-size:var(--text-sm);color:var(--muted);padding:7px var(--space-2);background:transparent}
+.jl-pr__ret a{color:var(--body);font-weight:500}
+.jl-pr__ret-l{font-family:var(--font-mono);font-size:var(--text-3xs);letter-spacing:.04em}
+.jl-pr__acc.is-dead>.jl-pr__h{opacity:1}
+.jl-pr__acc.is-dead>.jl-pr__h .jl-pr__ttl{color:var(--body)}
+.jl-pr__acc.is-dead>.jl-pr__h .jl-pr__ttl a{color:var(--body)}
+.jl-pr__acc[open]>.jl-pr__h .jl-pr__ttl,.jl-pr__acc.is-open>.jl-pr__h .jl-pr__ttl{font-weight:600;color:var(--ink)}

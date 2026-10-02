@@ -309,15 +309,15 @@
       return '<div class="jl-h2" data-espace="haut">Ses retouches <span class="jl-hcount">' +
         o.retouches.length + '</span></div>' +
         o.retouches.slice().reverse().map(function (r) {
+          /* 3/10/2026 : une retouche est un détail du texte parent, pas un
+             texte à part entière : une ligne discrète, sans pastille « en
+             vigueur » (un arrêté modificatif l'est toujours, ça ne dit rien). */
           return '<div class="jl-pr__ret' + futCls(r.date_texte) + '" data-r="' + r.id + '">' +
-            '<div class="jl-lt__t"><span class="jl-mono jl-muted jl-pr__dt">' +
-            fmtCourt(r.date_texte) + '</span><a href="' + r.lf + '">' + esc(r.titre) + '</a> ' +
-            '<span class="jl-muted" title="' + (r.nature === 'DECRET'
-              ? 'Un décret peut modifier un arrêté : il lui est supérieur.' : '') + '">' +
-            esc(A.NATLABEL[r.nature] || 'arrêté') + ' modificateur' +
-            (r.aussiNiveau1 ? ' · aussi pris pour lui (plus haut)' : '') + '</span></div>' +
-            '<div class="jl-lt__meta">' + (r.nor ? '<span class="jl-nor">' + esc(r.nor) + '</span>' : '') +
-            A.pill(r.st) + A.howHTML('succession') + '</div></div>';
+            '<span class="jl-pr__ret-l">↳ modifié le ' + fmtCourt(r.date_texte) + ' par</span> ' +
+            '<a href="' + r.lf + '" title="' + esc(r.long || r.titre) + '">' + esc(A.minus(r.titre)) + '</a>' +
+            (r.nature === 'DECRET' ? ' <span class="jl-muted" title="Un décret peut modifier un arrêté : il lui est supérieur.">(décret)</span>' : '') +
+            (r.aussiNiveau1 ? ' <span class="jl-muted">· aussi pris pour lui</span>' : '') +
+            (r.nor ? ' <span class="jl-nor">' + esc(r.nor) + '</span>' : '') + '</div>';
         }).join('');
     };
 
