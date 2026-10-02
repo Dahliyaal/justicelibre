@@ -3,8 +3,10 @@
 Expose des fonctions async qui délèguent au warehouse HTTP (al-uzza) pour
 récupérer un article à une date, toutes ses versions, ou un batch d'articles.
 
-Les 22 codes supportés sont ceux reconnus par le regex `highlightLawRefs`
-côté web (search.html) et mappés vers leurs LEGITEXT côté warehouse.
+Les sigles supportés (108 au 2 oct. 2026 : 79 codes et textes courants,
+29 codes historiques) sont le miroir de CODE_TO_LEGITEXT côté warehouse ;
+un test (tests/test_lois_codes_dates.py) vérifie que les deux listes sont
+identiques. Tout autre texte passe par son LEGITEXT/JORFTEXT.
 """
 from __future__ import annotations
 
@@ -191,8 +193,65 @@ SUPPORTED_CODES_LEGITEXT: dict[str, str] = {
 }
 
 
+# ─── 29 codes historiques ou abrogés (alignés le 2 oct. 2026) ─────────
+# L'entrepôt les connaît depuis l'audit du 10/09/2026 (CODE_TO_LEGITEXT de
+# warehouse_server.py) : REST et pages /loi/CP1810/1 les servaient, mais le
+# MCP répondait « Code inconnu: 'CP1810' » (audit du 2 oct. 2026, F7). Un
+# même sigle doit valoir la même chose sur les trois canaux.
+HISTORICAL_CODES: dict[str, tuple[str, str]] = {
+    "CTM":           ("Code du travail applicable à Mayotte", "LEGITEXT000006072052"),
+    "CPMIVG-ancien": ("Code des pensions militaires d'invalidité (ancien)", "LEGITEXT000006074068"),
+    "CForêt-ancien": ("Code forestier (ancien)", "LEGITEXT000006071514"),
+    "CRoute-ancien": ("Code de la route (ancien)", "LEGITEXT000006074947"),
+    "CP1810":        ("Ancien code pénal (1810)", "LEGITEXT000006071029"),
+    "CJM-ancien":    ("Code de justice militaire (ancien)", "LEGITEXT000006070884"),
+    "CTACAA":        ("Code des tribunaux administratifs et des cours administratives d'appel (remplacé par le CJA)", "LEGITEXT000006071344"),
+    "CForêtM":       ("Code forestier de Mayotte", "LEGITEXT000006071556"),
+    "CCom-ancien":   ("Code de commerce (ancien)", "LEGITEXT000006069441"),
+    "CNat":          ("Code de la nationalité française", "LEGITEXT000006071189"),
+    "CVin":          ("Code du vin", "LEGITEXT000006071657"),
+    "CLH":           ("Code de la Légion d'honneur, de la Médaille militaire et de l'ordre national du Mérite", "LEGITEXT000006071007"),
+    "CDB":           ("Code des débits de boissons et des mesures contre l'alcoolisme", "LEGITEXT000006075115"),
+    "CPC1807":       ("Code de procédure civile de 1807", "LEGITEXT000006070680"),
+    "CET":           ("Code de l'enseignement technique", "LEGITEXT000006071014"),
+    "CIC":           ("Code de l'industrie cinématographique", "LEGITEXT000006070882"),
+    "CDCD":          ("Code de déontologie des chirurgiens-dentistes", "LEGITEXT000006072636"),
+    "CDSF":          ("Code de déontologie des sages-femmes", "LEGITEXT000006072635"),
+    "CCE":           ("Code des caisses d'épargne", "LEGITEXT000006073422"),
+    "CDM":           ("Code de déontologie médicale", "LEGITEXT000006072634"),
+    "CBoissonsM":    ("Code des boissons et des mesures contre l'alcoolisme (Mayotte)", "LEGITEXT000006069472"),
+    "CDMed":         ("Code de déontologie des médecins", "LEGITEXT000006072664"),
+    "CONIB":         ("Code de l'Office national interprofessionnel du blé", "LEGITEXT000006071737"),
+    "CBlé":          ("Code du blé", "LEGITEXT000006071646"),
+    "CDV":           ("Code de déontologie vétérinaire", "LEGITEXT000006072360"),
+    "CDCAC":         ("Code de déontologie des commissaires aux comptes", "LEGITEXT000006071103"),
+    "CDEC":          ("Code de déontologie de l'expertise comptable", "LEGITEXT000006074510"),
+    "CDPM":          ("Code de déontologie des agents de police municipale", "LEGITEXT000006070159"),
+    "CDPN":          ("Code de déontologie de la police nationale", "LEGITEXT000006071071"),
+}
+for _sigle, (_nom, _lt) in HISTORICAL_CODES.items():
+    SUPPORTED_CODES[_sigle] = _nom
+    SUPPORTED_CODES_LEGITEXT[_sigle] = _lt
+del _sigle, _nom, _lt
+
+
 def is_supported(code: str) -> bool:
     return code in SUPPORTED_CODES
+
+
+def is_direct_id(code: str) -> bool:
+    """Identifiant Légifrance passé tel quel (LEGITEXT…/JORFTEXT…)."""
+    return bool(code) and code.startswith(("LEGITEXT", "JORFTEXT"))
+
+
+def is_known_code(code: str) -> bool:
+    """Sigle connu OU identifiant direct : ce que l'entrepôt sait résoudre.
+
+    Sert aux trois canaux (MCP, REST, pages) pour dire « code inconnu »
+    quand c'est le code qui est en cause, au lieu de « article introuvable »
+    ou d'une liste de versions vide (audit du 2 oct. 2026, F7).
+    """
+    return is_supported(code) or is_direct_id(code)
 
 
 async def get_article(code: str, num: str, date: str | None = None) -> dict[str, Any]:
@@ -201,14 +260,14 @@ async def get_article(code: str, num: str, date: str | None = None) -> dict[str,
     `code` accepte :
     - un code court parmi SUPPORTED_CODES (CC, CP, LIL, LO58…)
     - un identifiant LEGITEXT/JORFTEXT direct pour les textes non listés
-      (ex: 'JORFTEXT000000878035' pour la loi 68-1250).
+      (ex: 'LEGITEXT000006068317' pour la loi 68-1250).
       → Utiliser `resolve_law_number()` pour trouver l'id à partir d'un
         numéro de loi.
 
     Retourne un dict structuré, ou {"error": "..."} si introuvable / code inconnu.
     """
     # Accepter LEGITEXT / JORFTEXT direct comme code
-    if code.startswith("LEGITEXT") or code.startswith("JORFTEXT"):
+    if is_direct_id(code):
         data = await wh.get_law(code, num, date)
     elif is_supported(code):
         # Le repli « sigle inconnu du warehouse → LEGITEXT » est centralisé
@@ -239,16 +298,24 @@ async def resolve_number(numero: str) -> dict[str, Any]:
 
 
 async def get_versions(code: str, num: str) -> dict[str, Any]:
-    """Toutes les versions historiques d'un article, triées par date_debut asc."""
-    if not is_supported(code):
+    """Toutes les versions historiques d'un article, triées par date_debut asc.
+
+    Accepte, comme get_article, un LEGITEXT/JORFTEXT direct (2 oct. 2026 :
+    get_law_versions le refusait alors que get_law_article l'acceptait et que
+    resolve_law_number invite à s'en servir ; audit F7).
+    """
+    if not is_known_code(code):
         return {
-            "error": f"Code inconnu: {code!r}",
+            "error": f"Code inconnu: {code!r}. Passer un sigle de la liste ou "
+                     f"un LEGITEXT/JORFTEXT direct (resolve_law_number() le "
+                     f"trouve depuis un numéro de loi).",
             "supported_codes": list(SUPPORTED_CODES.keys()),
         }
     versions = await wh.get_law_versions(code, num)
     return {
         "code": code,
-        "code_long": SUPPORTED_CODES[code],
+        # None pour un identifiant direct : on n'invente pas de nom de texte.
+        "code_long": SUPPORTED_CODES.get(code),
         "num": num,
         "count": len(versions),
         "versions": versions,

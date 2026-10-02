@@ -109,6 +109,69 @@ def _exchange_token(client_id: str, client_secret: str) -> str | None:
         return None
 
 
+# ─── Routes /loi/ et dates : validation partagée (2 oct. 2026) ─────────
+# Audit du 2 oct. 2026, F3 : la regex /loi/ était appliquée au chemin NON
+# décodé ; « %20 », « %C3%AA » (ê) et « * » n'étaient pas dans la classe, si
+# bien que LPF L80 B, CGI 4 B, CSP R*1435-28-2 et tous les sigles accentués
+# (CForêt, C.éduc, CPénit, CCiné) répondaient 404, environ 40 000 versions
+# en vigueur, alors que le sitemap les publiait. On décode d'abord, puis on
+# n'accepte qu'une classe fermée : lettres (accentuées comprises, \w est
+# Unicode), chiffres, « . », « - », « _ » ; le numéro admet en plus l'espace
+# et « * ». Jamais « / » (déjà séparateur), « .. », « < », « > », guillemets,
+# « % » résiduel (double encodage) ni caractère de contrôle : la classe les
+# exclut tous, « .. » est refusé à part.
+_LOI_PATH_RE = re.compile(r"^/loi/([\w.\-]{1,20})/([\w*][\w.\- *]{0,39})$")
+
+
+def _parse_loi_path(raw_path: str):
+    """« /loi/CFor%C3%AAt/L80%20B » → ("CForêt", "L80 B"), ou None si refusé.
+
+    Les URL déjà publiées sans encodage (/loi/CC/1128, /loi/LPF/L80B)
+    passent à l'identique : unquote() ne les change pas.
+    """
+    try:
+        path = urllib.parse.unquote(raw_path, errors="strict")
+    except UnicodeDecodeError:
+        return None
+    m = _LOI_PATH_RE.match(path)
+    if not m:
+        return None
+    code, num = m.group(1), m.group(2).rstrip()
+    if ".." in code or ".." in num or not num:
+        return None
+    return code, num
+
+
+def _date_calendaire_ok(value: str) -> bool:
+    """Date ISO AAAA-MM-JJ qui EXISTE au calendrier.
+
+    Audit du 2 oct. 2026, F4 : /api/law et /api/law/batch ne contrôlaient
+    que le gabarit ; « 2016-13-45 » passait et l'entrepôt rendait la version
+    COURANTE sans note, avec l'air d'une version datée. Le MCP refuse depuis
+    le 4/09 (_check_dates de server.py, date.fromisoformat) ; on aligne le REST.
+    """
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
+        return False
+    try:
+        _date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _code_inconnu(code: str) -> str:
+    return (f"Code inconnu : {code!r}. Sigles acceptés : CC, CP, CPC, CJA, "
+            f"CForêt, CP1810… (liste complète : ressource MCP "
+            f"justicelibre://codes-supportes), ou un identifiant "
+            f"LEGITEXT/JORFTEXT direct ; /api/law/resolve?numero=78-17 le "
+            f"trouve depuis un numéro de loi. Les sigles sont sensibles à la "
+            f"casse (« CC », pas « cc »).")
+
+
+_ERREUR_DATE = ("Date invalide : {d!r} n'est pas une date du calendrier au "
+                "format AAAA-MM-JJ (ex. 1992-06-15).")
+
+
 class TokenHandler(BaseHTTPRequestHandler):
     # Sécurité : CORS restreint sur les endpoints sensibles (exchange OAuth2)
     _CORS_RESTRICTED_PATHS = {"/api/token"}
@@ -222,9 +285,10 @@ class TokenHandler(BaseHTTPRequestHandler):
         # LEGITEXT*/JORFTEXT* (20 chars) que le sitemap legi émet en fallback
         # et que le warehouse accepte en entrée.
         # Num : commence par lettre (LRDA) ou chiffre, puis chiffres + tirets
-        m = re.match(r"^/loi/([\w.\-]{1,20})/([A-Z]?[\w.\-]{1,40})$", parsed.path)
-        if m:
-            code, num = m.group(1), m.group(2)
+        # Décodage + classe élargie : voir _parse_loi_path (2 oct. 2026, F3).
+        loi = _parse_loi_path(parsed.path) if parsed.path.startswith("/loi/") else None
+        if loi:
+            code, num = loi
             # Loi ou ordonnance HORS CODE désignée par son numéro : /loi/78-17/1,
             # /loi/2005-102/2. 5 206 textes n'étaient joignables que par leur
             # identifiant technique LEGITEXT/JORFTEXT (audit du 10/09/2026) ;
@@ -298,8 +362,13 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(400, {"error": "Paramètres `code` et `num` requis."})
         if len(code) > 20 or len(num) > 30:
             return self._json_response(400, {"error": "Paramètres trop longs."})
-        if date and not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
-            return self._json_response(400, {"error": "Format date invalide (attendu YYYY-MM-DD)."})
+        if date and not _date_calendaire_ok(date):
+            return self._json_response(400, {"error": _ERREUR_DATE.format(d=date)})
+        # Code inconnu : le dire, au lieu de « Article introuvable » qui
+        # accusait le numéro (2 oct. 2026, F7). Même liste que le MCP.
+        from sources import legi as _legi
+        if not _legi.is_known_code(code):
+            return self._json_response(400, {"error": _code_inconnu(code)})
         try:
             from sources import warehouse as wh
             data = wh.sync_get_law(code, num, date or None)
@@ -315,6 +384,11 @@ class TokenHandler(BaseHTTPRequestHandler):
         num = (qs.get("num", [""])[0] or "").strip()
         if not code or not num:
             return self._json_response(400, {"error": "Paramètres `code` et `num` requis."})
+        # Un code inconnu rendait 200 {"versions": []} : faux négatif
+        # silencieux, « cet article n'a aucune version » (2 oct. 2026, F7).
+        from sources import legi as _legi
+        if not _legi.is_known_code(code):
+            return self._json_response(400, {"error": _code_inconnu(code)})
         try:
             from sources import warehouse as wh
             versions = wh.sync_get_law_versions(code, num)
@@ -648,8 +722,8 @@ class TokenHandler(BaseHTTPRequestHandler):
             return self._json_response(400, {"error": "`refs` doit être une liste non vide de {code, num}"})
         if len(refs) > 200:
             return self._json_response(400, {"error": "Max 200 refs par batch."})
-        if date and not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
-            return self._json_response(400, {"error": "Format date invalide (YYYY-MM-DD)."})
+        if date and not _date_calendaire_ok(date):
+            return self._json_response(400, {"error": _ERREUR_DATE.format(d=date)})
         # Sanitize refs
         clean_refs = []
         for r in refs[:200]:

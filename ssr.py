@@ -1065,6 +1065,16 @@ def _source_host(url: str) -> str:
         return url[:30]
 
 
+def _loi_path(code: str, num: str) -> str:
+    """Chemin /loi/<code>/<num> encodé (espace → %20, ê → %C3%AA, * → %2A).
+
+    safe="" : un « / » dans un code ou un numéro serait encodé, jamais pris
+    pour un séparateur (2 oct. 2026).
+    """
+    from urllib.parse import quote
+    return f"/loi/{quote(code, safe='')}/{quote(num, safe='')}"
+
+
 def render_law(code: str, num: str, data: dict) -> str:
     """Page HTML SSR d'un article de loi (style cohérent avec le SPA)."""
     # `titre_texte` = titre du TEXTE parent (« Code de la santé publique »).
@@ -1103,7 +1113,9 @@ def render_law(code: str, num: str, data: dict) -> str:
     title_h1 = f"Article {num}"
     title_seo = f"Article {num} -{code_label} -{SITE_NAME}"
     desc = _strip(texte, 200) or f"Article {num} du {code_label}"
-    canonical = f"{BASE_URL}/loi/{code}/{num}"
+    # Encodée comme dans le sitemap (2 oct. 2026, F3) : une canonique à
+    # espace ou accent brut n'est pas une URL valide.
+    canonical = f"{BASE_URL}{_loi_path(code, num)}"
 
     text_html = "<p>" + esc(texte).replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>"
     nota_html = f'<aside class="nota"><strong>Note :</strong> {esc(nota)}</aside>' if nota else ""
@@ -1561,8 +1573,13 @@ def render_sitemap_legi(page: int, page_size: int = SITEMAP_PAGE_SIZE) -> str:
             # Fallback : utiliser le LEGITEXT directement comme code
             # (warehouse_server.law_at_date accepte LEGITEXT* en input)
             code = legitext
+        # URL encodée (2 oct. 2026, audit F3) : « L80 B », « R*1435-28-2 »,
+        # « CForêt » étaient publiés bruts, donc invalides dans un sitemap.
+        # quote() garde lettres, chiffres, « . », « - », « _ » ; la route
+        # /loi/ décode avant de comparer, et les anciennes URL brutes
+        # continuent de marcher.
         items_list.append(
-            f'  <url><loc>{BASE_URL}/loi/{esc(code)}/{esc(num)}</loc>'
+            f'  <url><loc>{BASE_URL}{esc(_loi_path(code, num))}</loc>'
             f'<lastmod>{esc(r.get("date") or "")}</lastmod></url>'
         )
     items = "\n".join(items_list)

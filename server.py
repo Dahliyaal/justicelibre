@@ -74,7 +74,8 @@ peuvent être chargés à la demande par certains clients MCP.
 • `get_decision_cedh` (001-*)   • `get_decision_cjue` (CELEX/ECLI)
 
 ARTICLES DE LOI (killer feature unique à justicelibre) :
-• `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée.
+• `get_law_article(code, num, date)` — version en vigueur À LA DATE donnée
+  selon la base (qui peut retarder sur Légifrance : voir sa description).
   Ex : art. 1128 CC en 1992 → texte napoléonien, pas la réforme 2016.
 • `get_law_versions(code, num)` — timeline complète historique.
 • `search_legi` — ~1,8 M articles, ~146 000 textes (tous les codes
@@ -98,7 +99,7 @@ justicelibre.org/tutoriel-piste.html.
 
 PROTOCOLE D'USAGE : pour tout doute, commencer par `about_justicelibre`
 qui détaille la cartographie. Sinon : `search_all(query)` couvre 90% des
-besoins. ~80 codes/textes supportés pour les articles de loi (CC, CP,
+besoins. ~110 codes/textes supportés pour les articles de loi (CC, CP,
 CPC, CPP, CT, CSP, CJA, COJ, CGI, CESEDA…) + Constitution + lois non
 codifiées, et LEGITEXT/JORFTEXT direct pour le reste (liste complète via
 la resource `justicelibre://codes-supportes`).
@@ -468,7 +469,7 @@ async def about_justicelibre() -> dict[str, Any]:
             },
             "7_articles_loi": {
                 "tools": ["get_law_article", "get_law_versions", "search_legi", "search_decisions_citing"],
-                "volume": "~3,6 Go bulk LEGI : ~1,8 M d'articles, ~146 000 textes (tous les codes consolidés, lois, ordonnances, décrets) AVEC toutes les versions historiques",
+                "volume": "base LEGI ~9 Go (2 oct. 2026) : ~1,8 M d'articles, ~146 000 textes (tous les codes consolidés, lois, ordonnances, décrets) AVEC toutes les versions historiques",
                 "strengths": "**Killer feature** : récupérer un article à sa version en vigueur à une date précise. Ex: art. 1128 CC en 1992 → texte napoléonien ; en 2024 → texte réforme 2016. Ce que Dalloz facture 200€/mois.",
                 "id_format": "LEGIARTI*",
                 "id_compatible_with": "get_law_article / get_law_versions",
@@ -1284,14 +1285,15 @@ async def resolve_law_number(numero: str) -> dict[str, Any]:
     ou JORFTEXT Légifrance.
 
     Utile pour les textes non codifiés (lois, ordonnances, décrets) qui ne
-    sont pas dans la liste des ~80 sigles courts (CC, CP, COJ, LIL, etc. — resource `justicelibre://codes-supportes`).
+    sont pas dans la liste des ~110 sigles courts (CC, CP, COJ, LIL, etc. — resource `justicelibre://codes-supportes`).
     Une fois le LEGITEXT/JORFTEXT résolu, on peut l'utiliser avec
     `get_law_article(code=<LEGITEXT>, num=<N>)` pour récupérer un article
     spécifique.
 
     Exemples :
-    - `resolve_law_number("68-1250")` → loi prescription quadriennale des
-      créances publiques (JORFTEXT000000878035)
+    - `resolve_law_number("68-1250")` → loi relative à la prescription des
+      créances sur l'État, les départements, les communes et les
+      établissements publics (LEGITEXT000006068317)
     - `resolve_law_number("79-587")` → loi motivation des actes admin
     - `resolve_law_number("2000-321")` → loi droits citoyens face à l'admin
 
@@ -1827,15 +1829,18 @@ async def search_legi(
 ) -> dict[str, Any]:
     """Recherche pondérée dans les codes et lois consolidés français.
 
-    Source : bulk LEGI DILA (3,6 Go avec versions historiques). Trouve
+    Source : bulk LEGI DILA, avec versions historiques. Trouve
     les articles dont le texte ou le titre contient les mots-clés.
 
     `titre_texte` est le titre du TEXTE contenant l'article (« Code civil »,
     « Arrêté du 10 août 1998 »). Depuis la ré-ingestion du 10 septembre 2026,
     la hiérarchie LEGISCTA est en base (colonne `hierarchie`) et
     `get_law_article` sert `titre_section` = le dernier niveau du plan
-    (« Chapitre Ier : La responsabilité extracontractuelle en général »),
-    mesuré juste sur 30 articles de 30 codes le 13 septembre 2026. Le plan
+    (« Chapitre Ier : La responsabilité extracontractuelle en général »).
+    Il peut être PÉRIMÉ : certaines lignes portent l'intitulé d'avant une
+    réforme du texte (7 articles sur 60 contrôlés le 2 octobre 2026, ex.
+    CC 1128 servi « De la capacité des parties contractantes » au lieu de
+    « La validité du contrat »). Ne pas le citer sans contrôle. Le plan
     complet (partie / livre / titre / chapitre / section) n'est pas encore
     servi : pour lui, consulter Légifrance.
 
@@ -2024,7 +2029,7 @@ async def search_cnil(
 
 
 # ─── ARTICLES DE LOI (codes consolidés, versions historiques) ───────
-# Ces outils exploitent le bulk LEGI DILA (3,6 Go, versions historiques
+# Ces outils exploitent le bulk LEGI DILA (versions historiques
 # complètes). Spécificité justicelibre : on peut retourner la version
 # d'un article telle qu'elle existait à une date précise (ex: art. 1128
 # du Code civil en 1992 = texte napoléonien, pas la réforme 2016).
@@ -2041,9 +2046,10 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
     2016. Avec ce tool on récupère le texte **tel qu'il existait en 1992**
     (l'ancienne version napoléonienne), pas le texte actuel.
 
-    Codes/textes supportés : ~80 sigles courts — les grands codes (CC, CP,
+    Codes/textes supportés : ~110 sigles courts — les grands codes (CC, CP,
     CPC, CPP, CT, CSP, CJA, CRPA, CSS, COJ, CGFP, LPF, CSI, CSport…), la
-    Constitution (CONST) et des lois non codifiées (LIL, LO58, L2005-102).
+    Constitution (CONST), des lois non codifiées (LIL, LO58, L2005-102) et
+    29 codes historiques (CP1810, CPC1807, CTACAA, CNat…).
     Liste complète : resource `justicelibre://codes-supportes`. Pour tout
     autre texte (loi, ordonnance, décret), passer un identifiant
     LEGITEXT/JORFTEXT direct — `resolve_law_number()` le trouve depuis un
@@ -2057,15 +2063,33 @@ async def get_law_article(code: str, num: str, date: str = "") -> dict[str, Any]
               version contemporaine de la citation.
 
     Returns:
-        dict avec `legiarti`, `num`, `code`, `titre_texte`, `texte`, `etat`
-        (VIGUEUR/MODIFIE/ABROGE), `date_debut`, `date_fin`, `nota`. Plus
-        un champ `note` si la version retournée n'est pas celle demandée.
+        dict avec `legiarti`, `num`, `code`, `titre_texte`, `texte`, `etat`,
+        `date_debut`, `date_fin`, `nota`. Un champ `note` est ajouté quand
+        l'entrepôt ne trouve aucune version couvrant la date et retombe sur
+        une autre ; son absence ne garantit pas que la version servie soit
+        celle de Légifrance (des versions reportées par la DILA peuvent
+        être servies à tort, audit du 2 octobre 2026).
+
+        Valeurs de `etat` (vocabulaire de la DILA ; l'état en base peut être
+        en retard sur Légifrance, audit du 2 octobre 2026) :
+          · VIGUEUR : version en vigueur ;
+          · VIGUEUR_DIFF : version à entrée en vigueur différée (date de
+            début future au moment de sa publication) ;
+          · MODIFIE : version remplacée par une version ultérieure ;
+          · MODIFIE_MORT_NE : version modifiée avant d'être jamais entrée en
+            vigueur ;
+          · ABROGE : article abrogé, plus applicable ;
+          · ABROGE_DIFF : abrogation programmée à une date future ;
+          · PERIME : texte arrivé à son terme (disposition temporaire) ;
+          · TRANSFERE : article déplacé sous un autre numéro ou texte ;
+          · ANNULE : article annulé par une juridiction.
 
         `titre_texte` est le titre du TEXTE parent (« Code civil ») ;
         `titre_section` est le dernier niveau du plan du code (« Chapitre Ier :
         La responsabilité extracontractuelle en général »), servi depuis la
-        ré-ingestion du 10 septembre 2026 (colonne `hierarchie`) et mesuré
-        juste sur 30 articles de 30 codes le 13 septembre 2026. Le plan
+        ré-ingestion du 10 septembre 2026 (colonne `hierarchie`). Il peut être
+        PÉRIMÉ (intitulé d'avant une réforme du texte : 7 articles sur 60
+        contrôlés le 2 octobre 2026) : le vérifier avant de le citer. Le plan
         complet (partie / livre / titre / chapitre / section) n'est pas encore
         servi : ne pas l'inventer, renvoyer vers Légifrance s'il est demandé.
     """
@@ -2101,8 +2125,11 @@ async def get_law_versions(code: str, num: str) -> dict[str, Any]:
     avec `date_debut`, `date_fin`, `etat`, `texte` distincts).
 
     Args:
-        code: code court (voir get_law_article — ~80 codes/textes, liste
-            complète dans la resource `justicelibre://codes-supportes`)
+        code: sigle court (voir get_law_article, liste complète dans la
+            resource `justicelibre://codes-supportes`) ou identifiant
+            LEGITEXT/JORFTEXT direct, comme pour get_law_article (accepté
+            depuis le 2 octobre 2026). Pour un identifiant direct,
+            `code_long` vaut null.
         num: numéro de l'article
 
     Returns:

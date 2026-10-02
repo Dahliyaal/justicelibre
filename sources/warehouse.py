@@ -135,6 +135,36 @@ async def get_freshness(fond: str) -> str | None:
     return (_HEALTH_CACHE["data"] or {}).get("last_updated", {}).get(fond)
 
 
+# Note de l'entrepôt rendue par sa « stratégie 3 » (aucune version ne couvre
+# la date cible, aucune ligne VIGUEUR) : warehouse_server.py la formule
+# « à la date demandée » même quand AUCUNE date n'a été demandée (la cible
+# est alors aujourd'hui). Constaté le 2 oct. 2026 sur CT L321-1 sans date
+# (audit F10). Le fichier de l'entrepôt n'est pas modifiable d'ici : on
+# réécrit la note côté client, uniquement si aucune date n'a été demandée
+# et seulement si c'est exactement cette phrase (toute autre note passe).
+_NOTE_ENTREPOT_SANS_VERSION = (
+    "Article non trouvé à la date demandée ; version la plus récente retournée.")
+_NOTE_SANS_DATE = (
+    "Aucune version de cet article n'est en vigueur aujourd'hui ; "
+    "version la plus récente retournée.")
+
+
+def _corriger_note_sans_date(data, date: str | None):
+    """Réécrit la note trompeuse de l'entrepôt quand aucune date n'a été demandée."""
+    if date or not isinstance(data, dict):
+        return data
+    if data.get("note") == _NOTE_ENTREPOT_SANS_VERSION:
+        data["note"] = _NOTE_SANS_DATE
+    return data
+
+
+def _corriger_notes_batch(items, date: str | None):
+    if not date and isinstance(items, list):
+        for it in items:
+            _corriger_note_sans_date(it, date)
+    return items
+
+
 def _legitext_for(code: str) -> str | None:
     """Identifiant Légifrance d'un sigle court, ou None s'il n'y en a pas.
 
@@ -167,7 +197,7 @@ async def get_law(code: str, num: str, date: str | None = None) -> dict | None:
             data = await _aget("/v1/law", **{**params, "code": lt})
             if isinstance(data, dict):
                 data["code"] = code   # on rend le sigle court, pas le LEGITEXT
-    return data
+    return _corriger_note_sans_date(data, date)
 
 
 async def get_law_versions(code: str, num: str) -> list[dict]:
@@ -225,8 +255,8 @@ def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
             data = r.json()
             if isinstance(data, dict):
                 data["code"] = code
-            return data
-        return r.json()
+            return _corriger_note_sans_date(data, date)
+        return _corriger_note_sans_date(r.json(), date)
     except Exception:
         return None
 
@@ -237,7 +267,7 @@ async def get_laws_batch(refs: list[dict], date: str | None = None) -> list[dict
     if date:
         body["date"] = date
     data = await _apost("/v1/law/batch", body)
-    return data.get("items", [])
+    return _corriger_notes_batch(data.get("items", []), date)
 
 
 async def search_fond(
@@ -375,9 +405,9 @@ def sync_get_law(code: str, num: str, date: str | None = None) -> dict | None:
             data = r.json()
             if isinstance(data, dict):
                 data["code"] = code
-            return data
+            return _corriger_note_sans_date(data, date)
         r.raise_for_status()
-        return r.json()
+        return _corriger_note_sans_date(r.json(), date)
 
 
 def sync_get_laws_batch(refs: list[dict], date: str | None = None) -> list[dict]:
@@ -388,7 +418,7 @@ def sync_get_laws_batch(refs: list[dict], date: str | None = None) -> list[dict]
     with httpx.Client(timeout=_TIMEOUT, headers=_HEADERS) as client:
         r = client.post(f"{WAREHOUSE_URL}/v1/law/batch", json=body)
         r.raise_for_status()
-        return r.json().get("items", [])
+        return _corriger_notes_batch(r.json().get("items", []), date)
 
 
 def sync_get_law_versions(code: str, num: str) -> list[dict]:
