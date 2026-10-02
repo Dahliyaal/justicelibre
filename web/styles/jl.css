@@ -1623,3 +1623,5 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-barre-filtre--centre{max-width:560px;margin:8px auto 32px}
 /* Fil « ministère › nature › année » du hors-code : plus d'air au-dessus (3/10/2026). */
 .jl-fil--aere{margin-top:32px!important}
+/* Un seul filet : après le séparateur, le titre perd le sien (3/10/2026). */
+.jl-sep-section + .jl-titre-section{border-top:0;padding-top:0}
