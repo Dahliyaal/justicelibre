@@ -1664,3 +1664,8 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 .jl-hhonest__det{margin-top:.6em}
 .jl-hhonest__det summary{cursor:pointer;color:var(--teal)}
 .jl-hhonest__det ul{margin:.5em 0 0;padding-left:1.2em;line-height:1.7}
+/* Le titre du texte d'abord, sa relation en dessous (3/10/2026). */
+.jl-cl__name{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px}
+.jl-cl__name > a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.jl-cl__name > .jl-cl__role{order:2;flex-basis:100%;margin:2px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jl-cl__name > .jl-nor{white-space:nowrap}
