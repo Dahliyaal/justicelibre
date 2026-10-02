@@ -492,6 +492,11 @@
       ' <span class="jl-kicker--pilule">historique</span>';
     $('#jl-corps').innerHTML = chrome(vue) +
       (vue === 'couloirs' ? vueCouloirs() : vuePoupees()) + honnetete();
+    // « ← Retour à l'état actuel » AU-DESSUS du titre, comme la maquette (3/10/2026).
+    var ancien = document.querySelector('main > .jl-fil--barre');
+    if (ancien) ancien.remove();
+    var fil = $('#jl-corps .jl-fil--barre'), tr = document.querySelector('.jl-titrerow');
+    if (fil && tr) tr.parentNode.insertBefore(fil, tr);
 
     if (vue === 'couloirs') wireCouloirs(); else wirePoupees();
 
