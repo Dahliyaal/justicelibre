@@ -308,6 +308,37 @@
   });
   document.addEventListener('DOMContentLoaded', majOuvrir);
 
+  /* 3/10/2026 : « art. 124 cavciv » n'existe pas, mais L124-1, R124-1…
+     si. On essaie les numéros voisins usuels et on ne propose que ceux que
+     l'API rend vraiment. */
+  function avecDelai(p, ms) {
+    return Promise.race([p, new Promise(function (r) { setTimeout(function () { r(null); }, ms); })]);
+  }
+  async function existe(code, num) {
+    var d = await avecDelai(resoudreArticle(code, num, null), 10000);
+    return !!(d && !d.error && d.legiarti);
+  }
+  async function voisinsExistants(code, num) {
+    var base = String(num).replace(/^[LRDA]\*?/, '');
+    var cands = [];
+    ['L', 'R', 'D', ''].forEach(function (p) {
+      [base, base + '-1', base + '-2'].forEach(function (b) { cands.push(p + b); });
+    });
+    cands = cands.filter(function (c, i) { return c !== num && cands.indexOf(c) === i; });
+    var ok = await Promise.all(cands.map(function (c) { return existe(code, c); }));
+    return cands.filter(function (c, i) { return ok[i]; });
+  }
+  /* « 1240 » seul : l'article n° 1240 des principaux codes passe AVANT la
+     recherche plein texte (qui sortait des décrets « n° 2024-1240 »). */
+  var CODES_PRINCIPAUX = ['CC', 'CPC', 'CP', 'CPP', 'CT', 'C.com', 'CSP', 'CSS', 'CJA', 'CRPA', 'CGI', 'C.cons', 'CASF', 'CU', 'C.env', 'CGCT'];
+  async function articleDansLesCodes(num) {
+    var ok = await Promise.all(CODES_PRINCIPAUX.map(function (c) {
+      return avecDelai(resoudreArticle(c, num, null), 5000);
+    }));
+    return CODES_PRINCIPAUX.map(function (c, i) { return { code: c, d: ok[i] }; })
+      .filter(function (x) { return x.d && !x.d.error && x.d.legiarti; });
+  }
+
   async function resoudreArticle(code, num, date) {
     var c = J.cacheLoiGet(code, num, date || null);
     if (c) return c;
@@ -366,7 +397,11 @@
         'Ce n’est pas la preuve qu’il n’existe pas. ' +
         '<a href="' + esc(lienLegifranceArticle(null, code, num)) + '" target="_blank" rel="external noopener nofollow">' +
         'Chercher sur Légifrance ↗</a>' +
-        (S.q ? ' · la recherche en plein texte ci-dessous continue.' : '') + '</div>';
+        (S.q ? ' · la recherche en plein texte ci-dessous continue.' : '') +
+        (S.voisins && S.voisins.length ? '<p class="jl-voisins"><b>Numéros voisins qui existent :</b> ' +
+          S.voisins.map(function (v) {
+            return '<a href="' + esc(urlOuvrir(code, v)) + '">' + esc(v) + '</a>';
+          }).join(' · ') + '</p>' : '') + '</div>';
       return;
     }
 
@@ -563,8 +598,29 @@
           location.href = urlOuvrir(lue.code, lue.num);
           return;
         }
-        S.ref = lue; S.article = d;
+        S.ref = lue; S.article = d; S.voisins = null;
         rendreFiche();
+        if (lue.genre === 'article' && (!d || d.error)) {
+          var v = await voisinsExistants(lue.code, lue.num);
+          if (seq !== S.seq) return;
+          S.voisins = v; rendreFiche();
+        }
+      })();
+    } else if (/^(?:art(?:icle)?\.?\s*)?[LRDA]?\*?\.?\s*\d+(?:-\d+)*$/i.test(q.trim())) {
+      var nb = normNum(q.trim().replace(/^art(?:icle)?\.?\s*/i, ''));
+      $('#fiche').innerHTML = '<div class="jl-carte" data-espace="haut"><p class="jl-muted">' +
+        '<span class="jl-spin"></span> Article ' + esc(nb) + ' dans les principaux codes…</p></div>';
+      (async function () {
+        var trouves = await articleDansLesCodes(nb);
+        if (seq !== S.seq) return;
+        $('#fiche').innerHTML = trouves.length
+          ? '<div class="jl-carte jl-num-codes" data-espace="haut"><h2 class="jl-titre-section">Article ' + esc(nb) +
+            '<span class="s">dans les principaux codes</span></h2><ul>' + trouves.map(function (x) {
+              var nom = (PAR_SIGLE[x.code] || [])[2] || x.code;
+              return '<li><a href="' + esc(urlOuvrir(x.code, nb)) + '"><b>' + esc(nom) + '</b>, art. ' + esc(nb) +
+                '</a> <span class="jl-muted">' + esc(String(x.d.texte || '').slice(0, 140)) + '…</span></li>';
+            }).join('') + '</ul></div>'
+          : '';
       })();
     } else {
       $('#fiche').innerHTML = '';

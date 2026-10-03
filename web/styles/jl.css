@@ -1742,3 +1742,8 @@ mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2p
 .jl-ouvrir{display:flex;justify-content:center;align-items:center;gap:6px;margin:12px 0 0;font-size:var(--text-sm)}
 .jl-ouvrir button{border:1px solid var(--line);background:var(--white,#fff);color:var(--body);padding:4px 12px;border-radius:999px;cursor:pointer;font:inherit}
 .jl-ouvrir button.is-on{background:var(--teal);border-color:var(--teal);color:#fff}
+.jl-voisins{margin:10px 0 0}
+.jl-voisins a{font-family:var(--font-mono)}
+.jl-num-codes ul{list-style:none;margin:0;padding:0}
+.jl-num-codes li{padding:10px 0;border-top:1px solid var(--line);line-height:1.5}
+.jl-num-codes li:first-child{border-top:0}
