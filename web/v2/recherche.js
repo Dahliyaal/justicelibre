@@ -53,6 +53,25 @@
   var BACKEND = { dila: 'DILA', ariane: 'ArianeWeb', admin: 'JADE', cedh: 'HUDOC',
     cjue: 'EUR-Lex', doctrine: 'doctrine', legi: 'LEGI' };
 
+  /* ─────────────── Réglette temporelle (reprise de hub.html, 3/10/2026) ──
+     PRESETS = hub.html:599 ; AN_MAX = hub.html:600 ; AN_DEBUT = hub.html:604-605
+     (première année RÉELLEMENT en base par fonds, MIN(date) du 9/09/2026) ;
+     anMin = hub.html:606. La réglette ne fait que remplir S.dateMin / S.dateMax
+     (AAAA-01-01 / AAAA-12-31, ou rien à la borne extrême) : l'API reçoit
+     exactement les mêmes date_min / date_max qu'avec les champs de date. */
+  var PRESETS = [['12m', '12 derniers mois'], ['2020', 'depuis 2020'], ['5a', '5 ans'], ['', 'tout']];
+  var AN_MAX = new Date().getFullYear();
+  var AN_DEBUT = { cass: 1805, ca: 1996, tj: 2002, ce: 1875, caa: 1989, ta: 1965,
+    constit: 1958, cedh: 1959, cjue: 1954, opendata: 2021 };
+  function anMin(juri) {
+    var ks = juri.filter(function (k) { return AN_DEBUT[k]; });
+    if (!ks.length) ks = Object.keys(AN_DEBUT);
+    return Math.min.apply(null, ks.map(function (k) { return AN_DEBUT[k]; }));
+  }
+  var AN_MIN = anMin([]);
+  /* hub.html:750 */
+  function isoAgo(mois) { var d = new Date(); d.setMonth(d.getMonth() - mois); return d.toISOString().slice(0, 10); }
+
   /* ─────────────── État ───────────────────────────────────────────────── */
   var S = {
     q: '', juri: [], lieu: '', formation: '', dateMin: '', dateMax: '',
@@ -173,6 +192,10 @@
     return S.juri.length + (S.lieu ? 1 : 0) + (S.formation ? 1 : 0) +
       ((S.dateMin || S.dateMax) ? 1 : 0) + (S.thes ? 0 : 1);
   }
+  /* Bornes posées par la réglette (1er janvier / 31 décembre) : affichées en
+     année seule, comme fmtAdv de hub.html:677. Dates précises : en clair. */
+  function an(iso) { return /-(01-01|12-31)$/.test(iso || ''); }
+  function fd(iso) { return an(iso) ? iso.slice(0, 4) : J.fmtCourt(iso); }
   function resumeFiltres() {
     var out = [];
     S.juri.forEach(function (k) { out.push({ k: 'juridiction', v: k, label: JURI_LABEL[k] || k }); });
@@ -181,14 +204,99 @@
     if (!S.thes) out.push({ k: 'thes', v: '0', label: 'mots exacts, sans thésaurus' });
     if (S.dateMin || S.dateMax) {
       out.push({ k: 'dates', v: '', label: S.dateMin && S.dateMax
-        ? J.fmtCourt(S.dateMin) + ' → ' + J.fmtCourt(S.dateMax)
-        : S.dateMin ? 'depuis le ' + J.fmtCourt(S.dateMin) : "jusqu'au " + J.fmtCourt(S.dateMax) });
+        ? fd(S.dateMin) + ' → ' + fd(S.dateMax)
+        : S.dateMin ? 'depuis ' + (an(S.dateMin) ? '' : 'le ') + fd(S.dateMin)
+        : "jusqu'" + (an(S.dateMax) ? 'à ' : 'au ') + fd(S.dateMax) });
     }
     return out;
   }
 
+  /* ═══════════════ 1 bis. Réglette « Rendues entre » ═══════════════════
+     JS repris de hub.html:767-783 (refresh, paint, syncFromRange, presets),
+     réécrit sur l'état S : la réglette LIT S.dateMin/S.dateMax pour se
+     placer, et ne les ÉCRIT que lorsqu'on la bouge. */
+  function presetCourant() {   /* hub.html:688 */
+    if (!S.dateMin && !S.dateMax) return '';
+    if (S.dateMin && !S.dateMax) {
+      return S.dateMin === '2020-01-01' ? '2020' : S.dateMin === isoAgo(12) ? '12m' : S.dateMin === isoAgo(60) ? '5a' : 'x';
+    }
+    return 'x';
+  }
+  function ticks(min) {        /* hub.html:720 */
+    var out = [min];
+    [1900, 1950, 1980, 2000, 2010, 2020].forEach(function (y) { if (y > min + 8 && y < AN_MAX - 4) out.push(y); });
+    out.push(AN_MAX);
+    return out.map(function (y) { return '<span>' + y + '</span>'; }).join('');
+  }
+  function peindreReglette() { /* paint, hub.html:775 */
+    var rA = $('#rA'), rB = $('#rB'), a = +rA.value, b = +rB.value;
+    if (a > b) { var t = a; a = b; b = t; }
+    var pct = function (v) { return AN_MAX === AN_MIN ? 0 : (v - AN_MIN) / (AN_MAX - AN_MIN) * 100; };
+    $('#rFill').style.left = pct(a) + '%';
+    $('#rFill').style.right = (100 - pct(b)) + '%';
+    $('#rAl').textContent = a; $('#rBl').textContent = b;
+    rA.setAttribute('aria-valuetext', 'à partir de ' + a);
+    rB.setAttribute('aria-valuetext', "jusqu'à " + b);
+  }
+  /* Recalcul de la borne gauche quand les fonds cochés changent (refresh,
+     hub.html:767), puis placement des curseurs depuis S. */
+  function majQuand() {
+    var rA = $('#rA'), rB = $('#rB');
+    var nm = anMin(S.juri);
+    if (nm !== AN_MIN || rA.min === '') {
+      AN_MIN = nm;
+      rA.min = rB.min = nm; rA.max = rB.max = AN_MAX;
+      $('#rTicks').innerHTML = ticks(nm);
+    }
+    var ya = S.dateMin ? +S.dateMin.slice(0, 4) : AN_MIN;
+    var yb = S.dateMax ? +S.dateMax.slice(0, 4) : AN_MAX;
+    rA.value = Math.min(AN_MAX, Math.max(AN_MIN, ya));
+    rB.value = Math.min(AN_MAX, Math.max(AN_MIN, yb));
+    peindreReglette();
+    var pc = presetCourant();
+    $$('#presets [data-preset]').forEach(function (b) {
+      var on = b.dataset.preset === pc;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    $('#dateMin').value = S.dateMin;
+    $('#dateMax').value = S.dateMax;
+    /* Une date précise (hors 1er janv. / 31 déc.) déplie l'option. */
+    if ((S.dateMin && !an(S.dateMin) && pc === 'x') || (S.dateMax && !an(S.dateMax))) $('#precis').open = true;
+  }
+  /* syncFromRange, hub.html:776 : la réglette écrit S, borne extrême = rien. */
+  function depuisReglette() {
+    var rA = $('#rA'), rB = $('#rB');
+    if (+rA.value > +rB.value) { var t = rA.value; rA.value = rB.value; rB.value = t; }
+    S.dateMin = +rA.value > AN_MIN ? rA.value + '-01-01' : '';
+    S.dateMax = +rB.value < AN_MAX ? rB.value + '-12-31' : '';
+    majAvance(); syncUrl();
+  }
+  /* Le garde-fou double envoi de lancer() bloquerait la relance si une
+     recherche est en vol : ici ce n'est pas un double clic, les filtres ont
+     changé. S.seq écarte les réponses de la recherche périmée. */
+  function relancerSiRequete() { if (S.q) { S.enVol = false; lancer(); } }
+  function lierReglette() {
+    $('#presets').innerHTML = PRESETS.map(function (p) {
+      return '<button type="button" class="jl-quand__preset" data-preset="' + p[0] + '" aria-pressed="false">' + esc(p[1]) + '</button>';
+    }).join('');
+    $('#rA').oninput = $('#rB').oninput = depuisReglette;
+    /* Les résultats sont relancés au lâcher (change), pas à chaque cran. */
+    $('#rA').onchange = $('#rB').onchange = relancerSiRequete;
+    /* hub.html:781 : 12 mois et 5 ans partent d'aujourd'hui ; la borne haute
+       reste vide (= jusqu'à aujourd'hui), comme avant. */
+    $$('#presets [data-preset]').forEach(function (b) {
+      b.onclick = function () {
+        var v = b.dataset.preset;
+        S.dateMin = v === '12m' ? isoAgo(12) : v === '2020' ? '2020-01-01' : v === '5a' ? isoAgo(60) : '';
+        S.dateMax = '';
+        majAvance(); syncUrl(); relancerSiRequete();
+      };
+    });
+  }
+
   function majAvance() {
-    renderFams(); majMenuJuri(); majLieuEtChambre();
+    renderFams(); majMenuJuri(); majLieuEtChambre(); majQuand();
     var n = nbFiltres(), c = $('#advCount');
     c.hidden = !n; c.textContent = n || '';
     $('#advT').classList.toggle('is-on', !!n || S.advOpen);
@@ -884,6 +992,7 @@
       k.onkeydown = function (e) { if (J.estEntree(e)) { e.preventDefault(); k.click(); } };
     });
 
+    lierReglette();   /* avant majAvance : elle place les curseurs */
     lireUrl();
     majAvance();
 

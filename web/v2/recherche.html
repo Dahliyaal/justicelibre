@@ -17,14 +17,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/styles/jl.css?v=29">
+<link rel="stylesheet" href="/styles/jl.css?v=31">
 <script>/* Résolveur de thème avant le premier rendu (évite le flash blanc).
    Même dispositif que les 8 pages prod (annuaire.html:6-9) et que
    decision-jl.html:23-25. Clé unique : jl-theme. */
 (function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <script defer src="/topbar.js?v=5"></script>
 <script defer src="/jl.js?v=2"></script>
-<script defer src="/v2/recherche.js?v=1"></script>
+<script defer src="/v2/recherche.js?v=2"></script>
 </head>
 <body>
 <div data-topbar-mount></div>
@@ -96,19 +96,33 @@
           </div>
 
           <div class="jl-adv__champ">
-            <div class="jl-adv__lb">Rendue à partir du</div>
-            <input type="date" id="dateMin" aria-label="Date de début">
-          </div>
-          <div class="jl-adv__champ">
-            <div class="jl-adv__lb">Jusqu'au</div>
-            <input type="date" id="dateMax" aria-label="Date de fin">
-          </div>
-
-          <div class="jl-adv__champ">
             <div class="jl-adv__lb">Thésaurus</div>
             <button type="button" class="jl-thes is-on" id="thesT"
                     aria-pressed="true"
                     title="Ajoute les synonymes et abréviations du thésaurus juridique à la requête"><i></i><span>Recherche élargie</span></button>
+          </div>
+
+          <!-- Réglette temporelle reprise de hub.html:695-698 (3/10/2026). La borne
+               gauche suit les fonds cochés (AN_DEBUT, recherche.js). -->
+          <div class="jl-quand" id="quand">
+            <div class="jl-adv__lb">Rendues entre</div>
+            <div class="jl-quand__lab" aria-hidden="true"><span id="rAl"></span><span id="rBl"></span></div>
+            <div class="jl-range">
+              <div class="jl-range__track"><div class="jl-range__fill" id="rFill"></div></div>
+              <input type="range" id="rA" aria-label="Année de début" step="1">
+              <input type="range" id="rB" aria-label="Année de fin" step="1">
+              <div class="jl-range__ticks" id="rTicks" aria-hidden="true"></div>
+            </div>
+            <div class="jl-quand__presets" id="presets"></div>
+            <details class="jl-quand__precis" id="precis">
+              <summary>Dates précises</summary>
+              <div class="jl-quand__dates">
+                <label class="jl-adv__champ"><span class="jl-adv__lb">Rendue à partir du</span>
+                  <input type="date" id="dateMin" aria-label="Date de début"></label>
+                <label class="jl-adv__champ"><span class="jl-adv__lb">Jusqu'au</span>
+                  <input type="date" id="dateMax" aria-label="Date de fin"></label>
+              </div>
+            </details>
           </div>
         </div>
 

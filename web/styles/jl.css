@@ -1747,3 +1747,39 @@ mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2p
 .jl-num-codes ul{list-style:none;margin:0;padding:0}
 .jl-num-codes li{padding:10px 0;border-top:1px solid var(--line);line-height:1.5}
 .jl-num-codes li:first-child{border-top:0}
+/* Recherche v2 : réglette « Rendues entre » reprise de hub.html (.quand-bloc 137,
+   .range 148-155, .presets 156-161, .rlab 218), en classes jl- (3/10/2026). */
+.jl-quand{flex:1 1 100%;border-top:1px solid var(--line);padding-top:var(--space-3)}
+.jl-quand__lab{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:500;margin:0 6px 4px}
+.jl-range{position:relative;height:50px;margin:6px 6px 0}
+.jl-range input[type=range]{position:absolute;left:0;right:0;top:8px;width:100%;margin:0;pointer-events:none;
+  -webkit-appearance:none;appearance:none;background:transparent;height:20px}
+.jl-range input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:18px;height:18px;border-radius:50%;
+  background:var(--white);border:2.5px solid var(--teal);cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.jl-range input[type=range]::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;
+  background:var(--white);border:2.5px solid var(--teal);cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.jl-range input[type=range]::-moz-range-track{background:transparent}
+.jl-range input[type=range]:focus{outline:none}
+.jl-range input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--teal-xl),0 0 0 5px var(--teal)}
+.jl-range input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--teal-xl),0 0 0 5px var(--teal)}
+.jl-range__track{position:absolute;left:9px;right:9px;top:16px;height:4px;border-radius:2px;background:var(--line)}
+.jl-range__fill{position:absolute;top:0;bottom:0;background:var(--teal);border-radius:2px}
+.jl-range__ticks{position:absolute;left:9px;right:9px;top:34px;display:flex;justify-content:space-between;
+  font-family:var(--font-mono);font-size:9.5px;color:var(--muted)}
+.jl-quand__presets{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:var(--space-2)}
+.jl-quand__preset{font:inherit;font-size:12px;color:var(--ink);background:var(--teal-xl);border:0;padding:5px 12px;border-radius:5px;cursor:pointer}
+.jl-quand__preset:hover{color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal)}
+.jl-quand__preset.is-on{background:var(--teal);color:#fff;font-weight:600}
+.jl-quand__preset:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.jl-quand__precis{margin-top:var(--space-2);font-size:var(--text-sm)}
+.jl-quand__precis summary{cursor:pointer;color:var(--muted);font-size:12px;width:max-content}
+.jl-quand__precis summary:hover{color:var(--teal)}
+.jl-quand__dates{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2)}
+.jl-quand__dates .jl-adv__lb{display:block}
+/* Doctrine : la fiche, plus belle et toujours visible au défilement (3/10/2026). */
+.jl-doclec .jl-fiche{position:sticky;top:24px;align-self:start;padding:20px 22px;border:1px solid var(--line);border-radius:var(--radius-lg,8px);box-shadow:0 4px 18px rgba(0,0,0,.04)}
+.jl-fiche h3{margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.jl-fiche .jl-dl dt{font-size:var(--text-3xs);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:12px;cursor:help}
+.jl-fiche .jl-dl dt:first-child{margin-top:0}
+.jl-fiche .jl-dl dd{margin:3px 0 0;color:var(--ink)}
+.jl-txt a[href^="http"]{word-break:break-all}

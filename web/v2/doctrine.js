@@ -432,11 +432,17 @@
 
   /* La fiche ne montre QUE les six champs mesurés disponibles (§10.5), chacun
      avec sa provenance. Un champ vide est marqué vide, jamais comblé. */
+  /* 3/10/2026 : fiche épurée — un champ vide n'est pas affiché, et la
+     provenance passe en infobulle du libellé au lieu d'une pastille « i ». */
   function champ(libelle, valeur, provenance) {
-    return '<dt>' + esc(libelle) + '</dt><dd>' +
-      (valeur ? esc(valeur) : '<span class="jl-vide">non renseigné</span>') +
-      (provenance ? ' <span class="jl-provenance" title="' + esc(provenance) + '">i</span>' : '') +
-      '</dd>';
+    if (!valeur) return '';
+    return '<dt' + (provenance ? ' title="' + esc(provenance) + '"' : '') + '>' + esc(libelle) + '</dt><dd>' +
+      esc(valeur) + '</dd>';
+  }
+  /* Liens cliquables dans le texte (« Sources https://www.service-public.fr/… »). */
+  function lier(t) {
+    return esc(t).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]])/g,
+      '<a href="$1" target="_blank" rel="external noopener nofollow">$1 ↗</a>');
   }
 
   function rendreDocument(d) {
@@ -448,22 +454,13 @@
       champ('Organisme', d.organisme, "Champ `organisme` servi par /api/decision. Disponible à 100 % sur ce fonds (inventaire des champs §10.2).") +
       champ('Type de document', d.formation, "Champ `formation` de l'API, qui porte le `type` de l'entrepôt (avis, conseil, décision, conclusion…). 100 %.") +
       champ('Administration concernée', d.juridiction, "Champ `juridiction` de l'API, qui porte le champ `administration` de l'entrepôt. 100 %.") +
-      '<dt>Date</dt><dd>' + (d.date
-        ? esc(dateLisible(d.date)) + ' <span class="jl-provenance" title="' + esc(titreProvenanceDate(d.id, d.date)) + '">' +
-          (estCada ? esc(jjmmaaaa(d.date)) : 'i') + '</span>'
-        : '<span class="jl-vide">non renseignée</span>') + '</dd>' +
+      (d.date ? '<dt title="' + esc(titreProvenanceDate(d.id, d.date)) + '">Date</dt><dd>' + esc(dateLisible(d.date)) + '</dd>' : '') +
       champ('Sujet', d.sujet, "Champ `sujet`. Taxonomie hiérarchique de la CADA, servie comme une chaîne brute : elle n'est jamais découpée en thème et mots-clés (inventaire §10.3). Mesuré à 87,5 % sur les documents complets.") +
-      '<dt>Source officielle</dt><dd>' + (d.source_url
-        ? '<a href="' + esc(d.source_url) + '" target="_blank" rel="external noopener nofollow">' +
-          esc(d.source_url) + ' ↗</a> <span class="jl-provenance" title="Champ `source_url`, disponible à 100 % sur ce fonds : c\'est le fonds le mieux outillé du site pour le lien officiel (inventaire §10.5).">100 % sur ce fonds</span>'
-        : '<span class="jl-vide">non renseignée</span>') + '</dd>' +
+      (d.source_url ? '<dt>Source officielle</dt><dd><a class="jl-bouton jl-bouton--ghost jl-bouton--sm" href="' +
+        esc(d.source_url) + '" target="_blank" rel="external noopener nofollow">Ouvrir la source ↗</a></dd>' : '') +
       (s.sens ? '<dt>Sens</dt><dd><span class="jl-sens">' + esc(s.sens) + '</span> ' +
         '<span class="jl-provenance" title="Le sens d\'un avis CADA n\'est servi par AUCUN champ de l\'API. Il est écrit à la fin du texte, après « ' + MARQUEUR_SENS + ' ». C\'est là qu\'il a été lu, et il est retiré du corps du texte pour ne pas être pris pour un paragraphe de motivation.">lu en fin de texte</span></dd>' : '') +
       '</dl>' +
-      '<p class="jl-honnetete jl-honnetete--nue" data-espace="haut">Ce que cette fiche ne peut pas dire : ' +
-      'le numéro d\'affaire du Conseil d\'État derrière une conclusion de rapporteur public (il est dans ' +
-      '`tags`, sous la forme <code>AFF:427460</code>, jamais extrait), et le lien vers la décision ' +
-      'juridictionnelle qui a suivi l\'avis. Mesuré, pas supposé.</p>' +
       '</aside>';
 
     return '<p class="jl-fil"><button type="button" class="jl-bouton jl-bouton--ghost jl-bouton--sm" data-back>← Revenir</button></p>' +
@@ -478,7 +475,7 @@
         '<span class="jl-provenance" title="Lu en fin de texte, après « ' + MARQUEUR_SENS + ' ». Ce n\'est pas un champ de l\'API.">lu en fin de texte</span></p>' : '') +
       '<div class="jl-doclec">' +
         '<div class="jl-txt">' +
-          (paras.length ? paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('')
+          (paras.length ? paras.map(function (p) { return '<p>' + lier(p) + '</p>'; }).join('')
             : '<p class="jl-warnp">texte intégral non renvoyé par l\'API pour ce document</p>') +
           (s.motif ? '<h3 class="jl-titre jl-titre--nu">Motivation, telle qu\'elle suit le sens</h3><p>' + esc(s.motif) + '</p>' : '') +
 
