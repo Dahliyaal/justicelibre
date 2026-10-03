@@ -42,7 +42,7 @@ from ssr import (                                    # noqa: F401
 )
 import datetime as _dt
 
-ASSET_V = "20261003b"          # ?v= des trois fichiers du normaliseur
+ASSET_V = "20261003c"          # ?v= des trois fichiers du normaliseur
 
 # ─────────────────────────────────────────────────────────────────────────
 #  HEAD commun

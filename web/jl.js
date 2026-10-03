@@ -1053,6 +1053,12 @@ document.addEventListener('click', function (e) {
   var id = (a.getAttribute('href') || '').slice(1), t = id && document.getElementById(id);
   if (!t) return;
   e.preventDefault();
+  // La chronologie est dans l'onglet « Dossier » et le paragraphe dans
+  // l'onglet « Texte » : sans basculer d'onglet, la cible était cachée et
+  // rien ne se passait (3/10/2026).
+  var pane = t.closest('.jl-pane--texte');
+  var radio = document.getElementById('t-texte');
+  if (pane && radio && !radio.checked) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
   history.replaceState(null, '', '#' + id);
   document.querySelectorAll('mark.jl-mark').forEach(function (m) {
     m.replaceWith(document.createTextNode(m.textContent));
