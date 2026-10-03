@@ -274,7 +274,27 @@ def _rendre_texte(paras: list[str], date: str):
     `dates`  : [(iso, libellé_fr, id_para)] pour la chronologie.
     """
     html_parts, toc, ancres, dates = [], [], {}, []
+    # Visas / motifs ancrés seulement si le texte n'a AUCUN titre à lui (CE) :
+    # sinon ils tombaient au milieu des parties d'un arrêt de cassation.
+    vu_fait = consid_fait = any(_est_titre(x) for x in paras)
     for i, p in enumerate(paras):
+        # 3/10/2026 : les décisions du Conseil d'État (et beaucoup d'autres)
+        # n'ont pas de titres de section ; leur plan réel, ce sont les visas,
+        # les motifs et le dispositif. On ancre la PREMIÈRE ligne de chacun,
+        # sans réécrire le texte : le libellé du plan nomme la partie.
+        ps = p.strip()
+        if re.fullmatch(r"D[\s\u00a0]*[EÉ][\s\u00a0]*C[\s\u00a0]*I[\s\u00a0]*D[\s\u00a0]*E[\s\u00a0]*:?[\s\u00a0]*", ps.split("\n")[0], re.I):
+            html_parts.append(f'<h2 class="jl-titre jl-titre--nu" id="s-decide">{esc(ps)}</h2>')
+            toc.append(("s-decide", "Dispositif (décide)", "l2"))
+            continue
+        if not vu_fait and re.match(r"^Vu\b", ps):
+            vu_fait = True
+            toc.append(("s-visas", "Visas", "l2"))
+            html_parts.append('<span id="s-visas"></span>')
+        elif not consid_fait and re.match(r"^(Considérant|Sur |1\. )", ps):
+            consid_fait = True
+            toc.append(("s-motifs", "Motifs", "l2"))
+            html_parts.append('<span id="s-motifs"></span>')
         if _est_titre(p):
             pid = "s-" + _slug(p)
             html_parts.append(
@@ -596,22 +616,9 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 
     entete_html = ""
     if entete:
-        # 3/10/2026 : l'en-tête brut (texte à chasse fixe, filets de tirets,
-        # « R É P U B L I Q U E ») était laid. On le nettoie et on le compose
-        # comme l'en-tête d'un document officiel ; l'ouvrir reste facultatif.
-        lignes = []
-        for ln in (x for bloc in entete for x in str(bloc).split("\n")):
-            t = ln.strip()
-            if not t or re.fullmatch(r"[-_=*.\s]+", t):
-                continue
-            if re.fullmatch(r"(?:\S {1,3}){3,}\S", t):  # lettres espacées
-                t = " ".join(w.replace(" ", "") for w in re.split(r" {2,}", t))
-                if t.replace(" ", "") == "RÉPUBLIQUEFRANÇAISE":
-                    t = "RÉPUBLIQUE FRANÇAISE"
-            lignes.append(t)
-        corps = "".join(f'<span class="jl-entete__l">{esc(t)}</span>' for t in lignes)
-        # Affiché d'emblée, sans rien à déplier (3/10/2026).
-        entete_html = f'<div class="jl-entete jl-entete--brut" id="entete">{corps}</div>'
+        # 3/10/2026 : l'en-tête tel que publié (chasse fixe, filets du greffe),
+        # affiché d'emblée, sans rien à déplier.
+        entete_html = f'<div class="jl-entete" id="entete">{esc(chr(10).join(entete))}</div>'
         toc.insert(1 if somm_html else 0, ("entete", "En-tête de la décision", "l2"))
 
     toc_html = ""

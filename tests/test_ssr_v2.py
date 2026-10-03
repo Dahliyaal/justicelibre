@@ -325,8 +325,8 @@ def test_entete_du_greffe_replie_et_paragraphes_ancres():
         "full_text": "CIV. 2\n\nCOUR DE CASSATION\n\nAU NOM DU PEUPLE FRANÇAIS\n\n"
                      "Faits et procédure\n\n1. Premier paragraphe.\n\n"
                      "2. Second paragraphe."})
-    assert 'jl-entete--brut' in h and "AU NOM DU PEUPLE" in h and "<details" not in h.split('id="entete"')[0][-200:]
-    assert 'R É P U B L' not in h and '-----' not in h
+    assert 'class="jl-entete" id="entete"' in h and "AU NOM DU PEUPLE" in h
+    assert '<details' not in h.split('id="entete"')[0][-120:], "l'en-tête ne doit plus se déplier"
     assert 'id="p1"' in h and 'id="p2"' in h and 'href="#p1"' in h
     assert 'id="s-faits-et-procedure"' in h, "le titre du texte n'est pas ancré"
     assert 'class="jl-toc"' in h
