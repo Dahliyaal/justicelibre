@@ -17,13 +17,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/styles/jl.css?v=27">
+<link rel="stylesheet" href="/styles/jl.css?v=28">
 <script>/* Résolveur de thème avant le premier rendu (évite le flash blanc).
    Même dispositif que recherche.html:21-24 et que les 8 pages prod. Clé unique : jl-theme. */
 (function(){try{var t=localStorage.getItem('jl-theme')||localStorage.getItem('hub-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <script defer src="/topbar.js?v=5"></script>
 <script defer src="/jl.js?v=2"></script>
-<script defer src="/v2/textes.js?v=5"></script>
+<script defer src="/v2/textes.js?v=6"></script>
 </head>
 <body>
 <div data-topbar-mount></div>
@@ -48,6 +48,11 @@
                placeholder="art. 1240 C. civ. · L. 1152-1 du code du travail · CPC 748-6 · loi n° 78-17 · responsabilité">
         <button type="submit" class="jl-barre-reseau__go" id="goBtn">Chercher</button>
       </form>
+      <div class="jl-ouvrir" role="radiogroup" aria-label="Une référence ouvre">
+        <span class="jl-muted">Une référence ouvre :</span>
+        <button type="button" role="radio" data-ouvrir="fiche">la fiche de l’article</button>
+        <button type="button" role="radio" data-ouvrir="carte">la carte complète</button>
+      </div>
     </div>
 
     <div class="jl-advsum" id="advSum"></div>

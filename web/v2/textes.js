@@ -282,6 +282,32 @@
 
   /* ═══════════════ 4. Résolution et fiche d'article ════════════════════ */
 
+  /* Réglage « Une référence ouvre : la fiche / la carte » (mémorisé). */
+  function modeOuvrir() {
+    try { return localStorage.getItem('jl-textes-ouvrir') === 'carte' ? 'carte' : 'fiche'; } catch (e) { return 'fiche'; }
+  }
+  function urlOuvrir(code, num) {
+    var c = encodeURIComponent(code), n = encodeURIComponent(num);
+    var d = S.date ? (modeOuvrir() === 'carte' ? '&' : '?') + 'date=' + encodeURIComponent(S.date) : '';
+    return modeOuvrir() === 'carte'
+      ? '/v2/article.html?code=' + c + '&num=' + n + d
+      : LOI_BASE + '/' + c + '/' + n + d;
+  }
+  function majOuvrir() {
+    var m = modeOuvrir();
+    document.querySelectorAll('[data-ouvrir]').forEach(function (b) {
+      var on = b.getAttribute('data-ouvrir') === m;
+      b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-ouvrir]');
+    if (!b) return;
+    try { localStorage.setItem('jl-textes-ouvrir', b.getAttribute('data-ouvrir')); } catch (x) {}
+    majOuvrir();
+  });
+  document.addEventListener('DOMContentLoaded', majOuvrir);
+
   async function resoudreArticle(code, num, date) {
     var c = J.cacheLoiGet(code, num, date || null);
     if (c) return c;
@@ -531,6 +557,12 @@
           ? await resoudreNumero(lue.numero)
           : await resoudreArticle(lue.code, lue.num, S.date);
         if (seq !== S.seq) return;
+        /* 3/10/2026 : une référence d'article résolue mène DIRECTEMENT à sa
+           page, sans liste de résultats. Le réglage choisit laquelle. */
+        if (lue.genre === 'article' && d && !d.error && d.legiarti) {
+          location.href = urlOuvrir(lue.code, lue.num);
+          return;
+        }
         S.ref = lue; S.article = d;
         rendreFiche();
       })();

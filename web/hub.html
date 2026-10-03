@@ -324,6 +324,9 @@ table.tb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:v
 <div class="proto">prototype local · données réelles de justicelibre.org</div>
 
 <script>
+/* 3/10/2026 : la recherche « Textes » de ce prototype est remplacée par la v2. */
+(function(){var h=location.hash||'';if(/scope=textes/.test(h)||/^#\/textes/.test(h)){var q=(h.match(/[?&]q=([^&]*)/)||[])[1]||'';location.replace('/v2/textes.html'+(q?'?q='+q:''));}})();
+
 /* ───────────────────────── configuration ───────────────────────── */
 const API = (location.hostname === 'justicelibre.org') ? '' : 'https://justicelibre.org';
 // ?theme=light | ?theme=dark force le thème (sinon : celui du système). Mémorisé.

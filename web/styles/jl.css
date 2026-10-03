@@ -1738,3 +1738,7 @@ mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2p
   background:var(--white,#fff);border:1px solid var(--line);border-radius:var(--radius-lg,8px);padding:22px 26px}
 .jl-allerloin__t{margin:0;max-width:640px;line-height:1.6}
 .jl-allerloin__note{margin:14px 0 0;font-size:var(--text-sm)}
+/* Textes : réglage « Une référence ouvre : fiche / carte » (3/10/2026). */
+.jl-ouvrir{display:flex;justify-content:center;align-items:center;gap:6px;margin:12px 0 0;font-size:var(--text-sm)}
+.jl-ouvrir button{border:1px solid var(--line);background:var(--white,#fff);color:var(--body);padding:4px 12px;border-radius:999px;cursor:pointer;font:inherit}
+.jl-ouvrir button.is-on{background:var(--teal);border-color:var(--teal);color:#fff}
