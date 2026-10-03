@@ -1728,3 +1728,7 @@ mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2p
 /* Article : « Historique » à la taille des autres boutons, avec de l'air (3/10/2026). */
 .jl-bouton--histo{margin-top:6px}
 .jl-leadrow{margin-top:14px}
+/* Exactement la taille de « Copier pour un LLM » (.jl-bouton), en vert plein. */
+.jl-bouton--histo{background:var(--teal);border-color:var(--teal);color:#fff}
+.jl-bouton--histo:hover{background:var(--teal-l);border-color:var(--teal-l);color:#fff}
+.jl-bouton--histo svg{width:18px;height:18px}

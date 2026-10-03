@@ -257,7 +257,7 @@
          plus rien à ouvrir). */
       '<div class="jl-leadrow"><div class="jl-lead">En date du <b class="jl-mono">' + fmtDate(at) + '</b> ' +
         A.datePopHTML(M, M.versions.map(function (v) { return v.date_debut; })) + '</div>' +
-      '<a class="jl-bouton jl-bouton--cta jl-bouton--sm jl-bouton--histo" href="historique.html' + dq() +
+      '<a class="jl-bouton jl-bouton--histo" href="historique.html' + dq() +
         '" title="Toutes les rédactions, diff mot à mot, histoire de l’article">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>' +
