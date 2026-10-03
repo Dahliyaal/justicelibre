@@ -391,6 +391,9 @@
   async function ouvrir(id) {
     S.id = id; syncUrl();
     var box = $('#lecture');
+    // 3/10/2026 : en lecture d'un document, la recherche s'efface (on lit) ;
+    // « ← Revenir » la fait réapparaître.
+    document.body.classList.add('jl-en-lecture');
     $('#fondsBloc').hidden = true;
     $('#liste').innerHTML = '';
     box.hidden = false;
@@ -421,6 +424,7 @@
 
   function fermer() {
     S.id = ''; syncUrl();
+    document.body.classList.remove('jl-en-lecture');
     $('#lecture').hidden = true;
     if (S.q) { montrerFonds(false); renderResults(); }
     else montrerFonds(true);
@@ -477,7 +481,7 @@
           (paras.length ? paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('')
             : '<p class="jl-warnp">texte intégral non renvoyé par l\'API pour ce document</p>') +
           (s.motif ? '<h3 class="jl-titre jl-titre--nu">Motivation, telle qu\'elle suit le sens</h3><p>' + esc(s.motif) + '</p>' : '') +
-          '<p class="jl-provenance" data-espace="haut" title="Texte servi par /api/decision?source=doctrine. Le champ `text_segments` est toujours vide sur ce fonds : le découpage en paragraphes est fait à l\'affichage, par JL.decouperTexte, et n\'est pas une structure d\'origine.">découpage en paragraphes fait à l\'affichage</p>' +
+
         '</div>' +
         fiche +
       '</div>';
