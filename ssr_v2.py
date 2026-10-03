@@ -42,7 +42,7 @@ from ssr import (                                    # noqa: F401
 )
 import datetime as _dt
 
-ASSET_V = "20260913"          # ?v= des trois fichiers du normaliseur
+ASSET_V = "20261003"          # ?v= des trois fichiers du normaliseur
 
 # ─────────────────────────────────────────────────────────────────────────
 #  HEAD commun
@@ -611,7 +611,7 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
             lignes.append(t)
         corps = "".join(f'<span class="jl-entete__l">{esc(t)}</span>' for t in lignes)
         # Affiché d'emblée, sans rien à déplier (3/10/2026).
-        entete_html = f'<div class="jl-entete jl-entete--doc" id="entete">{corps}</div>'
+        entete_html = f'<div class="jl-entete jl-entete--brut" id="entete">{corps}</div>'
         toc.insert(1 if somm_html else 0, ("entete", "En-tête de la décision", "l2"))
 
     toc_html = ""

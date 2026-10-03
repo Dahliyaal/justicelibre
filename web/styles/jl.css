@@ -1719,3 +1719,6 @@ body.jl-en-lecture #hint,body.jl-en-lecture #advSum,body.jl-en-lecture #srcState
   text-transform:uppercase;color:var(--body);background:var(--white,#fff);border:1px solid var(--line);border-radius:var(--radius);
   padding:22px 24px;margin:0 0 24px;white-space:normal}
 .jl-entete__l{display:block}
+/* En-tête du greffe : style d'origine (chasse fixe, encadré), affiché sans dépliage (3/10/2026). */
+.jl-entete--brut{white-space:normal;margin:0 0 24px}
+.jl-entete--brut .jl-entete__l{display:block}
