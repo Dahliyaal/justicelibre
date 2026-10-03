@@ -42,7 +42,7 @@ from ssr import (                                    # noqa: F401
 )
 import datetime as _dt
 
-ASSET_V = "20261003c"          # ?v= des trois fichiers du normaliseur
+ASSET_V = "20261003d"          # ?v= des trois fichiers du normaliseur
 
 # ─────────────────────────────────────────────────────────────────────────
 #  HEAD commun
@@ -988,18 +988,20 @@ def render_law(code: str, num: str, data: dict) -> str:
               + cta + '</div>')
 
     carte_href = f"/v2/article.html?code={quote(code, safe='')}&num={quote(num, safe='')}"
-    carte = ('<section id="carte"><h2 class="jl-surtitre jl-surtitre--flex">'
-             'Carte de l\'article</h2>'
-             f'<p><a class="jl-bouton jl-bouton--ghost jl-bouton--sm" '
-             f'href="{esc(carte_href)}">Carte de l\'article</a> '
-             '<span class="jl-muted">page dynamique : le texte qui l\'a écrit, '
-             'les textes pris pour lui, l\'historique des rédactions. '
-             'Bientôt.</span></p>'
-             '<div class="jl-honnetete" data-espace="haut">Cette page ne montre que '
-             'la rédaction servie par l\'entrepôt. Les versions voisines, le plan '
-             'complet du code au-dessus de l\'article et les décisions qui le citent '
-             'existent en base mais ne sont pas encore servis par une route '
-             'serveur.</div></section>')
+    # 3/10/2026 : bloc refait (« pas de respiration, laid, perdu ») : une
+    # carte claire avec un titre, une phrase et un bouton ; la note sur ce
+    # que la page ne montre pas, réécrite pour un lecteur.
+    carte = ('<section id="carte" class="jl-allerloin">'
+             '<h2 class="jl-titre-section">Aller plus loin</h2>'
+             '<div class="jl-allerloin__carte">'
+             '<p class="jl-allerloin__t">Voir la carte complète de l\'article : le texte '
+             'qui l\'a écrit, les arrêtés pris pour lui, toutes ses rédactions '
+             'et les décisions qui le citent.</p>'
+             f'<a class="jl-bouton jl-bouton--histo" href="{esc(carte_href)}">'
+             'Ouvrir la carte de l\'article →</a></div>'
+             '<p class="jl-muted jl-allerloin__note">Cette page affiche la rédaction '
+             'en vigueur de l\'article ; son historique et sa jurisprudence sont '
+             'sur la carte.</p></section>')
 
     pied = ('<footer class="jl-pied">Source : base LEGI (Légifrance), archive '
             '<a href="https://echanges.dila.gouv.fr/OPENDATA/LEGI/" '

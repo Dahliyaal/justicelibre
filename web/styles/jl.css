@@ -1732,3 +1732,9 @@ mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2p
 .jl-bouton--histo{background:var(--teal);border-color:var(--teal);color:#fff}
 .jl-bouton--histo:hover{background:var(--teal-l);border-color:var(--teal-l);color:#fff}
 .jl-bouton--histo svg{width:15px;height:15px}
+/* Page /loi/ : bloc « Aller plus loin » aéré (3/10/2026). */
+.jl-allerloin{margin-top:56px}
+.jl-allerloin__carte{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 28px;
+  background:var(--white,#fff);border:1px solid var(--line);border-radius:var(--radius-lg,8px);padding:22px 26px}
+.jl-allerloin__t{margin:0;max-width:640px;line-height:1.6}
+.jl-allerloin__note{margin:14px 0 0;font-size:var(--text-sm)}
