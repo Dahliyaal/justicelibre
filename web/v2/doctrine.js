@@ -185,10 +185,12 @@
     var types = Object.keys(s.types || {}).map(function (t) {
       return '<span class="jl-chip">' + esc(t) + ' · ' + J.nb(s.types[t]) + '</span>';
     }).join(' ');
-    box.innerHTML = '<h2 class="jl-titre jl-titre--nu">' + esc(s.nom) +
-      ' <span class="jl-muted jl-petit">· ' + J.nb(s.total) + ' documents</span></h2>' +
+    /* 3/10/2026 : même typographie que « Nouveautés » de la recherche
+       (titre .jl-titre, phrase .jl-lead) au lieu d'un petit titre et d'un
+       surtitre en capitales. */
+    box.innerHTML = '<h2 class="jl-titre">' + esc(s.nom) + '</h2>' +
+      '<p class="jl-lead">' + J.nb(s.total) + ' documents · les derniers entrés en base.</p>' +
       (types ? '<p class="jl-advsum">' + types + '</p>' : '') +
-      '<p class="jl-surtitre">Derniers documents entrés en base</p>' +
       '<div class="jl-resultats">' + (s.derniers || []).map(function (d) {
         return '<article class="jl-resultat">' +
           '<div class="jl-resultat__meta">' +
