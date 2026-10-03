@@ -216,7 +216,9 @@
     var s = String(q || '').slice(0, 500);
     if (s.normalize) s = s.normalize('NFKC');
     s = s.replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[’`]/g, "'")
-      .replace(/[\u200b-\u200d\ufeff]/g, '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+      .replace(/[\u200b-\u200d\ufeff]/g, '').replace(/,/g, ' ')
+      .replace(/\s+[-·•:|\/]\s+/g, ' ').replace(/[·•]/g, ' ')   // « Art. 145 · Code de procédure civile »
+      .replace(/\s+/g, ' ').trim();
     if (!s) return null;
     /* « Cass. » désigne la Cour de cassation, pas le Code des assurances. */
     if (/(^|\s)cass\.?(\s|$)/i.test(s)) return null;
