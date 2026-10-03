@@ -30,7 +30,7 @@
   /* La lecture d'un article ouvre la PAGE SERVEUR /loi/<sigle>/<num> : c'est
      elle que Google indexe, pas une vue JS (même choix que DECISION_BASE,
      recherche.js:25). En local, on pointe la prod. */
-  var LOI_BASE = (location.hostname === 'justicelibre.org') ? '/loi' : 'https://justicelibre.org/loi';
+  var LOI_BASE = (location.hostname === 'justicelibre.org' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) ? '/loi' : 'https://justicelibre.org/loi';
   var PAGE = 30;
 
   var J, $, $$, esc;   /* renseignés au démarrage, quand JL est chargé */

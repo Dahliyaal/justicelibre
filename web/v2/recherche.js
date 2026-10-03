@@ -22,7 +22,7 @@
   var API = (location.hostname === 'justicelibre.org') ? '' : 'https://justicelibre.org';
   /* La lecture d'une décision ouvre la PAGE SERVEUR /decision/<source>/<id> :
      c'est elle que Google indexe, pas une vue JS. En local, on pointe la prod. */
-  var DECISION_BASE = (location.hostname === 'justicelibre.org') ? '/decision' : 'https://justicelibre.org/decision';
+  var DECISION_BASE = (location.hostname === 'justicelibre.org' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) ? '/decision' : 'https://justicelibre.org/decision';
 
   var J, $, $$, esc;      /* renseignés au démarrage, quand JL est chargé */
 
