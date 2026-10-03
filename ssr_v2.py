@@ -610,10 +610,8 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
                     t = "RÉPUBLIQUE FRANÇAISE"
             lignes.append(t)
         corps = "".join(f'<span class="jl-entete__l">{esc(t)}</span>' for t in lignes)
-        entete_html = (
-            '<details class="jl-entete-fold" id="entete">'
-            '<summary class="jl-entete__sum">Voir l\'en-tête du greffe</summary>'
-            f'<div class="jl-entete jl-entete--doc">{corps}</div></details>')
+        # Affiché d'emblée, sans rien à déplier (3/10/2026).
+        entete_html = f'<div class="jl-entete jl-entete--doc" id="entete">{corps}</div>'
         toc.insert(1 if somm_html else 0, ("entete", "En-tête de la décision", "l2"))
 
     toc_html = ""
