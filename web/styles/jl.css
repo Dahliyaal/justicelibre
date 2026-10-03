@@ -1697,3 +1697,12 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 @keyframes jl-flash{0%,100%{box-shadow:0 0 0 0 transparent}20%,60%{box-shadow:0 0 0 3px var(--warn)}}
 .jl-flash{animation:jl-flash 1.8s ease-in-out 1;position:relative;z-index:2}
 .jl-cl__row.jl-flash{background:var(--warn-bg,#fdf3e1)}
+/* Doctrine : respirer comme la recherche (3/10/2026). */
+#fondsBloc{margin-top:56px}
+#topline:not(:empty){margin-top:28px}
+#fondsBloc .jl-doc-grid{gap:18px}
+#derniers > .jl-titre{margin:56px 0 14px}
+#derniers > .jl-advsum{margin:0 0 30px;display:flex;flex-wrap:wrap;gap:8px}
+#derniers > .jl-surtitre{margin:0 0 14px}
+/* CNIL « bientôt » : l'étiquette chevauchait le compteur → en bas à droite. */
+.jl-tuile--bientot::after{top:auto;bottom:var(--space-3)}
