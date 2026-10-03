@@ -42,7 +42,7 @@ from ssr import (                                    # noqa: F401
 )
 import datetime as _dt
 
-ASSET_V = "20261003"          # ?v= des trois fichiers du normaliseur
+ASSET_V = "20261003b"          # ?v= des trois fichiers du normaliseur
 
 # ─────────────────────────────────────────────────────────────────────────
 #  HEAD commun
@@ -284,8 +284,14 @@ def _rendre_texte(paras: list[str], date: str):
         # sans réécrire le texte : le libellé du plan nomme la partie.
         ps = p.strip()
         if re.fullmatch(r"D[\s\u00a0]*[EÉ][\s\u00a0]*C[\s\u00a0]*I[\s\u00a0]*D[\s\u00a0]*E[\s\u00a0]*:?[\s\u00a0]*", ps.split("\n")[0], re.I):
-            html_parts.append(f'<h2 class="jl-titre jl-titre--nu" id="s-decide">{esc(ps)}</h2>')
+            # Seule la ligne « D E C I D E : » est le repère ; ce qui suit dans
+            # le même bloc (articles du dispositif) reste du texte courant.
+            lignes = [x.strip() for x in ps.split("\n")]
+            html_parts.append(f'<p class="jl-decide" id="s-decide">{esc(lignes[0])}</p>')
             toc.append(("s-decide", "Dispositif (décide)", "l2"))
+            for x in lignes[1:]:
+                if x and not re.fullmatch(r"[-_=*.\s]+", x):
+                    html_parts.append(f'<p>{_lier_articles(x, date)}</p>')
             continue
         if not vu_fait and re.match(r"^Vu\b", ps):
             vu_fait = True
@@ -777,7 +783,7 @@ def _sec_chronologie(dates_txt, date: str, juri: str, source: str) -> str:
             f'<div class="jl-chrono__d">{esc(aff)}</div>'
             + (f'<div class="jl-chrono__j">{j}</div>' if j else "")
             + '<div class="jl-chrono__w">' + _prov(ptxt, pexp)
-            + (f' <a href="#{esc(pid)}">voir</a>' if pid else "") + '</div></li>')
+            + (f' <a href="#{esc(pid)}" data-jl-surligne="{esc(aff)}">voir</a>' if pid else "") + '</div></li>')
     return ('<section id="chronologie">'
             '<h2 class="jl-surtitre jl-surtitre--flex">Chronologie '
             + _prov("texte + métadonnées",

@@ -1722,3 +1722,6 @@ body.jl-en-lecture #hint,body.jl-en-lecture #advSum,body.jl-en-lecture #srcState
 /* En-tête du greffe : style d'origine (chasse fixe, encadré), affiché sans dépliage (3/10/2026). */
 .jl-entete--brut{white-space:normal;margin:0 0 24px}
 .jl-entete--brut .jl-entete__l{display:block}
+mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2px var(--warn);border-radius:2px}
+/* « D E C I D E : » du Conseil d'État : repère discret, comme dans la décision (3/10/2026). */
+.jl-decide{font-weight:600;letter-spacing:.08em;margin:1.6em 0 .6em}

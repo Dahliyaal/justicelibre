@@ -1044,3 +1044,30 @@
 
   J.bindDatePop = bindDatePop;
 })(window);
+
+/* 3/10/2026 : « voir » d'une date de la chronologie → le paragraphe défile,
+   clignote, et la date y est surlignée. */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a[data-jl-surligne]');
+  if (!a) return;
+  var id = (a.getAttribute('href') || '').slice(1), t = id && document.getElementById(id);
+  if (!t) return;
+  e.preventDefault();
+  history.replaceState(null, '', '#' + id);
+  document.querySelectorAll('mark.jl-mark').forEach(function (m) {
+    m.replaceWith(document.createTextNode(m.textContent));
+  });
+  var cible = a.getAttribute('data-jl-surligne') || '';
+  var w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT), n;
+  var norm = function (x) { return x.replace(/\s+/g, ' ').replace(/^1er /, '1er '); };
+  while ((n = w.nextNode())) {
+    var i = n.nodeValue.indexOf(cible);
+    if (i < 0) i = n.nodeValue.toLowerCase().indexOf(norm(cible).toLowerCase());
+    if (i >= 0) {
+      var r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + cible.length);
+      var m = document.createElement('mark'); m.className = 'jl-mark'; r.surroundContents(m); break;
+    }
+  }
+  t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  t.classList.remove('jl-flash'); void t.offsetWidth; t.classList.add('jl-flash');
+});
