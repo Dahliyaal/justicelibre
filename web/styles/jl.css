@@ -1725,3 +1725,6 @@ body.jl-en-lecture #hint,body.jl-en-lecture #advSum,body.jl-en-lecture #srcState
 mark.jl-mark{background:var(--warn-bg,#fdf3e1);color:inherit;box-shadow:0 0 0 2px var(--warn);border-radius:2px}
 /* « D E C I D E : » du Conseil d'État : repère discret, comme dans la décision (3/10/2026). */
 .jl-decide{font-weight:600;letter-spacing:.08em;margin:1.6em 0 .6em}
+/* Article : « Historique » à la taille des autres boutons, avec de l'air (3/10/2026). */
+.jl-bouton--histo{margin-top:6px}
+.jl-leadrow{margin-top:14px}
