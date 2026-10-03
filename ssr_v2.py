@@ -596,12 +596,24 @@ def render_decision(source: str, decision_id: str, data: dict) -> str:
 
     entete_html = ""
     if entete:
+        # 3/10/2026 : l'en-tête brut (texte à chasse fixe, filets de tirets,
+        # « R É P U B L I Q U E ») était laid. On le nettoie et on le compose
+        # comme l'en-tête d'un document officiel ; l'ouvrir reste facultatif.
+        lignes = []
+        for ln in (x for bloc in entete for x in str(bloc).split("\n")):
+            t = ln.strip()
+            if not t or re.fullmatch(r"[-_=*.\s]+", t):
+                continue
+            if re.fullmatch(r"(?:\S {1,3}){3,}\S", t):  # lettres espacées
+                t = " ".join(w.replace(" ", "") for w in re.split(r" {2,}", t))
+                if t.replace(" ", "") == "RÉPUBLIQUEFRANÇAISE":
+                    t = "RÉPUBLIQUE FRANÇAISE"
+            lignes.append(t)
+        corps = "".join(f'<span class="jl-entete__l">{esc(t)}</span>' for t in lignes)
         entete_html = (
-            '<details class="jl-fold jl-entete-fold" id="entete">'
-            '<summary class="jl-fold__sum">En-tête officiel de la décision '
-            '<span class="jl-muted">(mise en page du greffe, déjà reprise dans la '
-            'bande d\'identité)</span></summary>'
-            f'<div class="jl-entete">{esc(chr(10).join(entete))}</div></details>')
+            '<details class="jl-entete-fold" id="entete">'
+            '<summary class="jl-entete__sum">Voir l\'en-tête du greffe</summary>'
+            f'<div class="jl-entete jl-entete--doc">{corps}</div></details>')
         toc.insert(1 if somm_html else 0, ("entete", "En-tête de la décision", "l2"))
 
     toc_html = ""

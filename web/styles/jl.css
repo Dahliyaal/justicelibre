@@ -1710,3 +1710,12 @@ html[data-theme="dark"] .jl-circuit--sombre{display:block}
 /* Doctrine : en lecture d'un document, la recherche s'efface (3/10/2026). */
 body.jl-en-lecture .jl-hero,body.jl-en-lecture .jl-hero + .jl-lead,body.jl-en-lecture .jl-sbox,
 body.jl-en-lecture #hint,body.jl-en-lecture #advSum,body.jl-en-lecture #srcState,body.jl-en-lecture #topline{display:none}
+/* En-tête du greffe : composé comme un document, lien discret pour l'ouvrir (3/10/2026). */
+.jl-entete__sum{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--teal);margin:6px 0 18px}
+.jl-entete__sum::-webkit-details-marker{display:none}
+.jl-entete__sum::before{content:"›";display:inline-block;transition:transform .15s}
+.jl-entete-fold[open] > .jl-entete__sum::before{transform:rotate(90deg)}
+.jl-entete--doc{font-family:var(--font-serif);font-size:var(--text-sm);line-height:1.7;text-align:center;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--body);background:var(--white,#fff);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 24px;margin:0 0 24px;white-space:normal}
+.jl-entete__l{display:block}

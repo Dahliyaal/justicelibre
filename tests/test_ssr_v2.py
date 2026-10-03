@@ -325,7 +325,8 @@ def test_entete_du_greffe_replie_et_paragraphes_ancres():
         "full_text": "CIV. 2\n\nCOUR DE CASSATION\n\nAU NOM DU PEUPLE FRANÇAIS\n\n"
                      "Faits et procédure\n\n1. Premier paragraphe.\n\n"
                      "2. Second paragraphe."})
-    assert 'class="jl-fold jl-entete-fold"' in h and "AU NOM DU PEUPLE" in h
+    assert 'class="jl-entete-fold"' in h and "AU NOM DU PEUPLE" in h
+    assert 'R É P U B L' not in h and '-----' not in h
     assert 'id="p1"' in h and 'id="p2"' in h and 'href="#p1"' in h
     assert 'id="s-faits-et-procedure"' in h, "le titre du texte n'est pas ancré"
     assert 'class="jl-toc"' in h
